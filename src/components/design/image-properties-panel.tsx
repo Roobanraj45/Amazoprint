@@ -1,12 +1,6 @@
-
 'use client';
 
 import React from "react";
-import {
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,12 +15,9 @@ import type { DesignElement, GradientStop } from "@/lib/types";
 import {
   FlipHorizontal,
   FlipVertical,
-  Image as ImageIcon,
   Palette,
   SlidersHorizontal,
-  Move,
   Maximize,
-  Sparkles,
   ListFilter,
   Crop as CropIcon,
 } from "lucide-react";
@@ -58,8 +49,6 @@ const SectionCard = ({ title, icon, children, ...props }: any) => (
 
 
 export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, setCroppingElementId }: Props) {
-  const isCropping = croppingElementId === element.id;
-
   const update = (props: Partial<DesignElement>) =>
     onUpdate(element.id, props);
 
@@ -170,19 +159,8 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
   );
 
   return (
-    <AccordionItem value="image-style" className="border-none">
-      <AccordionTrigger className="hover:no-underline py-4 px-4 bg-secondary/20 rounded-t-xl group">
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 rounded-lg bg-primary/10 text-primary group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-all">
-            <ImageIcon size={16} />
-          </div>
-          <span className="text-sm font-bold">Image Properties</span>
-        </div>
-      </AccordionTrigger>
-
-      <AccordionContent className="px-4 pb-6 space-y-4 pt-2 bg-secondary/10">
-        
-       {/* TRANSFORM SECTION */}
+    <div className="space-y-4">
+        {/* TRANSFORM SECTION */}
         <div className="bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm">
             <SectionCard title="Transform" icon={<Maximize size={14} />}>
                 <div className="space-y-4">
@@ -228,7 +206,7 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                     </Label>
 
                     <Select
-                        value={element.objectFit}
+                        value={element.objectFit || 'cover'}
                         onValueChange={(v) => update({ objectFit: v as any })}
                     >
                         <SelectTrigger className="h-9 w-full text-xs bg-background border-border/60 rounded-lg focus:ring-2 focus:ring-primary/20">
@@ -283,7 +261,7 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                     {(!element.fillType || element.fillType === "solid") && (
                     <ColorPicker
                         label=""
-                        color={element.color}
+                        color={element.color || 'transparent'}
                         onChange={(c) => update({ color: c || "" })}
                     />
                     )}
@@ -330,7 +308,7 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                                         <div key={stop.id} className="bg-background/40 p-3 rounded-xl border border-border/40">
                                             <div className="flex gap-3 items-end">
                                                 <ColorPicker
-                                                    label={`Step ${''}${index + 1}`}
+                                                    label={`Step ${index + 1}`}
                                                     color={stop.color}
                                                     onChange={color => handleSteppedStopChange(index, { color })}
                                                     containerClassName="space-y-0 flex-1"
@@ -377,9 +355,9 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                   <TabsTrigger value="advanced" className="text-xs">Advanced</TabsTrigger>
               </TabsList>
               <TabsContent value="basic" className="pt-4 space-y-4">
-                  <PropertyRow label="Brightness" value={element.filterBrightness} display={`${Math.round((element.filterBrightness - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => update({ filterBrightness: v })} />
-                  <PropertyRow label="Contrast" value={element.filterContrast} display={`${Math.round((element.filterContrast - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => update({ filterContrast: v })} />
-                  <PropertyRow label="Saturation" value={element.filterSaturate} display={`${Math.round((element.filterSaturate - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => update({ filterSaturate: v })} />
+                  <PropertyRow label="Brightness" value={element.filterBrightness || 1} display={`${Math.round(((element.filterBrightness || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => update({ filterBrightness: v })} />
+                  <PropertyRow label="Contrast" value={element.filterContrast || 1} display={`${Math.round(((element.filterContrast || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => update({ filterContrast: v })} />
+                  <PropertyRow label="Saturation" value={element.filterSaturate || 1} display={`${Math.round(((element.filterSaturate || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => update({ filterSaturate: v })} />
               </TabsContent>
               <TabsContent value="effects" className="pt-4 space-y-4">
                   <PropertyRow label="Grayscale" value={element.filterGrayscale || 0} display={`${Math.round((element.filterGrayscale || 0) * 100)}%`} min={0} max={1} step={0.05} onChange={(v: number) => update({ filterGrayscale: v })} />
@@ -393,8 +371,6 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
             </Tabs>
             </SectionCard>
         </div>
-
-      </AccordionContent>
-    </AccordionItem>
+    </div>
   );
 }
