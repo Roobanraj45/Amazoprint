@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { Loader2, ArrowRight, File } from 'lucide-react';
 import Image from 'next/image';
 import { resolveImagePath } from '@/lib/utils';
 import { DesignCanvas } from '@/components/design/design-canvas';
@@ -100,7 +100,7 @@ function AddressForm({ type, register, errors }: { type: 'shippingAddress' | 'bi
     );
 }
 
-export default function CheckoutPage() {
+function CheckoutContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { toast } = useToast();
@@ -115,7 +115,7 @@ export default function CheckoutPage() {
         }
     });
 
-    const { register, control, handleSubmit, watch, formState: { errors } } = methods;
+    const { register, handleSubmit, watch, formState: { errors } } = methods;
     const useShippingForBilling = watch('useShippingForBilling');
 
     useEffect(() => {
@@ -174,7 +174,6 @@ export default function CheckoutPage() {
         return <div className="text-center py-20">Could not load checkout information.</div>;
     }
 
-    const source = details.design || details.upload;
     let imagePreview: React.ReactNode;
 
     if (details.design) {
@@ -289,5 +288,13 @@ export default function CheckoutPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function CheckoutPage() {
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-10 w-10 animate-spin" /></div>}>
+            <CheckoutContent />
+        </Suspense>
     );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, UploadCloud, File, Image as ImageIcon } from 'lucide-react';
+import { Loader2, UploadCloud, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { resolveImagePath } from '@/lib/utils';
 import Link from 'next/link';
@@ -42,7 +42,7 @@ const uploadSchema = z.object({
 
 type UploadFormValues = z.infer<typeof uploadSchema>;
 
-export default function UploadDesignPage() {
+function UploadDesignContent() {
     const router = useRouter();
     const params = useParams();
     const searchParams = useSearchParams();
@@ -66,7 +66,7 @@ export default function UploadDesignPage() {
         }
     }, [productIdSlug]);
 
-    const { register, handleSubmit, control, formState: { errors }, reset } = useForm<UploadFormValues>({
+    const { register, handleSubmit, control, formState: { errors } } = useForm<UploadFormValues>({
         resolver: zodResolver(uploadSchema),
         defaultValues: { name: '', description: '', isPublic: false }
     });
@@ -185,5 +185,13 @@ export default function UploadDesignPage() {
                 </CardFooter>
             </form>
         </Card>
+    );
+}
+
+export default function UploadDesignPage() {
+    return (
+        <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <UploadDesignContent />
+        </Suspense>
     );
 }

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { getProductBySlug } from '@/app/actions/product-actions';
 import { getPricingRulesForSubProduct } from '@/app/actions/pricing-actions';
 import { getSession } from '@/app/actions/user-actions';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 type ProductWithSubProducts = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
 type SubProductData = ProductWithSubProducts['subProducts'][0];
 
-export default function StartDesignPage() {
+function StartDesignContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -101,7 +101,6 @@ export default function StartDesignPage() {
     let finalPrice = basePrice;
     let discount = 0;
     let discountDescription: string | null = null;
-    let priceDescription: string | null = null;
 
     // Find standard pricing rule for quantity
     const standardRule = pricingRules.find(r => !r.isDiscount && !r.isContest && !r.isVerification && qty >= (r.minQuantity || 1) && (!r.maxQuantity || qty <= r.maxQuantity));
@@ -130,7 +129,7 @@ export default function StartDesignPage() {
         description: discountDescription,
     });
 
-}, [quantity, subProduct, pricingRules]);
+  }, [quantity, subProduct, pricingRules]);
 
   const constructedQuery = useMemo(() => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -146,23 +145,17 @@ export default function StartDesignPage() {
 
   if (loading) {
     return (
-        <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950">
-            <Header />
-            <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
     );
   }
 
   if (!product || !subProduct) {
     return (
-        <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950">
-            <Header />
-            <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] space-y-4">
-                <h1 className="text-2xl font-bold">Product not found</h1>
-                <Button asChild><Link href="/products">Back to Products</Link></Button>
-            </div>
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] space-y-4">
+            <h1 className="text-2xl font-bold">Product not found</h1>
+            <Button asChild><Link href="/products">Back to Products</Link></Button>
         </div>
     );
   }
@@ -200,10 +193,7 @@ export default function StartDesignPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 flex flex-col">
-      <Header />
-      {/* Added pt-20 to push content below a fixed header */}
-      <main className="flex-grow pt-20 pb-12">
+    <main className="flex-grow pt-20 pb-12">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -429,6 +419,16 @@ export default function StartDesignPage() {
           </div>
         </div>
       </main>
+  );
+}
+
+export default function StartDesignPage() {
+  return (
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 flex flex-col">
+      <Header />
+      <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-10 w-10 animate-spin" /></div>}>
+        <StartDesignContent />
+      </Suspense>
     </div>
   );
 }
