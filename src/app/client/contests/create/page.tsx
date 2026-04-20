@@ -1,6 +1,5 @@
-
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,7 +35,7 @@ const contestFormSchema = z.object({
 
 type ContestFormValues = z.infer<typeof contestFormSchema>;
 
-export default function CreateContestPage() {
+function CreateContestContent() {
   const router = useRouter();
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -281,5 +280,13 @@ export default function CreateContestPage() {
           </form>
         </Card>
     </div>
+  );
+}
+
+export default function CreateContestPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-10 w-10 animate-spin" /></div>}>
+      <CreateContestContent />
+    </Suspense>
   );
 }
