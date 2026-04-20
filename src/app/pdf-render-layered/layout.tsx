@@ -1,1 +1,10 @@
-// This file is no longer in use and can be deleted.
+/**
+ * @fileOverview This layout is deprecated.
+ */
+export default function DeprecatedPdfRenderLayeredLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <>{children}</>;
+}
