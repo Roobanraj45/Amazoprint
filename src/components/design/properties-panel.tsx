@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import type { DesignElement, Product, Background, GradientStop } from '@/lib/types';
@@ -133,12 +131,13 @@ export function PropertiesPanel({
 
       if (fillType === 'stepped-gradient') {
         const steps = background.gradientSteps || 2;
+        const currentStops = background.gradientStops || [];
         const defaultColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#000000', '#ffffff', '#aaaaaa', '#555555'];
         const newStops: GradientStop[] = Array.from({ length: steps }, (_, i) => ({
-          id: crypto.randomUUID(),
-          color: defaultColors[i % defaultColors.length],
+          id: currentStops[i]?.id || crypto.randomUUID(),
+          color: currentStops[i]?.color || defaultColors[i % defaultColors.length],
           position: 0,
-          weight: 1,
+          weight: currentStops[i]?.weight || 1,
         }));
         newProps.gradientStops = newStops;
         newProps.gradientSteps = steps;
@@ -149,13 +148,14 @@ export function PropertiesPanel({
 
     const handleBackgroundGradientStepsChange = (steps: number) => {
       const newSteps = Math.max(2, Math.min(10, steps));
+      const currentStops = background.gradientStops || [];
       const defaultColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#000000', '#ffffff', '#aaaaaa', '#555555'];
 
       const newStops: GradientStop[] = Array.from({ length: newSteps }, (_, i) => ({
-        id: crypto.randomUUID(),
-        color: defaultColors[i % defaultColors.length],
+        id: currentStops[i]?.id || crypto.randomUUID(),
+        color: currentStops[i]?.color || defaultColors[i % defaultColors.length],
         position: 0,
-        weight: 1,
+        weight: currentStops[i]?.weight || 1,
       }));
 
       handleBackgroundChange({ gradientSteps: newSteps, gradientStops: newStops });
@@ -315,7 +315,7 @@ export function PropertiesPanel({
                           <div key={stop.id} className="bg-background/40 p-3 rounded-xl border border-border/40">
                             <div className="flex gap-3 items-end">
                               <ColorPicker
-                                label={`Step ${''}${index + 1}`}
+                                label={`Step ${index + 1}`}
                                 color={stop.color}
                                 onChange={color => handleBackgroundSteppedStopChange(index, { color })}
                                 containerClassName="space-y-0 flex-1"
@@ -702,7 +702,7 @@ export function PropertiesPanel({
                     <Input
                       type="number"
                       value={element.borderWidth || 0}
-                      onChange={(e) => onUpdate(element.id, { borderWidth: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => onUpdate(element.id, { borderWidth: parseInt(e.target.value, 10) || 0 })}
                       className="h-8 text-xs"
                     />
                   </div>

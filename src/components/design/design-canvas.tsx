@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useRef } from 'react';
@@ -368,10 +366,27 @@ export function DesignCanvas({
     bgPositions.push('center');
   }
 
-  if (renderMode !== 'spotuv' && background.type === 'gradient' && background.gradientStops) {
-    const sortedStops = [...background.gradientStops].sort((a,b) => a.position - b.position);
-    const colorStops = sortedStops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
-    bgImages.push(`linear-gradient(${background.gradientDirection || 0}deg, ${colorStops})`);
+  if (renderMode !== 'spotuv' && (background.type === 'gradient' || background.type === 'stepped-gradient') && background.gradientStops) {
+    if (background.type === 'stepped-gradient') {
+      const stops = background.gradientStops;
+      const totalWeight = stops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
+      if (totalWeight > 0) {
+        let accumulatedPercentage = 0;
+        const colorStops = stops.map((stop) => {
+          const weight = stop.weight ?? 1;
+          const startPercent = accumulatedPercentage;
+          const stepPercentage = (weight / totalWeight) * 100;
+          accumulatedPercentage += stepPercentage;
+          const endPercent = accumulatedPercentage;
+          return `${stop.color} ${startPercent}%, ${stop.color} ${endPercent}%`;
+        }).join(', ');
+        bgImages.push(`linear-gradient(${background.gradientDirection || 0}deg, ${colorStops})`);
+      }
+    } else {
+      const sortedStops = [...background.gradientStops].sort((a,b) => a.position - b.position);
+      const colorStops = sortedStops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
+      bgImages.push(`linear-gradient(${background.gradientDirection || 0}deg, ${colorStops})`);
+    }
     bgSizes.push('cover');
     bgRepeats.push('no-repeat');
     bgPositions.push('center');
