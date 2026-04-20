@@ -490,7 +490,7 @@ export function PropertiesPanel({
               <SectionHeader icon={Square} title="Shape Properties" />
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-6">
-              <ShapePropertiesPanel element={element} onUpdate={onUpdate} />
+              <ShapePropertiesPanel element={element} onUpdate={onUpdate} isAdmin={isAdmin} />
             </AccordionContent>
           </AccordionItem>
         )}

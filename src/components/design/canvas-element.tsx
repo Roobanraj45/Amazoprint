@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useRef, useEffect, memo } from 'react';
@@ -46,51 +44,78 @@ const createGradientString = (element: DesignElement, { reversed = false } = {})
 };
 
 
-const SvgGradientDefs = ({ element }: { element: DesignElement }) => {
-  const { fillType, gradientDirection = 90, gradientStops } = element;
+const SvgFillDefs = ({ element }: { element: DesignElement }) => {
+  const { fillType, gradientDirection = 90, gradientStops, fillImageSrc } = element;
 
-  if (!gradientStops || gradientStops.length === 0 || (fillType !== 'gradient' && fillType !== 'stepped-gradient')) {
-    return null;
-  }
+  const defs: JSX.Element[] = [];
 
-  let stopElements: JSX.Element[] | null = null;
-  
-  if (fillType === 'stepped-gradient') {
-    const totalWeight = gradientStops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
-    if (totalWeight <= 0) return null;
+  // Gradient support
+  if ((fillType === 'gradient' || fillType === 'stepped-gradient') && gradientStops && gradientStops.length > 0) {
+    let stopElements: JSX.Element[] | null = null;
     
-    let accumulatedOffset = 0;
-    stopElements = gradientStops.flatMap((stop, index) => {
-        const weight = stop.weight ?? 1;
-        const startOffset = accumulatedOffset;
-        const stepOffset = weight / totalWeight;
-        accumulatedOffset += stepOffset;
-        const endOffset = accumulatedOffset;
+    if (fillType === 'stepped-gradient') {
+      const totalWeight = gradientStops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
+      if (totalWeight > 0) {
+        let accumulatedOffset = 0;
+        stopElements = gradientStops.flatMap((stop, index) => {
+            const weight = stop.weight ?? 1;
+            const startOffset = accumulatedOffset;
+            const stepOffset = weight / totalWeight;
+            accumulatedOffset += stepOffset;
+            const endOffset = accumulatedOffset;
+            return [
+                <stop key={`${stop.id || index}-start`} offset={`${startOffset * 100}%`} stopColor={stop.color} />,
+                <stop key={`${stop.id || index}-end`} offset={`${endOffset * 100}%`} stopColor={stop.color} />
+            ];
+        });
+      }
+    } else { // 'gradient'
+      if (gradientStops.length >= 2) {
+        stopElements = gradientStops.map((stop, index) => (
+          <stop key={stop.id || index} offset={`${(index / (gradientStops.length - 1)) * 100}%`} stopColor={stop.color} />
+        ));
+      }
+    }
 
-        return [
-            <stop key={`${stop.id || index}-start`} offset={`${startOffset * 100}%`} stopColor={stop.color} />,
-            <stop key={`${stop.id || index}-end`} offset={`${endOffset * 100}%`} stopColor={stop.color} />
-        ];
-    });
-  } else { // 'gradient'
-    if (gradientStops.length < 2) return null;
-    stopElements = gradientStops.map((stop, index) => (
-      <stop key={stop.id || index} offset={`${(index / (gradientStops.length - 1)) * 100}%`} stopColor={stop.color} />
-    ));
+    if (stopElements) {
+      defs.push(
+        <linearGradient
+          key={`grad-${element.id}`}
+          id={`grad-${element.id}`}
+          gradientUnits="objectBoundingBox"
+          gradientTransform={`rotate(${gradientDirection - 90} 0.5 0.5)`}
+        >
+          {stopElements}
+        </linearGradient>
+      );
+    }
   }
 
-  // Use objectBoundingBox and gradientTransform for more robust text path gradients
-  return (
-    <defs>
-      <linearGradient
-        id={`grad-${element.id}`}
-        gradientUnits="objectBoundingBox"
-        gradientTransform={`rotate(${gradientDirection - 90} 0.5 0.5)`}
+  // Image fill support
+  if (fillType === 'image' && fillImageSrc) {
+    defs.push(
+      <pattern 
+        key={`img-fill-${element.id}`}
+        id={`img-fill-${element.id}`} 
+        patternUnits="objectBoundingBox" 
+        width="1" 
+        height="1"
       >
-        {stopElements}
-      </linearGradient>
-    </defs>
-  );
+        <image 
+          href={fillImageSrc} 
+          x="0" 
+          y="0" 
+          width={element.width} 
+          height={element.height} 
+          preserveAspectRatio="xMidYMid slice" 
+        />
+      </pattern>
+    );
+  }
+
+  if (defs.length === 0) return null;
+
+  return <defs>{defs}</defs>;
 };
 
 const StyledQrCode = memo(function StyledQrCode({ element }: { element: DesignElement }) {
@@ -470,6 +495,7 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
         const getFillForSvg = () => {
           if (isSpotUv) return 'black';
           if (element.fillType === 'none') return 'none';
+          if (element.fillType === 'image' && element.fillImageSrc) return `url(#img-fill-${element.id})`;
           if ((element.fillType === 'gradient' || element.fillType === 'stepped-gradient') && element.gradientStops) {
             return `url(#grad-${element.id})`;
           }
@@ -479,7 +505,7 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
           return 'none';
         };
 
-        const showTint = !isSpotUv && (element.fillType === 'gradient' || element.fillType === 'stepped-gradient') && element.color && (element.tintOpacity ?? 0) > 0;
+        const showTint = !isSpotUv && (element.fillType === 'gradient' || element.fillType === 'stepped-gradient' || element.fillType === 'image') && element.color && (element.tintOpacity ?? 0) > 0;
         
         const svgStrokeProps = {
           stroke: isSpotUv ? 'black' : element.borderColor,
@@ -489,7 +515,7 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
 
         return (
           <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }} preserveAspectRatio="none">
-            {!isSpotUv && <SvgGradientDefs element={element} />}
+            {!isSpotUv && <SvgFillDefs element={element} />}
             <path
               d={pathData}
               fill={getFillForSvg()}
@@ -520,6 +546,16 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
           if (isSpotUv) return 'black';
           if (element.fillType === 'none') return 'transparent';
 
+          if (element.fillType === 'image' && element.fillImageSrc) {
+            const imgLayer = `url("${element.fillImageSrc}") center/cover no-repeat`;
+            if (element.color && (element.tintOpacity ?? 0) > 0) {
+                const tintColor = hexToRgba(element.color, element.tintOpacity!);
+                const tintLayer = `linear-gradient(${tintColor}, ${tintColor})`;
+                return `${tintLayer}, ${imgLayer}`;
+            }
+            return imgLayer;
+          }
+
           const gradientString = createGradientString(element);
           if (gradientString) {
             if (element.color && (element.tintOpacity ?? 0) > 0) {
@@ -538,6 +574,7 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
         const getFillForSvg = () => {
           if (isSpotUv) return 'black';
           if (element.fillType === 'none') return 'none';
+          if (element.fillType === 'image' && element.fillImageSrc) return `url(#img-fill-${element.id})`;
           if ((element.fillType === 'gradient' || element.fillType === 'stepped-gradient') && element.gradientStops) {
             return `url(#grad-${element.id})`;
           }
@@ -547,7 +584,7 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
           return 'none';
         };
 
-        const showTint = !isSpotUv && (element.fillType === 'gradient' || element.fillType === 'stepped-gradient') && element.color && (element.tintOpacity ?? 0) > 0;
+        const showTint = !isSpotUv && (element.fillType === 'gradient' || element.fillType === 'stepped-gradient' || element.fillType === 'image') && element.color && (element.tintOpacity ?? 0) > 0;
         
         const divStrokeProps = {
           borderWidth: element.borderWidth || 0,
@@ -593,7 +630,7 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
                   viewBox="0 0 100 100"
                   preserveAspectRatio="none"
                 >
-                  {!isSpotUv && <SvgGradientDefs element={element} />}
+                  {!isSpotUv && <SvgFillDefs element={element} />}
                   <polygon points="50,0 100,100 0,100" fill={getFillForSvg()} {...svgStrokeProps} />
                   {showTint && (
                      <polygon points="50,0 100,100 0,100" fill={element.color} fillOpacity={element.tintOpacity} />
@@ -610,7 +647,7 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
                   viewBox="0 0 100 100"
                   preserveAspectRatio="none"
                 >
-                  {!isSpotUv && <SvgGradientDefs element={element} />}
+                  {!isSpotUv && <SvgFillDefs element={element} />}
                   <polygon
                     points="50,0 61,35 98,35 68,57 79,91 50,70 21,91 32,57 2,35 39,35"
                     fill={getFillForSvg()}
@@ -634,7 +671,7 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
                         height="100%"
                         viewBox="0 0 24 24"
                     >
-                        {!isSpotUv && <SvgGradientDefs element={element} />}
+                        {!isSpotUv && <SvgFillDefs element={element} />}
                         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" fill={getFillForSvg()} {...svgStrokeProps} />
                         {showTint && (
                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" fill={element.color} fillOpacity={element.tintOpacity} />
@@ -664,16 +701,28 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
             const Icon = (lucide as any)[shapeNamePascal];
 
             if (Icon) {
+              const svgFill = getFillForSvg();
               return (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon
-                    width="100%"
-                    height="100%"
-                    stroke={isSpotUv ? 'black' : element.borderColor}
-                    fill={isSpotUv ? 'black' : (element.fillType === 'solid' ? element.color : 'none')}
-                    strokeWidth={element.borderWidth}
-                    strokeDasharray={element.borderStyle === 'dashed' ? '4 2' : (element.borderStyle === 'dotted' ? '1 2' : 'none')}
-                  />
+                  <svg width="100%" height="100%" viewBox="0 0 24 24" style={{ overflow: 'visible' }}>
+                    {!isSpotUv && <SvgFillDefs element={element} />}
+                    <Icon
+                      width="100%"
+                      height="100%"
+                      stroke={isSpotUv ? 'black' : element.borderColor}
+                      fill={svgFill}
+                      strokeWidth={element.borderWidth}
+                      strokeDasharray={element.borderStyle === 'dashed' ? '4 2' : (element.borderStyle === 'dotted' ? '1 2' : 'none')}
+                    />
+                    {showTint && (
+                        <Icon 
+                           width="100%"
+                           height="100%"
+                           fill={element.color}
+                           fillOpacity={element.tintOpacity}
+                        />
+                    )}
+                  </svg>
                 </div>
               );
             }
