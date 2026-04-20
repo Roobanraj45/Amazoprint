@@ -7,6 +7,8 @@ import { eq, asc } from 'drizzle-orm';
 import { getDesign } from '@/app/actions/design-actions';
 import { getSession } from '@/lib/auth';
 import { getFoilTypes } from '@/app/actions/foil-actions';
+import { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
 
 type DesignPageProps = {
   params: {
@@ -27,8 +29,9 @@ type DesignPageProps = {
 const DPI = 300;
 const MM_TO_PX = DPI / 25.4;
 
-export default async function DesignPage({ params, searchParams }: DesignPageProps) {
-  const { productId: productSlug } = params;
+export default async function DesignPage({ params, searchParams: searchParamsPromise }: DesignPageProps) {
+  const { productId: productSlug } = await params;
+  const searchParams = await searchParamsPromise;
 
   // Fetch product from DB using slug
   const productData = await db.query.products.findFirst({
@@ -61,15 +64,14 @@ export default async function DesignPage({ params, searchParams }: DesignPagePro
   const finalHeight = Math.round(finalHeightInMm * MM_TO_PX);
 
   // The DesignEditor component expects a `Product` type from `@/lib/types`.
-  // We construct this object using data from the database.
   const productForEditor: Product = {
     id: productData.slug,
     name: productData.name,
     description: productData.description || '',
-    imageId: '', // The type expects imageId, we'll use imageUrl.
+    imageId: '', 
     width: finalWidth,
     height: finalHeight,
-    type: productData.category || productData.name, // Use category for the AI prompt type, fallback to name.
+    type: productData.category || productData.name, 
   };
 
 
@@ -93,18 +95,15 @@ export default async function DesignPage({ params, searchParams }: DesignPagePro
         initialElements = template.elements as DesignElement[] | DesignElement[][];
         initialBackground = template.background as Background | Background[];
         
-        // Determine total pages from the loaded design data
         if (Array.isArray(initialElements) && initialElements.length > 0 && Array.isArray(initialElements[0])) {
             totalPages = initialElements.length;
         } else {
             totalPages = 1;
         }
 
-        // Saved template dimensions are in mm, convert to px for editor
         productForEditor.width = Math.round(template.width * MM_TO_PX);
         productForEditor.height = Math.round(template.height * MM_TO_PX);
         
-        // A freelancer reworking a design for verification should also be able to update it.
         const canUpdate = (session?.sub && template.userId === session.sub) || isAdmin || (isFreelancer && verificationId);
         
         if (canUpdate) {
@@ -123,7 +122,9 @@ export default async function DesignPage({ params, searchParams }: DesignPagePro
 
   const spotUvAllowedForProduct = subProductForDims?.spotUvAllowed ?? false;
 
-  return <DesignEditor 
+  return (
+    <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="animate-spin h-8 w-8" /></div>}>
+        <DesignEditor 
             product={productForEditor} 
             quantity={quantity} 
             totalPages={totalPages}
@@ -136,5 +137,7 @@ export default async function DesignPage({ params, searchParams }: DesignPagePro
             availableFoils={availableFoils}
             spotUvAllowed={spotUvAllowedForProduct}
             verificationId={verificationId}
-        />;
+        />
+    </Suspense>
+  );
 }
