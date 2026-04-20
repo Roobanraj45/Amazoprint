@@ -1,0 +1,430 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "Abstract hero image for landing page",
+      "imageUrl": "https://images.unsplash.com/photo-1605106702842-01a887a31122?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxhYnN0cmFjdCUyMGRlc2lnbnxlbnwwfHx8fDE3NzIwMzg1OTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract design"
+    },
+    {
+      "id": "business-card",
+      "description": "Placeholder for business card product",
+      "imageUrl": "https://images.unsplash.com/photo-1623305463957-df17547327cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YnVzaW5lc3MlMjBjYXJkfGVufDB8fHx8MTc3MjA4MDE5MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "business card"
+    },
+    {
+      "id": "sticker",
+      "description": "Placeholder for sticker product",
+      "imageUrl": "https://images.unsplash.com/photo-1653604212161-b50f445f7987?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxzdGlja2VyJTIwZGVzaWdufGVufDB8fHx8MTc3MjA4MDE5MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sticker design"
+    },
+    {
+      "id": "flyer",
+      "description": "Placeholder for flyer product",
+      "imageUrl": "https://images.unsplash.com/photo-1592972819197-7adf482e77d3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxmbHllciUyMG1vY2t1cHxlbnwwfHx8fDE3NzIwODAxOTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "flyer mockup"
+    },
+    {
+      "id": "brochure",
+      "description": "Placeholder for brochure product",
+      "imageUrl": "https://images.unsplash.com/photo-1695634280931-c7fe426ebb19?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxicm9jaHVyZSUyMG1vY2t1cHxlbnwwfHx8fDE3NzIwODAxOTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "brochure mockup"
+    },
+    {
+      "id": "invitation",
+      "description": "Placeholder for invitation product",
+      "imageUrl": "https://images.unsplash.com/photo-1596751303335-ca42b3ca50c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx3ZWRkaW5nJTIwaW52aXRhdGlvbnxlbnwwfHx8fDE3NzIwMjI3NDN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "wedding invitation"
+    },
+    {
+      "id": "banner",
+      "description": "Placeholder for banner product",
+      "imageUrl": "https://images.unsplash.com/photo-1763741208697-5dc811061cfd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxldmVudCUyMGJhbm5lcnxlbnwwfHx8fDE3NzIwODAxOTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "event banner"
+    },
+    {
+      "id": "gift-bag",
+      "description": "Placeholder for gift bag product",
+      "imageUrl": "https://images.unsplash.com/photo-1673257042285-157546f25933?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxnaWZ0JTIwYmFnfGVufDB8fHx8MTc3MjA4MDE5MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "gift bag"
+    },
+    {
+      "id": "pen",
+      "description": "Placeholder for premium pen product",
+      "imageUrl": "https://images.unsplash.com/photo-1754039985008-a15410211b67?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwcmVtaXVtJTIwcGVufGVufDB8fHx8MTc3MjA4MDE5MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "premium pen"
+    },
+    {
+      "id": "poster",
+      "description": "Poster mockup",
+      "imageUrl": "https://picsum.photos/seed/poster/400/250",
+      "imageHint": "poster mockup"
+    },
+    {
+      "id": "door-hanger",
+      "description": "Door hanger mockup",
+      "imageUrl": "https://picsum.photos/seed/doorhanger/400/250",
+      "imageHint": "door hanger"
+    },
+    {
+      "id": "letterhead",
+      "description": "Letterhead mockup",
+      "imageUrl": "https://picsum.photos/seed/letterhead/400/250",
+      "imageHint": "letterhead mockup"
+    },
+    {
+      "id": "envelope",
+      "description": "Envelope mockup",
+      "imageUrl": "https://picsum.photos/seed/envelope/400/250",
+      "imageHint": "envelope mockup"
+    },
+    {
+      "id": "notepad",
+      "description": "Notepad mockup",
+      "imageUrl": "https://picsum.photos/seed/notepad/400/250",
+      "imageHint": "notepad mockup"
+    },
+    {
+      "id": "presentation-folder",
+      "description": "Presentation folder mockup",
+      "imageUrl": "https://picsum.photos/seed/folder/400/250",
+      "imageHint": "presentation folder"
+    },
+    {
+      "id": "ncr-form",
+      "description": "NCR form mockup",
+      "imageUrl": "https://picsum.photos/seed/ncrform/400/250",
+      "imageHint": "ncr form"
+    },
+    {
+      "id": "flex-printing",
+      "description": "Flex printing banner",
+      "imageUrl": "https://picsum.photos/seed/flexprint/400/250",
+      "imageHint": "flex banner"
+    },
+    {
+      "id": "vinyl-printing",
+      "description": "Vinyl printing",
+      "imageUrl": "https://picsum.photos/seed/vinylprint/400/250",
+      "imageHint": "vinyl printing"
+    },
+    {
+      "id": "rollup-standee",
+      "description": "Roll-up standee",
+      "imageUrl": "https://picsum.photos/seed/standee/400/250",
+      "imageHint": "rollup standee"
+    },
+    {
+      "id": "signage-board",
+      "description": "Signage board",
+      "imageUrl": "https://picsum.photos/seed/signboard/400/250",
+      "imageHint": "signage board"
+    },
+    {
+      "id": "packaging-box",
+      "description": "Product packaging box",
+      "imageUrl": "https://picsum.photos/seed/box/400/250",
+      "imageHint": "packaging box"
+    },
+    {
+      "id": "labels",
+      "description": "Product labels",
+      "imageUrl": "https://picsum.photos/seed/labels/400/250",
+      "imageHint": "product labels"
+    },
+    {
+      "id": "tags",
+      "description": "Product tags",
+      "imageUrl": "https://picsum.photos/seed/tags/400/250",
+      "imageHint": "product tags"
+    },
+    {
+      "id": "pouches-printing",
+      "description": "Printed pouches",
+      "imageUrl": "https://picsum.photos/seed/pouches/400/250",
+      "imageHint": "printed pouches"
+    },
+    {
+      "id": "t-shirt",
+      "description": "T-shirt mockup",
+      "imageUrl": "https://picsum.photos/seed/tshirt/400/250",
+      "imageHint": "t-shirt mockup"
+    },
+    {
+      "id": "mug",
+      "description": "Mug mockup",
+      "imageUrl": "https://picsum.photos/seed/mug/400/250",
+      "imageHint": "mug mockup"
+    },
+    {
+      "id": "cap",
+      "description": "Cap mockup",
+      "imageUrl": "https://picsum.photos/seed/cap/400/250",
+      "imageHint": "cap mockup"
+    },
+    {
+      "id": "corporate-gift",
+      "description": "Corporate gifts",
+      "imageUrl": "https://picsum.photos/seed/corpgift/400/250",
+      "imageHint": "corporate gifts"
+    },
+    {
+      "id": "tote-bag",
+      "description": "Tote bag mockup",
+      "imageUrl": "https://picsum.photos/seed/totebag/400/250",
+      "imageHint": "tote bag"
+    },
+    {
+      "id": "book-printing",
+      "description": "Book cover mockup",
+      "imageUrl": "https://picsum.photos/seed/book/400/250",
+      "imageHint": "book cover"
+    },
+    {
+      "id": "magazine",
+      "description": "Magazine mockup",
+      "imageUrl": "https://picsum.photos/seed/magazine/400/250",
+      "imageHint": "magazine mockup"
+    },
+    {
+      "id": "catalog",
+      "description": "Catalog mockup",
+      "imageUrl": "https://picsum.photos/seed/catalog/400/250",
+      "imageHint": "catalog mockup"
+    },
+    {
+      "id": "booklet",
+      "description": "Booklet mockup",
+      "imageUrl": "https://picsum.photos/seed/booklet/400/250",
+      "imageHint": "booklet mockup"
+    },
+    {
+      "id": "journal",
+      "description": "Journal mockup",
+      "imageUrl": "https://picsum.photos/seed/journal/400/250",
+      "imageHint": "journal mockup"
+    },
+    {
+      "id": "photo-prints",
+      "description": "Photo prints",
+      "imageUrl": "https://picsum.photos/seed/photoprints/400/250",
+      "imageHint": "photo prints"
+    },
+    {
+      "id": "photo-frame",
+      "description": "Photo frame",
+      "imageUrl": "https://picsum.photos/seed/photoframe/400/250",
+      "imageHint": "photo frame"
+    },
+    {
+      "id": "calendar",
+      "description": "Calendar mockup",
+      "imageUrl": "https://picsum.photos/seed/calendar/400/250",
+      "imageHint": "calendar mockup"
+    },
+    {
+      "id": "photo-book",
+      "description": "Photo book mockup",
+      "imageUrl": "https://picsum.photos/seed/photobook/400/250",
+      "imageHint": "photo book"
+    },
+    {
+      "id": "canvas-print",
+      "description": "Canvas print",
+      "imageUrl": "https://picsum.photos/seed/canvasprint/400/250",
+      "imageHint": "canvas print"
+    },
+    {
+      "id": "rsvp-card",
+      "description": "RSVP card mockup",
+      "imageUrl": "https://picsum.photos/seed/rsvp/400/250",
+      "imageHint": "rsvp card"
+    },
+    {
+      "id": "thank-you-card",
+      "description": "Thank you card mockup",
+      "imageUrl": "https://picsum.photos/seed/thankyou/400/250",
+      "imageHint": "thank you card"
+    },
+    {
+      "id": "event-ticket",
+      "description": "Event ticket mockup",
+      "imageUrl": "https://picsum.photos/seed/ticket/400/250",
+      "imageHint": "event ticket"
+    },
+    {
+      "id": "greeting-card",
+      "description": "Greeting card mockup",
+      "imageUrl": "https://picsum.photos/seed/greetingcard/400/250",
+      "imageHint": "greeting card"
+    },
+    {
+      "id": "id-card",
+      "description": "ID card mockup",
+      "imageUrl": "https://picsum.photos/seed/idcard/400/250",
+      "imageHint": "id card"
+    },
+    {
+      "id": "lanyard",
+      "description": "Lanyard mockup",
+      "imageUrl": "https://picsum.photos/seed/lanyard/400/250",
+      "imageHint": "lanyard mockup"
+    },
+    {
+      "id": "badge-printing",
+      "description": "Badge mockup",
+      "imageUrl": "https://picsum.photos/seed/badge/400/250",
+      "imageHint": "badge mockup"
+    },
+    {
+      "id": "certificate",
+      "description": "Certificate mockup",
+      "imageUrl": "https://picsum.photos/seed/certificate/400/250",
+      "imageHint": "certificate mockup"
+    },
+    {
+      "id": "visitor-pass",
+      "description": "Visitor pass mockup",
+      "imageUrl": "https://picsum.photos/seed/visitorpass/400/250",
+      "imageHint": "visitor pass"
+    },
+    {
+      "id": "abstract-pattern-1",
+      "description": "Colorful abstract pattern",
+      "imageUrl": "https://images.unsplash.com/photo-1557683316-973673baf926?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMHBhdHRlcm58ZW58MHx8fHwxNzcyMDk0NTYwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract pattern"
+    },
+    {
+      "id": "abstract-colorful-1",
+      "description": "Vibrant abstract design",
+      "imageUrl": "https://images.unsplash.com/photo-1553356084-58ef4a67b2a7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxhYnN0cmFjdCUyMHBhdHRlcm58ZW58MHx8fHwxNzcyMDk0NTYwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vibrant abstract"
+    },
+    {
+      "id": "geometric-design-1",
+      "description": "Luminous geometric shapes",
+      "imageUrl": "https://images.unsplash.com/photo-1513151233558-d860c5398176?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxnZW9tZXRyaWMlMjBkZXNpZ258ZW58MHx8fHwxNzcyMDk0NjE0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "geometric design"
+    },
+    {
+      "id": "texture-1",
+      "description": "Rough plaster wall texture",
+      "imageUrl": "https://images.unsplash.com/photo-1629095196589-2f8d3f1a9a8c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx0ZXh0dXJlfGVufDB8fHx8MTc3MjA5NDY0NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "wall texture"
+    },
+    {
+      "id": "illustration-1",
+      "description": "Hand-drawn illustration style",
+      "imageUrl": "https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxpbGx1c3RyYXRpb258ZW58MHx8fHwxNzcyMDk0Njc3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doodle illustration"
+    },
+    {
+      "id": "art-1",
+      "description": "Abstract colorful painting",
+      "imageUrl": "https://images.unsplash.com/photo-1617396900799-f4ec2b43c7ae?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxhcnR8ZW58MHx8fHwxNzcyMDk0NzA0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract art"
+    },
+    {
+      "id": "watercolor-texture-1",
+      "description": "Blue and purple watercolor texture",
+      "imageUrl": "https://images.unsplash.com/photo-1542772594-727993a4c415?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3YXRlcmNvbG9yJTIwdGV4dHVyZXxlbnwwfHx8fDE3NzIxODQwNTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "watercolor texture"
+    },
+    {
+      "id": "floral-pattern-1",
+      "description": "Vintage floral pattern",
+      "imageUrl": "https://images.unsplash.com/photo-1593532729358-89a31a49f7e5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmbG9yYWwlMjBwYXR0ZXJufGVufDB8fHx8MTc3MjE4NDA4N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "floral pattern"
+    },
+    {
+      "id": "architecture-1",
+      "description": "Modern building with geometric lines",
+      "imageUrl": "https://images.unsplash.com/photo-1487958449943-2429e8be8625?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBhcmNoaXRlY3R1cmV8ZW58MHx8fHwxNzcyMTg0MTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "modern architecture"
+    },
+    {
+      "id": "landscape-1",
+      "description": "Misty mountains landscape",
+      "imageUrl": "https://images.unsplash.com/photo-1433838552652-f9a46b332c40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxuYXR1cmUlMjBsYW5kc2NhcGV8ZW58MHx8fHwxNzcyMTg0MTU3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "nature landscape"
+    },
+    {
+      "id": "abstract-liquid-1",
+      "description": "Pink and blue abstract liquid art",
+      "imageUrl": "https://images.unsplash.com/photo-1604871025219-b57feb440742?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxhYnN0cmFjdCUyMGxpcXVpZCUyMGFydHxlbnwwfHx8fDE3NzIxODQxOTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "liquid art"
+    },
+    {
+      "id": "template-bc-minimal",
+      "description": "Minimalist business card template preview",
+      "imageUrl": "https://picsum.photos/seed/bc-min/400/250",
+      "imageHint": "minimalist business card"
+    },
+    {
+      "id": "template-bc-bold",
+      "description": "Bold business card template preview",
+      "imageUrl": "https://picsum.photos/seed/bc-bold/400/250",
+      "imageHint": "bold business card"
+    },
+    {
+      "id": "template-bc-creative",
+      "description": "Creative business card template preview",
+      "imageUrl": "https://picsum.photos/seed/bc-creative/400/250",
+      "imageHint": "creative business card"
+    },
+    {
+      "id": "template-bc-elegant",
+      "description": "Elegant business card template preview",
+      "imageUrl": "https://picsum.photos/seed/bc-elegant/400/250",
+      "imageHint": "elegant business card"
+    },
+    {
+      "id": "template-sticker-playful",
+      "description": "Playful sticker template preview",
+      "imageUrl": "https://picsum.photos/seed/sticker-play/400/250",
+      "imageHint": "playful sticker"
+    },
+    {
+      "id": "template-sticker-corp",
+      "description": "Corporate sticker template preview",
+      "imageUrl": "https://picsum.photos/seed/sticker-corp/400/250",
+      "imageHint": "corporate sticker"
+    },
+    {
+      "id": "template-flyer-event",
+      "description": "Event flyer template preview",
+      "imageUrl": "https://picsum.photos/seed/flyer-event/400/250",
+      "imageHint": "event flyer"
+    },
+    {
+      "id": "template-flyer-biz",
+      "description": "Business flyer template preview",
+      "imageUrl": "https://picsum.photos/seed/flyer-biz/400/250",
+      "imageHint": "business flyer"
+    },
+    {
+      "id": "template-invite-wedding",
+      "description": "Wedding invitation template preview",
+      "imageUrl": "https://picsum.photos/seed/invite-wed/400/250",
+      "imageHint": "wedding invitation"
+    },
+    {
+      "id": "template-invite-party",
+      "description": "Party invitation template preview",
+      "imageUrl": "https://picsum.photos/seed/invite-party/400/250",
+      "imageHint": "party invitation"
+    },
+    {
+      "id": "template-banner-opening",
+      "description": "Grand opening banner template preview",
+      "imageUrl": "https://picsum.photos/seed/banner-open/400/250",
+      "imageHint": "opening banner"
+    },
+    {
+      "id": "template-banner-sale",
+      "description": "Sale banner template preview",
+      "imageUrl": "https://picsum.photos/seed/banner-sale/400/250",
+      "imageHint": "sale banner"
+    }
+  ]
+}
