@@ -81,7 +81,6 @@ import { CropDialog } from './crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { TextAddPanel } from './panels/text-add-panel';
 import { AmazoprintLogo } from '../ui/logo';
-import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 
 const MediaPanel = lazy(() => import('./panels/media-panel').then(m => ({ default: m.MediaPanel })));
 const QrCodePanel = lazy(() => import('./panels/qrcode-panel').then(m => ({ default: m.QrCodePanel })));
@@ -628,6 +627,7 @@ function DesignEditorInternal({
             if (!prev) return null;
             const newPath = prev.map(p => ({...p}));
             const point = newPath[draggingPoint.index];
+            if (!point) return prev; // Safety check
 
             if (draggingPoint.type === 'anchor') {
                 const dx = x - point.x;
@@ -1568,7 +1568,11 @@ function DesignEditorInternal({
                       </Tooltip>
                     ))}
                   </TabsList>
-                  <div className={cn("group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex", "w-[26rem]")}>
+                  <div className={cn(
+                    "group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex", 
+                    "w-[26rem]",
+                    activeTool === 'pen' && "hidden" // Remove left panel space for pen tool
+                  )}>
                     <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
                           <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />
@@ -1686,7 +1690,7 @@ function DesignEditorInternal({
                         {editorPanels.map(panel => (
                            <Button 
                             key={panel.id}
-                            variant={activeMobilePanel === panel.id ? 'secondary' : 'ghost'}
+                            variant={activeMobilePanel === panel.id ? 'selected' : 'ghost'}
                             size="sm"
                             className="flex flex-col h-auto p-2 gap-1"
                             onClick={() => handleMobilePanelOpen(panel.id)}
@@ -1696,7 +1700,7 @@ function DesignEditorInternal({
                            </Button> 
                         ))}
                          <Button 
-                            variant={activeMobilePanel === 'properties' ? 'secondary' : 'ghost'}
+                            variant={activeMobilePanel === 'properties' ? 'selected' : 'ghost'}
                             size="sm"
                             className="flex flex-col h-auto p-2 gap-1"
                             disabled={!selectedElement}
