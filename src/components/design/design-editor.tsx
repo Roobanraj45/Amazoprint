@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -264,11 +262,12 @@ function DesignEditorInternal({
 
     const firstPoint = finalPath[0];
     const lastPoint = finalPath[finalPath.length - 1];
-    const isClosed = finalPath.length > 1 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 10 / viewState.zoom;
+    const isClosed = finalPath.length > 1 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 15 / viewState.zoom;
 
     const newPathElement: DesignElement = {
         id: crypto.randomUUID(),
         type: 'path',
+        fillType: 'solid',
         x: minX, y: minY, width: maxX - minX, height: maxY - minY,
         rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 1, borderStyle: 'solid',
         isPathClosed: isClosed,
@@ -504,37 +503,41 @@ function DesignEditorInternal({
         const [x, y] = getPointInCanvas(e);
 
         if (livePath) {
-            const pointRadius = 6 / viewState.zoom;
+            const hitRadius = 12 / viewState.zoom;
             for (let i = 0; i < livePath.length; i++) {
                 const p = livePath[i];
-                if (Math.hypot(x - p.x, y - p.y) < pointRadius) {
+                if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'anchor' });
                     return;
                 }
-                if (Math.hypot(x - p.cp1x, y - p.cp1y) < pointRadius) {
+                if (Math.hypot(x - p.cp1x, y - p.cp1y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'cp1' });
                     return;
                 }
-                if (Math.hypot(x - p.cp2x, y - p.cp2y) < pointRadius) {
+                if (Math.hypot(x - p.cp2x, y - p.cp2y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'cp2' });
                     return;
                 }
             }
         }
 
-        const newPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
+        const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
         setLivePath(prev => {
-            const newLivePath = [...(prev || []), newPoint];
-            if (newLivePath.length > 1) {
-                const prevPoint = newLivePath[newLivePath.length - 2];
-                const dx = newPoint.x - prevPoint.x;
-                const dy = newPoint.y - prevPoint.y;
-                prevPoint.cp2x = prevPoint.x + dx / 3;
-                prevPoint.cp2y = prevPoint.y + dy / 3;
-                newPoint.cp1x = newPoint.x - dx / 3;
-                newPoint.cp1y = newPoint.y - dy / 3;
-            }
-            return newLivePath;
+            if (!prev) return [newPoint];
+            const newLivePath = prev.map(p => ({...p})); // Deep copy to prevent mutation
+            const lastIdx = newLivePath.length - 1;
+            const prevPoint = newLivePath[lastIdx];
+            
+            const dx = newPoint.x - prevPoint.x;
+            const dy = newPoint.y - prevPoint.y;
+            
+            // Auto-extend handles for curve
+            prevPoint.cp2x = prevPoint.x + dx / 3;
+            prevPoint.cp2y = prevPoint.y + dy / 3;
+            newPoint.cp1x = newPoint.x - dx / 3;
+            newPoint.cp1y = newPoint.y - dy / 3;
+            
+            return [...newLivePath, newPoint];
         });
         
         setDraggingPoint({ index: (livePath?.length || 0), type: 'cp2' });
@@ -579,7 +582,7 @@ function DesignEditorInternal({
         
         setLivePath(prev => {
             if (!prev) return null;
-            const newPath = [...prev];
+            const newPath = prev.map(p => ({...p})); // Deep copy
             const point = newPath[draggingPoint.index];
 
             if (draggingPoint.type === 'anchor') {
@@ -591,27 +594,12 @@ function DesignEditorInternal({
                 point.cp1y += dy;
                 point.cp2x += dx;
                 point.cp2y += dy;
-            } else {
-                const isCp1 = draggingPoint.type === 'cp1';
-                
-                if (isCp1) {
-                    point.cp1x = x;
-                    point.cp1y = y;
-                } else { // cp2
-                    point.cp2x = x;
-                    point.cp2y = y;
-                }
-
-                const angle = Math.atan2( (isCp1 ? point.cp1y : point.cp2y) - point.y, (isCp1 ? point.cp1x : point.cp2x) - point.x) + Math.PI;
-                const length = isCp1 ? Math.hypot(point.cp2x - point.x, point.cp2y - point.y) : Math.hypot(point.cp1x - point.x, point.cp1y - point.y);
-
-                if (isCp1) {
-                    point.cp2x = point.x + Math.cos(angle) * length;
-                    point.cp2y = point.y + Math.sin(angle) * length;
-                } else {
-                    point.cp1x = point.x + Math.cos(angle) * length;
-                    point.cp1y = point.y + Math.sin(angle) * length;
-                }
+            } else if (draggingPoint.type === 'cp1') {
+                point.cp1x = x;
+                point.cp1y = y;
+            } else if (draggingPoint.type === 'cp2') {
+                point.cp2x = x;
+                point.cp2y = y;
             }
             return newPath;
         });
@@ -1340,7 +1328,7 @@ function DesignEditorInternal({
 
   const renderMobilePanelContent = () => {
     switch (activeMobilePanel) {
-        case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />;
+        case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddFancyText={() => {}} />;
         case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
         case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
         case 'brush': return <PencilToolPanel options={brushOptions} setOptions={setBrushOptions} />;
@@ -1529,7 +1517,7 @@ function DesignEditorInternal({
                   <div className={cn("group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex", "w-[26rem]")}>
                     <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
-                          <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />
+                          <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddFancyText={() => {}} />
                       </Suspense>
                     </TabsContent>
                     <TabsContent value="media" className="flex-1 overflow-auto mt-0">
