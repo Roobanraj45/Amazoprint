@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -6,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 interface LogoProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'wide' | 'banner';
+  variant?: 'wide' | 'banner' | 'large';
   isSimple?: boolean;
 }
 
@@ -23,7 +22,7 @@ export function AmazoprintLogo(logoProps: LogoProps) {
    */
   if (isSimple) {
     return (
-      <div className={cn("relative w-8 h-8", className)} {...props}>
+      <div className={cn("relative w-10 h-10", className)} {...props}>
         <img
           src="/uploads/amazoLogo.png"
           alt="Amazoprint Logo"
@@ -36,14 +35,20 @@ export function AmazoprintLogo(logoProps: LogoProps) {
   /**
    * FULL MODE: Brand headers/Heroes
    */
-  const dimensions = variant === 'wide' 
-    ? "h-16 w-52" 
-    : "h-28 w-80";
+  let dimensions = "h-16 w-52"; // default wide
+  
+  if (variant === 'large') {
+    dimensions = "h-24 w-72";
+  } else if (variant === 'banner') {
+    dimensions = "h-32 w-96";
+  } else {
+    dimensions = "h-20 w-64"; // Default wide is now larger
+  }
 
   return (
     <div className={cn('flex items-center justify-center', className)} {...props}>
       <motion.div 
-        whileHover={{ scale: 1.03 }}
+        whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         className={cn(
           "relative flex items-center justify-center",
@@ -55,7 +60,7 @@ export function AmazoprintLogo(logoProps: LogoProps) {
           <img
             src="/uploads/amazoLogo.png"
             alt="Amazoprint Logo"
-            className="object-contain drop-shadow-sm transition-transform duration-500 group-hover:scale-105 w-full h-full"
+            className="object-contain drop-shadow-md transition-transform duration-500 group-hover:scale-105 w-full h-full"
           />
         </div>
       </motion.div>

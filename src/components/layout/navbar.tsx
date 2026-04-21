@@ -8,6 +8,7 @@ import {
   X,
   ChevronRight,
   User,
+  LayoutGrid,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AmazoprintLogo } from '@/components/ui/logo';
@@ -17,6 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CartSheet } from '@/components/cart/cart-sheet';
 import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 type Session = Awaited<ReturnType<typeof getSession>>;
 
@@ -57,25 +59,26 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-background/70 backdrop-blur-xl border-b border-border/40">
-      <div className="container mx-auto px-4 lg:px-8 h-20 flex items-center justify-between">
-        {/* Logo Section */}
-        <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" prefetch={false}>
-          <AmazoprintLogo isSimple className="w-8 h-8 lg:hidden" />
-          <AmazoprintLogo className="hidden lg:block" />
-        </Link>
+    <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-2xl border-b border-border/50 shadow-sm transition-all duration-300">
+      <div className="container mx-auto px-4 lg:px-8 h-24 flex items-center justify-between">
+        {/* Logo Section - Prominent and Large */}
+        <div className="flex-shrink-0">
+          <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity" prefetch={false}>
+            <AmazoprintLogo className="scale-100 sm:scale-110 md:scale-125 origin-left" />
+          </Link>
+        </div>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-1">
+        {/* Desktop Navigation - Centered and Clean */}
+        <div className="hidden lg:flex items-center gap-1 mx-auto bg-muted/30 p-1.5 rounded-full border border-border/40">
           {navLinks.map((link) => (
             <Link 
               key={link.href} 
               href={link.href} 
               className={cn(
-                "px-4 py-2 text-sm font-semibold rounded-full transition-colors",
+                "px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-200",
                 pathname === link.href 
-                  ? "bg-primary/10 text-primary" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
               )}
             >
               {link.label}
@@ -83,96 +86,105 @@ export function Navbar() {
           ))}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3">
-          <div className="hidden md:flex items-center gap-3">
+        {/* Action Buttons - Grouped for clarity */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="hidden sm:flex items-center gap-3">
             {loading ? (
               <div className="flex items-center gap-2">
-                <Skeleton className="h-10 w-20 rounded-full" />
-                <Skeleton className="h-10 w-28 rounded-full" />
+                <Skeleton className="h-12 w-24 rounded-full" />
+                <Skeleton className="h-12 w-32 rounded-full" />
               </div>
             ) : session ? (
               <>
-                <Button asChild variant="ghost" className="rounded-full font-bold">
-                  <Link href={dashboardUrl}>Workspace</Link>
+                <Button asChild variant="outline" className="rounded-full font-bold h-12 px-6 border-2 hover:bg-primary/5">
+                  <Link href={dashboardUrl}>
+                    <LayoutGrid className="w-4 h-4 mr-2" />
+                    Workspace
+                  </Link>
                 </Button>
                 <LogoutButton />
               </>
             ) : (
               <>
-                <Button asChild variant="ghost" className="rounded-full font-bold px-6">
+                <Button asChild variant="ghost" className="rounded-full font-bold px-6 h-12 text-muted-foreground hover:text-foreground">
                   <Link href="/login">Login</Link>
                 </Button>
-                <Button asChild className="rounded-full px-8 font-black shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
-                  <Link href="/products">Create</Link>
+                <Button asChild className="rounded-full px-8 h-12 font-black text-md shadow-xl shadow-primary/30 hover:scale-105 transition-transform active:scale-95 bg-primary hover:bg-primary/90">
+                  <Link href="/products">Get Started</Link>
                 </Button>
               </>
             )}
           </div>
           
-          <CartSheet />
-          
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden rounded-full hover:bg-primary/5" 
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle Menu"
-          >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </Button>
+          <div className="flex items-center gap-2">
+            <CartSheet />
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="lg:hidden rounded-2xl h-12 w-12 hover:bg-primary/5 border border-transparent active:border-primary/20" 
+              onClick={() => setIsOpen(!isOpen)}
+              aria-label="Toggle Menu"
+            >
+              {isOpen ? <X className="w-6 h-6 text-primary" /> : <Menu className="w-6 h-6" />}
+            </Button>
+          </div>
         </div>
 
         {/* Mobile Navigation Drawer */}
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="absolute top-20 left-0 w-full bg-background border-b border-border shadow-2xl md:hidden overflow-hidden"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="absolute top-[6rem] left-0 w-full bg-background/95 backdrop-blur-3xl border-b border-border shadow-2xl lg:hidden overflow-hidden z-40"
             >
-              <div className="container mx-auto px-4 py-8 flex flex-col gap-6">
-                <div className="grid gap-2">
+              <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
+                <div className="grid grid-cols-1 gap-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground px-4 mb-2">Navigation</p>
                   {navLinks.map((link) => (
                     <Link 
                       key={link.href} 
                       href={link.href} 
-                      className="flex items-center justify-between p-4 text-lg font-bold rounded-2xl bg-muted/30 hover:bg-muted transition-colors"
+                      className={cn(
+                        "flex items-center justify-between p-5 text-xl font-black rounded-3xl transition-all active:scale-[0.98]",
+                        pathname === link.href ? "bg-primary text-primary-foreground" : "bg-muted/40 hover:bg-muted"
+                      )}
                       onClick={() => setIsOpen(false)}
                     >
                       {link.label}
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      <ChevronRight className={cn("w-6 h-6", pathname === link.href ? "text-primary-foreground/50" : "text-muted-foreground")} />
                     </Link>
                   ))}
                 </div>
                 
-                <Separator />
+                <Separator className="opacity-50" />
                 
-                <div className="flex flex-col gap-3 pb-4">
+                <div className="flex flex-col gap-4 pb-6">
                   {loading ? (
-                    <Skeleton className="h-14 w-full rounded-2xl" />
+                    <Skeleton className="h-16 w-full rounded-3xl" />
                   ) : session ? (
-                    <>
-                      <Button asChild variant="outline" size="lg" className="rounded-2xl h-14 font-bold" onClick={() => setIsOpen(false)}>
-                        <Link href={dashboardUrl} className="flex items-center justify-center gap-2">
-                          <User className="w-5 h-5" /> My Workspace
+                    <div className="space-y-4">
+                      <Button asChild variant="outline" size="lg" className="rounded-3xl h-16 w-full font-black text-lg border-2" onClick={() => setIsOpen(false)}>
+                        <Link href={dashboardUrl} className="flex items-center justify-center gap-3">
+                          <LayoutGrid className="w-6 h-6" /> Go to Workspace
                         </Link>
                       </Button>
                       <LogoutButton />
-                    </>
+                    </div>
                   ) : (
-                    <>
-                      <Button asChild variant="outline" size="lg" className="rounded-2xl h-14 font-bold" onClick={() => setIsOpen(false)}>
+                    <div className="grid grid-cols-1 gap-4">
+                      <Button asChild variant="outline" size="lg" className="rounded-3xl h-16 font-black text-lg border-2 border-primary/20 hover:bg-primary/5" onClick={() => setIsOpen(false)}>
                         <Link href="/login">Login to Account</Link>
                       </Button>
-                      <Button asChild size="lg" className="rounded-2xl h-14 font-black text-lg shadow-xl shadow-primary/20" onClick={() => setIsOpen(false)}>
-                        <Link href="/products" className="flex items-center justify-center gap-2">
-                          Start Creating <ArrowRight className="w-5 h-5" />
+                      <Button asChild size="lg" className="rounded-3xl h-16 font-black text-xl shadow-2xl shadow-primary/30 active:scale-95" onClick={() => setIsOpen(false)}>
+                        <Link href="/products" className="flex items-center justify-center gap-3">
+                          Start Creating <ArrowRight className="w-6 h-6" />
                         </Link>
                       </Button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
@@ -182,8 +194,4 @@ export function Navbar() {
       </div>
     </nav>
   );
-}
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(' ');
 }
