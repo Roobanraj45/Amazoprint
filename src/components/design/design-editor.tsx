@@ -172,8 +172,11 @@ function DesignEditorInternal({
       sprayDensity: 20,
       sprayRadius: 40,
   });
+  
+  // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
   const [draggingPoint, setDraggingPoint] = useState<{ index: number; type: 'anchor' | 'cp1' | 'cp2' } | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number, y: number } | null>(null);
 
   const [sprayingState, setSprayingState] = useState<{ active: boolean; position: {x: number, y: number} | null }>({ active: false, position: null });
   const [liveSprayPuffs, setLiveSprayPuffs] = useState<{x: number; y: number; radius: number; color: string;}[]>([]);
@@ -252,19 +255,21 @@ function DesignEditorInternal({
   const finalizePath = useCallback(() => {
     if (!livePath || livePath.length < 2) {
         setLivePath(null);
+        setDraggingPoint(null);
         setActiveTool('select');
         return;
     }
 
     const finalPath = [...livePath];
     
+    // Calculate bounding box including handles
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
     
-    const minX = Math.min(...allX) - 5;
-    const minY = Math.min(...allY) - 5;
-    const maxX = Math.max(...allX) + 5;
-    const maxY = Math.max(...allY) + 5;
+    const minX = Math.min(...allX) - 2;
+    const minY = Math.min(...allY) - 2;
+    const maxX = Math.max(...allX) + 2;
+    const maxY = Math.max(...allY) + 2;
 
     const firstPoint = finalPath[0];
     const lastPoint = finalPath[finalPath.length - 1];
@@ -285,10 +290,12 @@ function DesignEditorInternal({
         })),
         content: '', fontSize: 0, fontFamily: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none',
     };
+
     updatePage(currentPage, { elements: [...currentElements, newPathElement] });
     setLivePath(null);
+    setDraggingPoint(null);
     setActiveTool('select');
-}, [livePath, viewState.zoom, currentPage, currentElements, updatePage]);
+  }, [livePath, viewState.zoom, currentPage, currentElements, updatePage]);
 
 
   useEffect(() => {
@@ -511,11 +518,13 @@ function DesignEditorInternal({
         if (livePath) {
             const hitRadius = 15 / viewState.zoom;
             
+            // Check for closing path
             if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
                 finalizePath();
                 return;
             }
 
+            // Check for handle/anchor clicks
             for (let i = 0; i < livePath.length; i++) {
                 const p = livePath[i];
                 if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
@@ -533,14 +542,13 @@ function DesignEditorInternal({
             }
         }
 
+        // Add new point
         const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
-        setLivePath(prev => {
-            if (!prev) return [newPoint];
-            const newLivePath = prev.map(p => ({...p})); 
-            return [...newLivePath, newPoint];
-        });
+        const updatedPath = livePath ? [...livePath, newPoint] : [newPoint];
+        setLivePath(updatedPath);
         
-        setDraggingPoint({ index: (livePath?.length || 0), type: 'cp2' });
+        // Start dragging the EXIT handle (cp2) for the next segment
+        setDraggingPoint({ index: updatedPath.length - 1, type: 'cp2' });
         return;
     }
 
@@ -560,6 +568,8 @@ function DesignEditorInternal({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const [x, y] = getPointInCanvas(e);
+    setMousePos({ x, y });
+
     if (sprayingState.active) {
         setSprayingState(s => (s.active ? { ...s, position: { x, y } } : s));
         return;
