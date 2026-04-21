@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -45,7 +44,6 @@ import {
   SlidersHorizontal,
   Library,
   Undo,
-  Crop as CropIcon,
 } from 'lucide-react';
 import { PropertiesPanel } from './properties-panel';
 import { DesignCanvas } from './design-canvas';
@@ -152,6 +150,7 @@ function DesignEditorInternal({
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0 });
   const [activeSmartGuides, setActiveSmartGuides] = useState<Guide[]>([]);
+  const [mousePos, setMousePos] = useState<{ x: number, y: number } | null>(null);
   
   const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
   const [isDrawing, setIsDrawing] = useState(false);
@@ -170,7 +169,6 @@ function DesignEditorInternal({
   // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
   const [draggingPoint, setDraggingPoint] = useState<{ index: number; type: 'anchor' | 'cp1' | 'cp2' } | null>(null);
-  const [mousePos, setMousePos] = useState<{ x: number, y: number } | null>(null);
 
   const [sprayingState, setSprayingState] = useState<{ active: boolean; position: {x: number, y: number} | null }>({ active: false, position: null });
   const [liveSprayPuffs, setLiveSprayPuffs] = useState<{x: number; y: number; radius: number; color: string;}[]>([]);
@@ -420,7 +418,6 @@ function DesignEditorInternal({
               if (prev.length === 1) return null;
               return prev.slice(0, -1);
           });
-          toast({ title: 'Removed last point' });
       }
 
       if (e.key === ' ' && !e.repeat && !isInput) {
@@ -471,7 +468,7 @@ function DesignEditorInternal({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [undo, redo, activeTool, finalizePath, croppingElementId, setLeftOpen, toast]);
+  }, [undo, redo, activeTool, finalizePath, croppingElementId, setLeftOpen]);
 
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -540,7 +537,7 @@ function DesignEditorInternal({
             
             // Check for closing path
             if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
-                // RETRACT PREVIOUS EXIT HANDLE TO ENSURE STRAIGHT FINISH ON CLOSE
+                // RETRACT PREVIOUS EXIT HANDLE TO ENSURE STRAIGHT FINISH
                 const updatedPath = [...livePath];
                 const lastIdx = updatedPath.length - 1;
                 updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
@@ -884,7 +881,7 @@ function DesignEditorInternal({
 
     const { x, y } = getCenterPosition(newElement.width || 250, newElement.height || 50);
     newElement.x = x;
-    newPoint.y = y;
+    newElement.y = y;
 
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
@@ -1558,7 +1555,13 @@ function DesignEditorInternal({
                               panel.color,
                               (panel as any).className
                             )}
-                            onClick={() => setLeftOpen(true)}
+                            onClick={() => {
+                                if (panel.id === 'pen') {
+                                    setLeftOpen(false);
+                                } else {
+                                    setLeftOpen(true);
+                                }
+                            }}
                           >
                             {panel.icon}
                             <span className="text-xs font-bold">{panel.label}</span>

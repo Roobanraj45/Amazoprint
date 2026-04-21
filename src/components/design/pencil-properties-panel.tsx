@@ -37,8 +37,8 @@ export function PencilPropertiesPanel({ element, onUpdate }: BrushPropertiesPane
                         step={1}
                     />
                 </div>
-                    <div className="space-y-2">
-                        <Label className="text-xs font-medium">Brush Style</Label>
+                <div className="space-y-2">
+                    <Label className="text-xs font-medium">Brush Style</Label>
                     <Select value={element.brushStyle || 'solid'} onValueChange={(v) => handleUpdate({ brushStyle: v as any })}>
                         <SelectTrigger className="h-9">
                             <SelectValue />
@@ -47,19 +47,6 @@ export function PencilPropertiesPanel({ element, onUpdate }: BrushPropertiesPane
                             <SelectItem value="solid">Solid</SelectItem>
                             <SelectItem value="dashed">Dashed</SelectItem>
                             <SelectItem value="dotted">Dotted</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                    <div className="space-y-2">
-                        <Label className="text-xs font-medium">Stroke Cap</Label>
-                    <Select value={element.strokeLineCap || 'round'} onValueChange={(v) => handleUpdate({ strokeLineCap: v as any })}>
-                        <SelectTrigger className="h-9">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="round">Round</SelectItem>
-                            <SelectItem value="butt">Butt</SelectItem>
-                            <SelectItem value="square">Square</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

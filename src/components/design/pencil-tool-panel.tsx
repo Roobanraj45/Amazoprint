@@ -108,36 +108,6 @@ export function PencilToolPanel({ options, setOptions }: BrushToolPanelProps) {
                     <SprayCan className="w-5 h-5" />
                 </ToggleButton>
             </ToggleButtonGroup>
-            
-            <ToggleButtonGroup label="Stroke Cap">
-                <ToggleButton
-                    isActive={options.strokeLineCap === 'butt'}
-                    onClick={() => setOptions({ ...options, strokeLineCap: 'butt' })}
-                    title="Butt"
-                >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" strokeWidth="6" strokeLinecap="butt"/>
-                    </svg>
-                </ToggleButton>
-                 <ToggleButton
-                    isActive={options.strokeLineCap === 'round'}
-                    onClick={() => setOptions({ ...options, strokeLineCap: 'round' })}
-                    title="Round"
-                >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" strokeWidth="6" strokeLinecap="round"/>
-                    </svg>
-                </ToggleButton>
-                 <ToggleButton
-                    isActive={options.strokeLineCap === 'square'}
-                    onClick={() => setOptions({ ...options, strokeLineCap: 'square' })}
-                    title="Square"
-                >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" strokeWidth="6" strokeLinecap="square"/>
-                    </svg>
-                </ToggleButton>
-            </ToggleButtonGroup>
 
             <ColorPicker
                 label="Stroke Color"
