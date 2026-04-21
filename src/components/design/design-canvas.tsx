@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useRef } from 'react';
@@ -222,6 +223,7 @@ type DesignCanvasProps = {
     strokeWidth: number;
   } | null;
   livePath?: PathPoint[] | null;
+  mousePos?: { x: number, y: number } | null;
   activeTool?: 'select' | 'pencil' | 'pen' | 'brush';
   croppingElementId?: string | null;
   setCroppingElementId?: (id: string | null) => void;
@@ -268,6 +270,7 @@ export function DesignCanvas({
   highlightSpotUv,
   livePencilPath,
   livePath,
+  mousePos,
   activeTool = 'select',
   croppingElementId,
   setCroppingElementId,
@@ -517,7 +520,7 @@ export function DesignCanvas({
             ))}
           </div>
           
-          <PenToolCanvas livePath={livePath} zoom={zoom} safetyMargin={safetyMargin} />
+          <PenToolCanvas livePath={livePath} mousePos={mousePos} zoom={zoom} safetyMargin={safetyMargin} />
 
           {livePencilPath && livePencilPath.path.length > 1 && (
               <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 999 }}>
@@ -555,3 +558,4 @@ export function DesignCanvas({
     </div>
   );
 }
+

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -171,8 +172,11 @@ function DesignEditorInternal({
       sprayDensity: 20,
       sprayRadius: 40,
   });
+  
+  // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
   const [draggingPoint, setDraggingPoint] = useState<{ index: number; type: 'anchor' | 'cp1' | 'cp2' } | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number, y: number } | null>(null);
 
   const [sprayingState, setSprayingState] = useState<{ active: boolean; position: {x: number, y: number} | null }>({ active: false, position: null });
   const [liveSprayPuffs, setLiveSprayPuffs] = useState<{x: number; y: number; radius: number; color: string;}[]>([]);
@@ -251,19 +255,21 @@ function DesignEditorInternal({
   const finalizePath = useCallback(() => {
     if (!livePath || livePath.length < 2) {
         setLivePath(null);
+        setDraggingPoint(null);
         setActiveTool('select');
         return;
     }
 
     const finalPath = [...livePath];
     
+    // Calculate bounding box including handles
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
     
-    const minX = Math.min(...allX) - 5;
-    const minY = Math.min(...allY) - 5;
-    const maxX = Math.max(...allX) + 5;
-    const maxY = Math.max(...allY) + 5;
+    const minX = Math.min(...allX) - 2;
+    const minY = Math.min(...allY) - 2;
+    const maxX = Math.max(...allX) + 2;
+    const maxY = Math.max(...allY) + 2;
 
     const firstPoint = finalPath[0];
     const lastPoint = finalPath[finalPath.length - 1];
@@ -284,10 +290,12 @@ function DesignEditorInternal({
         })),
         content: '', fontSize: 0, fontFamily: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none',
     };
+
     updatePage(currentPage, { elements: [...currentElements, newPathElement] });
     setLivePath(null);
+    setDraggingPoint(null);
     setActiveTool('select');
-}, [livePath, viewState.zoom, currentPage, currentElements, updatePage]);
+  }, [livePath, viewState.zoom, currentPage, currentElements, updatePage]);
 
 
   useEffect(() => {
@@ -510,11 +518,13 @@ function DesignEditorInternal({
         if (livePath) {
             const hitRadius = 15 / viewState.zoom;
             
+            // Check for closing path
             if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
                 finalizePath();
                 return;
             }
 
+            // Check for handle/anchor clicks
             for (let i = 0; i < livePath.length; i++) {
                 const p = livePath[i];
                 if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
@@ -532,14 +542,13 @@ function DesignEditorInternal({
             }
         }
 
+        // Add new point: initialized as straight (handles at anchor)
         const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
-        setLivePath(prev => {
-            if (!prev) return [newPoint];
-            const newLivePath = prev.map(p => ({...p})); 
-            return [...newLivePath, newPoint];
-        });
+        const updatedPath = livePath ? [...livePath, newPoint] : [newPoint];
+        setLivePath(updatedPath);
         
-        setDraggingPoint({ index: (livePath?.length || 0), type: 'cp2' });
+        // Start dragging the EXIT handle (cp2) for the next segment
+        setDraggingPoint({ index: updatedPath.length - 1, type: 'cp2' });
         return;
     }
 
@@ -558,17 +567,19 @@ function DesignEditorInternal({
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const [x, y] = getPointInCanvas(e);
+    setMousePos({ x, y });
+
     if (sprayingState.active) {
-        const [x, y] = getPointInCanvas(e);
         setSprayingState(s => (s.active ? { ...s, position: { x, y } } : s));
         return;
     }
     if (isDrawing && activeTool === 'brush' && brushOptions.brushStyle !== 'spray') {
-        const currentPoint = getPointInCanvas(e);
+        const currentPoint = [x, y] as [number, number];
         if (brushOptions.drawMode === 'freehand') {
             drawingPointsRef.current.push(currentPoint);
             setLivePencilPath(prev => prev ? { ...prev, path: [...drawingPointsRef.current] } : null);
-        } else { 
+        } else { // straight line
             const startPoint = drawingPointsRef.current[0];
             drawingPointsRef.current = [startPoint, currentPoint];
             setLivePencilPath(prev => prev ? { ...prev, path: [startPoint, currentPoint] } : null);
@@ -577,8 +588,6 @@ function DesignEditorInternal({
     }
 
     if (activeTool === 'pen' && draggingPoint) {
-        const [x, y] = getPointInCanvas(e);
-        
         setLivePath(prev => {
             if (!prev) return null;
             const newPath = prev.map(p => ({...p}));
@@ -833,7 +842,7 @@ function DesignEditorInternal({
 
     const { x, y } = getCenterPosition(newElement.width || 250, newElement.height || 50);
     newElement.x = x;
-    newElement.y = y;
+    newPoint.y = y;
 
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
@@ -1316,7 +1325,7 @@ function DesignEditorInternal({
 
   const renderMobilePanelContent = () => {
     switch (activeMobilePanel) {
-        case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddFancyText={() => {}} />;
+        case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />;
         case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
         case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
         case 'brush': return <PencilToolPanel options={brushOptions} setOptions={setBrushOptions} />;
@@ -1508,7 +1517,7 @@ function DesignEditorInternal({
                   <div className={cn("group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex", "w-[26rem]")}>
                     <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
-                          <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddFancyText={() => {}} />
+                          <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />
                       </Suspense>
                     </TabsContent>
                     <TabsContent value="media" className="flex-1 overflow-auto mt-0">
@@ -1568,6 +1577,7 @@ function DesignEditorInternal({
                 onInteractionStart={beginTransaction} onInteractionEnd={endTransaction}
                 livePencilPath={livePencilPath}
                 livePath={livePath}
+                mousePos={mousePos}
                 activeTool={activeTool}
                 croppingElementId={croppingElementId}
                 setCroppingElementId={setCroppingElementId}
@@ -1686,3 +1696,4 @@ export function DesignEditor(props: DesignEditorProps) {
     </SidebarProvider>
   );
 }
+
