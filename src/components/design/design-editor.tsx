@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -559,8 +560,7 @@ function DesignEditorInternal({
         const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
         let updatedPath = livePath ? [...livePath] : [];
 
-        // RESET PREVIOUS EXIT HANDLE TO ENSURE NEW SEGMENT STARTS STRAIGHT (MATCH PREVIEW)
-        // This ensures the "rendered" line matches the "fresh" straight dotted preview line.
+        // RETRACT PREVIOUS EXIT HANDLE TO ENSURE NEW SEGMENT STARTS STRAIGHT
         if (updatedPath.length > 0) {
             const lastIdx = updatedPath.length - 1;
             updatedPath[lastIdx] = {
@@ -573,7 +573,7 @@ function DesignEditorInternal({
         updatedPath.push(newPoint);
         setLivePath(updatedPath);
         
-        // Start dragging the EXIT handle (cp2) for the next segment
+        // Start dragging the EXIT handle (cp2) for mirroring curvature on drag
         setDraggingPoint({ index: updatedPath.length - 1, type: 'cp2' });
         return;
     }
@@ -631,8 +631,7 @@ function DesignEditorInternal({
             } else if (draggingPoint.type === 'cp2') {
                 point.cp2x = x;
                 point.cp2y = y;
-                // Mirrored CP1 for smooth curves during placement/editing
-                // This ensures the current segment curves smoothly as you drag
+                // Mirrored CP1 for smooth curves
                 point.cp1x = point.x - (x - point.x);
                 point.cp1y = point.y - (y - point.y);
             } else if (draggingPoint.type === 'cp1') {
@@ -1343,13 +1342,14 @@ function DesignEditorInternal({
     { id: 'media', label: 'Media', icon: <LayoutGrid size={24} />, color: 'text-purple-600 bg-purple-500/10 data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
     { id: 'qrcode', label: 'QR Code', icon: <QrCode size={24} />, color: 'text-emerald-600 bg-emerald-500/10 data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
     { id: 'brush', label: 'Brush', icon: <Brush size={24} />, color: 'text-orange-600 bg-orange-500/10 data-[state=active]:bg-orange-600 data-[state=active]:text-white' },
+    { id: 'pen', label: 'Pen', icon: <PenTool size={24} />, color: 'text-indigo-600 bg-indigo-500/10 data-[state=active]:bg-indigo-600 data-[state=active]:text-white', className: 'mt-auto' },
   ];
 
   const handleMobilePanelOpen = (panel: string) => {
     setActiveMobilePanel(panel);
     setMobileSheetOpen(true);
-    if(panel === 'brush') {
-        setActiveTool(panel as 'brush');
+    if(panel === 'brush' || panel === 'pen') {
+        setActiveTool(panel as any);
     } else {
         setActiveTool('select');
     }
@@ -1361,6 +1361,7 @@ function DesignEditorInternal({
         case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
         case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
         case 'brush': return <PencilToolPanel options={brushOptions} setOptions={setBrushOptions} />;
+        case 'pen': return <PenToolPanel onFinish={finalizePath} />;
         case 'properties': return (
             <div className="p-4">
                 <PropertiesPanel
@@ -1404,22 +1405,6 @@ function DesignEditorInternal({
           <div className="hidden lg:flex flex-1 justify-center items-center gap-1">
             <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"><Undo className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"><Redo className="h-4 w-4" /></Button>
-
-            <Button 
-                variant={activeTool === 'pen' ? 'selected' : 'ghost'} 
-                size="icon" 
-                onClick={() => {
-                    if (activeTool === 'pen') {
-                        finalizePath();
-                    } else {
-                        setActiveTool('pen');
-                        setLeftOpen(false);
-                    }
-                }} 
-                title="Pen Tool (P)"
-            >
-                <PenTool className="h-4 w-4" />
-            </Button>
 
             <Popover>
               <PopoverTrigger asChild>
@@ -1539,7 +1524,18 @@ function DesignEditorInternal({
           <Sidebar collapsible="icon" variant="floating" className="hidden lg:block">
             <SidebarContent className="p-0 overflow-y-hidden">
               <TooltipProvider>
-                <Tabs defaultValue="elements" orientation="vertical" className="w-full h-full flex" onValueChange={(val) => setActiveTool(val === 'brush' ? (val as 'brush') : 'select')}>
+                <Tabs 
+                  defaultValue="elements" 
+                  orientation="vertical" 
+                  className="w-full h-full flex" 
+                  onValueChange={(val) => {
+                    if (val === 'brush' || val === 'pen') {
+                        setActiveTool(val as any);
+                    } else {
+                        setActiveTool('select');
+                    }
+                  }}
+                >
                 <TabsList className="flex flex-col h-full p-3 gap-3 bg-transparent">
                     {editorPanels.map((panel) => (
                       <Tooltip key={panel.id}>
@@ -1549,7 +1545,8 @@ function DesignEditorInternal({
                             className={cn(
                               "h-20 w-20 p-0 flex flex-col gap-1 items-center justify-center rounded-2xl transition-all duration-200",
                               "data-[state=active]:scale-110 data-[state=active]:shadow-lg",
-                              panel.color
+                              panel.color,
+                              (panel as any).className
                             )}
                             onClick={() => setLeftOpen(true)}
                           >
@@ -1585,6 +1582,11 @@ function DesignEditorInternal({
                     <TabsContent value="brush" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
                         <PencilToolPanel options={brushOptions} setOptions={setBrushOptions} />
+                      </Suspense>
+                    </TabsContent>
+                     <TabsContent value="pen" className="flex-1 overflow-auto mt-0">
+                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
+                        <PenToolPanel onFinish={finalizePath} />
                       </Suspense>
                     </TabsContent>
                   </div>
