@@ -5,6 +5,7 @@ import type { DesignElement, Guide, PathPoint, Product } from '@/lib/types';
 import * as lucide from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { TextCanvasElement } from './text-canvas-element';
+import { generatePathD } from '@/lib/utils';
 
 
 const createGradientString = (element: DesignElement, { reversed = false } = {}): string | null => {
@@ -289,27 +290,6 @@ type ResizeHandle = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 
 
 const SNAP_THRESHOLD = 5;
 const MIN_SIZE = 10;
-
-function generatePathD(points: PathPoint[], isClosed: boolean, offsetX = 0, offsetY = 0): string {
-    if (!points || points.length === 0) return '';
-  
-    const start = points[0];
-    let d = `M ${start.x + offsetX} ${start.y + offsetY}`;
-  
-    for (let i = 0; i < points.length - 1; i++) {
-      const p1 = points[i];
-      const p2 = points[i + 1];
-      d += ` C ${p1.cp2x + offsetX} ${p1.cp2y + offsetY}, ${p2.cp1x + offsetX} ${p2.cp1y + offsetY}, ${p2.x + offsetX} ${p2.y + offsetY}`;
-    }
-  
-    if (isClosed && points.length > 1) {
-      const lastPoint = points[points.length - 1];
-      d += ` C ${lastPoint.cp2x + offsetX} ${lastPoint.cp2y + offsetY}, ${start.cp1x + offsetX} ${start.cp1y + offsetY}, ${start.x + offsetX} ${start.y + offsetY}`;
-      d += ' Z';
-    }
-    
-    return d;
-}
 
 const NonInteractiveContent = memo(({ element, product, renderMode }: { element: DesignElement, product: Product, renderMode?: 'cmyk' | 'spotuv' }) => {
   const isSpotUv = renderMode === 'spotuv';

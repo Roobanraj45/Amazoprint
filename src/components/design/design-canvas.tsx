@@ -4,6 +4,7 @@ import React, { useRef } from 'react';
 import type { DesignElement, Product, Background, Guide, ViewState, PathPoint } from '@/lib/types';
 import { CanvasElement } from './canvas-element';
 import { Scissors } from 'lucide-react';
+import { PenToolCanvas } from './pen-tool-canvas';
 
 const RULER_SIZE = 60; 
 
@@ -231,27 +232,6 @@ type DesignCanvasProps = {
     sprayRadius: number;
   };
 };
-
-function generatePathD(points: PathPoint[], isClosed: boolean, offsetX = 0, offsetY = 0): string {
-    if (!points || points.length === 0) return '';
-  
-    const start = points[0];
-    let d = `M ${start.x + offsetX} ${start.y + offsetY}`;
-  
-    for (let i = 0; i < points.length - 1; i++) {
-      const p1 = points[i];
-      const p2 = points[i + 1];
-      d += ` C ${p1.cp2x + offsetX} ${p1.cp2y + offsetY}, ${p2.cp1x + offsetX} ${p2.cp1y + offsetY}, ${p2.x + offsetX} ${p2.y + offsetY}`;
-    }
-  
-    if (isClosed && points.length > 1) {
-      const lastPoint = points[points.length - 1];
-      d += ` C ${lastPoint.cp2x + offsetX} ${lastPoint.cp2y + offsetY}, ${start.cp1x + offsetX} ${start.cp1y + offsetY}, ${start.x + offsetX} ${start.y + offsetY}`;
-      d += ' Z';
-    }
-    
-    return d;
-}
 
 const hexToRgbString = (hex: string) => {
     let s = hex.replace('#', '');
@@ -567,57 +547,10 @@ export function DesignCanvas({
                   })}
               </div>
           )}
-          {livePath && livePath.length > 0 && (
-            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 999 }}>
-              <path 
-                d={generatePathD(livePath, false, safetyMargin, safetyMargin)} 
-                fill="rgba(37, 99, 235, 0.1)" 
-                stroke="#2563eb" 
-                strokeWidth={2 / zoom} 
-              />
-              {livePath.map((p, i) => (
-                <React.Fragment key={i}>
-                  {/* Control point lines */}
-                  <line x1={p.cp1x + safetyMargin} y1={p.cp1y + safetyMargin} x2={p.x + safetyMargin} y2={p.y + safetyMargin} stroke="#2563eb" strokeWidth={1 / zoom} />
-                  <line x1={p.x + safetyMargin} y1={p.y + safetyMargin} x2={p.cp2x + safetyMargin} y2={p.cp2y + safetyMargin} stroke="#2563eb" strokeWidth={1 / zoom} />
-                  
-                  {/* Anchor Point */}
-                  <rect 
-                    x={p.x + safetyMargin - 5 / zoom} 
-                    y={p.y + safetyMargin - 5 / zoom} 
-                    width={10 / zoom} 
-                    height={10 / zoom} 
-                    fill="white" 
-                    stroke="#2563eb" 
-                    strokeWidth={2 / zoom} 
-                    style={{ cursor: 'move', pointerEvents: 'auto' }}
-                  />
-                  
-                  {/* Control Points */}
-                  <circle 
-                    cx={p.cp1x + safetyMargin} 
-                    cy={p.cp1y + safetyMargin} 
-                    r={5 / zoom} 
-                    fill="#2563eb" 
-                    stroke="white" 
-                    strokeWidth={1/zoom} 
-                    style={{ cursor: 'pointer', pointerEvents: 'auto' }}
-                  />
-                  <circle 
-                    cx={p.cp2x + safetyMargin} 
-                    cy={p.cp2y + safetyMargin} 
-                    r={5 / zoom} 
-                    fill="#2563eb" 
-                    stroke="white" 
-                    strokeWidth={1/zoom} 
-                    style={{ cursor: 'pointer', pointerEvents: 'auto' }} 
-                  />
-                </React.Fragment>
-              ))}
-            </svg>
-          )}
+          <PenToolCanvas livePath={livePath} zoom={zoom} safetyMargin={safetyMargin} />
         </div>
       </div>
     </div>
   );
 }
+
