@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -558,13 +559,13 @@ function DesignEditorInternal({
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const [x, y] = getPointInCanvas(e);
     if (sprayingState.active) {
-        const [x, y] = getPointInCanvas(e);
         setSprayingState(s => (s.active ? { ...s, position: { x, y } } : s));
         return;
     }
     if (isDrawing && activeTool === 'brush' && brushOptions.brushStyle !== 'spray') {
-        const currentPoint = getPointInCanvas(e);
+        const currentPoint = [x, y] as [number, number];
         if (brushOptions.drawMode === 'freehand') {
             drawingPointsRef.current.push(currentPoint);
             setLivePencilPath(prev => prev ? { ...prev, path: [...drawingPointsRef.current] } : null);
@@ -577,8 +578,6 @@ function DesignEditorInternal({
     }
 
     if (activeTool === 'pen' && draggingPoint) {
-        const [x, y] = getPointInCanvas(e);
-        
         setLivePath(prev => {
             if (!prev) return null;
             const newPath = prev.map(p => ({...p}));
@@ -596,11 +595,15 @@ function DesignEditorInternal({
             } else if (draggingPoint.type === 'cp2') {
                 point.cp2x = x;
                 point.cp2y = y;
-                // No mirroring: cp1 stays at anchor to keep incoming segment straight
+                // Mirrored CP1 for smooth curves during placement/editing
+                point.cp1x = point.x - (x - point.x);
+                point.cp1y = point.y - (y - point.y);
             } else if (draggingPoint.type === 'cp1') {
                 point.cp1x = x;
                 point.cp1y = y;
-                // No mirroring: cp2 stays at anchor
+                // Mirrored CP2
+                point.cp2x = point.x - (x - point.x);
+                point.cp2y = point.y - (y - point.y);
             }
             return newPath;
         });
@@ -1570,6 +1573,7 @@ function DesignEditorInternal({
                 onInteractionStart={beginTransaction} onInteractionEnd={endTransaction}
                 livePencilPath={livePencilPath}
                 livePath={livePath}
+                mousePos={mousePos}
                 activeTool={activeTool}
                 croppingElementId={croppingElementId}
                 setCroppingElementId={setCroppingElementId}

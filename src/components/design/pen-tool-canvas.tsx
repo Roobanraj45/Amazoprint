@@ -30,8 +30,11 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
   // Render rubber-band line from last point to mouse
   let previewLineD = '';
   if (mousePos && lastPoint) {
-      // If the last point has an exit handle, the preview should be a curve
-      if (Math.hypot(lastPoint.cp2x - lastPoint.x, lastPoint.cp2y - lastPoint.y) > 0.1) {
+      // Use the last point's exit handle (CP2) as the starting curve control
+      const hasExitHandle = Math.hypot(lastPoint.cp2x - lastPoint.x, lastPoint.cp2y - lastPoint.y) > 0.1;
+      
+      if (hasExitHandle) {
+          // If we have an exit handle, preview as a curve connecting to mouse
           previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} C ${lastPoint.cp2x + safetyMargin} ${lastPoint.cp2y + safetyMargin}, ${mousePos.x + safetyMargin} ${mousePos.y + safetyMargin}, ${mousePos.x + safetyMargin} ${mousePos.y + safetyMargin}`;
       } else {
           // Otherwise it's a straight line
@@ -126,4 +129,3 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
     </svg>
   );
 }
-
