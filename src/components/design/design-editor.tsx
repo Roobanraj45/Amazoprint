@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -258,7 +257,6 @@ function DesignEditorInternal({
 
     const finalPath = [...livePath];
     
-    // Calculate bounding box including control handles to prevent clipping
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
     
@@ -598,19 +596,11 @@ function DesignEditorInternal({
             } else if (draggingPoint.type === 'cp2') {
                 point.cp2x = x;
                 point.cp2y = y;
-                // Mirrored handle behavior for smooth curves
-                const dx = x - point.x;
-                const dy = y - point.y;
-                point.cp1x = point.x - dx;
-                point.cp1y = point.y - dy;
+                // No mirroring: cp1 stays at anchor to keep incoming segment straight
             } else if (draggingPoint.type === 'cp1') {
                 point.cp1x = x;
                 point.cp1y = y;
-                // Mirrored handle behavior for smooth curves
-                const dx = x - point.x;
-                const dy = y - point.y;
-                point.cp2x = point.x - dx;
-                point.cp2y = point.y - dy;
+                // No mirroring: cp2 stays at anchor
             }
             return newPath;
         });
@@ -1328,7 +1318,7 @@ function DesignEditorInternal({
 
   const renderMobilePanelContent = () => {
     switch (activeMobilePanel) {
-        case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddFancyText={() => {}} />;
+        case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />;
         case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
         case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
         case 'brush': return <PencilToolPanel options={brushOptions} setOptions={setBrushOptions} />;
@@ -1520,7 +1510,7 @@ function DesignEditorInternal({
                   <div className={cn("group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex", "w-[26rem]")}>
                     <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
-                          <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddFancyText={() => {}} />
+                          <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />
                       </Suspense>
                     </TabsContent>
                     <TabsContent value="media" className="flex-1 overflow-auto mt-0">
