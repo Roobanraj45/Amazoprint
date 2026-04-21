@@ -1030,7 +1030,7 @@ const _CanvasElement = ({
     borderColor: renderMode === 'spotuv' ? 'transparent' : (element.type === 'shape' || element.type === 'brush' || element.type === 'qrcode' || element.type === 'path' ? 'transparent' : element.borderColor),
     borderStyle: element.type === 'shape' || element.type === 'brush' || element.type === 'qrcode' || element.type === 'path' ? 'solid' : element.borderStyle,
     borderRadius: renderMode === 'spotuv' ? 0 : (element.type !== 'shape' ? element.borderRadius : 0),
-    overflow: isWarped ? 'visible' : 'hidden',
+    overflow: (isWarped || element.type === 'path') ? 'visible' : 'hidden', // Ensure paths can render curves slightly outside bounds
   };
   
   const resizeHandles: ResizeHandle[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top', 'bottom', 'left', 'right'];

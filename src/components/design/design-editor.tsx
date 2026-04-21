@@ -255,10 +255,15 @@ function DesignEditorInternal({
     }
 
     const finalPath = [...livePath];
-    const minX = Math.min(...finalPath.map(p => p.x));
-    const minY = Math.min(...finalPath.map(p => p.y));
-    const maxX = Math.max(...finalPath.map(p => p.x));
-    const maxY = Math.max(...finalPath.map(p => p.y));
+    
+    // Correctly calculate bounding box including all control points to prevent clipping
+    const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
+    const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
+    
+    const minX = Math.min(...allX);
+    const minY = Math.min(...allY);
+    const maxX = Math.max(...allX);
+    const maxY = Math.max(...allY);
 
     const firstPoint = finalPath[0];
     const lastPoint = finalPath[finalPath.length - 1];
@@ -267,9 +272,9 @@ function DesignEditorInternal({
     const newPathElement: DesignElement = {
         id: crypto.randomUUID(),
         type: 'path',
-        fillType: 'solid',
-        x: minX, y: minY, width: maxX - minX, height: maxY - minY,
-        rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 1, borderStyle: 'solid',
+        fillType: isClosed ? 'solid' : 'none', // Default to no fill for unclosed paths to match user expectations
+        x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY),
+        rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 2, borderStyle: 'solid',
         isPathClosed: isClosed,
         pathPoints: finalPath.map(p => ({
             ...p,
@@ -583,23 +588,20 @@ function DesignEditorInternal({
             if (draggingPoint.type === 'anchor') {
                 const dx = x - point.x;
                 const dy = y - point.y;
-                point.x = x; point.y = y;
-                point.cp1x += dx; point.cp1y += dy;
-                point.cp2x += dx; point.cp2y += dy;
+                point.x = x;
+                point.y = y;
+                point.cp1x += dx;
+                point.cp1y += dy;
+                point.cp2x += dx;
+                point.cp2y += dy;
             } else if (draggingPoint.type === 'cp1') {
-                point.cp1x = x; point.cp1y = y;
-                // Mirror logic for smooth handles by default during move
-                const dx = x - point.x;
-                const dy = y - point.y;
-                point.cp2x = point.x - dx;
-                point.cp2y = point.y - dy;
+                point.cp1x = x;
+                point.cp1y = y;
+                // Independent handles - do not mirror
             } else if (draggingPoint.type === 'cp2') {
-                point.cp2x = x; point.cp2y = y;
-                // Mirror logic
-                const dx = x - point.x;
-                const dy = y - point.y;
-                point.cp1x = point.x - dx;
-                point.cp1y = point.y - dy;
+                point.cp2x = x;
+                point.cp2y = y;
+                // Independent handles - do not mirror
             }
             return newPath;
         });
