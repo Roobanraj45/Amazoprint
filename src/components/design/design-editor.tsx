@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -248,10 +249,6 @@ function DesignEditorInternal({
     })
   }, [setState]);
 
-  /**
-   * Finalizes the pen tool path and adds it as a new design element.
-   * Calculates the correct bounding box including control points.
-   */
   const finalizePath = useCallback(() => {
     if (!livePath || livePath.length < 2) {
         setLivePath(null);
@@ -265,19 +262,18 @@ function DesignEditorInternal({
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
     
-    const minX = Math.min(...allX);
-    const minY = Math.min(...allY);
-    const maxX = Math.max(...allX);
-    const maxY = Math.max(...allY);
+    const minX = Math.min(...allX) - 5;
+    const minY = Math.min(...allY) - 5;
+    const maxX = Math.max(...allX) + 5;
+    const maxY = Math.max(...allY) + 5;
 
     const firstPoint = finalPath[0];
     const lastPoint = finalPath[finalPath.length - 1];
-    const isClosed = finalPath.length > 1 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 20 / viewState.zoom;
+    const isClosed = finalPath.length > 2 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 25 / viewState.zoom;
 
     const newPathElement: DesignElement = {
         id: crypto.randomUUID(),
         type: 'path',
-        // Unclosed paths default to no fill to match standard design expectations
         fillType: isClosed ? 'solid' : 'none', 
         x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY),
         rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 2, borderStyle: 'solid',
@@ -516,7 +512,6 @@ function DesignEditorInternal({
         if (livePath) {
             const hitRadius = 15 / viewState.zoom;
             
-            // Path closing hit test
             if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
                 finalizePath();
                 return;
@@ -600,14 +595,22 @@ function DesignEditorInternal({
                 point.cp1y += dy;
                 point.cp2x += dx;
                 point.cp2y += dy;
-            } else if (draggingPoint.type === 'cp1') {
-                point.cp1x = x;
-                point.cp1y = y;
-                // Independent handles - do not mirror
             } else if (draggingPoint.type === 'cp2') {
                 point.cp2x = x;
                 point.cp2y = y;
-                // Independent handles - do not mirror
+                // Mirrored handle behavior for smooth curves
+                const dx = x - point.x;
+                const dy = y - point.y;
+                point.cp1x = point.x - dx;
+                point.cp1y = point.y - dy;
+            } else if (draggingPoint.type === 'cp1') {
+                point.cp1x = x;
+                point.cp1y = y;
+                // Mirrored handle behavior for smooth curves
+                const dx = x - point.x;
+                const dy = y - point.y;
+                point.cp2x = point.x - dx;
+                point.cp2y = point.y - dy;
             }
             return newPath;
         });
