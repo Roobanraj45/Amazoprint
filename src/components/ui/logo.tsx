@@ -22,7 +22,7 @@ export function AmazoprintLogo(logoProps: LogoProps) {
    */
   if (isSimple) {
     return (
-      <div className={cn("relative w-10 h-10", className)} {...props}>
+      <div className={cn("relative w-8 h-8", className)} {...props}>
         <img
           src="/uploads/amazoLogo.png"
           alt="Amazoprint Logo"
@@ -34,15 +34,16 @@ export function AmazoprintLogo(logoProps: LogoProps) {
 
   /**
    * FULL MODE: Brand headers/Heroes
+   * Reduced sizes by approx 20%
    */
-  let dimensions = "h-16 w-52"; // default wide
+  let dimensions = "h-14 w-44"; 
   
   if (variant === 'large') {
-    dimensions = "h-24 w-72";
+    dimensions = "h-20 w-60";
   } else if (variant === 'banner') {
-    dimensions = "h-32 w-96";
+    dimensions = "h-28 w-80";
   } else {
-    dimensions = "h-20 w-64"; // Default wide is now larger
+    dimensions = "h-16 w-52"; // Default wide
   }
 
   return (

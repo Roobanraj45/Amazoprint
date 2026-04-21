@@ -9,6 +9,7 @@ import {
   ChevronRight,
   User,
   LayoutGrid,
+  ArrowRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AmazoprintLogo } from '@/components/ui/logo';
@@ -61,10 +62,10 @@ export function Navbar() {
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-2xl border-b border-border/50 shadow-sm transition-all duration-300">
       <div className="container mx-auto px-4 lg:px-8 h-24 flex items-center justify-between">
-        {/* Logo Section - Prominent and Large */}
+        {/* Logo Section - Scale adjusted to 80% of previous */}
         <div className="flex-shrink-0">
           <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity" prefetch={false}>
-            <AmazoprintLogo className="scale-100 sm:scale-110 md:scale-125 origin-left" />
+            <AmazoprintLogo className="scale-80 sm:scale-90 md:scale-100 origin-left" />
           </Link>
         </div>
 

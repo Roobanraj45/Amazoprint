@@ -49,10 +49,10 @@ export function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-20 border-b bg-background/80 backdrop-blur-2xl border-border/40 px-4 lg:px-8">
       <div className="container mx-auto h-full flex items-center justify-between">
-        {/* Large Brand Logo */}
+        {/* Large Brand Logo - Scale adjusted */}
         <div className="flex-shrink-0">
           <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" prefetch={false}>
-            <AmazoprintLogo className="scale-90 sm:scale-100 lg:scale-110 origin-left" />
+            <AmazoprintLogo className="scale-75 sm:scale-80 lg:scale-90 origin-left" />
           </Link>
         </div>
 
