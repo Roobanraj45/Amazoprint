@@ -262,7 +262,7 @@ function DesignEditorInternal({
 
     const firstPoint = finalPath[0];
     const lastPoint = finalPath[finalPath.length - 1];
-    const isClosed = finalPath.length > 1 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 15 / viewState.zoom;
+    const isClosed = finalPath.length > 1 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 20 / viewState.zoom;
 
     const newPathElement: DesignElement = {
         id: crypto.randomUUID(),
@@ -385,7 +385,7 @@ function DesignEditorInternal({
         return () => {
             cancelAnimationFrame(animationFrameId);
         };
-    }, [sprayingState, brushOptions.sprayRadius, brushOptions.strokeColor]);
+    }, [sprayingState, brushOptions.sprayRadius, brushOptions.strokeColor, brushOptions.sprayDensity]);
 
 
   useEffect(() => {
@@ -503,7 +503,14 @@ function DesignEditorInternal({
         const [x, y] = getPointInCanvas(e);
 
         if (livePath) {
-            const hitRadius = 12 / viewState.zoom;
+            const hitRadius = 15 / viewState.zoom;
+            
+            // Path closing hit test
+            if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
+                finalizePath();
+                return;
+            }
+
             for (let i = 0; i < livePath.length; i++) {
                 const p = livePath[i];
                 if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
@@ -524,19 +531,7 @@ function DesignEditorInternal({
         const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
         setLivePath(prev => {
             if (!prev) return [newPoint];
-            const newLivePath = prev.map(p => ({...p})); // Deep copy to prevent mutation
-            const lastIdx = newLivePath.length - 1;
-            const prevPoint = newLivePath[lastIdx];
-            
-            const dx = newPoint.x - prevPoint.x;
-            const dy = newPoint.y - prevPoint.y;
-            
-            // Auto-extend handles for curve
-            prevPoint.cp2x = prevPoint.x + dx / 3;
-            prevPoint.cp2y = prevPoint.y + dy / 3;
-            newPoint.cp1x = newPoint.x - dx / 3;
-            newPoint.cp1y = newPoint.y - dy / 3;
-            
+            const newLivePath = prev.map(p => ({...p})); 
             return [...newLivePath, newPoint];
         });
         
@@ -582,24 +577,29 @@ function DesignEditorInternal({
         
         setLivePath(prev => {
             if (!prev) return null;
-            const newPath = prev.map(p => ({...p})); // Deep copy
+            const newPath = prev.map(p => ({...p}));
             const point = newPath[draggingPoint.index];
 
             if (draggingPoint.type === 'anchor') {
                 const dx = x - point.x;
                 const dy = y - point.y;
-                point.x = x;
-                point.y = y;
-                point.cp1x += dx;
-                point.cp1y += dy;
-                point.cp2x += dx;
-                point.cp2y += dy;
+                point.x = x; point.y = y;
+                point.cp1x += dx; point.cp1y += dy;
+                point.cp2x += dx; point.cp2y += dy;
             } else if (draggingPoint.type === 'cp1') {
-                point.cp1x = x;
-                point.cp1y = y;
+                point.cp1x = x; point.cp1y = y;
+                // Mirror logic for smooth handles by default during move
+                const dx = x - point.x;
+                const dy = y - point.y;
+                point.cp2x = point.x - dx;
+                point.cp2y = point.y - dy;
             } else if (draggingPoint.type === 'cp2') {
-                point.cp2x = x;
-                point.cp2y = y;
+                point.cp2x = x; point.cp2y = y;
+                // Mirror logic
+                const dx = x - point.x;
+                const dy = y - point.y;
+                point.cp1x = point.x - dx;
+                point.cp1y = point.y - dy;
             }
             return newPath;
         });
@@ -789,8 +789,6 @@ function DesignEditorInternal({
   };
 
   const getCenterPosition = (elementWidth: number, elementHeight: number) => {
-    // This correctly centers the new element on the product canvas itself,
-    // rather than the current viewport.
     const centerX = (product.width - elementWidth) / 2;
     const centerY = (product.height - elementHeight) / 2;
     return { x: centerX, y: centerY };
@@ -828,9 +826,7 @@ function DesignEditorInternal({
 
     const newElement = { ...defaultTextElement, ...options };
     
-    // If a font size is provided but not width/height, calculate some sensible defaults.
     if (newElement.fontSize && !options.width && !options.height) {
-        // A rough approximation to avoid aggressive text wrapping on creation.
         newElement.width = (newElement.content?.length || 10) * (newElement.fontSize / 1.8) + newElement.fontSize;
         newElement.height = newElement.fontSize * 1.5;
     }
@@ -899,7 +895,6 @@ function DesignEditorInternal({
       id: crypto.randomUUID(),
     })) as DesignElement[];
     
-    // Grouping logic
     const minX = Math.min(...newElements.map(el => el.x));
     const minY = Math.min(...newElements.map(el => el.y));
     const maxX = Math.max(...newElements.map(el => el.x + el.width));
@@ -1013,9 +1008,6 @@ function DesignEditorInternal({
       try {
         await updateDesign({ id: currentDesignId, name: currentDesignName, verificationId: verificationId || null, ...saveData });
         toast({ title: 'Design Updated!' });
-        if (verificationId) {
-            toast({ title: 'Revision Updated', description: 'Your changes have been saved for the verification job.' });
-        }
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error Updating Design' });
       }
@@ -1030,7 +1022,6 @@ function DesignEditorInternal({
 
           if (verificationId) {
             await linkDesignToVerification(Number(verificationId), savedDesign.id);
-            toast({ title: 'Revision Linked', description: 'Your new design has been linked to the verification job.' });
           }
         } catch (error) {
           toast({ variant: 'destructive', title: 'Error Saving Design' });
@@ -1151,16 +1142,14 @@ function DesignEditorInternal({
     const selectedId = selectedElementIds[0];
 
     if (!active) {
-      // Turn off all special finishes
       updateElement(selectedId, { spotUv: false, foilId: undefined });
     } else {
-      // Turn on a specific finish
-      if (foil) { // It's a foil
+      if (foil) {
         updateElement(selectedId, {
           spotUv: true,
           foilId: foil.id,
         });
-      } else { // It's a standard Spot UV
+      } else {
         updateElement(selectedId, {
           spotUv: true,
           foilId: undefined,
