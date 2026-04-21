@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -89,8 +88,6 @@ import { AmazoprintLogo } from '../ui/logo';
 const MediaPanel = lazy(() => import('./panels/media-panel').then(m => ({ default: m.MediaPanel })));
 const QrCodePanel = lazy(() => import('./panels/qrcode-panel').then(m => ({ default: m.QrCodePanel })));
 const PencilToolPanel = lazy(() => import('./pencil-tool-panel').then(m => ({ default: m.PencilToolPanel })));
-const PenToolPanel = lazy(() => import('./pen-tool-panel').then(m => ({ default: m.PenToolPanel })));
-
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -143,7 +140,6 @@ function DesignEditorInternal({
   const [currentDesignId, setCurrentDesignId] = useState<number | null>(initialDesignId || null);
   const [currentDesignName, setCurrentDesignName] = useState<string | null>(initialDesignName || null);
   const [croppingElementId, setCroppingElementId] = useState<string | null>(null);
-
 
   // Canvas settings
   const [showRulers, setShowRulers] = useState(true);
@@ -425,6 +421,21 @@ function DesignEditorInternal({
           mainCanvasRef.current.style.cursor = 'grab';
         }
       }
+
+      if (e.key.toLowerCase() === 'p' && !isInput) {
+        e.preventDefault();
+        if (activeTool === 'pen') {
+            finalizePath();
+        } else {
+            setActiveTool('pen');
+            setLeftOpen(false);
+        }
+      }
+
+      if (e.key === 'Enter' && activeTool === 'pen' && !isInput) {
+          e.preventDefault();
+          finalizePath();
+      }
       
       if ((e.ctrlKey || e.metaKey) && !isInput) {
         if (e.key === 'z' && !e.shiftKey) {
@@ -451,7 +462,7 @@ function DesignEditorInternal({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [undo, redo, activeTool, finalizePath, croppingElementId]);
+  }, [undo, redo, activeTool, finalizePath, croppingElementId, setLeftOpen]);
 
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -542,7 +553,7 @@ function DesignEditorInternal({
             }
         }
 
-        // Add new point
+        // Add new point: initialized as straight (handles at anchor)
         const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
         const updatedPath = livePath ? [...livePath, newPoint] : [newPoint];
         setLivePath(updatedPath);
@@ -848,7 +859,7 @@ function DesignEditorInternal({
 
     const { x, y } = getCenterPosition(newElement.width || 250, newElement.height || 50);
     newElement.x = x;
-    newElement.y = y;
+    newPoint.y = y;
 
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
@@ -1316,14 +1327,13 @@ function DesignEditorInternal({
     { id: 'media', label: 'Media', icon: <LayoutGrid size={24} />, color: 'text-purple-600 bg-purple-500/10 data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
     { id: 'qrcode', label: 'QR Code', icon: <QrCode size={24} />, color: 'text-emerald-600 bg-emerald-500/10 data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
     { id: 'brush', label: 'Brush', icon: <Brush size={24} />, color: 'text-orange-600 bg-orange-500/10 data-[state=active]:bg-orange-600 data-[state=active]:text-white' },
-    { id: 'pen', label: 'Pen', icon: <PenTool size={24} />, color: 'text-rose-600 bg-rose-500/10 data-[state=active]:bg-rose-600 data-[state=active]:text-white' },
   ];
 
   const handleMobilePanelOpen = (panel: string) => {
     setActiveMobilePanel(panel);
     setMobileSheetOpen(true);
-    if(panel === 'brush' || panel === 'pen') {
-        setActiveTool(panel as 'brush' | 'pen');
+    if(panel === 'brush') {
+        setActiveTool(panel as 'brush');
     } else {
         setActiveTool('select');
     }
@@ -1335,7 +1345,6 @@ function DesignEditorInternal({
         case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
         case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
         case 'brush': return <PencilToolPanel options={brushOptions} setOptions={setBrushOptions} />;
-        case 'pen': return <PenToolPanel onFinish={finalizePath} />;
         case 'properties': return (
             <div className="p-4">
                 <PropertiesPanel
@@ -1368,7 +1377,7 @@ function DesignEditorInternal({
               <Button variant="ghost" size="icon" className="hidden lg:flex" asChild><Link href="/"><Home /></Link></Button>
               <Separator orientation="vertical" className="h-6" />
               <div className="flex items-center gap-3">
-                  <AmazoprintLogo isSimple className="w-8 h-8" />
+                  <AmazoprintLogo isSimple className="w-10 h-10" />
                   <div className="hidden md:block">
                       <h2 className="font-semibold text-sm">{product.name}</h2>
                       <p className="text-xs text-muted-foreground truncate max-w-xs">{product.description}</p>
@@ -1379,6 +1388,22 @@ function DesignEditorInternal({
           <div className="hidden lg:flex flex-1 justify-center items-center gap-1">
             <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"><Undo className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"><Redo className="h-4 w-4" /></Button>
+
+            <Button 
+                variant={activeTool === 'pen' ? 'selected' : 'ghost'} 
+                size="icon" 
+                onClick={() => {
+                    if (activeTool === 'pen') {
+                        finalizePath();
+                    } else {
+                        setActiveTool('pen');
+                        setLeftOpen(false);
+                    }
+                }} 
+                title="Pen Tool (P)"
+            >
+                <PenTool className="h-4 w-4" />
+            </Button>
 
             <Popover>
               <PopoverTrigger asChild>
@@ -1498,7 +1523,7 @@ function DesignEditorInternal({
           <Sidebar collapsible="icon" variant="floating" className="hidden lg:block">
             <SidebarContent className="p-0 overflow-y-hidden">
               <TooltipProvider>
-                <Tabs defaultValue="elements" orientation="vertical" className="w-full h-full flex" onValueChange={(val) => setActiveTool(val === 'brush' || val === 'pen' ? (val as 'brush' | 'pen') : 'select')}>
+                <Tabs defaultValue="elements" orientation="vertical" className="w-full h-full flex" onValueChange={(val) => setActiveTool(val === 'brush' ? (val as 'brush') : 'select')}>
                 <TabsList className="flex flex-col h-full p-3 gap-3 bg-transparent">
                     {editorPanels.map((panel) => (
                       <Tooltip key={panel.id}>
@@ -1544,11 +1569,6 @@ function DesignEditorInternal({
                     <TabsContent value="brush" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
                         <PencilToolPanel options={brushOptions} setOptions={setBrushOptions} />
-                      </Suspense>
-                    </TabsContent>
-                    <TabsContent value="pen" className="flex-1 overflow-auto mt-0">
-                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
-                        <PenToolPanel onFinish={finalizePath} />
                       </Suspense>
                     </TabsContent>
                   </div>
@@ -1702,3 +1722,4 @@ export function DesignEditor(props: DesignEditorProps) {
     </SidebarProvider>
   );
 }
+
