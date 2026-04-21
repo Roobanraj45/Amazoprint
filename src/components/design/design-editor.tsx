@@ -45,10 +45,6 @@ import {
   Library,
   Undo,
   Crop as CropIcon,
-  Sparkles,
-  Spline,
-  Minus,
-  SprayCan,
 } from 'lucide-react';
 import { PropertiesPanel } from './properties-panel';
 import { DesignCanvas } from './design-canvas';
@@ -88,6 +84,7 @@ import { AmazoprintLogo } from '../ui/logo';
 const MediaPanel = lazy(() => import('./panels/media-panel').then(m => ({ default: m.MediaPanel })));
 const QrCodePanel = lazy(() => import('./panels/qrcode-panel').then(m => ({ default: m.QrCodePanel })));
 const PencilToolPanel = lazy(() => import('./pencil-tool-panel').then(m => ({ default: m.PencilToolPanel })));
+const PenToolPanel = lazy(() => import('./pen-tool-panel').then(m => ({ default: m.PenToolPanel })));
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -1722,4 +1719,3 @@ export function DesignEditor(props: DesignEditorProps) {
     </SidebarProvider>
   );
 }
-

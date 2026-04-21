@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -30,16 +29,9 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
   // Render rubber-band line from last point to mouse
   let previewLineD = '';
   if (mousePos && lastPoint) {
-      // Use the last point's exit handle (CP2) as the starting curve control
-      const hasExitHandle = Math.hypot(lastPoint.cp2x - lastPoint.x, lastPoint.cp2y - lastPoint.y) > 0.1;
-      
-      if (hasExitHandle) {
-          // If we have an exit handle, preview as a curve connecting to mouse
-          previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} C ${lastPoint.cp2x + safetyMargin} ${lastPoint.cp2y + safetyMargin}, ${mousePos.x + safetyMargin} ${mousePos.y + safetyMargin}, ${mousePos.x + safetyMargin} ${mousePos.y + safetyMargin}`;
-      } else {
-          // Otherwise it's a straight line
-          previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} L ${mousePos.x + safetyMargin} ${mousePos.y + safetyMargin}`;
-      }
+      // FIX: Always preview as a straight line from last point to mouse
+      // This ensures a "fresh" start for every new segment and correct visual length matching the anchor-to-cursor distance.
+      previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} L ${mousePos.x + safetyMargin} ${mousePos.y + safetyMargin}`;
   }
 
   return (
@@ -55,7 +47,7 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
             zIndex: 999 
         }}
     >
-      {/* Rubber-band preview line */}
+      {/* Rubber-band preview line (Dashed for clarity) */}
       {previewLineD && (
           <path
             d={previewLineD}
@@ -63,14 +55,14 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
             stroke="#2563eb"
             strokeWidth={strokeWidth}
             strokeDasharray={`${5/zoom} ${5/zoom}`}
-            opacity={0.5}
+            opacity={0.6}
           />
       )}
 
-      {/* The main path being drawn */}
+      {/* The main path being drawn (placed segments) */}
       <path 
         d={pathData} 
-        fill="rgba(37, 99, 235, 0.1)" 
+        fill="rgba(37, 99, 235, 0.05)" 
         stroke="#2563eb" 
         strokeWidth={strokeWidth} 
         strokeLinecap="round"
@@ -83,12 +75,12 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
           <line 
             x1={p.cp1x + safetyMargin} y1={p.cp1y + safetyMargin} 
             x2={p.x + safetyMargin} y2={p.y + safetyMargin} 
-            stroke="#2563eb" strokeWidth={handleLineStroke} opacity={0.4}
+            stroke="#2563eb" strokeWidth={handleLineStroke} opacity={0.5}
           />
           <line 
             x1={p.x + safetyMargin} y1={p.y + safetyMargin} 
             x2={p.cp2x + safetyMargin} y2={p.cp2y + safetyMargin} 
-            stroke="#2563eb" strokeWidth={handleLineStroke} opacity={0.4}
+            stroke="#2563eb" strokeWidth={handleLineStroke} opacity={0.5}
           />
           
           {/* Anchor Point (The main point on the curve) */}
