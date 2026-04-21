@@ -81,6 +81,7 @@ import { CropDialog } from './crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { TextAddPanel } from './panels/text-add-panel';
 import { AmazoprintLogo } from '../ui/logo';
+import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 
 const MediaPanel = lazy(() => import('./panels/media-panel').then(m => ({ default: m.MediaPanel })));
 const QrCodePanel = lazy(() => import('./panels/qrcode-panel').then(m => ({ default: m.QrCodePanel })));
@@ -412,6 +413,17 @@ function DesignEditorInternal({
         }
       }
 
+      // Undo last point in Pen tool: Ctrl + X or Cmd + X
+      if ((e.ctrlKey || e.metaKey) && e.key === 'x' && activeTool === 'pen' && !isInput) {
+          e.preventDefault();
+          setLivePath(prev => {
+              if (!prev || prev.length === 0) return null;
+              if (prev.length === 1) return null;
+              return prev.slice(0, -1);
+          });
+          toast({ title: 'Removed last point' });
+      }
+
       if (e.key === ' ' && !e.repeat && !isInput) {
         e.preventDefault();
         setIsSpacePressed(true);
@@ -460,7 +472,7 @@ function DesignEditorInternal({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [undo, redo, activeTool, finalizePath, croppingElementId, setLeftOpen]);
+  }, [undo, redo, activeTool, finalizePath, croppingElementId, setLeftOpen, toast]);
 
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -529,7 +541,7 @@ function DesignEditorInternal({
             
             // Check for closing path
             if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
-                // RESET PREVIOUS EXIT HANDLE BEFORE CLOSING TO ENSURE STRAIGHT FINISH (MATCH PREVIEW)
+                // RETRACT PREVIOUS EXIT HANDLE TO ENSURE STRAIGHT FINISH ON CLOSE
                 const updatedPath = [...livePath];
                 const lastIdx = updatedPath.length - 1;
                 updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
@@ -545,22 +557,19 @@ function DesignEditorInternal({
                     setDraggingPoint({ index: i, type: 'anchor' });
                     return;
                 }
-                if (Math.hypot(x - p.cp1x, y - p.cp1y) < hitRadius) {
+                if (Math.hypot(x - p.cp1x, p.cp1y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'cp1' });
                     return;
                 }
-                if (Math.hypot(x - p.cp2x, y - p.cp2y) < hitRadius) {
+                if (Math.hypot(x - p.cp2x, p.cp2y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'cp2' });
                     return;
                 }
             }
         }
 
-        // Add new point: initialized as straight (handles at anchor)
-        const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
+        // Add new point: initialized as straight (retract previous exit handle first)
         let updatedPath = livePath ? [...livePath] : [];
-
-        // RETRACT PREVIOUS EXIT HANDLE TO ENSURE NEW SEGMENT STARTS STRAIGHT
         if (updatedPath.length > 0) {
             const lastIdx = updatedPath.length - 1;
             updatedPath[lastIdx] = {
@@ -570,6 +579,7 @@ function DesignEditorInternal({
             };
         }
 
+        const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
         updatedPath.push(newPoint);
         setLivePath(updatedPath);
         

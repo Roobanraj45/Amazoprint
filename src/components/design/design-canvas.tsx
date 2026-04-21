@@ -224,7 +224,7 @@ type DesignCanvasProps = {
   } | null;
   livePath?: PathPoint[] | null;
   mousePos?: { x: number, y: number } | null;
-  activeTool?: 'select' | 'pencil' | 'pen' | 'brush';
+  activeTool?: 'select' | 'brush' | 'pen';
   croppingElementId?: string | null;
   setCroppingElementId?: (id: string | null) => void;
   liveSprayPuffs?: {x: number; y: number; radius: number; color: string;}[];
@@ -534,7 +534,7 @@ export function DesignCanvas({
                   />
               </svg>
           )}
-          {liveSprayPuffs && liveSprayPuffs.length > 0 && brushOptions && brushOptions.brushStyle === 'spray' && (
+          {liveSprayPuffs && liveSprayPuffs.length > 0 && brushOptions && (brushOptions as any).brushStyle === 'spray' && (
               <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 999 }}>
                   {liveSprayPuffs.map((puff, index) => {
                       const baseColor = hexToRgbString(puff.color);
@@ -558,4 +558,3 @@ export function DesignCanvas({
     </div>
   );
 }
-

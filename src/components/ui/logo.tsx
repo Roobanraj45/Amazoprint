@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -34,16 +35,15 @@ export function AmazoprintLogo(logoProps: LogoProps) {
 
   /**
    * FULL MODE: Brand headers/Heroes
-   * Reduced sizes by approx 20%
    */
-  let dimensions = "h-14 w-44"; 
+  let dimensions = "h-16 w-52"; 
   
   if (variant === 'large') {
-    dimensions = "h-20 w-60";
+    dimensions = "h-24 w-72";
   } else if (variant === 'banner') {
-    dimensions = "h-28 w-80";
+    dimensions = "h-32 w-96";
   } else {
-    dimensions = "h-16 w-52"; // Default wide
+    dimensions = "h-20 w-60"; // Enlarged default wide logo
   }
 
   return (
