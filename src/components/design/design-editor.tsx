@@ -528,6 +528,11 @@ function DesignEditorInternal({
             
             // Check for closing path
             if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
+                // RESET PREVIOUS EXIT HANDLE BEFORE CLOSING TO ENSURE STRAIGHT FINISH (MATCH PREVIEW)
+                const updatedPath = [...livePath];
+                const lastIdx = updatedPath.length - 1;
+                updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
+                setLivePath(updatedPath);
                 finalizePath();
                 return;
             }
@@ -552,7 +557,20 @@ function DesignEditorInternal({
 
         // Add new point: initialized as straight (handles at anchor)
         const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
-        const updatedPath = livePath ? [...livePath, newPoint] : [newPoint];
+        let updatedPath = livePath ? [...livePath] : [];
+
+        // RESET PREVIOUS EXIT HANDLE TO ENSURE NEW SEGMENT STARTS STRAIGHT (MATCH PREVIEW)
+        // This ensures the "rendered" line matches the "fresh" straight dotted preview line.
+        if (updatedPath.length > 0) {
+            const lastIdx = updatedPath.length - 1;
+            updatedPath[lastIdx] = {
+                ...updatedPath[lastIdx],
+                cp2x: updatedPath[lastIdx].x,
+                cp2y: updatedPath[lastIdx].y,
+            };
+        }
+
+        updatedPath.push(newPoint);
         setLivePath(updatedPath);
         
         // Start dragging the EXIT handle (cp2) for the next segment
@@ -614,6 +632,7 @@ function DesignEditorInternal({
                 point.cp2x = x;
                 point.cp2y = y;
                 // Mirrored CP1 for smooth curves during placement/editing
+                // This ensures the current segment curves smoothly as you drag
                 point.cp1x = point.x - (x - point.x);
                 point.cp1y = point.y - (y - point.y);
             } else if (draggingPoint.type === 'cp1') {
@@ -1374,7 +1393,7 @@ function DesignEditorInternal({
               <Button variant="ghost" size="icon" className="hidden lg:flex" asChild><Link href="/"><Home /></Link></Button>
               <Separator orientation="vertical" className="h-6" />
               <div className="flex items-center gap-3">
-                  <AmazoprintLogo isSimple className="w-10 h-10" />
+                  <AmazoprintLogo isSimple className="w-12 h-12" />
                   <div className="hidden md:block">
                       <h2 className="font-semibold text-sm">{product.name}</h2>
                       <p className="text-xs text-muted-foreground truncate max-w-xs">{product.description}</p>

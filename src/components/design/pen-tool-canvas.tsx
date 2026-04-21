@@ -29,8 +29,9 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
   // Render rubber-band line from last point to mouse
   let previewLineD = '';
   if (mousePos && lastPoint) {
-      // FIX: Always preview as a straight line from last point to mouse
-      // This ensures a "fresh" start for every new segment and correct visual length matching the anchor-to-cursor distance.
+      // FORCE PREVIEW AS STRAIGHT LINE
+      // This ensures that the user sees exactly what the next "fresh" segment will look like
+      // until they explicitly drag at the next point to create a curve.
       previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} L ${mousePos.x + safetyMargin} ${mousePos.y + safetyMargin}`;
   }
 
