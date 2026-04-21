@@ -20,6 +20,10 @@ export function resolveImagePath(path?: string): string {
   return path.startsWith('/') ? path : `/${path}`;
 }
 
+/**
+ * Generates an SVG path data string (d attribute) from a set of PathPoints.
+ * Uses Cubic Bezier curves (C) between points.
+ */
 export function generatePathD(points: PathPoint[], isClosed: boolean, offsetX = 0, offsetY = 0): string {
     if (!points || points.length === 0) return '';
   
@@ -29,11 +33,13 @@ export function generatePathD(points: PathPoint[], isClosed: boolean, offsetX = 
     for (let i = 0; i < points.length - 1; i++) {
       const p1 = points[i];
       const p2 = points[i + 1];
+      // Curve from current point to next point using p1's exit handle (cp2) and p2's entry handle (cp1)
       d += ` C ${p1.cp2x + offsetX} ${p1.cp2y + offsetY}, ${p2.cp1x + offsetX} ${p2.cp1y + offsetY}, ${p2.x + offsetX} ${p2.y + offsetY}`;
     }
   
     if (isClosed && points.length > 1) {
       const lastPoint = points[points.length - 1];
+      // Final segment connecting back to the start
       d += ` C ${lastPoint.cp2x + offsetX} ${lastPoint.cp2y + offsetY}, ${start.cp1x + offsetX} ${start.cp1y + offsetY}, ${start.x + offsetX} ${start.y + offsetY}`;
       d += ' Z';
     }

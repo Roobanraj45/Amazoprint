@@ -79,10 +79,11 @@ import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from './load-design-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
+import { cn, resolveImagePath } from '@/lib/utils';
 import { CropDialog } from './crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { TextAddPanel } from './panels/text-add-panel';
+import { AmazoprintLogo } from '../ui/logo';
 
 const MediaPanel = lazy(() => import('./panels/media-panel').then(m => ({ default: m.MediaPanel })));
 const QrCodePanel = lazy(() => import('./panels/qrcode-panel').then(m => ({ default: m.QrCodePanel })));
@@ -247,6 +248,10 @@ function DesignEditorInternal({
     })
   }, [setState]);
 
+  /**
+   * Finalizes the pen tool path and adds it as a new design element.
+   * Calculates the correct bounding box including control points.
+   */
   const finalizePath = useCallback(() => {
     if (!livePath || livePath.length < 2) {
         setLivePath(null);
@@ -256,7 +261,7 @@ function DesignEditorInternal({
 
     const finalPath = [...livePath];
     
-    // Correctly calculate bounding box including all control points to prevent clipping
+    // Calculate bounding box including control handles to prevent clipping
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
     
@@ -272,7 +277,8 @@ function DesignEditorInternal({
     const newPathElement: DesignElement = {
         id: crypto.randomUUID(),
         type: 'path',
-        fillType: isClosed ? 'solid' : 'none', // Default to no fill for unclosed paths to match user expectations
+        // Unclosed paths default to no fill to match standard design expectations
+        fillType: isClosed ? 'solid' : 'none', 
         x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY),
         rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 2, borderStyle: 'solid',
         isPathClosed: isClosed,
@@ -1355,9 +1361,12 @@ function DesignEditorInternal({
               <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => router.back()}><Home/></Button>
               <Button variant="ghost" size="icon" className="hidden lg:flex" asChild><Link href="/"><Home /></Link></Button>
               <Separator orientation="vertical" className="h-6" />
-              <div className="hidden md:block">
-                  <h2 className="font-semibold text-sm">{product.name}</h2>
-                  <p className="text-xs text-muted-foreground truncate max-w-xs">{product.description}</p>
+              <div className="flex items-center gap-3">
+                  <AmazoprintLogo isSimple className="w-8 h-8" />
+                  <div className="hidden md:block">
+                      <h2 className="font-semibold text-sm">{product.name}</h2>
+                      <p className="text-xs text-muted-foreground truncate max-w-xs">{product.description}</p>
+                  </div>
               </div>
           </div>
           

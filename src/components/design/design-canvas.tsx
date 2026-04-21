@@ -516,6 +516,9 @@ export function DesignCanvas({
                 />
             ))}
           </div>
+          
+          <PenToolCanvas livePath={livePath} zoom={zoom} safetyMargin={safetyMargin} />
+
           {livePencilPath && livePencilPath.path.length > 1 && (
               <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 999 }}>
                   <path
@@ -547,10 +550,8 @@ export function DesignCanvas({
                   })}
               </div>
           )}
-          <PenToolCanvas livePath={livePath} zoom={zoom} safetyMargin={safetyMargin} />
         </div>
       </div>
     </div>
   );
 }
-
