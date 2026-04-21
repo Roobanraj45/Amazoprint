@@ -1,8 +1,6 @@
-
-
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   SidebarProvider,
@@ -12,7 +10,7 @@ import {
   SidebarContent,
   SidebarTrigger,
   SidebarRail,
-  SidebarSeparator,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,10 +46,12 @@ import {
   Undo,
   Crop as CropIcon,
   Sparkles,
+  Spline,
+  Minus,
+  SprayCan,
 } from 'lucide-react';
 import { PropertiesPanel } from './properties-panel';
 import { DesignCanvas } from './design-canvas';
-import { PenToolPanel } from './pen-tool-panel';
 import {
   Tabs,
   TabsContent,
@@ -79,13 +79,17 @@ import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from './load-design-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
+import { cn, resolveImagePath } from '@/lib/utils';
 import { CropDialog } from './crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { TextAddPanel } from './panels/text-add-panel';
-import { MediaPanel } from './panels/media-panel';
-import { QrCodePanel } from './panels/qrcode-panel';
-import { PencilToolPanel } from './pencil-tool-panel';
+import { AmazoprintLogo } from '../ui/logo';
+
+const MediaPanel = lazy(() => import('./panels/media-panel').then(m => ({ default: m.MediaPanel })));
+const QrCodePanel = lazy(() => import('./panels/qrcode-panel').then(m => ({ default: m.QrCodePanel })));
+const PencilToolPanel = lazy(() => import('./pencil-tool-panel').then(m => ({ default: m.PencilToolPanel })));
+const PenToolPanel = lazy(() => import('./pen-tool-panel').then(m => ({ default: m.PenToolPanel })));
+
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -108,7 +112,7 @@ type DesignEditorProps = {
   verificationId?: string | null;
 };
 
-export function DesignEditor({
+function DesignEditorInternal({
   product: initialProduct,
   quantity: initialQuantity,
   totalPages = 1,
@@ -123,6 +127,7 @@ export function DesignEditor({
   verificationId,
 }: DesignEditorProps) {
   const router = useRouter();
+  const { setLeftOpen } = useSidebar();
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const { toast } = useToast();
@@ -159,13 +164,18 @@ export function DesignEditor({
   const [livePencilPath, setLivePencilPath] = useState<{ path: [number, number][]; strokeColor: string; strokeWidth: number; } | null>(null);
   const [brushOptions, setBrushOptions] = useState({
       drawMode: 'freehand' as 'freehand' | 'straight',
-      brushStyle: 'solid' as 'solid' | 'dashed' | 'dotted',
+      brushStyle: 'solid' as 'solid' | 'dashed' | 'dotted' | 'spray',
       strokeWidth: 5,
       strokeColor: '#000000',
       strokeLineCap: 'round' as 'butt' | 'round' | 'square',
+      sprayDensity: 20,
+      sprayRadius: 40,
   });
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
   const [draggingPoint, setDraggingPoint] = useState<{ index: number; type: 'anchor' | 'cp1' | 'cp2' } | null>(null);
+
+  const [sprayingState, setSprayingState] = useState<{ active: boolean; position: {x: number, y: number} | null }>({ active: false, position: null });
+  const [liveSprayPuffs, setLiveSprayPuffs] = useState<{x: number; y: number; radius: number; color: string;}[]>([]);
 
   const isMobile = useIsMobile();
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
@@ -210,7 +220,7 @@ export function DesignEditor({
       'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
       'Playfair Display', 'Merriweather', 'Ubuntu', 'PT Sans', 'Lora', 'Source Sans Pro',
       'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat',
-      'Big Apple NF', 'Agent Orange', 'Airstream', 'Bevan', 'Bree Serif', 'Coda', 'Frijole', 'Fugaz One', 'Jura'
+      'Bevan', 'Bree Serif', 'Coda', 'Frijole', 'Fugaz One', 'Jura'
     ];
     const fontUrl = `https://fonts.googleapis.com/css2?${fontFamilies.map(f => `family=${f.replace(/ /g, '+')}`).join('&')}&display=swap`;
 
@@ -246,20 +256,25 @@ export function DesignEditor({
     }
 
     const finalPath = [...livePath];
-    const minX = Math.min(...finalPath.map(p => p.x));
-    const minY = Math.min(...finalPath.map(p => p.y));
-    const maxX = Math.max(...finalPath.map(p => p.x));
-    const maxY = Math.max(...finalPath.map(p => p.y));
+    
+    const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
+    const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
+    
+    const minX = Math.min(...allX) - 5;
+    const minY = Math.min(...allY) - 5;
+    const maxX = Math.max(...allX) + 5;
+    const maxY = Math.max(...allY) + 5;
 
     const firstPoint = finalPath[0];
     const lastPoint = finalPath[finalPath.length - 1];
-    const isClosed = finalPath.length > 1 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 10 / viewState.zoom;
+    const isClosed = finalPath.length > 2 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 25 / viewState.zoom;
 
     const newPathElement: DesignElement = {
         id: crypto.randomUUID(),
         type: 'path',
-        x: minX, y: minY, width: maxX - minX, height: maxY - minY,
-        rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 1, borderStyle: 'solid',
+        fillType: isClosed ? 'solid' : 'none', 
+        x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY),
+        rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 2, borderStyle: 'solid',
         isPathClosed: isClosed,
         pathPoints: finalPath.map(p => ({
             ...p,
@@ -329,6 +344,53 @@ export function DesignEditor({
   useEffect(() => {
     resetView();
   }, [resetView, product.width, product.height]);
+
+    const lastSprayPoint = useRef<{ x: number; y: number } | null>(null);
+
+    useEffect(() => {
+        let animationFrameId: number;
+        const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+        const spray = () => {
+            if (sprayingState.active && sprayingState.position) {
+                const currentPos = sprayingState.position;
+                const startPos = lastSprayPoint.current || currentPos;
+
+                const dx = currentPos.x - startPos.x;
+                const dy = currentPos.y - startPos.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const steps = Math.max(1, Math.floor(dist / 2));
+
+                const newPuffs = [];
+                for (let i = 0; i < steps; i++) {
+                    const t = i / steps;
+                    const x = lerp(startPos.x, currentPos.x, t);
+                    const y = lerp(startPos.y, currentPos.y, t);
+
+                    newPuffs.push({
+                        x,
+                        y,
+                        radius: brushOptions.sprayRadius,
+                        color: brushOptions.strokeColor,
+                    });
+                }
+                
+                setLiveSprayPuffs(prev => [...prev, ...newPuffs]);
+                lastSprayPoint.current = currentPos;
+            }
+            animationFrameId = requestAnimationFrame(spray);
+        };
+
+        if (sprayingState.active) {
+            animationFrameId = requestAnimationFrame(spray);
+        } else {
+            lastSprayPoint.current = null;
+        }
+
+        return () => {
+            cancelAnimationFrame(animationFrameId);
+        };
+    }, [sprayingState, brushOptions.sprayRadius, brushOptions.strokeColor, brushOptions.sprayDensity]);
 
 
   useEffect(() => {
@@ -420,17 +482,25 @@ export function DesignEditor({
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (activeTool === 'brush') {
-      e.stopPropagation();
-      setIsDrawing(true);
-      beginTransaction();
-      const startPoint = getPointInCanvas(e);
-      drawingPointsRef.current = [startPoint];
-      setLivePencilPath({
-        path: [startPoint, startPoint],
-        strokeColor: brushOptions.strokeColor,
-        strokeWidth: brushOptions.strokeWidth,
-      });
-      return;
+        e.stopPropagation();
+        beginTransaction();
+        if (brushOptions.brushStyle === 'spray') {
+            const [x, y] = getPointInCanvas(e);
+            setLiveSprayPuffs([]);
+            lastSprayPoint.current = { x, y };
+            setSprayingState({ active: true, position: { x, y } });
+            return;
+        }
+
+        setIsDrawing(true);
+        const startPoint = getPointInCanvas(e);
+        drawingPointsRef.current = [startPoint];
+        setLivePencilPath({
+            path: [startPoint, startPoint],
+            strokeColor: brushOptions.strokeColor,
+            strokeWidth: brushOptions.strokeWidth,
+        });
+        return;
     }
      if (activeTool === 'pen') {
         e.stopPropagation();
@@ -438,37 +508,35 @@ export function DesignEditor({
         const [x, y] = getPointInCanvas(e);
 
         if (livePath) {
-            const pointRadius = 6 / viewState.zoom;
+            const hitRadius = 15 / viewState.zoom;
+            
+            if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
+                finalizePath();
+                return;
+            }
+
             for (let i = 0; i < livePath.length; i++) {
                 const p = livePath[i];
-                if (Math.hypot(x - p.x, y - p.y) < pointRadius) {
+                if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'anchor' });
                     return;
                 }
-                if (Math.hypot(x - p.cp1x, y - p.cp1y) < pointRadius) {
+                if (Math.hypot(x - p.cp1x, y - p.cp1y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'cp1' });
                     return;
                 }
-                if (Math.hypot(x - p.cp2x, y - p.cp2y) < pointRadius) {
+                if (Math.hypot(x - p.cp2x, y - p.cp2y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'cp2' });
                     return;
                 }
             }
         }
 
-        const newPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
+        const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
         setLivePath(prev => {
-            const newLivePath = [...(prev || []), newPoint];
-            if (newLivePath.length > 1) {
-                const prevPoint = newLivePath[newLivePath.length - 2];
-                const dx = newPoint.x - prevPoint.x;
-                const dy = newPoint.y - prevPoint.y;
-                prevPoint.cp2x = prevPoint.x + dx / 3;
-                prevPoint.cp2y = prevPoint.y + dy / 3;
-                newPoint.cp1x = newPoint.x - dx / 3;
-                newPoint.cp1y = newPoint.y - dy / 3;
-            }
-            return newLivePath;
+            if (!prev) return [newPoint];
+            const newLivePath = prev.map(p => ({...p})); 
+            return [...newLivePath, newPoint];
         });
         
         setDraggingPoint({ index: (livePath?.length || 0), type: 'cp2' });
@@ -490,12 +558,17 @@ export function DesignEditor({
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isDrawing && activeTool === 'brush') {
+    if (sprayingState.active) {
+        const [x, y] = getPointInCanvas(e);
+        setSprayingState(s => (s.active ? { ...s, position: { x, y } } : s));
+        return;
+    }
+    if (isDrawing && activeTool === 'brush' && brushOptions.brushStyle !== 'spray') {
         const currentPoint = getPointInCanvas(e);
         if (brushOptions.drawMode === 'freehand') {
             drawingPointsRef.current.push(currentPoint);
             setLivePencilPath(prev => prev ? { ...prev, path: [...drawingPointsRef.current] } : null);
-        } else { // straight line
+        } else { 
             const startPoint = drawingPointsRef.current[0];
             drawingPointsRef.current = [startPoint, currentPoint];
             setLivePencilPath(prev => prev ? { ...prev, path: [startPoint, currentPoint] } : null);
@@ -508,7 +581,7 @@ export function DesignEditor({
         
         setLivePath(prev => {
             if (!prev) return null;
-            const newPath = [...prev];
+            const newPath = prev.map(p => ({...p}));
             const point = newPath[draggingPoint.index];
 
             if (draggingPoint.type === 'anchor') {
@@ -520,27 +593,12 @@ export function DesignEditor({
                 point.cp1y += dy;
                 point.cp2x += dx;
                 point.cp2y += dy;
-            } else {
-                const isCp1 = draggingPoint.type === 'cp1';
-                
-                if (isCp1) {
-                    point.cp1x = x;
-                    point.cp1y = y;
-                } else { // cp2
-                    point.cp2x = x;
-                    point.cp2y = y;
-                }
-
-                const angle = Math.atan2( (isCp1 ? point.cp1y : point.cp2y) - point.y, (isCp1 ? point.cp1x : point.cp2x) - point.x) + Math.PI;
-                const length = isCp1 ? Math.hypot(point.cp2x - point.x, point.cp2y - point.y) : Math.hypot(point.cp1x - point.x, point.cp1y - point.y);
-
-                if (isCp1) {
-                    point.cp2x = point.x + Math.cos(angle) * length;
-                    point.cp2y = point.y + Math.sin(angle) * length;
-                } else {
-                    point.cp1x = point.x + Math.cos(angle) * length;
-                    point.cp1y = point.y + Math.sin(angle) * length;
-                }
+            } else if (draggingPoint.type === 'cp2') {
+                point.cp2x = x;
+                point.cp2y = y;
+            } else if (draggingPoint.type === 'cp1') {
+                point.cp1x = x;
+                point.cp1y = y;
             }
             return newPath;
         });
@@ -557,7 +615,88 @@ export function DesignEditor({
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isDrawing && activeTool === 'brush') {
+    if (sprayingState.active) {
+        setSprayingState({ active: false, position: null });
+        endTransaction();
+
+        if (liveSprayPuffs.length > 0) {
+            const puffs = [...liveSprayPuffs];
+            setLiveSprayPuffs([]);
+
+            const radius = brushOptions.sprayRadius;
+            const minX = Math.min(...puffs.map(p => p.x - radius));
+            const minY = Math.min(...puffs.map(p => p.y - radius));
+            const maxX = Math.max(...puffs.map(p => p.x + radius));
+            const maxY = Math.max(...puffs.map(p => p.y + radius));
+            
+            const width = maxX - minX;
+            const height = maxY - minY;
+
+            if (width <= 0 || height <= 0) return;
+
+            const offscreenCanvas = document.createElement('canvas');
+            offscreenCanvas.width = width;
+            offscreenCanvas.height = height;
+            const ctx = offscreenCanvas.getContext('2d');
+            if (!ctx) return;
+
+            const hexToRgbString = (hex: string) => {
+                let s = hex.replace('#', '');
+                if (s.length === 3) s = s.split('').map(c => c + c).join('');
+                const num = parseInt(s, 16);
+                return `${(num >> 16) & 255},${(num >> 8) & 255},${num & 255}`;
+            };
+
+            const addTexture = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, color: string) => {
+                const count = radius * (brushOptions.sprayDensity / 100);
+                ctx.fillStyle = color;
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const r = Math.random() * radius;
+                    const px = x + Math.cos(angle) * r;
+                    const py = y + Math.sin(angle) * r;
+                    ctx.globalAlpha = Math.random() * 0.05;
+                    ctx.fillRect(px, py, 1, 1);
+                }
+                ctx.globalAlpha = 1;
+            };
+
+            puffs.forEach(puff => {
+                const x = puff.x - minX;
+                const y = puff.y - minY;
+                const r = puff.radius;
+                
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, r);
+                const baseColor = hexToRgbString(puff.color);
+
+                gradient.addColorStop(0, `rgba(${baseColor}, 0.25)`);
+                gradient.addColorStop(0.3, `rgba(${baseColor}, 0.15)`);
+                gradient.addColorStop(0.6, `rgba(${baseColor}, 0.07)`);
+                gradient.addColorStop(1, `rgba(${baseColor}, 0)`);
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+
+                addTexture(ctx, x, y, r, puff.color);
+            });
+
+            const dataUrl = offscreenCanvas.toDataURL();
+            const newElement: DesignElement = {
+                id: crypto.randomUUID(), type: 'image', x: minX, y: minY, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
+                src: dataUrl, objectFit: 'contain',
+                backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+                content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+            };
+
+            updatePage(currentPage, { elements: [...currentElements, newElement] });
+            setSelectedElementIds([newElement.id]);
+        }
+        return;
+    }
+
+    if (isDrawing && activeTool === 'brush' && brushOptions.brushStyle !== 'spray') {
         setIsDrawing(false);
         setLivePencilPath(null);
         endTransaction();
@@ -649,34 +788,28 @@ export function DesignEditor({
   };
 
   const getCenterPosition = (elementWidth: number, elementHeight: number) => {
-    const rulerOffset = showRulers ? RULER_SIZE : 0;
-    if (mainCanvasRef.current) {
-        const { width: containerWidth, height: containerHeight } = mainCanvasRef.current.getBoundingClientRect();
-        const viewportCenterX_world = (containerWidth / 2 - viewState.pan.x) / viewState.zoom;
-        const viewportCenterY_world = (containerHeight / 2 - viewState.pan.y) / viewState.zoom;
-        return {
-            x: viewportCenterX_world - rulerOffset - (elementWidth / 2),
-            y: viewportCenterY_world - rulerOffset - (elementHeight / 2),
-        };
-    }
-    return { x: 50, y: 50 };
+    const centerX = (product.width - elementWidth) / 2;
+    const centerY = (product.height - elementHeight) / 2;
+    return { x: centerX, y: centerY };
   };
 
-  const addQrCodeElement = (value: string, style?: string) => {
-    const { x, y } = getCenterPosition(200, 200);
+  const addQrCodeElement = (value: string, style: string) => {
+    const size = 300;
+    const { x, y } = getCenterPosition(size, size);
     const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'qrcode', x, y, width: 200, height: 200, rotation: 0, opacity: 1, visible: true, locked: false,
+      id: crypto.randomUUID(), type: 'qrcode', x, y, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
       backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
       qrValue: value || 'https://amazoprint.com',
       qrColor: '#000000',
       qrBgColor: '#FFFFFF',
       qrLevel: 'M',
+      qrIconSize: 20,
       qrStylePreset: style as any || 'default',
       content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle'
     };
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
-    if (isMobile) setMobileSheetOpen(false);
+    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
   
   const addTextElement = (options: Partial<DesignElement>) => {
@@ -691,54 +824,40 @@ export function DesignEditor({
     };
 
     const newElement = { ...defaultTextElement, ...options };
+    
+    if (newElement.fontSize && !options.width && !options.height) {
+        newElement.width = (newElement.content?.length || 10) * (newElement.fontSize / 1.8) + newElement.fontSize;
+        newElement.height = newElement.fontSize * 1.5;
+    }
+
+
     const { x, y } = getCenterPosition(newElement.width || 250, newElement.height || 50);
     newElement.x = x;
     newElement.y = y;
 
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
-    if (isMobile) setMobileSheetOpen(false);
+    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
   
-  const handleAddFancyText = (fancyTextData: NonNullable<DesignElement['fancyTextData']>) => {
-    const { text, effectId, font, morphType, morphAmount, colors } = fancyTextData;
-    const urlText = encodeURIComponent(text || " ");
-    const urlFont = encodeURIComponent(font);
-    const urlColors = JSON.stringify(colors || ['d92b44', '00495c', 'f9fef7']);
-    const url = `https://d1csarkz8obe9u.cloudfront.net/index.php/fancytextrender/outputRender?id=${effectId}&fontFamily=${urlFont}&fontSize=170&text=${urlText}&colors=${urlColors}&scale=0.6&morphType=${morphType}&morphAmount=${morphAmount}&isWebpSupported=1&version=2`;
-    
-    const { x, y } = getCenterPosition(400, 200);
-    
-    const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'image', x, y, width: 400, height: 200, rotation: 0, opacity: 1, visible: true, locked: false,
-      src: url, objectFit: 'contain',
-      fancyTextData: { ...fancyTextData, colors: colors || ['d92b44', '00495c', 'f9fef7'] },
-      backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-      content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle',
-    };
-
-    updatePage(currentPage, { elements: [...currentElements, newElement] });
-    setSelectedElementIds([newElement.id]);
-    if (isMobile) setMobileSheetOpen(false);
-  };
-
   const handleAddImageFromLibrary = (src: string) => {
-    const { x, y } = getCenterPosition(300, 300);
+    const size = 400;
+    const { x, y } = getCenterPosition(size, size);
     const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'image', x, y, width: 300, height: 300, rotation: 0, opacity: 1, visible: true, locked: false,
+      id: crypto.randomUUID(), type: 'image', x, y, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
       backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
       src, objectFit: 'contain', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
       content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle',
     };
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
-    if (isMobile) setMobileSheetOpen(false);
+    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
-  const handleAddShape = (shapeType: DesignElement['shapeType']) => {
+  const handleAddShape = (shapeType: string) => {
     const isLine = shapeType === 'line';
-    const width = isLine ? 300 : 200;
-    const height = isLine ? 2 : 200;
+    const width = isLine ? 400 : 300;
+    const height = isLine ? 2 : 300;
     const { x, y } = getCenterPosition(width, height);
     const newElement: DesignElement = {
       id: crypto.randomUUID(), type: 'shape', shapeType, x, y, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
@@ -748,22 +867,23 @@ export function DesignEditor({
     };
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
-    if (isMobile) setMobileSheetOpen(false);
+    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
   const handleAddEmoji = (emoji: string) => {
-    const { x, y } = getCenterPosition(100, 100);
+    const size = 250;
+    const { x, y } = getCenterPosition(size, size);
     const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'text', x, y, width: 100, height: 100, rotation: 0, opacity: 1, backgroundColor: 'transparent', visible: true, locked: false,
+      id: crypto.randomUUID(), type: 'text', x, y, width: size, height: size, rotation: 0, opacity: 1, backgroundColor: 'transparent', visible: true, locked: false,
       boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid', borderRadius: 0, content: emoji,
-      fontSize: 80, fontFamily: 'Inter', color: '#000000', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none',
+      fontSize: 200, fontFamily: 'Inter', color: '#000000', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none',
       letterSpacing: 0, lineHeight: 1, textAlign: 'center', textTransform: 'none', verticalAlign: 'middle', src: '', objectFit: 'cover',
       filterBrightness: 1, filterContrast: 1, filterSaturate: 1, filterGrayscale: 0, filterSepia: 0, filterInvert: 0, filterHueRotate: 0, filterBlur: 0,
       flipHorizontal: false, flipVertical: false, shapeType: 'rectangle',
     };
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
-    if (isMobile) setMobileSheetOpen(false);
+    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
   const handleAddGroupedElements = (elements: Partial<DesignElement>[]) => {
@@ -774,7 +894,6 @@ export function DesignEditor({
       id: crypto.randomUUID(),
     })) as DesignElement[];
     
-    // Grouping logic
     const minX = Math.min(...newElements.map(el => el.x));
     const minY = Math.min(...newElements.map(el => el.y));
     const maxX = Math.max(...newElements.map(el => el.x + el.width));
@@ -797,7 +916,7 @@ export function DesignEditor({
     
     updatePage(currentPage, { elements: [...currentElements, newGroup] });
     setSelectedElementIds([newGroup.id]);
-    if (isMobile) setMobileSheetOpen(false);
+    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
   const findElementRecursive = (elements: DesignElement[], id: string): DesignElement | undefined => {
@@ -888,9 +1007,6 @@ export function DesignEditor({
       try {
         await updateDesign({ id: currentDesignId, name: currentDesignName, verificationId: verificationId || null, ...saveData });
         toast({ title: 'Design Updated!' });
-        if (verificationId) {
-            toast({ title: 'Revision Updated', description: 'Your changes have been saved for the verification job.' });
-        }
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error Updating Design' });
       }
@@ -905,7 +1021,6 @@ export function DesignEditor({
 
           if (verificationId) {
             await linkDesignToVerification(Number(verificationId), savedDesign.id);
-            toast({ title: 'Revision Linked', description: 'Your new design has been linked to the verification job.' });
           }
         } catch (error) {
           toast({ variant: 'destructive', title: 'Error Saving Design' });
@@ -1026,16 +1141,14 @@ export function DesignEditor({
     const selectedId = selectedElementIds[0];
 
     if (!active) {
-      // Turn off all special finishes
       updateElement(selectedId, { spotUv: false, foilId: undefined });
     } else {
-      // Turn on a specific finish
-      if (foil) { // It's a foil
+      if (foil) {
         updateElement(selectedId, {
           spotUv: true,
           foilId: foil.id,
         });
-      } else { // It's a standard Spot UV
+      } else {
         updateElement(selectedId, {
           spotUv: true,
           foilId: undefined,
@@ -1184,11 +1297,11 @@ export function DesignEditor({
   const isGroupSelected = isSingleElementSelected && selectedElement?.type === 'group';
 
   const editorPanels = [
-    { id: 'elements', label: 'Text', icon: <Type />, color: 'text-blue-600 bg-blue-500/10 data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
-    { id: 'media', label: 'Media', icon: <LayoutGrid />, color: 'text-purple-600 bg-purple-500/10 data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
-    { id: 'qrcode', label: 'QR Code', icon: <QrCode />, color: 'text-emerald-600 bg-emerald-500/10 data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
-    { id: 'brush', label: 'Brush', icon: <Brush />, color: 'text-orange-600 bg-orange-500/10 data-[state=active]:bg-orange-600 data-[state=active]:text-white' },
-    { id: 'pen', label: 'Pen', icon: <PenTool />, color: 'text-rose-600 bg-rose-500/10 data-[state=active]:bg-rose-600 data-[state=active]:text-white' },
+    { id: 'elements', label: 'Text', icon: <Type size={24} />, color: 'text-blue-600 bg-blue-500/10 data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
+    { id: 'media', label: 'Media', icon: <LayoutGrid size={24} />, color: 'text-purple-600 bg-purple-500/10 data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
+    { id: 'qrcode', label: 'QR Code', icon: <QrCode size={24} />, color: 'text-emerald-600 bg-emerald-500/10 data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
+    { id: 'brush', label: 'Brush', icon: <Brush size={24} />, color: 'text-orange-600 bg-orange-500/10 data-[state=active]:bg-orange-600 data-[state=active]:text-white' },
+    { id: 'pen', label: 'Pen', icon: <PenTool size={24} />, color: 'text-rose-600 bg-rose-500/10 data-[state=active]:bg-rose-600 data-[state=active]:text-white' },
   ];
 
   const handleMobilePanelOpen = (panel: string) => {
@@ -1203,7 +1316,7 @@ export function DesignEditor({
 
   const renderMobilePanelContent = () => {
     switch (activeMobilePanel) {
-        case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddFancyText={handleAddFancyText} />;
+        case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddFancyText={() => {}} />;
         case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
         case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
         case 'brush': return <PencilToolPanel options={brushOptions} setOptions={setBrushOptions} />;
@@ -1217,6 +1330,7 @@ export function DesignEditor({
                     croppingElementId={croppingElementId}
                     setCroppingElementId={setCroppingElementId}
                     isAdmin={isAdmin}
+                    onMoveLayer={moveLayer}
                 />
             </div>
         );
@@ -1231,16 +1345,19 @@ export function DesignEditor({
   const elementToCrop = croppingElementId ? findElementRecursive(currentElements, croppingElementId) : undefined;
 
   return (
-    <SidebarProvider>
+    <>
       <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden">
         <header className="relative z-20 flex h-14 items-center gap-4 border-b bg-card px-4 lg:px-6">
           <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => router.back()}><Home/></Button>
               <Button variant="ghost" size="icon" className="hidden lg:flex" asChild><Link href="/"><Home /></Link></Button>
               <Separator orientation="vertical" className="h-6" />
-              <div className="hidden md:block">
-                  <h2 className="font-semibold text-sm">{product.name}</h2>
-                  <p className="text-xs text-muted-foreground truncate max-w-xs">{product.description}</p>
+              <div className="flex items-center gap-3">
+                  <AmazoprintLogo isSimple className="w-8 h-8" />
+                  <div className="hidden md:block">
+                      <h2 className="font-semibold text-sm">{product.name}</h2>
+                      <p className="text-xs text-muted-foreground truncate max-w-xs">{product.description}</p>
+                  </div>
               </div>
           </div>
           
@@ -1363,47 +1480,63 @@ export function DesignEditor({
         </header>
 
         <div className="flex overflow-hidden relative">
-          <Sidebar collapsible="icon" className="hidden lg:block">
-            <SidebarContent className="p-0">
+          <Sidebar collapsible="icon" variant="floating" className="hidden lg:block">
+            <SidebarContent className="p-0 overflow-y-hidden">
               <TooltipProvider>
                 <Tabs defaultValue="elements" orientation="vertical" className="w-full h-full flex" onValueChange={(val) => setActiveTool(val === 'brush' || val === 'pen' ? (val as 'brush' | 'pen') : 'select')}>
-                <TabsList className="flex flex-col h-full p-2 gap-2 border-r bg-card rounded-none">
+                <TabsList className="flex flex-col h-full p-3 gap-3 bg-transparent">
                     {editorPanels.map((panel) => (
                       <Tooltip key={panel.id}>
                         <TooltipTrigger asChild>
                           <TabsTrigger
                             value={panel.id}
                             className={cn(
-                              "h-16 w-full p-0 flex flex-col gap-1 items-center justify-center rounded-lg transition-colors duration-200",
+                              "h-20 w-20 p-0 flex flex-col gap-1 items-center justify-center rounded-2xl transition-all duration-200",
+                              "data-[state=active]:scale-110 data-[state=active]:shadow-lg",
                               panel.color
                             )}
+                            onClick={() => setLeftOpen(true)}
                           >
                             {panel.icon}
-                            <span className="text-[10px] font-bold">{panel.label}</span>
+                            <span className="text-xs font-bold">{panel.label}</span>
                           </TabsTrigger>
                         </TooltipTrigger>
                         <TooltipContent side="right"><p>{panel.label}</p></TooltipContent>
                       </Tooltip>
                     ))}
                   </TabsList>
-                  <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
-                      <ScrollArea className="h-full">
-                          <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddFancyText={handleAddFancyText} />
-                      </ScrollArea>
-                  </TabsContent>
-                  <TabsContent value="media" className="flex-1 mt-0">
-                      <MediaPanel 
-                        onImageSelect={handleAddImageFromLibrary} 
-                        onAddShape={handleAddShape}
-                        onEmojiSelect={handleAddEmoji}
-                        isAdmin={isAdmin}
-                      />
-                  </TabsContent>
-                  <TabsContent value="qrcode" className="flex-1 overflow-auto mt-0">
-                    <QrCodePanel onAddQrCode={addQrCodeElement} />
-                  </TabsContent>
-                  <TabsContent value="brush" className="flex-1 overflow-auto mt-0"><PencilToolPanel options={brushOptions} setOptions={setBrushOptions} /></TabsContent>
-                   <TabsContent value="pen" className="flex-1 overflow-auto mt-0"><PenToolPanel onFinish={finalizePath} /></TabsContent>
+                  <div className={cn("group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex", "w-[26rem]")}>
+                    <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
+                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
+                          <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddFancyText={() => {}} />
+                      </Suspense>
+                    </TabsContent>
+                    <TabsContent value="media" className="flex-1 overflow-auto mt-0">
+                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
+                        <MediaPanel 
+                          onImageSelect={handleAddImageFromLibrary} 
+                          onAddShape={handleAddShape}
+                          onEmojiSelect={handleAddEmoji}
+                          isAdmin={isAdmin}
+                        />
+                      </Suspense>
+                    </TabsContent>
+                    <TabsContent value="qrcode" className="flex-1 overflow-auto mt-0">
+                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
+                        <QrCodePanel onAddQrCode={addQrCodeElement} />
+                      </Suspense>
+                    </TabsContent>
+                    <TabsContent value="brush" className="flex-1 overflow-auto mt-0">
+                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
+                        <PencilToolPanel options={brushOptions} setOptions={setBrushOptions} />
+                      </Suspense>
+                    </TabsContent>
+                    <TabsContent value="pen" className="flex-1 overflow-auto mt-0">
+                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
+                        <PenToolPanel onFinish={finalizePath} />
+                      </Suspense>
+                    </TabsContent>
+                  </div>
                 </Tabs>
               </TooltipProvider>
             </SidebarContent>
@@ -1438,6 +1571,8 @@ export function DesignEditor({
                 activeTool={activeTool}
                 croppingElementId={croppingElementId}
                 setCroppingElementId={setCroppingElementId}
+                liveSprayPuffs={liveSprayPuffs}
+                brushOptions={brushOptions}
               />
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-end justify-center gap-2">
                 <div className="hidden lg:flex items-center gap-1 rounded-lg bg-card p-1.5 shadow-md border">
@@ -1461,6 +1596,7 @@ export function DesignEditor({
                     croppingElementId={croppingElementId}
                     setCroppingElementId={setCroppingElementId}
                     isAdmin={isAdmin}
+                    onMoveLayer={moveLayer}
                   />
                 </div>
               </ScrollArea>
@@ -1539,6 +1675,14 @@ export function DesignEditor({
           }}
         />
       )}
+    </>
+  );
+}
+
+export function DesignEditor(props: DesignEditorProps) {
+  return (
+    <SidebarProvider defaultLeftOpen={false}>
+      <DesignEditorInternal {...props} />
     </SidebarProvider>
   );
 }
