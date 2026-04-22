@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useRef } from 'react';
@@ -221,25 +220,14 @@ type DesignCanvasProps = {
     path: [number, number][];
     strokeColor: string;
     strokeWidth: number;
+    hardness: number;
+    opacity: number;
   } | null;
   livePath?: PathPoint[] | null;
   mousePos?: { x: number, y: number } | null;
   activeTool?: 'select' | 'brush' | 'pen';
   croppingElementId?: string | null;
   setCroppingElementId?: (id: string | null) => void;
-  liveSprayPuffs?: {x: number; y: number; radius: number; color: string;}[];
-  brushOptions?: {
-    strokeColor: string;
-    strokeWidth: number;
-    sprayRadius: number;
-  };
-};
-
-const hexToRgbString = (hex: string) => {
-    let s = hex.replace('#', '');
-    if (s.length === 3) s = s.split('').map(c => c + c).join('');
-    const num = parseInt(s, 16);
-    return `${(num >> 16) & 255},${(num >> 8) & 255},${num & 255}`;
 };
 
 
@@ -274,8 +262,6 @@ export function DesignCanvas({
   activeTool = 'select',
   croppingElementId,
   setCroppingElementId,
-  liveSprayPuffs,
-  brushOptions,
 }: DesignCanvasProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const { zoom, pan } = viewState;
@@ -383,6 +369,11 @@ export function DesignCanvas({
   }
 
   const rulerOffset = showRulers ? RULER_SIZE : 0;
+  
+  // Photoshop-like blur standard deviation for live preview
+  const stdDeviation = livePencilPath?.hardness !== undefined 
+    ? ((100 - livePencilPath.hardness) / 100) * (livePencilPath.strokeWidth / 2)
+    : 0;
 
   return (
     <div
@@ -523,7 +514,14 @@ export function DesignCanvas({
           <PenToolCanvas livePath={livePath} mousePos={mousePos} zoom={zoom} safetyMargin={safetyMargin} />
 
           {livePencilPath && livePencilPath.path.length > 1 && (
-              <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 999 }}>
+              <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 999, opacity: livePencilPath.opacity }}>
+                  {stdDeviation > 0 && (
+                    <defs>
+                        <filter id="live-brush-blur" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation={stdDeviation} />
+                        </filter>
+                    </defs>
+                  )}
                   <path
                       d={"M " + livePencilPath.path.map(p => `${p[0] + safetyMargin} ${p[1] + safetyMargin}`).join(" L ")}
                       stroke={livePencilPath.strokeColor}
@@ -531,27 +529,9 @@ export function DesignCanvas({
                       fill="none"
                       strokeLinecap="round"
                       strokeLinejoin="round"
+                      filter={stdDeviation > 0 ? "url(#live-brush-blur)" : undefined}
                   />
               </svg>
-          )}
-          {liveSprayPuffs && liveSprayPuffs.length > 0 && brushOptions && (brushOptions as any).brushStyle === 'spray' && (
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 999 }}>
-                  {liveSprayPuffs.map((puff, index) => {
-                      const baseColor = hexToRgbString(puff.color);
-                      const gradient = `radial-gradient(circle, rgba(${baseColor}, 0.25) 0%, rgba(${baseColor}, 0.15) 30%, rgba(${baseColor}, 0.07) 60%, rgba(${baseColor}, 0) 100%)`;
-                      return (
-                          <div key={`live-puff-${index}`} style={{
-                              position: 'absolute',
-                              left: puff.x + safetyMargin - puff.radius,
-                              top: puff.y + safetyMargin - puff.radius,
-                              width: puff.radius * 2,
-                              height: puff.radius * 2,
-                              borderRadius: '50%',
-                              background: gradient,
-                          }} />
-                      );
-                  })}
-              </div>
           )}
         </div>
       </div>

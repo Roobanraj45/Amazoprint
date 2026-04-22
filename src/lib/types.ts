@@ -1,5 +1,3 @@
-
-
 export type FoilType = {
   id: number;
   name: string;
@@ -143,6 +141,7 @@ export type DesignElement = {
   strokeColor?: string;
   strokeWidth?: number;
   brushStyle?: 'solid' | 'dashed' | 'dotted' | 'spray';
+  brushHardness?: number; // 0-100
   strokeLineCap?: 'butt' | 'round' | 'square';
   sprayDensity?: number;
   sprayRadius?: number;

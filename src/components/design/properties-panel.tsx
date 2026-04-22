@@ -13,7 +13,7 @@ import {
 import { TextPropertiesPanel } from './text-properties-panel';
 import { ImagePropertiesPanel } from './image-properties-panel';
 import { ShapePropertiesPanel } from './shape-properties-panel';
-import { PencilPropertiesPanel } from './pencil-properties-panel';
+import { BrushPropertiesPanel } from './brush-properties-panel';
 import { QrCodePropertiesPanel } from './qrcode-properties-panel';
 import { PathPropertiesPanel } from './path-properties-panel';
 import { Slider } from '../ui/slider';
@@ -512,7 +512,7 @@ export function PropertiesPanel({
               <SectionHeader icon={Layers} title="Brush Properties" />
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-6">
-              <PencilPropertiesPanel element={element} onUpdate={onUpdate} />
+              <BrushPropertiesPanel element={element} onUpdate={onUpdate} />
             </AccordionContent>
           </AccordionItem>
         )}

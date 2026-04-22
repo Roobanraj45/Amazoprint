@@ -431,38 +431,32 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
         return <StyledQrCode element={element} />;
       }
       case 'brush': {
-        if (element.brushStyle === 'spray') {
-            const dots = element.sprayDots || [];
-            return (
-                <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }}>
-                    <g fill={isSpotUv ? 'black' : element.strokeColor || '#000000'}>
-                        {dots.map((dot, index) => (
-                            <circle key={index} cx={dot.x} cy={dot.y} r={dot.r} opacity={dot.o} />
-                        ))}
-                    </g>
-                </svg>
-            );
-        }
-
         if (!element.path || element.path.length < 2) return null;
 
         const pathData = "M " + element.path.map(p => `${p[0]} ${p[1]}`).join(" L ");
         
-        const strokeDasharray = 
-            element.brushStyle === 'dashed' ? `${(element.strokeWidth || 2) * 2} ${(element.strokeWidth || 2) * 1.5}` :
-            element.brushStyle === 'dotted' ? `1 ${(element.strokeWidth || 2) * 2}` :
-            undefined;
+        // Photoshop-like hardness uses standard deviation for blur
+        const stdDeviation = element.brushHardness !== undefined 
+            ? ((100 - element.brushHardness) / 100) * ((element.strokeWidth || 5) / 2)
+            : 0;
 
         return (
             <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }}>
+                {stdDeviation > 0 && (
+                    <defs>
+                        <filter id={`brush-blur-${element.id}`} x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur in="SourceGraphic" stdDeviation={stdDeviation} />
+                        </filter>
+                    </defs>
+                )}
                 <path
                     d={pathData}
                     stroke={isSpotUv ? 'black' : element.strokeColor || '#000000'}
-                    strokeWidth={element.strokeWidth || 2}
+                    strokeWidth={element.strokeWidth || 5}
                     fill="none"
-                    strokeLinecap={element.strokeLineCap || 'round'}
+                    strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeDasharray={strokeDasharray}
+                    filter={stdDeviation > 0 ? `url(#brush-blur-${element.id})` : undefined}
                 />
             </svg>
         )
