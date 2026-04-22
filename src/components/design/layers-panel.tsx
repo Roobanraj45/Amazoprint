@@ -18,16 +18,29 @@ import {
     Copy, 
     Trash2,
     QrCode,
+    Eraser,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type LayersPanelProps = {
   elements: DesignElement[];
   selectedElementIds: string[];
-  onSelectElement: (id: string, isShift?: boolean) => void;
+  onSelectElement: (id: string | null, isShift?: boolean) => void;
   onToggleVisibility: (id: string) => void;
   onToggleLock: (id: string) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
+  onDeleteAll: () => void;
 };
 
 const ElementIcon = ({ type }: { type: DesignElement['type'] }) => {
@@ -53,11 +66,11 @@ const getElementLabel = (element: DesignElement): string => {
       return element.content ? truncate(element.content, 25) : 'Text';
     case 'image':
       if (element.src?.startsWith('data:')) {
-        return 'Image';
+        return 'Brush/Image Overlay';
       }
       if (element.src) {
         const parts = element.src.split('/');
-        const filename = parts[parts.length - 1].split('?')[0]; // remove query params
+        const filename = parts[parts.length - 1].split('?')[0];
         if (filename) {
           try {
             return truncate(decodeURIComponent(filename), 25);
@@ -147,21 +160,11 @@ export function LayersPanel({
   onToggleVisibility,
   onToggleLock,
   onDuplicate,
-  onDelete
+  onDelete,
+  onDeleteAll,
 }: LayersPanelProps) {
     
     const reversedElements = [...elements].reverse();
-
-    const findElementRecursive = (els: DesignElement[], id: string): DesignElement | undefined => {
-        for (const el of els) {
-            if (el.id === id) return el;
-            if (el.children) {
-                const found = findElementRecursive(el.children, id);
-                if (found) return found;
-            }
-        }
-        return undefined;
-    };
 
     const renderLayers = (els: DesignElement[], level = 0): React.ReactNode[] => {
         return els.flatMap(element => {
@@ -171,7 +174,7 @@ export function LayersPanel({
                     <LayerItem
                         element={element}
                         selected={isSelected}
-                        onSelect={onSelectElement}
+                        onSelect={(id, shift) => onSelectElement(id, shift)}
                         onToggleVisibility={onToggleVisibility}
                         onToggleLock={onToggleLock}
                         onDuplicate={onDuplicate}
@@ -190,9 +193,35 @@ export function LayersPanel({
 
   return (
     <div className="flex flex-col h-full bg-card">
-        <div className="p-3 border-b">
-            <h4 className="font-medium text-sm">Layers</h4>
-            <p className="text-xs text-muted-foreground">Top-most layers first.</p>
+        <div className="p-3 border-b flex items-center justify-between">
+            <div>
+                <h4 className="font-medium text-sm">Layers</h4>
+                <p className="text-xs text-muted-foreground">Top-most layers first.</p>
+            </div>
+            {elements.length > 0 && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Eraser className="h-3 w-3 mr-1.5" />
+                            Clear All
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Clear all layers?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete all elements on the current page. This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={onDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Clear All
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
         </div>
         <ScrollArea className="flex-1 h-96">
             <div className="p-2">

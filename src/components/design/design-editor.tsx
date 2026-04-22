@@ -59,7 +59,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { DesignElement, Product, Design, Background, Guide, ViewState, Page, RenderData, FoilType, PathPoint } from '@/lib/types';
+import type { DesignElement, Product, Background, Guide, ViewState, Page, RenderData, FoilType, PathPoint } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import Link from 'next/link';
@@ -128,6 +128,7 @@ function DesignEditorInternal({
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   const searchParams = useSearchParams();
   const contestId = searchParams.get('contestId');
@@ -222,6 +223,29 @@ function DesignEditorInternal({
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
+  // --- Unsaved Changes Logic ---
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = ''; // Standard way to trigger browser warning
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  const confirmNavigation = useCallback((e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+    if (isDirty) {
+      if (!window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+        e.preventDefault();
+        return false;
+      }
+    }
+    return true;
+  }, [isDirty]);
+  // --- End Unsaved Changes Logic ---
+
   useEffect(() => {
     const fontFamilies = [
       'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
@@ -247,6 +271,7 @@ function DesignEditorInternal({
   }, []);
 
   const updatePage = useCallback((pageIndex: number, newPageData: Partial<Page>) => {
+    setIsDirty(true);
     setState(prev => {
         if (!prev) return prev;
         const newPages = [...prev.pages];
@@ -329,6 +354,7 @@ function DesignEditorInternal({
     setCurrentDesignName(initialDesignName || null);
     setCurrentPage(0);
     setSelectedElementIds([]);
+    setIsDirty(false);
   }, [initialProduct, initialQuantity, initialElements, initialBackground, initialDesignId, initialDesignName, totalPages, resetHistory]);
   
   const editorCanvasWidth = product.width + (safetyMargin * 2);
@@ -477,7 +503,8 @@ function DesignEditorInternal({
         scatterPointsRef.current = [];
         
         // Initial particles based on flow/density
-        if (brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip)) {
+        const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
+        if (isComplex) {
             const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
@@ -583,45 +610,64 @@ function DesignEditorInternal({
     setMousePos({ x, y, screenX: e.clientX, screenY: e.clientY });
 
     if (isDrawing && activeTool === 'brush') {
-        const lastPoint = drawingPointsRef.current[drawingPointsRef.current.length - 1];
+        const points = drawingPointsRef.current;
+        const lastPoint = points[points.length - 1];
+        if (!lastPoint) return;
+
         const dist = Math.hypot(x - lastPoint[0], y - lastPoint[1]);
-        const spacing = brushOptions.size * 0.15;
-        const steps = Math.max(1, Math.floor(dist / spacing));
+        const spacing = brushOptions.size * 0.1; // Photoshop-like spacing
+        
+        if (dist >= spacing || brushOptions.tool === 'spray') {
+            const steps = Math.max(1, Math.floor(dist / spacing));
 
-        for (let s = 1; s <= steps; s++) {
-            const t = s / steps;
-            const interX = lastPoint[0] + (x - lastPoint[0]) * t;
-            const interY = lastPoint[1] + (y - lastPoint[1]) * t;
-            drawingPointsRef.current.push([interX, interY]);
+            for (let s = 1; s <= steps; s++) {
+                const t = s / steps;
+                const interX = lastPoint[0] + (x - lastPoint[0]) * t;
+                const interY = lastPoint[1] + (y - lastPoint[1]) * t;
+                points.push([interX, interY]);
 
-            if (brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip)) {
-                const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
-                for (let i = 0; i < count; i++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const scatterRatio = brushOptions.scatter / 100;
-                    const radius = Math.pow(Math.random(), 1 - brushOptions.hardness) * brushOptions.size * scatterRatio;
-                    const px = interX + Math.cos(angle) * radius;
-                    const py = interY + Math.sin(angle) * radius;
+                const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
+                if (isComplex) {
+                    const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
+                    for (let i = 0; i < count; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const scatterRatio = brushOptions.scatter / 100;
+                        const radius = Math.pow(Math.random(), 1 - brushOptions.hardness) * brushOptions.size * scatterRatio;
+                        const px = interX + Math.cos(angle) * radius;
+                        const py = interY + Math.sin(angle) * radius;
 
-                    if (brushOptions.brushTip === 'texture') {
-                        scatterPointsRef.current.push({
-                            x: px, y: py, r: 0,
-                            w: Math.random() * brushOptions.size * 0.3,
-                            h: Math.random() * brushOptions.size * 0.3,
-                            opacity: Math.random() * brushOptions.opacity
-                        });
-                    } else {
-                        scatterPointsRef.current.push({
-                            x: px, y: py, 
-                            r: brushOptions.tool === 'spray' ? 1.5 : (Math.random() * 1.5 + 0.5),
-                            opacity: (1 - radius / brushOptions.size) * brushOptions.opacity
-                        });
+                        if (brushOptions.brushTip === 'texture') {
+                            scatterPointsRef.current.push({
+                                x: px, y: py, r: 0,
+                                w: Math.random() * brushOptions.size * 0.3,
+                                h: Math.random() * brushOptions.size * 0.3,
+                                opacity: Math.random() * brushOptions.opacity
+                            });
+                        } else {
+                            scatterPointsRef.current.push({
+                                x: px, y: py, 
+                                r: brushOptions.tool === 'spray' ? 1.5 : (Math.random() * 1.5 + 0.5),
+                                opacity: (1 - (radius / (brushOptions.size * scatterRatio || 1))) * brushOptions.opacity
+                            });
+                        }
                     }
                 }
             }
-        }
+            
+            // Limit point collection for performance during very long strokes
+            if (points.length > 500 && !isComplex) {
+                points.splice(0, points.length - 500);
+            }
+            if (scatterPointsRef.current.length > 5000) {
+                scatterPointsRef.current.splice(0, scatterPointsRef.current.length - 5000);
+            }
 
-        setLivePencilPath(prev => prev ? { ...prev, path: [...drawingPointsRef.current], scatterData: [...scatterPointsRef.current] } : null);
+            setLivePencilPath(prev => prev ? { 
+                ...prev, 
+                path: [...points], 
+                scatterData: [...scatterPointsRef.current] 
+            } : null);
+        }
         return;
     }
 
@@ -674,7 +720,7 @@ function DesignEditorInternal({
             const allX = isComplex ? scatter.map(p => p.x) : points.map(p => p[0]);
             const allY = isComplex ? scatter.map(p => p.y) : points.map(p => p[1]);
             
-            const padding = brushOptions.size;
+            const padding = brushOptions.size * 2;
             const minX = Math.min(...allX) - padding;
             const minY = Math.min(...allY) - padding;
             const maxX = Math.max(...allX) + padding;
@@ -983,18 +1029,34 @@ function DesignEditorInternal({
   
   const addGuide = (orientation: 'horizontal' | 'vertical', position: number) => {
     const newGuide = { id: crypto.randomUUID(), orientation, position };
+    setIsDirty(true);
     setState((prev) => ({ ...prev, guides: [...prev.guides, newGuide] }));
     return newGuide.id;
   };
 
-  const updateGuide = (id: string, position: number) => setState((prev) => ({...prev, guides: prev.guides.map((g) => (g.id === id ? { ...g, position } : g))}));
-  const removeGuide = (id: string) => setState((prev) => ({ ...prev, guides: prev.guides.filter((g) => g.id !== id) }));
+  const updateGuide = (id: string, position: number) => {
+    setIsDirty(true);
+    setState((prev) => ({...prev, guides: prev.guides.map((g) => (g.id === id ? { ...g, position } : g))}));
+  };
+
+  const removeGuide = (id: string) => {
+    setIsDirty(true);
+    setState((prev) => ({ ...prev, guides: prev.guides.filter((g) => g.id !== id) }));
+  };
   
   const selectedElements = selectedElementIds.map(id => findElementRecursive(currentElements, id)).filter((el): el is DesignElement => !!el);
   const selectedElement = selectedElements[0];
 
-  const handleProductUpdate = (newProps: Partial<Product>) => setState(s => ({ ...s, product: { ...s.product, ...newProps }}));
-  const onQuantityChange = (newQuantity: number) => setState(s => ({...s, quantity: newQuantity}));
+  const handleProductUpdate = (newProps: Partial<Product>) => {
+    setIsDirty(true);
+    setState(s => ({ ...s, product: { ...s.product, ...newProps }}));
+  };
+
+  const onQuantityChange = (newQuantity: number) => {
+    setIsDirty(true);
+    setState(s => ({...s, quantity: newQuantity}));
+  };
+
   const onBackgroundChange = (newBackground: Background) => updatePage(currentPage, { background: newBackground });
 
   const handleSave = async () => {
@@ -1012,6 +1074,7 @@ function DesignEditorInternal({
       try {
         await updateDesign({ id: currentDesignId, name: currentDesignName, verificationId: verificationId || null, ...saveData });
         toast({ title: 'Design Updated!' });
+        setIsDirty(false);
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error Updating Design' });
       }
@@ -1023,6 +1086,7 @@ function DesignEditorInternal({
           setCurrentDesignId(savedDesign.id);
           setCurrentDesignName(savedDesign.name);
           toast({ title: 'Design Saved!' });
+          setIsDirty(false);
 
           if (verificationId) {
             await linkDesignToVerification(Number(verificationId), savedDesign.id);
@@ -1056,6 +1120,7 @@ function DesignEditorInternal({
           setCurrentDesignId(savedDesign.id);
           setCurrentDesignName(savedDesign.name);
           designId = savedDesign.id;
+          setIsDirty(false);
           toast({ title: 'Design Saved!' });
         } catch (error) {
           toast({ variant: 'destructive', title: 'Error Saving Design', description: 'Could not save your design before ordering.' });
@@ -1114,6 +1179,7 @@ function DesignEditorInternal({
     });
 
     setIsLoadDialogOpen(false);
+    setIsDirty(false);
     toast({
       title: "Design Loaded",
       description: `"${design.name}" is now ready for editing.`,
@@ -1219,6 +1285,11 @@ function DesignEditorInternal({
     }
     updatePage(currentPage, { elements: recursiveDelete(currentElements, id) });
     setSelectedElementIds(ids => ids.filter(selectedId => selectedId !== id));
+  };
+
+  const handleDeleteAll = () => {
+    updatePage(currentPage, { elements: [] });
+    setSelectedElementIds([]);
   };
 
   const moveLayer = (direction: 'front' | 'back' | 'forward' | 'backward') => {
@@ -1354,8 +1425,8 @@ function DesignEditorInternal({
       <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden">
         <header className="relative z-20 flex h-14 items-center gap-4 border-b bg-card px-4 lg:px-6">
           <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => router.back()}><Home/></Button>
-              <Button variant="ghost" size="icon" className="hidden lg:flex" asChild><Link href="/"><Home /></Link></Button>
+              <Button variant="ghost" size="icon" className="lg:hidden" onClick={(e) => { if(confirmNavigation(e as any)) router.back(); }}><Home/></Button>
+              <Button variant="ghost" size="icon" className="hidden lg:flex" asChild onClick={confirmNavigation}><Link href="/"><Home /></Link></Button>
               <Separator orientation="vertical" className="h-6" />
               <div className="flex items-center gap-3">
                   <AmazoprintLogo isSimple className="w-12 h-12" />
@@ -1383,6 +1454,7 @@ function DesignEditorInternal({
                     onToggleLock={handleToggleLayerLock}
                     onDuplicate={handleDuplicateLayer}
                     onDelete={handleDeleteLayer}
+                    onDeleteAll={handleDeleteAll}
                 />
               </PopoverContent>
             </Popover>
