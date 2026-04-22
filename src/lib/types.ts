@@ -139,9 +139,12 @@ export type DesignElement = {
   path?: [number, number][];
   strokeColor?: string;
   strokeWidth?: number;
-  brushTip?: 'round' | 'square' | 'scatter' | 'calligraphy';
+  brushTip?: 'round' | 'square' | 'chalk' | 'spraySoft' | 'texture' | 'scatter' | 'calligraphy';
   brushHardness?: number; // 0-100
-  scatterData?: { x: number; y: number; r: number }[]; // For scatter/particle brushes
+  brushFlow?: number;
+  brushDensity?: number;
+  brushScatter?: number;
+  scatterData?: { x: number; y: number; r: number; w?: number; h?: number; opacity?: number }[]; // For particle brushes
   
   // QR Code specific properties
   qrValue?: string;

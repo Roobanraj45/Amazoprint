@@ -157,7 +157,7 @@ function DesignEditorInternal({
   const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
   const [isDrawing, setIsDrawing] = useState(false);
   const drawingPointsRef = useRef<[number, number][]>([]);
-  const scatterPointsRef = useRef<{x: number; y: number; r: number}[]>([]);
+  const scatterPointsRef = useRef<{x: number; y: number; r: number; w?: number; h?: number; opacity?: number}[]>([]);
   
   const [livePencilPath, setLivePencilPath] = useState<{ 
       path: [number, number][]; 
@@ -165,16 +165,20 @@ function DesignEditorInternal({
       strokeWidth: number; 
       hardness: number; 
       opacity: number;
-      brushTip: 'round' | 'square' | 'scatter' | 'calligraphy';
-      scatterData?: {x: number; y: number; r: number}[];
+      brushTip: 'round' | 'square' | 'chalk' | 'spraySoft' | 'texture' | 'scatter' | 'calligraphy';
+      scatterData?: {x: number; y: number; r: number; w?: number; h?: number; opacity?: number}[];
   } | null>(null);
 
   const [brushOptions, setBrushOptions] = useState({
-      size: 40,
-      hardness: 80,
-      opacity: 1,
-      color: '#000000',
+      tool: 'brush' as 'brush' | 'spray',
       brushTip: 'round' as const,
+      size: 40,
+      opacity: 1,
+      density: 80,
+      scatter: 40,
+      hardness: 0.5,
+      flow: 3,
+      color: '#000000',
   });
   
   // Pen Tool States
@@ -473,16 +477,30 @@ function DesignEditorInternal({
         drawingPointsRef.current = [[x, y]];
         scatterPointsRef.current = [];
         
-        if (brushOptions.brushTip === 'scatter') {
-            const count = Math.ceil(brushOptions.size / 5);
+        // Initial particles based on flow/density
+        if (brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip)) {
+            const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const r = Math.random() * (brushOptions.size / 2);
-                scatterPointsRef.current.push({
-                    x: x + Math.cos(angle) * r,
-                    y: y + Math.sin(angle) * r,
-                    r: Math.random() * (brushOptions.size / 10) + 1
-                });
+                const scatterRatio = brushOptions.scatter / 100;
+                const radius = Math.pow(Math.random(), 1 - brushOptions.hardness) * brushOptions.size * scatterRatio;
+                const particleX = x + Math.cos(angle) * radius;
+                const particleY = y + Math.sin(angle) * radius;
+
+                if (brushOptions.brushTip === 'texture') {
+                    scatterPointsRef.current.push({
+                        x: particleX, y: particleY, r: 0,
+                        w: Math.random() * brushOptions.size * 0.3,
+                        h: Math.random() * brushOptions.size * 0.3,
+                        opacity: Math.random() * brushOptions.opacity
+                    });
+                } else {
+                    scatterPointsRef.current.push({
+                        x: particleX, y: particleY, 
+                        r: brushOptions.tool === 'spray' ? 1.5 : (Math.random() * 1.5 + 0.5),
+                        opacity: (1 - radius / brushOptions.size) * brushOptions.opacity
+                    });
+                }
             }
         }
 
@@ -566,18 +584,41 @@ function DesignEditorInternal({
     setMousePos({ x, y });
 
     if (isDrawing && activeTool === 'brush') {
-        drawingPointsRef.current.push([x, y]);
-        
-        if (brushOptions.brushTip === 'scatter') {
-            const count = Math.ceil(brushOptions.size / 15);
-            for (let i = 0; i < count; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const r = Math.random() * (brushOptions.size / 2);
-                scatterPointsRef.current.push({
-                    x: x + Math.cos(angle) * r,
-                    y: y + Math.sin(angle) * r,
-                    r: Math.random() * (brushOptions.size / 10) + 1
-                });
+        const lastPoint = drawingPointsRef.current[drawingPointsRef.current.length - 1];
+        const dist = Math.hypot(x - lastPoint[0], y - lastPoint[1]);
+        const spacing = brushOptions.size * 0.15;
+        const steps = Math.max(1, Math.floor(dist / spacing));
+
+        for (let s = 1; s <= steps; s++) {
+            const t = s / steps;
+            const interX = lastPoint[0] + (x - lastPoint[0]) * t;
+            const interY = lastPoint[1] + (y - lastPoint[1]) * t;
+            drawingPointsRef.current.push([interX, interY]);
+
+            if (brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip)) {
+                const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const scatterRatio = brushOptions.scatter / 100;
+                    const radius = Math.pow(Math.random(), 1 - brushOptions.hardness) * brushOptions.size * scatterRatio;
+                    const px = interX + Math.cos(angle) * radius;
+                    const py = interY + Math.sin(angle) * radius;
+
+                    if (brushOptions.brushTip === 'texture') {
+                        scatterPointsRef.current.push({
+                            x: px, y: py, r: 0,
+                            w: Math.random() * brushOptions.size * 0.3,
+                            h: Math.random() * brushOptions.size * 0.3,
+                            opacity: Math.random() * brushOptions.opacity
+                        });
+                    } else {
+                        scatterPointsRef.current.push({
+                            x: px, y: py, 
+                            r: brushOptions.tool === 'spray' ? 1.5 : (Math.random() * 1.5 + 0.5),
+                            opacity: (1 - radius / brushOptions.size) * brushOptions.opacity
+                        });
+                    }
+                }
             }
         }
 
@@ -626,36 +667,69 @@ function DesignEditorInternal({
 
         const points = drawingPointsRef.current;
         const scatter = scatterPointsRef.current;
+        const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
 
-        if (points.length >= 2 || (brushOptions.brushTip === 'scatter' && scatter.length > 0)) {
-            const allX = brushOptions.brushTip === 'scatter' ? scatter.map(p => p.x) : points.map(p => p[0]);
-            const allY = brushOptions.brushTip === 'scatter' ? scatter.map(p => p.y) : points.map(p => p[1]);
+        if (points.length >= 2 || (isComplex && scatter.length > 0)) {
+            const allX = isComplex ? scatter.map(p => p.x) : points.map(p => p[0]);
+            const allY = isComplex ? scatter.map(p => p.y) : points.map(p => p[1]);
             
             const padding = brushOptions.size;
             const minX = Math.min(...allX) - padding;
             const minY = Math.min(...allY) - padding;
             const maxX = Math.max(...allX) + padding;
             const maxY = Math.max(...allY) + padding;
+            
+            const width = Math.max(1, maxX - minX);
+            const height = Math.max(1, maxY - minY);
 
-            const newElement: DesignElement = {
-                id: crypto.randomUUID(),
-                type: 'brush',
-                x: minX,
-                y: minY,
-                width: Math.max(1, maxX - minX),
-                height: Math.max(1, maxY - minY),
-                rotation: 0,
-                opacity: brushOptions.opacity,
-                path: points.map(([px, py]) => [px - minX, py - minY]),
-                scatterData: scatter.map(p => ({ x: p.x - minX, y: p.y - minY, r: p.r })),
-                strokeColor: brushOptions.color,
-                strokeWidth: brushOptions.size,
-                brushTip: brushOptions.brushTip,
-                brushHardness: brushOptions.hardness,
-                content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-            };
-            updatePage(currentPage, { elements: [...currentElements, newElement] });
-            setSelectedElementIds([newElement.id]);
+            // BAKE TO IMAGE FOR COMPLEX BRUSHES (Saves SVG size and boosts performance)
+            if (isComplex) {
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.fillStyle = brushOptions.color;
+                    scatter.forEach(p => {
+                        ctx.globalAlpha = p.opacity || brushOptions.opacity;
+                        if (brushOptions.brushTip === 'texture') {
+                            ctx.fillRect(p.x - minX, p.y - minY, p.w || 5, p.h || 5);
+                        } else {
+                            ctx.beginPath();
+                            ctx.arc(p.x - minX, p.y - minY, p.r, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    });
+                    
+                    const dataUrl = canvas.toDataURL();
+                    const newElement: DesignElement = {
+                        id: crypto.randomUUID(), type: 'image', x: minX, y: minY, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
+                        src: dataUrl, objectFit: 'contain', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+                        content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+                    };
+                    updatePage(currentPage, { elements: [...currentElements, newElement] });
+                    setSelectedElementIds([newElement.id]);
+                }
+            } else {
+                const newElement: DesignElement = {
+                    id: crypto.randomUUID(),
+                    type: 'brush',
+                    x: minX,
+                    y: minY,
+                    width: width,
+                    height: height,
+                    rotation: 0,
+                    opacity: brushOptions.opacity,
+                    path: points.map(([px, py]) => [px - minX, py - minY]),
+                    strokeColor: brushOptions.color,
+                    strokeWidth: brushOptions.size,
+                    brushTip: brushOptions.brushTip,
+                    brushHardness: brushOptions.hardness,
+                    content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+                };
+                updatePage(currentPage, { elements: [...currentElements, newElement] });
+                setSelectedElementIds([newElement.id]);
+            }
         }
         drawingPointsRef.current = [];
         scatterPointsRef.current = [];
@@ -1499,7 +1573,7 @@ function DesignEditorInternal({
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
               {/* REAL BRUSH CURSOR */}
-              {activeTool === 'brush' && mousePos && !isPanning.current && (
+              {(activeTool === 'brush') && mousePos && !isPanning.current && (
                   <div 
                     style={{
                         position: 'fixed',
@@ -1514,7 +1588,7 @@ function DesignEditorInternal({
                         boxShadow: '0 0 0 1px black, inset 0 0 4px rgba(0,0,0,0.2)',
                         borderRadius: brushOptions.brushTip === 'square' ? '2px' : '50%',
                         opacity: 0.8,
-                        background: brushOptions.brushTip === 'scatter' ? `radial-gradient(circle, ${brushOptions.color} 20%, transparent 80%)` : 'transparent'
+                        background: (brushOptions.brushTip === 'chalk' || brushOptions.brushTip === 'spraySoft' || brushOptions.brushTip === 'texture') ? `radial-gradient(circle, ${brushOptions.color} 20%, transparent 80%)` : 'transparent'
                     }}
                   />
               )}

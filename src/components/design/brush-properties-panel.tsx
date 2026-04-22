@@ -6,7 +6,7 @@ import { Slider } from "@/components/ui/slider";
 import type { DesignElement } from "@/lib/types";
 import { CMYKColorPicker as ColorPicker } from "./cmyk-color-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Brush, Square, Cloud, Sparkles } from 'lucide-react';
+import { Brush, Square, Cloud, Sparkles, WandSparkles } from 'lucide-react';
 
 type BrushPropertiesPanelProps = {
     element: DesignElement;
@@ -28,18 +28,11 @@ export function BrushPropertiesPanel({ element, onUpdate }: BrushPropertiesPanel
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="round">
-                                <div className="flex items-center gap-2"><Brush size={14}/> Round</div>
-                            </SelectItem>
-                            <SelectItem value="square">
-                                <div className="flex items-center gap-2"><Square size={14}/> Square</div>
-                            </SelectItem>
-                            <SelectItem value="scatter">
-                                <div className="flex items-center gap-2"><Cloud size={14}/> Scatter (Splat)</div>
-                            </SelectItem>
-                            <SelectItem value="calligraphy">
-                                <div className="flex items-center gap-2"><Sparkles size={14}/> Calligraphy</div>
-                            </SelectItem>
+                            <SelectItem value="round"><div className="flex items-center gap-2"><Cloud size={14}/> Round</div></SelectItem>
+                            <SelectItem value="square"><div className="flex items-center gap-2"><Square size={14}/> Square</div></SelectItem>
+                            <SelectItem value="chalk"><div className="flex items-center gap-2"><Sparkles size={14}/> Chalk</div></SelectItem>
+                            <SelectItem value="spraySoft"><div className="flex items-center gap-2"><Cloud size={14}/> Soft Spray</div></SelectItem>
+                            <SelectItem value="texture"><div className="flex items-center gap-2"><WandSparkles size={14}/> Texture</div></SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -49,43 +42,23 @@ export function BrushPropertiesPanel({ element, onUpdate }: BrushPropertiesPanel
                         <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Size</Label>
                         <span className="font-mono">{element.strokeWidth || 5}px</span>
                     </div>
-                    <Slider
-                        value={[element.strokeWidth || 5]}
-                        onValueChange={(v) => handleUpdate({ strokeWidth: v[0] })}
-                        min={1}
-                        max={300}
-                        step={1}
-                    />
+                    <Slider value={[element.strokeWidth || 5]} onValueChange={(v) => handleUpdate({ strokeWidth: v[0] })} min={1} max={300} step={1} />
                 </div>
-
-                {element.brushTip !== 'square' && (
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                            <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Hardness</Label>
-                            <span className="font-mono">{element.brushHardness ?? 100}%</span>
-                        </div>
-                        <Slider
-                            value={[element.brushHardness ?? 100]}
-                            onValueChange={(v) => handleUpdate({ brushHardness: v[0] })}
-                            min={0}
-                            max={100}
-                            step={1}
-                        />
-                    </div>
-                )}
 
                 <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
                         <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Opacity</Label>
                         <span className="font-mono">{Math.round((element.opacity || 1) * 100)}%</span>
                     </div>
-                    <Slider
-                        value={[(element.opacity || 1) * 100]}
-                        onValueChange={(v) => handleUpdate({ opacity: v[0] / 100 })}
-                        min={1}
-                        max={100}
-                        step={1}
-                    />
+                    <Slider value={[(element.opacity || 1) * 100]} onValueChange={(v) => handleUpdate({ opacity: v[0] / 100 })} min={1} max={100} step={1} />
+                </div>
+
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                        <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Hardness</Label>
+                        <span className="font-mono">{Math.round((element.brushHardness || 0.5) * 100)}%</span>
+                    </div>
+                    <Slider value={[(element.brushHardness || 0.5) * 100]} onValueChange={(v) => handleUpdate({ brushHardness: v[0] / 100 })} min={0} max={100} step={1} />
                 </div>
 
                 <div className="pt-2">
