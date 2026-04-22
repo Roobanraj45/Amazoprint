@@ -4,7 +4,7 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { CMYKColorPicker as ColorPicker } from './cmyk-color-picker';
-import { Brush, SprayCan, Square, Cloud, Sparkles, WandSparkles, Move, Zap, Waves, Activity } from 'lucide-react';
+import { Square, Cloud, Sparkles, WandSparkles, Move, Zap, Waves, Activity, SprayCan } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import {
@@ -26,7 +26,17 @@ type BrushToolPanelProps = {
         flow: number;
         color: string;
     };
-    setOptions: (options: any) => void;
+    setOptions: React.Dispatch<React.SetStateAction<{
+        tool: 'brush' | 'spray';
+        brushTip: 'round' | 'square' | 'chalk' | 'spraySoft' | 'texture';
+        size: number;
+        opacity: number;
+        density: number;
+        scatter: number;
+        hardness: number;
+        flow: number;
+        color: string;
+    }>>;
 };
 
 export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
@@ -37,6 +47,10 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
         { id: 'spraySoft', icon: SprayCan, label: 'Airbrush' },
         { id: 'texture', icon: WandSparkles, label: 'Textured' },
     ];
+
+    const updateOption = (field: string, value: any) => {
+        setOptions(prev => ({ ...prev, [field]: value }));
+    };
 
     const PropertyControl = ({ label, icon: Icon, value, display, min, max, step, field }: any) => (
         <div className="space-y-2">
@@ -53,7 +67,7 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
             </div>
             <Slider
                 value={[value]}
-                onValueChange={(v) => setOptions((prev: any) => ({ ...prev, [field]: v[0] }))}
+                onValueChange={(v) => updateOption(field, v[0])}
                 min={min}
                 max={max}
                 step={step}
@@ -70,7 +84,7 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                         <h3 className="font-black text-xs uppercase tracking-tighter text-foreground/80">Active Tools</h3>
                         <div className="flex bg-muted rounded-lg p-0.5 border border-border/50">
                             <button
-                                onClick={() => setOptions((prev: any) => ({ ...prev, tool: 'brush' }))}
+                                onClick={() => updateOption('tool', 'brush')}
                                 className={cn(
                                     "px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all",
                                     options.tool === 'brush' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
@@ -79,7 +93,7 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                                 Brush
                             </button>
                             <button
-                                onClick={() => setOptions((prev: any) => ({ ...prev, tool: 'spray' }))}
+                                onClick={() => updateOption('tool', 'spray')}
                                 className={cn(
                                     "px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all",
                                     options.tool === 'spray' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
@@ -94,7 +108,7 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                         {tips.map((tip) => (
                             <button
                                 key={tip.id}
-                                onClick={() => setOptions((prev: any) => ({ ...prev, brushTip: tip.id }))}
+                                onClick={() => updateOption('brushTip', tip.id)}
                                 className={cn(
                                     "aspect-square rounded-xl flex flex-col items-center justify-center gap-1 border-2 transition-all",
                                     options.brushTip === tip.id 
@@ -128,7 +142,10 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                         display={`${Math.round(options.hardness * 100)}%`} 
                         min={0} max={100} step={1} 
                         field="hardness" 
-                        onChange={(v: number) => setOptions((prev: any) => ({ ...prev, hardness: v / 100 }))}
+                        // Note: Slider component internally handles 0-100, we convert back to 0-1 in updateOption if needed,
+                        // but here we just pass the 0-100 value and updateOption handles it based on field logic if we added it.
+                        // For simplicity, we just store 0-1 directly in the state.
+                        onChange={(v: number) => updateOption('hardness', v / 100)}
                     />
 
                     <PropertyControl 
@@ -136,9 +153,9 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                         icon={Move} 
                         value={options.opacity * 100} 
                         display={`${Math.round(options.opacity * 100)}%`} 
-                        min={1} max={100} step={1} 
+                        min={10} max={100} step={1} 
                         field="opacity" 
-                        onChange={(v: number) => setOptions((prev: any) => ({ ...prev, opacity: v / 100 }))}
+                        onChange={(v: number) => updateOption('opacity', v / 100)}
                     />
 
                     <PropertyControl 
@@ -184,7 +201,7 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                 <ColorPicker
                     label="Stroke Pigment"
                     color={options.color}
-                    onChange={(color: string) => setOptions((prev: any) => ({ ...prev, color }))}
+                    onChange={(color: string) => updateOption('color', color)}
                 />
             </div>
         </div>

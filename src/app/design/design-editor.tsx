@@ -128,6 +128,7 @@ function DesignEditorInternal({
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   const searchParams = useSearchParams();
   const contestId = searchParams.get('contestId');
@@ -222,6 +223,29 @@ function DesignEditorInternal({
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
+  // --- Unsaved Changes Protection ---
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = ''; 
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  const confirmNavigation = useCallback((e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+    if (isDirty) {
+      if (!window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+        e.preventDefault();
+        return false;
+      }
+    }
+    return true;
+  }, [isDirty]);
+  // --- End Protection ---
+
   useEffect(() => {
     const fontFamilies = [
       'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
@@ -247,6 +271,7 @@ function DesignEditorInternal({
   }, []);
 
   const updatePage = useCallback((pageIndex: number, newPageData: Partial<Page>) => {
+    setIsDirty(true);
     setState(prev => {
         if (!prev) return prev;
         const newPages = [...prev.pages];
@@ -329,6 +354,7 @@ function DesignEditorInternal({
     setCurrentDesignName(initialDesignName || null);
     setCurrentPage(0);
     setSelectedElementIds([]);
+    setIsDirty(false);
   }, [initialProduct, initialQuantity, initialElements, initialBackground, initialDesignId, initialDesignName, totalPages, resetHistory]);
   
   const editorCanvasWidth = product.width + (safetyMargin * 2);
@@ -589,7 +615,7 @@ function DesignEditorInternal({
         if (!lastPoint) return;
 
         const dist = Math.hypot(x - lastPoint[0], y - lastPoint[1]);
-        const spacing = brushOptions.size * 0.1; // Photoshop-like spacing
+        const spacing = brushOptions.size * 0.05; // Increased density for smoothness
         
         if (dist >= spacing || brushOptions.tool === 'spray') {
             const steps = Math.max(1, Math.floor(dist / spacing));
@@ -629,8 +655,8 @@ function DesignEditorInternal({
             }
             
             // Limit point collection for performance during very long strokes
-            if (points.length > 500 && !isComplex) {
-                points.splice(0, points.length - 500);
+            if (points.length > 1000 && !isComplex) {
+                points.splice(0, points.length - 1000);
             }
             if (scatterPointsRef.current.length > 5000) {
                 scatterPointsRef.current.splice(0, scatterPointsRef.current.length - 5000);
@@ -649,6 +675,7 @@ function DesignEditorInternal({
         setLivePath(prev => {
             if (!prev) return null;
             const newPath = prev.map(p => ({...p}));
+            if (draggingPoint.index >= newPath.length) return prev; // Safety check
             const point = newPath[draggingPoint.index];
             if (!point) return prev;
 
@@ -1003,18 +1030,34 @@ function DesignEditorInternal({
   
   const addGuide = (orientation: 'horizontal' | 'vertical', position: number) => {
     const newGuide = { id: crypto.randomUUID(), orientation, position };
+    setIsDirty(true);
     setState((prev) => ({ ...prev, guides: [...prev.guides, newGuide] }));
     return newGuide.id;
   };
 
-  const updateGuide = (id: string, position: number) => setState((prev) => ({...prev, guides: prev.guides.map((g) => (g.id === id ? { ...g, position } : g))}));
-  const removeGuide = (id: string) => setState((prev) => ({ ...prev, guides: prev.guides.filter((g) => g.id !== id) }));
+  const updateGuide = (id: string, position: number) => {
+    setIsDirty(true);
+    setState((prev) => ({...prev, guides: prev.guides.map((g) => (g.id === id ? { ...g, position } : g))}));
+  };
+
+  const removeGuide = (id: string) => {
+    setIsDirty(true);
+    setState((prev) => ({ ...prev, guides: prev.guides.filter((g) => g.id !== id) }));
+  };
   
   const selectedElements = selectedElementIds.map(id => findElementRecursive(currentElements, id)).filter((el): el is DesignElement => !!el);
   const selectedElement = selectedElements[0];
 
-  const handleProductUpdate = (newProps: Partial<Product>) => setState(s => ({ ...s, product: { ...s.product, ...newProps }}));
-  const onQuantityChange = (newQuantity: number) => setState(s => ({...s, quantity: newQuantity}));
+  const handleProductUpdate = (newProps: Partial<Product>) => {
+    setIsDirty(true);
+    setState(s => ({ ...s, product: { ...s.product, ...newProps }}));
+  };
+
+  const onQuantityChange = (newQuantity: number) => {
+    setIsDirty(true);
+    setState(s => ({...s, quantity: newQuantity}));
+  };
+
   const onBackgroundChange = (newBackground: Background) => updatePage(currentPage, { background: newBackground });
 
   const handleSave = async () => {
@@ -1032,6 +1075,7 @@ function DesignEditorInternal({
       try {
         await updateDesign({ id: currentDesignId, name: currentDesignName, verificationId: verificationId || null, ...saveData });
         toast({ title: 'Design Updated!' });
+        setIsDirty(false);
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error Updating Design' });
       }
@@ -1043,6 +1087,7 @@ function DesignEditorInternal({
           setCurrentDesignId(savedDesign.id);
           setCurrentDesignName(savedDesign.name);
           toast({ title: 'Design Saved!' });
+          setIsDirty(false);
 
           if (verificationId) {
             await linkDesignToVerification(Number(verificationId), savedDesign.id);
@@ -1076,6 +1121,7 @@ function DesignEditorInternal({
           setCurrentDesignId(savedDesign.id);
           setCurrentDesignName(savedDesign.name);
           designId = savedDesign.id;
+          setIsDirty(false);
           toast({ title: 'Design Saved!' });
         } catch (error) {
           toast({ variant: 'destructive', title: 'Error Saving Design', description: 'Could not save your design before ordering.' });
@@ -1105,7 +1151,7 @@ function DesignEditorInternal({
     let newPages: Page[] = [];
     for(let i = 0; i < newTotalPages; i++) {
         const pageElements = isMultiPageElements ? (design.elements as DesignElement[][])[i] : (i === 0 ? design.elements as DesignElement[] : []);
-        const pageBackground = isMultiPageBackground ? (design.background as Background[])[i] : (i === 0 ? design.background as Background : { type: 'solid', color: '#ffffff' });
+        const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? design.background as Background : { type: 'solid', color: '#ffffff' });
         
         newPages.push({
             elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],
@@ -1134,6 +1180,7 @@ function DesignEditorInternal({
     });
 
     setIsLoadDialogOpen(false);
+    setIsDirty(false);
     toast({
       title: "Design Loaded",
       description: `"${design.name}" is now ready for editing.`,
@@ -1239,6 +1286,11 @@ function DesignEditorInternal({
     }
     updatePage(currentPage, { elements: recursiveDelete(currentElements, id) });
     setSelectedElementIds(ids => ids.filter(selectedId => selectedId !== id));
+  };
+
+  const handleDeleteAll = () => {
+    updatePage(currentPage, { elements: [] });
+    setSelectedElementIds([]);
   };
 
   const moveLayer = (direction: 'front' | 'back' | 'forward' | 'backward') => {
@@ -1374,8 +1426,8 @@ function DesignEditorInternal({
       <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden">
         <header className="relative z-20 flex h-14 items-center gap-4 border-b bg-card px-4 lg:px-6">
           <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => router.back()}><Home/></Button>
-              <Button variant="ghost" size="icon" className="hidden lg:flex" asChild><Link href="/"><Home /></Link></Button>
+              <Button variant="ghost" size="icon" className="lg:hidden" onClick={(e) => { if(confirmNavigation(e as any)) router.back(); }}><Home/></Button>
+              <Button variant="ghost" size="icon" className="hidden lg:flex" asChild onClick={confirmNavigation}><Link href="/"><Home /></Link></Button>
               <Separator orientation="vertical" className="h-6" />
               <div className="flex items-center gap-3">
                   <AmazoprintLogo isSimple className="w-12 h-12" />
@@ -1403,6 +1455,7 @@ function DesignEditorInternal({
                     onToggleLock={handleToggleLayerLock}
                     onDuplicate={handleDuplicateLayer}
                     onDelete={handleDeleteLayer}
+                    onDeleteAll={handleDeleteAll}
                 />
               </PopoverContent>
             </Popover>
