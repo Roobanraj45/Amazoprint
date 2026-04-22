@@ -72,11 +72,11 @@ export default function PricingPage() {
     const handleOpenForm = (subProduct: SubProductData, rule: PricingRule | null) => {
         setActiveSubProduct(subProduct);
         setEditingRule(rule);
-        setIsFormOpen(true);
+        setFormOpen(true);
     };
 
     const handleCloseForm = () => {
-        setIsFormOpen(false);
+        setFormOpen(false);
         setEditingRule(null);
         setActiveSubProduct(null);
     }
@@ -156,7 +156,7 @@ export default function PricingPage() {
                 ))}
             </Accordion>
 
-            <Dialog open={isFormOpen} onOpenChange={handleCloseForm}>
+            <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
                 <PricingRuleForm 
                     onSubmit={handleFormSubmit}
                     rule={editingRule}
