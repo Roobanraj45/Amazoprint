@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -151,8 +152,8 @@ function DesignEditorInternal({
   const panStart = useRef({ x: 0, y: 0 });
   const [activeSmartGuides, setActiveSmartGuides] = useState<Guide[]>([]);
   
-  // MOUSE POS STATE - Essential for real-time previews
-  const [mousePos, setMousePos] = useState<{ x: number, y: number } | null>(null);
+  // MOUSE POS STATE - Includes screen coordinates for precise cursor tracking
+  const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
   
   const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
   const [isDrawing, setIsDrawing] = useState(false);
@@ -310,8 +311,8 @@ function DesignEditorInternal({
     const isMultiPageBackground = initialBackground && Array.isArray(initialBackground);
 
     for (let i = 0; i < pagesToCreate; i++) {
-        const pageElements = isMultiPageElements ? (initialElements as DesignElement[][])[i] : (i === 0 ? initialElements as DesignElement[] : undefined);
-        const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? initialBackground as Background : undefined);
+        const pageElements = isMultiPageElements ? (initialElements as DesignElement[][])[i] : (i === 0 ? initialElements as DesignElement[] : []);
+        const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? initialBackground as Background : { type: 'solid', color: '#ffffff' });
 
         newPages.push({
             elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],
@@ -581,7 +582,7 @@ function DesignEditorInternal({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const [x, y] = getPointInCanvas(e);
-    setMousePos({ x, y });
+    setMousePos({ x, y, screenX: e.clientX, screenY: e.clientY });
 
     if (isDrawing && activeTool === 'brush') {
         const lastPoint = drawingPointsRef.current[drawingPointsRef.current.length - 1];
@@ -682,7 +683,6 @@ function DesignEditorInternal({
             const width = Math.max(1, maxX - minX);
             const height = Math.max(1, maxY - minY);
 
-            // BAKE TO IMAGE FOR COMPLEX BRUSHES (Saves SVG size and boosts performance)
             if (isComplex) {
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
@@ -745,7 +745,7 @@ function DesignEditorInternal({
       isPanning.current = false;
       let newCursor = 'default';
       if (isSpacePressed) newCursor = 'grab';
-      else if (activeTool === 'brush' || activeTool === 'pen') newCursor = 'crosshair';
+      else if (activeTool === 'brush' || activeTool === 'pen') newCursor = 'none';
       e.currentTarget.style.cursor = newCursor;
     }
   };
@@ -1572,13 +1572,13 @@ function DesignEditorInternal({
               style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'brush' || activeTool === 'pen') ? 'none' : 'default', backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
-              {/* REAL BRUSH CURSOR */}
+              {/* REAL BRUSH CURSOR - Fixed positioning for zero lag and perfect alignment */}
               {(activeTool === 'brush') && mousePos && !isPanning.current && (
                   <div 
                     style={{
                         position: 'fixed',
-                        left: (mousePos.x + safetyMargin) * viewState.zoom + viewState.pan.x + (showRulers ? RULER_SIZE : 0),
-                        top: (mousePos.y + safetyMargin) * viewState.zoom + viewState.pan.y + (showRulers ? RULER_SIZE : 0),
+                        left: mousePos.screenX ?? 0,
+                        top: mousePos.screenY ?? 0,
                         width: brushOptions.size * viewState.zoom,
                         height: brushOptions.size * viewState.zoom,
                         transform: 'translate(-50%, -50%)',
