@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -22,7 +21,7 @@ const pricingRuleSchema = z.object({
   isVerification: z.boolean().default(false),
   isDiscount: z.boolean().default(false),
   isActive: z.boolean().default(true),
-  // New Add-on fields
+  // Add-on fields
   addonPriceAmount: z.coerce.number().optional().nullable(),
   addonName: z.string().optional().nullable(),
   isAddon: z.boolean().default(false),

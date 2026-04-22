@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -19,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Edit, Trash2, Tag, IndianRupee, Users, ShieldCheck, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { resolveImagePath } from '@/lib/utils';
+import { cn, resolveImagePath } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -37,7 +36,7 @@ const pricingRuleSchema = z.object({
   isVerification: z.boolean().default(false),
   isDiscount: z.boolean().default(false),
   isActive: z.boolean().default(true),
-  // New Add-on fields
+  // Add-on fields
   addonPriceAmount: z.coerce.number().optional().nullable(),
   addonName: z.string().optional().nullable(),
   isAddon: z.boolean().default(false),
@@ -51,7 +50,7 @@ type PricingFormValues = z.infer<typeof pricingRuleSchema>;
 export default function PricingPage() {
     const [products, setProducts] = useState<ProductData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isFormOpen, setFormOpen] = useState(false);
     const [editingRule, setEditingRule] = useState<PricingRule | null>(null);
     const [activeSubProduct, setActiveSubProduct] = useState<SubProductData | null>(null);
     const { toast } = useToast();
