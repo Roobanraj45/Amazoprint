@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -45,11 +44,6 @@ import {
   SlidersHorizontal,
   Library,
   Undo,
-  Crop as CropIcon,
-  Sparkles,
-  Spline,
-  Minus,
-  SprayCan,
 } from 'lucide-react';
 import { PropertiesPanel } from './properties-panel';
 import { DesignCanvas } from './design-canvas';
@@ -65,7 +59,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { DesignElement, Product, Design, Background, Guide, ViewState, Page, RenderData, FoilType, PathPoint } from '@/lib/types';
+import type { DesignElement, Product, Background, Guide, ViewState, Page, RenderData, FoilType, PathPoint } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import Link from 'next/link';
@@ -85,12 +79,11 @@ import { CropDialog } from './crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { TextAddPanel } from './panels/text-add-panel';
 import { AmazoprintLogo } from '../ui/logo';
+import { BrushToolPanel } from './brush-tool-panel';
 
 const MediaPanel = lazy(() => import('./panels/media-panel').then(m => ({ default: m.MediaPanel })));
 const QrCodePanel = lazy(() => import('./panels/qrcode-panel').then(m => ({ default: m.QrCodePanel })));
-const PencilToolPanel = lazy(() => import('./pencil-tool-panel').then(m => ({ default: m.PencilToolPanel })));
 const PenToolPanel = lazy(() => import('./pen-tool-panel').then(m => ({ default: m.PenToolPanel })));
-
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -144,7 +137,6 @@ function DesignEditorInternal({
   const [currentDesignName, setCurrentDesignName] = useState<string | null>(initialDesignName || null);
   const [croppingElementId, setCroppingElementId] = useState<string | null>(null);
 
-
   // Canvas settings
   const [showRulers, setShowRulers] = useState(true);
   const [showGrid, setShowGrid] = useState(false);
@@ -159,27 +151,38 @@ function DesignEditorInternal({
   const panStart = useRef({ x: 0, y: 0 });
   const [activeSmartGuides, setActiveSmartGuides] = useState<Guide[]>([]);
   
+  const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
+  
   const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
   const [isDrawing, setIsDrawing] = useState(false);
   const drawingPointsRef = useRef<[number, number][]>([]);
-  const [livePencilPath, setLivePencilPath] = useState<{ path: [number, number][]; strokeColor: string; strokeWidth: number; } | null>(null);
+  const scatterPointsRef = useRef<{x: number; y: number; r: number; w?: number; h?: number; opacity?: number}[]>([]);
+  
+  const [livePencilPath, setLivePencilPath] = useState<{ 
+      path: [number, number][]; 
+      strokeColor: string; 
+      strokeWidth: number; 
+      hardness: number; 
+      opacity: number;
+      brushTip: 'round' | 'square' | 'chalk' | 'spraySoft' | 'texture' | 'scatter' | 'calligraphy';
+      scatterData?: {x: number; y: number; r: number; w?: number; h?: number; opacity?: number}[];
+  } | null>(null);
+
   const [brushOptions, setBrushOptions] = useState({
-      drawMode: 'freehand' as 'freehand' | 'straight',
-      brushStyle: 'solid' as 'solid' | 'dashed' | 'dotted' | 'spray',
-      strokeWidth: 5,
-      strokeColor: '#000000',
-      strokeLineCap: 'round' as 'butt' | 'round' | 'square',
-      sprayDensity: 20,
-      sprayRadius: 40,
+      tool: 'brush' as 'brush' | 'spray',
+      brushTip: 'round' as const,
+      size: 40,
+      opacity: 1,
+      density: 80,
+      scatter: 40,
+      hardness: 0.5,
+      flow: 3,
+      color: '#000000',
   });
   
   // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
   const [draggingPoint, setDraggingPoint] = useState<{ index: number; type: 'anchor' | 'cp1' | 'cp2' } | null>(null);
-  const [mousePos, setMousePos] = useState<{ x: number, y: number } | null>(null);
-
-  const [sprayingState, setSprayingState] = useState<{ active: boolean; position: {x: number, y: number} | null }>({ active: false, position: null });
-  const [liveSprayPuffs, setLiveSprayPuffs] = useState<{x: number; y: number; radius: number; color: string;}[]>([]);
 
   const isMobile = useIsMobile();
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
@@ -306,8 +309,8 @@ function DesignEditorInternal({
     const isMultiPageBackground = initialBackground && Array.isArray(initialBackground);
 
     for (let i = 0; i < pagesToCreate; i++) {
-        const pageElements = isMultiPageElements ? (initialElements as DesignElement[][])[i] : (i === 0 ? initialElements as DesignElement[] : undefined);
-        const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? initialBackground as Background : undefined);
+        const pageElements = isMultiPageElements ? (initialElements as DesignElement[][])[i] : (i === 0 ? initialElements as DesignElement[] : []);
+        const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? initialBackground as Background : { type: 'solid', color: '#ffffff' });
 
         newPages.push({
             elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],
@@ -353,53 +356,6 @@ function DesignEditorInternal({
     resetView();
   }, [resetView, product.width, product.height]);
 
-    const lastSprayPoint = useRef<{ x: number; y: number } | null>(null);
-
-    useEffect(() => {
-        let animationFrameId: number;
-        const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-        const spray = () => {
-            if (sprayingState.active && sprayingState.position) {
-                const currentPos = sprayingState.position;
-                const startPos = lastSprayPoint.current || currentPos;
-
-                const dx = currentPos.x - startPos.x;
-                const dy = currentPos.y - startPos.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const steps = Math.max(1, Math.floor(dist / 2));
-
-                const newPuffs = [];
-                for (let i = 0; i < steps; i++) {
-                    const t = i / steps;
-                    const x = lerp(startPos.x, currentPos.x, t);
-                    const y = lerp(startPos.y, currentPos.y, t);
-
-                    newPuffs.push({
-                        x,
-                        y,
-                        radius: brushOptions.sprayRadius,
-                        color: brushOptions.strokeColor,
-                    });
-                }
-                
-                setLiveSprayPuffs(prev => [...prev, ...newPuffs]);
-                lastSprayPoint.current = currentPos;
-            }
-            animationFrameId = requestAnimationFrame(spray);
-        };
-
-        if (sprayingState.active) {
-            animationFrameId = requestAnimationFrame(spray);
-        } else {
-            lastSprayPoint.current = null;
-        }
-
-        return () => {
-            cancelAnimationFrame(animationFrameId);
-        };
-    }, [sprayingState, brushOptions.sprayRadius, brushOptions.strokeColor, brushOptions.sprayDensity]);
-
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -416,6 +372,14 @@ function DesignEditorInternal({
           setSelectedElementIds([]);
           setActiveTool('select');
         }
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'x' && activeTool === 'pen' && !isInput) {
+          e.preventDefault();
+          setLivePath(prev => {
+              if (!prev || prev.length <= 1) return null;
+              return prev.slice(0, -1);
+          });
       }
 
       if (e.key === ' ' && !e.repeat && !isInput) {
@@ -507,21 +471,47 @@ function DesignEditorInternal({
     if (activeTool === 'brush') {
         e.stopPropagation();
         beginTransaction();
-        if (brushOptions.brushStyle === 'spray') {
-            const [x, y] = getPointInCanvas(e);
-            setLiveSprayPuffs([]);
-            lastSprayPoint.current = { x, y };
-            setSprayingState({ active: true, position: { x, y } });
-            return;
+        setIsDrawing(true);
+        const [x, y] = getPointInCanvas(e);
+        drawingPointsRef.current = [[x, y]];
+        scatterPointsRef.current = [];
+        
+        // Initial particles based on flow/density
+        const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
+        if (isComplex) {
+            const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const scatterRatio = brushOptions.scatter / 100;
+                const radius = Math.pow(Math.random(), 1 - brushOptions.hardness) * brushOptions.size * scatterRatio;
+                const particleX = x + Math.cos(angle) * radius;
+                const particleY = y + Math.sin(angle) * radius;
+
+                if (brushOptions.brushTip === 'texture') {
+                    scatterPointsRef.current.push({
+                        x: particleX, y: particleY, r: 0,
+                        w: Math.random() * brushOptions.size * 0.3,
+                        h: Math.random() * brushOptions.size * 0.3,
+                        opacity: Math.random() * brushOptions.opacity
+                    });
+                } else {
+                    scatterPointsRef.current.push({
+                        x: particleX, y: particleY, 
+                        r: brushOptions.tool === 'spray' ? 1.5 : (Math.random() * 1.5 + 0.5),
+                        opacity: (1 - radius / brushOptions.size) * brushOptions.opacity
+                    });
+                }
+            }
         }
 
-        setIsDrawing(true);
-        const startPoint = getPointInCanvas(e);
-        drawingPointsRef.current = [startPoint];
         setLivePencilPath({
-            path: [startPoint, startPoint],
-            strokeColor: brushOptions.strokeColor,
-            strokeWidth: brushOptions.strokeWidth,
+            path: [[x, y], [x, y]],
+            strokeColor: brushOptions.color,
+            strokeWidth: brushOptions.size,
+            hardness: brushOptions.hardness,
+            opacity: brushOptions.opacity,
+            brushTip: brushOptions.brushTip,
+            scatterData: scatterPointsRef.current
         });
         return;
     }
@@ -535,7 +525,6 @@ function DesignEditorInternal({
             
             // Check for closing path
             if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
-                // RESET PREVIOUS EXIT HANDLE BEFORE CLOSING TO ENSURE STRAIGHT FINISH (MATCH PREVIEW)
                 const updatedPath = [...livePath];
                 const lastIdx = updatedPath.length - 1;
                 updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
@@ -551,35 +540,27 @@ function DesignEditorInternal({
                     setDraggingPoint({ index: i, type: 'anchor' });
                     return;
                 }
-                if (Math.hypot(x - p.cp1x, y - p.cp1y) < hitRadius) {
+                if (Math.hypot(x - p.cp1x, p.cp1y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'cp1' });
                     return;
                 }
-                if (Math.hypot(x - p.cp2x, y - p.cp2y) < hitRadius) {
+                if (Math.hypot(x - p.cp2x, p.cp2y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'cp2' });
                     return;
                 }
             }
         }
 
-        // Add new point: initialized as straight (handles at anchor)
-        const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
+        // Add new point: initialized as straight
         let updatedPath = livePath ? [...livePath] : [];
-
-        // RESET PREVIOUS EXIT HANDLE TO ENSURE NEW SEGMENT STARTS STRAIGHT (MATCH PREVIEW)
         if (updatedPath.length > 0) {
             const lastIdx = updatedPath.length - 1;
-            updatedPath[lastIdx] = {
-                ...updatedPath[lastIdx],
-                cp2x: updatedPath[lastIdx].x,
-                cp2y: updatedPath[lastIdx].y,
-            };
+            updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
         }
 
+        const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
         updatedPath.push(newPoint);
         setLivePath(updatedPath);
-        
-        // Start dragging the EXIT handle (cp2) for the next segment
         setDraggingPoint({ index: updatedPath.length - 1, type: 'cp2' });
         return;
     }
@@ -600,21 +581,66 @@ function DesignEditorInternal({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const [x, y] = getPointInCanvas(e);
-    setMousePos({ x, y });
+    setMousePos({ x, y, screenX: e.clientX, screenY: e.clientY });
 
-    if (sprayingState.active) {
-        setSprayingState(s => (s.active ? { ...s, position: { x, y } } : s));
-        return;
-    }
-    if (isDrawing && activeTool === 'brush' && brushOptions.brushStyle !== 'spray') {
-        const currentPoint = [x, y] as [number, number];
-        if (brushOptions.drawMode === 'freehand') {
-            drawingPointsRef.current.push(currentPoint);
-            setLivePencilPath(prev => prev ? { ...prev, path: [...drawingPointsRef.current] } : null);
-        } else { // straight line
-            const startPoint = drawingPointsRef.current[0];
-            drawingPointsRef.current = [startPoint, currentPoint];
-            setLivePencilPath(prev => prev ? { ...prev, path: [startPoint, currentPoint] } : null);
+    if (isDrawing && activeTool === 'brush') {
+        const points = drawingPointsRef.current;
+        const lastPoint = points[points.length - 1];
+        if (!lastPoint) return;
+
+        const dist = Math.hypot(x - lastPoint[0], y - lastPoint[1]);
+        const spacing = brushOptions.size * 0.1; // Photoshop-like spacing
+        
+        if (dist >= spacing || brushOptions.tool === 'spray') {
+            const steps = Math.max(1, Math.floor(dist / spacing));
+
+            for (let s = 1; s <= steps; s++) {
+                const t = s / steps;
+                const interX = lastPoint[0] + (x - lastPoint[0]) * t;
+                const interY = lastPoint[1] + (y - lastPoint[1]) * t;
+                points.push([interX, interY]);
+
+                const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
+                if (isComplex) {
+                    const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
+                    for (let i = 0; i < count; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const scatterRatio = brushOptions.scatter / 100;
+                        const radius = Math.pow(Math.random(), 1 - brushOptions.hardness) * brushOptions.size * scatterRatio;
+                        const px = interX + Math.cos(angle) * radius;
+                        const py = interY + Math.sin(angle) * radius;
+
+                        if (brushOptions.brushTip === 'texture') {
+                            scatterPointsRef.current.push({
+                                x: px, y: py, r: 0,
+                                w: Math.random() * brushOptions.size * 0.3,
+                                h: Math.random() * brushOptions.size * 0.3,
+                                opacity: Math.random() * brushOptions.opacity
+                            });
+                        } else {
+                            scatterPointsRef.current.push({
+                                x: px, y: py, 
+                                r: brushOptions.tool === 'spray' ? 1.5 : (Math.random() * 1.5 + 0.5),
+                                opacity: (1 - (radius / (brushOptions.size * scatterRatio || 1))) * brushOptions.opacity
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Limit point collection for performance during very long strokes
+            if (points.length > 500 && !isComplex) {
+                points.splice(0, points.length - 500);
+            }
+            if (scatterPointsRef.current.length > 5000) {
+                scatterPointsRef.current.splice(0, scatterPointsRef.current.length - 5000);
+            }
+
+            setLivePencilPath(prev => prev ? { 
+                ...prev, 
+                path: [...points], 
+                scatterData: [...scatterPointsRef.current] 
+            } : null);
         }
         return;
     }
@@ -624,27 +650,22 @@ function DesignEditorInternal({
             if (!prev) return null;
             const newPath = prev.map(p => ({...p}));
             const point = newPath[draggingPoint.index];
+            if (!point) return prev;
 
             if (draggingPoint.type === 'anchor') {
                 const dx = x - point.x;
                 const dy = y - point.y;
-                point.x = x;
-                point.y = y;
-                point.cp1x += dx;
-                point.cp1y += dy;
-                point.cp2x += dx;
-                point.cp2y += dy;
+                point.x = x; point.y = y;
+                point.cp1x += dx; point.cp1y += dy;
+                point.cp2x += dx; point.cp2y += dy;
             } else if (draggingPoint.type === 'cp2') {
                 point.cp2x = x;
                 point.cp2y = y;
-                // Mirrored CP1 for smooth curves during placement/editing
-                // This ensures the current segment curves smoothly as you drag
                 point.cp1x = point.x - (x - point.x);
                 point.cp1y = point.y - (y - point.y);
             } else if (draggingPoint.type === 'cp1') {
                 point.cp1x = x;
                 point.cp1y = y;
-                // Mirrored CP2
                 point.cp2x = point.x - (x - point.x);
                 point.cp2y = point.y - (y - point.y);
             }
@@ -654,128 +675,84 @@ function DesignEditorInternal({
     }
 
     if (isPanning.current) {
-      const newPan = {
-        x: e.clientX - panStart.current.x,
-        y: e.clientY - panStart.current.y,
-      };
+      const newPan = { x: e.clientX - panStart.current.x, y: e.clientY - panStart.current.y };
       setViewState({ ...viewState, pan: newPan });
     }
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (sprayingState.active) {
-        setSprayingState({ active: false, position: null });
-        endTransaction();
-
-        if (liveSprayPuffs.length > 0) {
-            const puffs = [...liveSprayPuffs];
-            setLiveSprayPuffs([]);
-
-            const radius = brushOptions.sprayRadius;
-            const minX = Math.min(...puffs.map(p => p.x - radius));
-            const minY = Math.min(...puffs.map(p => p.y - radius));
-            const maxX = Math.max(...puffs.map(p => p.x + radius));
-            const maxY = Math.max(...puffs.map(p => p.y + radius));
-            
-            const width = maxX - minX;
-            const height = maxY - minY;
-
-            if (width <= 0 || height <= 0) return;
-
-            const offscreenCanvas = document.createElement('canvas');
-            offscreenCanvas.width = width;
-            offscreenCanvas.height = height;
-            const ctx = offscreenCanvas.getContext('2d');
-            if (!ctx) return;
-
-            const hexToRgbString = (hex: string) => {
-                let s = hex.replace('#', '');
-                if (s.length === 3) s = s.split('').map(c => c + c).join('');
-                const num = parseInt(s, 16);
-                return `${(num >> 16) & 255},${(num >> 8) & 255},${num & 255}`;
-            };
-
-            const addTexture = (ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, color: string) => {
-                const count = radius * (brushOptions.sprayDensity / 100);
-                ctx.fillStyle = color;
-                for (let i = 0; i < count; i++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const r = Math.random() * radius;
-                    const px = x + Math.cos(angle) * r;
-                    const py = y + Math.sin(angle) * r;
-                    ctx.globalAlpha = Math.random() * 0.05;
-                    ctx.fillRect(px, py, 1, 1);
-                }
-                ctx.globalAlpha = 1;
-            };
-
-            puffs.forEach(puff => {
-                const x = puff.x - minX;
-                const y = puff.y - minY;
-                const r = puff.radius;
-                
-                const gradient = ctx.createRadialGradient(x, y, 0, x, y, r);
-                const baseColor = hexToRgbString(puff.color);
-
-                gradient.addColorStop(0, `rgba(${baseColor}, 0.25)`);
-                gradient.addColorStop(0.3, `rgba(${baseColor}, 0.15)`);
-                gradient.addColorStop(0.6, `rgba(${baseColor}, 0.07)`);
-                gradient.addColorStop(1, `rgba(${baseColor}, 0)`);
-
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(x, y, r, 0, Math.PI * 2);
-                ctx.fill();
-
-                addTexture(ctx, x, y, r, puff.color);
-            });
-
-            const dataUrl = offscreenCanvas.toDataURL();
-            const newElement: DesignElement = {
-                id: crypto.randomUUID(), type: 'image', x: minX, y: minY, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
-                src: dataUrl, objectFit: 'contain',
-                backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-                content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
-            };
-
-            updatePage(currentPage, { elements: [...currentElements, newElement] });
-            setSelectedElementIds([newElement.id]);
-        }
-        return;
-    }
-
-    if (isDrawing && activeTool === 'brush' && brushOptions.brushStyle !== 'spray') {
+    if (isDrawing && activeTool === 'brush') {
         setIsDrawing(false);
         setLivePencilPath(null);
         endTransaction();
 
         const points = drawingPointsRef.current;
-        if (points.length >= 2) {
-            const minX = Math.min(...points.map(p => p[0]));
-            const minY = Math.min(...points.map(p => p[1]));
-            const maxX = Math.max(...points.map(p => p[0]));
-            const maxY = Math.max(...points.map(p => p[1]));
+        const scatter = scatterPointsRef.current;
+        const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
 
-            const newElement: DesignElement = {
-                id: crypto.randomUUID(),
-                type: 'brush',
-                x: minX,
-                y: minY,
-                width: maxX - minX,
-                height: maxY - minY,
-                rotation: 0,
-                opacity: 1,
-                path: points.map(([px, py]) => [px - minX, py - minY]),
-                strokeColor: brushOptions.strokeColor,
-                strokeWidth: brushOptions.strokeWidth,
-                brushStyle: brushOptions.brushStyle,
-                strokeLineCap: brushOptions.strokeLineCap,
-                content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-            };
-            updatePage(currentPage, { elements: [...currentElements, newElement] });
-            setSelectedElementIds([newElement.id]);
+        if (points.length >= 2 || (isComplex && scatter.length > 0)) {
+            const allX = isComplex ? scatter.map(p => p.x) : points.map(p => p[0]);
+            const allY = isComplex ? scatter.map(p => p.y) : points.map(p => p[1]);
+            
+            const padding = brushOptions.size * 2;
+            const minX = Math.min(...allX) - padding;
+            const minY = Math.min(...allY) - padding;
+            const maxX = Math.max(...allX) + padding;
+            const maxY = Math.max(...allY) + padding;
+            
+            const width = Math.max(1, maxX - minX);
+            const height = Math.max(1, maxY - minY);
+
+            if (isComplex) {
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.fillStyle = brushOptions.color;
+                    scatter.forEach(p => {
+                        ctx.globalAlpha = p.opacity || brushOptions.opacity;
+                        if (brushOptions.brushTip === 'texture') {
+                            ctx.fillRect(p.x - minX, p.y - minY, p.w || 5, p.h || 5);
+                        } else {
+                            ctx.beginPath();
+                            ctx.arc(p.x - minX, p.y - minY, p.r, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    });
+                    
+                    const dataUrl = canvas.toDataURL();
+                    const newElement: DesignElement = {
+                        id: crypto.randomUUID(), type: 'image', x: minX, y: minY, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
+                        src: dataUrl, objectFit: 'contain', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+                        content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+                    };
+                    updatePage(currentPage, { elements: [...currentElements, newElement] });
+                    setSelectedElementIds([newElement.id]);
+                }
+            } else {
+                const newElement: DesignElement = {
+                    id: crypto.randomUUID(),
+                    type: 'brush',
+                    x: minX,
+                    y: minY,
+                    width: width,
+                    height: height,
+                    rotation: 0,
+                    opacity: brushOptions.opacity,
+                    path: points.map(([px, py]) => [px - minX, py - minY]),
+                    strokeColor: brushOptions.color,
+                    strokeWidth: brushOptions.size,
+                    brushTip: brushOptions.brushTip,
+                    brushHardness: brushOptions.hardness,
+                    content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+                };
+                updatePage(currentPage, { elements: [...currentElements, newElement] });
+                setSelectedElementIds([newElement.id]);
+            }
         }
         drawingPointsRef.current = [];
+        scatterPointsRef.current = [];
         return;
     }
 
@@ -788,7 +765,7 @@ function DesignEditorInternal({
       isPanning.current = false;
       let newCursor = 'default';
       if (isSpacePressed) newCursor = 'grab';
-      else if (activeTool === 'brush' || activeTool === 'pen') newCursor = 'crosshair';
+      else if (activeTool === 'brush' || activeTool === 'pen') newCursor = 'none';
       e.currentTarget.style.cursor = newCursor;
     }
   };
@@ -881,7 +858,7 @@ function DesignEditorInternal({
 
     const { x, y } = getCenterPosition(newElement.width || 250, newElement.height || 50);
     newElement.x = x;
-    newPoint.y = y;
+    newElement.y = y;
 
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
@@ -1349,13 +1326,14 @@ function DesignEditorInternal({
     { id: 'media', label: 'Media', icon: <LayoutGrid size={24} />, color: 'text-purple-600 bg-purple-500/10 data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
     { id: 'qrcode', label: 'QR Code', icon: <QrCode size={24} />, color: 'text-emerald-600 bg-emerald-500/10 data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
     { id: 'brush', label: 'Brush', icon: <Brush size={24} />, color: 'text-orange-600 bg-orange-500/10 data-[state=active]:bg-orange-600 data-[state=active]:text-white' },
+    { id: 'pen', label: 'Pen', icon: <PenTool size={24} />, color: 'text-indigo-600 bg-indigo-500/10 data-[state=active]:bg-indigo-600 data-[state=active]:text-white', className: 'mt-auto' },
   ];
 
   const handleMobilePanelOpen = (panel: string) => {
     setActiveMobilePanel(panel);
     setMobileSheetOpen(true);
-    if(panel === 'brush') {
-        setActiveTool(panel as 'brush');
+    if(panel === 'brush' || panel === 'pen') {
+        setActiveTool(panel as any);
     } else {
         setActiveTool('select');
     }
@@ -1366,7 +1344,8 @@ function DesignEditorInternal({
         case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />;
         case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
         case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
-        case 'brush': return <PencilToolPanel options={brushOptions} setOptions={setBrushOptions} />;
+        case 'brush': return <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} />;
+        case 'pen': return <PenToolPanel onFinish={finalizePath} />;
         case 'properties': return (
             <div className="p-4">
                 <PropertiesPanel
@@ -1399,7 +1378,7 @@ function DesignEditorInternal({
               <Button variant="ghost" size="icon" className="hidden lg:flex" asChild><Link href="/"><Home /></Link></Button>
               <Separator orientation="vertical" className="h-6" />
               <div className="flex items-center gap-3">
-                  <AmazoprintLogo isSimple className="w-10 h-10" />
+                  <AmazoprintLogo isSimple className="w-12 h-12" />
                   <div className="hidden md:block">
                       <h2 className="font-semibold text-sm">{product.name}</h2>
                       <p className="text-xs text-muted-foreground truncate max-w-xs">{product.description}</p>
@@ -1410,22 +1389,6 @@ function DesignEditorInternal({
           <div className="hidden lg:flex flex-1 justify-center items-center gap-1">
             <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"><Undo className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"><Redo className="h-4 w-4" /></Button>
-
-            <Button 
-                variant={activeTool === 'pen' ? 'selected' : 'ghost'} 
-                size="icon" 
-                onClick={() => {
-                    if (activeTool === 'pen') {
-                        finalizePath();
-                    } else {
-                        setActiveTool('pen');
-                        setLeftOpen(false);
-                    }
-                }} 
-                title="Pen Tool (P)"
-            >
-                <PenTool className="h-4 w-4" />
-            </Button>
 
             <Popover>
               <PopoverTrigger asChild>
@@ -1545,7 +1508,18 @@ function DesignEditorInternal({
           <Sidebar collapsible="icon" variant="floating" className="hidden lg:block">
             <SidebarContent className="p-0 overflow-y-hidden">
               <TooltipProvider>
-                <Tabs defaultValue="elements" orientation="vertical" className="w-full h-full flex" onValueChange={(val) => setActiveTool(val === 'brush' ? (val as 'brush') : 'select')}>
+                <Tabs 
+                  defaultValue="elements" 
+                  orientation="vertical" 
+                  className="w-full h-full flex" 
+                  onValueChange={(val) => {
+                    if (val === 'brush' || val === 'pen') {
+                        setActiveTool(val as any);
+                    } else {
+                        setActiveTool('select');
+                    }
+                  }}
+                >
                 <TabsList className="flex flex-col h-full p-3 gap-3 bg-transparent">
                     {editorPanels.map((panel) => (
                       <Tooltip key={panel.id}>
@@ -1555,9 +1529,16 @@ function DesignEditorInternal({
                             className={cn(
                               "h-20 w-20 p-0 flex flex-col gap-1 items-center justify-center rounded-2xl transition-all duration-200",
                               "data-[state=active]:scale-110 data-[state=active]:shadow-lg",
-                              panel.color
+                              panel.color,
+                              (panel as any).className
                             )}
-                            onClick={() => setLeftOpen(true)}
+                            onClick={() => {
+                                if (panel.id === 'pen') {
+                                    setLeftOpen(false);
+                                } else {
+                                    setLeftOpen(true);
+                                }
+                            }}
                           >
                             {panel.icon}
                             <span className="text-xs font-bold">{panel.label}</span>
@@ -1567,7 +1548,11 @@ function DesignEditorInternal({
                       </Tooltip>
                     ))}
                   </TabsList>
-                  <div className={cn("group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex", "w-[26rem]")}>
+                  <div className={cn(
+                    "group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex", 
+                    "w-[26rem]",
+                    activeTool === 'pen' && "hidden" 
+                  )}>
                     <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
                           <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />
@@ -1590,7 +1575,7 @@ function DesignEditorInternal({
                     </TabsContent>
                     <TabsContent value="brush" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
-                        <PencilToolPanel options={brushOptions} setOptions={setBrushOptions} />
+                        <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} />
                       </Suspense>
                     </TabsContent>
                   </div>
@@ -1604,9 +1589,29 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'brush' || activeTool === 'pen') ? 'crosshair' : 'default', backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'brush' || activeTool === 'pen') ? 'none' : 'default', backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
+              {(activeTool === 'brush') && mousePos && !isPanning.current && (
+                  <div 
+                    style={{
+                        position: 'fixed',
+                        left: mousePos.screenX ?? 0,
+                        top: mousePos.screenY ?? 0,
+                        width: brushOptions.size * viewState.zoom,
+                        height: brushOptions.size * viewState.zoom,
+                        transform: 'translate(-50%, -50%)',
+                        pointerEvents: 'none',
+                        zIndex: 1000,
+                        border: '1.5px solid white',
+                        boxShadow: '0 0 0 1px black, inset 0 0 4px rgba(0,0,0,0.2)',
+                        borderRadius: brushOptions.brushTip === 'square' ? '2px' : '50%',
+                        opacity: 0.8,
+                        background: (brushOptions.brushTip === 'chalk' || brushOptions.brushTip === 'spraySoft' || brushOptions.brushTip === 'texture') ? `radial-gradient(circle, ${brushOptions.color} 20%, transparent 80%)` : 'transparent'
+                    }}
+                  />
+              )}
+
               {selectedElements.length > 0 && 
                 <ElementToolbar 
                     selectedElements={selectedElements} 
@@ -1629,8 +1634,6 @@ function DesignEditorInternal({
                 activeTool={activeTool}
                 croppingElementId={croppingElementId}
                 setCroppingElementId={setCroppingElementId}
-                liveSprayPuffs={liveSprayPuffs}
-                brushOptions={brushOptions}
               />
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-end justify-center gap-2">
                 <div className="hidden lg:flex items-center gap-1 rounded-lg bg-card p-1.5 shadow-md border">
@@ -1680,7 +1683,7 @@ function DesignEditorInternal({
                         {editorPanels.map(panel => (
                            <Button 
                             key={panel.id}
-                            variant={activeMobilePanel === panel.id ? 'secondary' : 'ghost'}
+                            variant={activeMobilePanel === panel.id ? 'selected' : 'ghost'}
                             size="sm"
                             className="flex flex-col h-auto p-2 gap-1"
                             onClick={() => handleMobilePanelOpen(panel.id)}
@@ -1690,7 +1693,7 @@ function DesignEditorInternal({
                            </Button> 
                         ))}
                          <Button 
-                            variant={activeMobilePanel === 'properties' ? 'secondary' : 'ghost'}
+                            variant={activeMobilePanel === 'properties' ? 'selected' : 'ghost'}
                             size="sm"
                             className="flex flex-col h-auto p-2 gap-1"
                             disabled={!selectedElement}
