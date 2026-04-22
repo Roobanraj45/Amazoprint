@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -21,19 +20,22 @@ import {
   Globe,
   ShoppingCart,
   Quote,
+  Clock,
+  Award,
 } from 'lucide-react';
 
-// --- UI Components (Condensed for single-file use) ---
+// --- UI Components ---
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardFooter, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { resolveImagePath } from '@/lib/utils';
 import { Navbar } from '@/components/layout/navbar';
 import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/hooks/use-toast';
-
+import { Progress } from '@/components/ui/progress';
+import { formatDistanceToNowStrict } from 'date-fns';
 
 const AddToCartButton = ({ product }: { product: any }) => {
     const { addItem } = useCart();
@@ -65,7 +67,15 @@ const FADE_UP = {
   transition: { duration: 0.8, ease: [0.21, 0.47, 0.32, 0.98] }
 };
 
-export function HomeClient({ subProducts, directSellingProducts }: { subProducts: any[], directSellingProducts: any[] }) {
+export function HomeClient({ 
+  subProducts, 
+  directSellingProducts, 
+  contests 
+}: { 
+  subProducts: any[], 
+  directSellingProducts: any[],
+  contests: any[]
+}) {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10 selection:text-primary">
@@ -107,7 +117,94 @@ export function HomeClient({ subProducts, directSellingProducts }: { subProducts
           </div>
         </section>
 
-        {/* --- 3.5. SUB-PRODUCTS DEALS --- */}
+        {/* --- 2. THE DESIGN ARENA (NEW) --- */}
+        {contests && contests.length > 0 && (
+          <section className="py-24 bg-slate-900 text-white overflow-hidden relative">
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-primary/10 blur-[120px] rounded-full"></div>
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-indigo-500/10 blur-[120px] rounded-full"></div>
+            
+            <div className="container px-4 mx-auto relative z-10">
+              <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
+                <div className="space-y-4">
+                  <Badge className="bg-primary/20 text-primary-foreground border-primary/30 py-1.5 px-4 rounded-full font-bold uppercase tracking-widest text-[10px]">
+                    <Trophy className="w-3 h-3 mr-2" /> Elite Design Challenges
+                  </Badge>
+                  <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-none">
+                    Showcase Talent. <br/><span className="text-primary">Earn Bounties.</span>
+                  </h2>
+                  <p className="text-slate-400 text-lg max-w-xl font-medium">
+                    Compete in high-stakes design battles. Top designers walk away with thousands in prizes and premium project credits.
+                  </p>
+                </div>
+                <div className="hidden lg:block">
+                  <div className="bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10 shadow-2xl">
+                    <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Active Bounty Pool</p>
+                    <p className="text-4xl font-black text-emerald-400">₹{contests.reduce((acc, curr) => acc + Number(curr.contest.prizeAmount), 0).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {contests.map(({ contest, participantsCount }) => {
+                  const progressValue = (participantsCount / contest.maxFreelancers) * 100;
+                  return (
+                    <motion.div key={contest.id} {...FADE_UP} whileHover={{ y: -5 }}>
+                      <Card className="h-full flex flex-col bg-white/5 backdrop-blur-sm border-white/10 hover:border-primary/50 transition-all rounded-[2rem] overflow-hidden group">
+                        <CardHeader className="p-6">
+                          <div className="flex justify-between items-center mb-4">
+                            <Badge variant="outline" className="border-white/20 text-white text-[10px] uppercase font-bold">
+                              {contest.productName}
+                            </Badge>
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
+                              <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                              Earn ₹{Number(contest.prizeAmount).toLocaleString()}
+                            </div>
+                          </div>
+                          <CardTitle className="text-xl font-bold text-white group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                            {contest.title}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6 pt-0 space-y-6 flex-grow">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-tight">
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-3.5 h-3.5 text-primary" />
+                                {formatDistanceToNowStrict(new Date(contest.endDate))} left
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Users className="w-3.5 h-3.5 text-indigo-400" />
+                                {participantsCount}/{contest.maxFreelancers}
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Progress value={progressValue} className="h-1.5 bg-white/5" />
+                              <p className="text-[10px] text-slate-500 font-bold text-center uppercase tracking-tighter">Arena Fill Rate</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="p-6 bg-white/5 border-t border-white/5">
+                          <Button asChild className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20">
+                            <Link href={`/contests/${contest.id}`}>Join Arena</Link>
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </motion.div>
+                  )
+                })}
+              </div>
+
+              <div className="mt-16 text-center">
+                <Button variant="link" asChild className="text-slate-400 hover:text-white font-bold uppercase tracking-widest text-xs">
+                  <Link href="/contests" className="flex items-center gap-2">
+                    View All Active Bounties <ArrowRight size={14} />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* --- 3. SUB-PRODUCTS DEALS --- */}
         {subProducts && subProducts.length > 0 && (
           <section className="py-24 bg-muted/20">
             <div className="container px-4 mx-auto">
@@ -213,7 +310,7 @@ export function HomeClient({ subProducts, directSellingProducts }: { subProducts
           </section>
         )}
 
-        {/* --- 2. THE BENTO GRID FEATURES --- */}
+        {/* --- 4. THE BENTO GRID FEATURES --- */}
         <section className="py-24 bg-muted/20">
           <div className="container px-4 mx-auto">
             <div className="max-w-3xl mb-12">
@@ -265,7 +362,7 @@ export function HomeClient({ subProducts, directSellingProducts }: { subProducts
           </div>
         </section>
 
-        {/* --- 4. STEP-BY-STEP PROCESS --- */}
+        {/* --- 5. STEP-BY-STEP PROCESS --- */}
         <section className="py-24">
           <div className="container px-4 mx-auto">
             <div className="grid lg:grid-cols-2 gap-20 items-center">
@@ -298,7 +395,7 @@ export function HomeClient({ subProducts, directSellingProducts }: { subProducts
           </div>
         </section>
 
-        {/* --- 5. TESTIMONIALS --- */}
+        {/* --- 6. TESTIMONIALS --- */}
         <section className="py-24">
           <div className="container px-4 mx-auto text-center">
             <h2 className="text-4xl font-black mb-12 tracking-tight">Loved by 50k+ Businesses.</h2>
@@ -321,7 +418,7 @@ export function HomeClient({ subProducts, directSellingProducts }: { subProducts
           </div>
         </section>
 
-        {/* --- PRINTER CTA (NEW) --- */}
+        {/* --- PRINTER CTA --- */}
         <section className="py-24">
           <div className="container mx-auto px-4">
             <Card className="p-10 flex flex-col items-center text-center bg-transparent bg-[radial-gradient(hsl(var(--muted))_1px,transparent_1px)] [background-size:16px_16px]">
@@ -342,7 +439,7 @@ export function HomeClient({ subProducts, directSellingProducts }: { subProducts
           </div>
         </section>
 
-        {/* --- 6. FINAL CTA --- */}
+        {/* --- 7. FINAL CTA --- */}
         <section className="py-24">
           <div className="container px-4 mx-auto">
             <div className="rounded-[4rem] p-16 md:p-32 text-center text-primary-foreground relative overflow-hidden bg-gradient-to-br from-blue-600 via-primary to-indigo-700">
