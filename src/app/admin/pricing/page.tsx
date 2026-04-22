@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { getProductsWithPricing, createPricingRule, updatePricingRule, deletePricingRule } from '@/app/actions/pricing-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Edit, Trash2, Tag, IndianRupee, Users, ShieldCheck, DollarSign } from 'lucide-react';
+import { Loader2, PlusCircle, Edit, Trash2, Tag, IndianRupee, Users, ShieldCheck, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { resolveImagePath } from '@/lib/utils';
@@ -37,6 +37,10 @@ const pricingRuleSchema = z.object({
   isVerification: z.boolean().default(false),
   isDiscount: z.boolean().default(false),
   isActive: z.boolean().default(true),
+  // New Add-on fields
+  addonPriceAmount: z.coerce.number().optional().nullable(),
+  addonName: z.string().optional().nullable(),
+  isAddon: z.boolean().default(false),
 });
 
 type ProductData = Awaited<ReturnType<typeof getProductsWithPricing>>[0];
@@ -173,7 +177,7 @@ function PricingRulesTable({ rules, onEdit, onDelete }: { rules: PricingRule[], 
             <TableHeader>
                 <TableRow>
                     <TableHead>Type</TableHead>
-                    <TableHead>Range</TableHead>
+                    <TableHead>Range/Details</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -187,14 +191,17 @@ function PricingRulesTable({ rules, onEdit, onDelete }: { rules: PricingRule[], 
                                 {rule.isContest && <Badge variant="secondary"><Users className="mr-1 h-3 w-3"/>Contest</Badge>}
                                 {rule.isVerification && <Badge variant="secondary"><ShieldCheck className="mr-1 h-3 w-3"/>Verification</Badge>}
                                 {rule.isDiscount && <Badge variant="secondary"><Tag className="mr-1 h-3 w-3"/>Discount</Badge>}
-                                {!rule.isContest && !rule.isVerification && !rule.isDiscount && <Badge>Standard</Badge>}
+                                {rule.isAddon && <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200"><Plus className="mr-1 h-3 w-3"/>Add-on</Badge>}
+                                {!rule.isContest && !rule.isVerification && !rule.isDiscount && !rule.isAddon && <Badge>Standard</Badge>}
                             </div>
                         </TableCell>
                         <TableCell>
-                            {rule.isContest ? `${rule.minParticipants || '...'} - ${rule.maxParticipants || '...'}` : `${rule.minQuantity || '1'} - ${rule.maxQuantity || '...'}`}
+                            {rule.isContest ? `${rule.minParticipants || '...'} - ${rule.maxParticipants || '...'}` : 
+                             rule.isAddon ? <span className="font-medium">{rule.addonName || 'Unnamed Add-on'}</span> :
+                             `${rule.minQuantity || '1'} - ${rule.maxQuantity || '...'}`}
                         </TableCell>
                         <TableCell>
-                            <span className="flex items-center font-semibold"><IndianRupee size={12}/>{rule.unitPrice || rule.contestPrice || rule.discountValue || rule.designVerificationFee || 'N/A'}</span>
+                            <span className="flex items-center font-semibold"><IndianRupee size={12}/>{rule.unitPrice || rule.contestPrice || rule.discountValue || rule.designVerificationFee || rule.addonPriceAmount || 'N/A'}</span>
                         </TableCell>
                          <TableCell>
                             <Badge variant={rule.isActive ? 'default' : 'destructive'}>{rule.isActive ? 'Active' : 'Inactive'}</Badge>
@@ -219,22 +226,47 @@ function PricingRulesTable({ rules, onEdit, onDelete }: { rules: PricingRule[], 
 }
 
 function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: PricingFormValues) => void, rule: PricingRule | null, onClose: () => void }) {
-    const { register, handleSubmit, formState: { isSubmitting }, reset, control, watch } = useForm<PricingFormValues>({
+    const { register, handleSubmit, formState: { isSubmitting }, reset, control, watch, setValue } = useForm<PricingFormValues>({
         resolver: zodResolver(pricingRuleSchema),
     });
 
     const isContest = watch('isContest');
     const isVerification = watch('isVerification');
     const isDiscount = watch('isDiscount');
+    const isAddon = watch('isAddon');
+
+    // Handle mutual exclusivity
+    useEffect(() => {
+        if (isAddon) {
+            setValue('isContest', false);
+            setValue('isVerification', false);
+            setValue('isDiscount', false);
+        }
+    }, [isAddon, setValue]);
+
+    useEffect(() => {
+        if (isContest || isVerification || isDiscount) {
+            setValue('isAddon', false);
+        }
+    }, [isContest, isVerification, isDiscount, setValue]);
 
     useEffect(() => {
         if (rule) {
-            reset({ ...rule, unitPrice: Number(rule.unitPrice), contestPrice: Number(rule.contestPrice), discountValue: Number(rule.discountValue), designVerificationFee: Number(rule.designVerificationFee) });
+            reset({ 
+                ...rule, 
+                unitPrice: rule.unitPrice ? Number(rule.unitPrice) : null, 
+                contestPrice: rule.contestPrice ? Number(rule.contestPrice) : null, 
+                discountValue: rule.discountValue ? Number(rule.discountValue) : null, 
+                designVerificationFee: rule.designVerificationFee ? Number(rule.designVerificationFee) : null,
+                addonPriceAmount: rule.addonPriceAmount ? Number(rule.addonPriceAmount) : null,
+                addonName: rule.addonName || null
+            });
         } else {
             reset({
                 minQuantity: 1, maxQuantity: null, unitPrice: null, minParticipants: null, maxParticipants: null,
                 contestPrice: null, discountType: null, discountValue: null, designVerificationFee: null,
-                isContest: false, isVerification: false, isDiscount: false, isActive: true,
+                isContest: false, isVerification: false, isDiscount: false, isAddon: false, isActive: true,
+                addonPriceAmount: null, addonName: null
             });
         }
     }, [rule, reset]);
@@ -243,21 +275,34 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
         <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
                 <DialogTitle>{rule ? 'Edit' : 'Add'} Pricing Rule</DialogTitle>
-                <DialogDescription>Define a specific pricing scenario. Select one or more flags to show relevant fields.</DialogDescription>
+                <DialogDescription>Define a specific pricing scenario. Selecting one type will disable others.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)}>
                 <ScrollArea className="max-h-[60vh] p-1">
                 <div className="space-y-6 p-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="flex items-center space-x-2"><Controller name="isContest" control={control} render={({ field }) => <Switch id="isContest" checked={field.value} onCheckedChange={field.onChange} />} /><Label htmlFor="isContest">Contest</Label></div>
-                        <div className="flex items-center space-x-2"><Controller name="isVerification" control={control} render={({ field }) => <Switch id="isVerification" checked={field.value} onCheckedChange={field.onChange} />} /><Label htmlFor="isVerification">Verification</Label></div>
-                        <div className="flex items-center space-x-2"><Controller name="isDiscount" control={control} render={({ field }) => <Switch id="isDiscount" checked={field.value} onCheckedChange={field.onChange} />} /><Label htmlFor="isDiscount">Discount</Label></div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="flex items-center space-x-2">
+                            <Controller name="isContest" control={control} render={({ field }) => <Switch id="isContest" checked={field.value} onCheckedChange={field.onChange} disabled={isAddon} />} />
+                            <Label htmlFor="isContest" className={cn(isAddon && "opacity-50")}>Contest</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Controller name="isVerification" control={control} render={({ field }) => <Switch id="isVerification" checked={field.value} onCheckedChange={field.onChange} disabled={isAddon} />} />
+                            <Label htmlFor="isVerification" className={cn(isAddon && "opacity-50")}>Verification</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Controller name="isDiscount" control={control} render={({ field }) => <Switch id="isDiscount" checked={field.value} onCheckedChange={field.onChange} disabled={isAddon} />} />
+                            <Label htmlFor="isDiscount" className={cn(isAddon && "opacity-50")}>Discount</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Controller name="isAddon" control={control} render={({ field }) => <Switch id="isAddon" checked={field.value} onCheckedChange={field.onChange} disabled={isContest || isVerification || isDiscount} />} />
+                            <Label htmlFor="isAddon" className={cn((isContest || isVerification || isDiscount) && "opacity-50")}>Add-on</Label>
+                        </div>
                     </div>
                     <Card>
                         <CardContent className="pt-6 space-y-4">
-                            {!isContest && !isVerification && !isDiscount && (
+                            {!isContest && !isVerification && !isDiscount && !isAddon && (
                                 <div className="space-y-4">
-                                    <Label>Standard Pricing</Label>
+                                    <Label className="font-bold">Standard Pricing</Label>
                                     <div className="grid grid-cols-3 gap-4">
                                         <div className="space-y-1.5"><Label>Min Qty</Label><Input type="number" {...register('minQuantity')} /></div>
                                         <div className="space-y-1.5"><Label>Max Qty</Label><Input type="number" {...register('maxQuantity')} /></div>
@@ -268,7 +313,7 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
 
                             {isContest && (
                                 <div className="space-y-4">
-                                    <Label>Contest Pricing</Label>
+                                    <Label className="font-bold">Contest Pricing</Label>
                                     <div className="grid grid-cols-3 gap-4">
                                         <div className="space-y-1.5"><Label>Min Participants</Label><Input type="number" {...register('minParticipants')} /></div>
                                         <div className="space-y-1.5"><Label>Max Participants</Label><Input type="number" {...register('maxParticipants')} /></div>
@@ -279,14 +324,14 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
 
                             {isVerification && (
                                 <div className="space-y-4">
-                                    <Label>Verification Fee</Label>
+                                    <Label className="font-bold">Verification Fee</Label>
                                     <Input type="number" step="0.01" {...register('designVerificationFee')} placeholder="e.g., 500.00" />
                                 </div>
                             )}
 
                             {isDiscount && (
                                 <div className="space-y-4">
-                                    <Label>Discount Pricing</Label>
+                                    <Label className="font-bold">Discount Pricing</Label>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5"><Label>Min Qty</Label><Input type="number" {...register('minQuantity')} placeholder="e.g., 100"/></div>
                                         <div className="space-y-1.5"><Label>Max Qty</Label><Input type="number" {...register('maxQuantity')} placeholder="e.g., 500" /></div>
@@ -314,6 +359,16 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
                                     </div>
                                 </div>
                             )}
+
+                            {isAddon && (
+                                <div className="space-y-4">
+                                    <Label className="font-bold">Add-on Price</Label>
+                                    <div className="grid grid-cols-1 gap-4">
+                                        <div className="space-y-1.5"><Label>Add-on Name</Label><Input placeholder="e.g. Gold Foil, Premium Lamination" {...register('addonName')} /></div>
+                                        <div className="space-y-1.5"><Label>Price Amount (₹)</Label><Input type="number" step="0.01" {...register('addonPriceAmount')} /></div>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                     <div className="flex items-center space-x-2 pt-2"><Controller name="isActive" control={control} render={({ field }) => <Switch id="isActive" checked={field.value} onCheckedChange={field.onChange} />} /><Label htmlFor="isActive">Rule is Active</Label></div>
@@ -321,7 +376,10 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
                 </ScrollArea>
                 <DialogFooter className="pt-4">
                     <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                    <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Rule</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Rule
+                    </Button>
                 </DialogFooter>
             </form>
         </DialogContent>

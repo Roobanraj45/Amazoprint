@@ -177,6 +177,10 @@ export const subProductPricing = pgTable('sub_product_pricing', {
     isActive: boolean('is_active').default(true),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
+    // New Add-on fields
+    addonPriceAmount: numeric('addon_price_amount', { precision: 10, scale: 2 }).default('0.00'),
+    addonName: text('addon_name'),
+    isAddon: boolean('is_addon').default(false),
 }, (table) => ({
     subProductIdx: index('idx_spp_sub_product').on(table.subProductId),
     subProductActiveIdx: index('idx_spp_sub_product_active').on(table.subProductId, table.isActive),
