@@ -514,7 +514,6 @@ export function DesignCanvas({
           
           <PenToolCanvas livePath={livePath} mousePos={mousePos} zoom={zoom} safetyMargin={safetyMargin} />
 
-          {/* LIVE BRUSH PREVIEW */}
           {livePencilPath && (
               <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 999, opacity: livePencilPath.opacity }}>
                   {stdDeviation > 0 && livePencilPath.brushTip !== 'square' && (

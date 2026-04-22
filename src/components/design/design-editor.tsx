@@ -223,12 +223,12 @@ function DesignEditorInternal({
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
-  // --- Unsaved Changes Logic ---
+  // --- Unsaved Changes Protection ---
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
         e.preventDefault();
-        e.returnValue = ''; // Standard way to trigger browser warning
+        e.returnValue = ''; 
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -244,7 +244,7 @@ function DesignEditorInternal({
     }
     return true;
   }, [isDirty]);
-  // --- End Unsaved Changes Logic ---
+  // --- End Protection ---
 
   useEffect(() => {
     const fontFamilies = [
@@ -290,7 +290,6 @@ function DesignEditorInternal({
 
     const finalPath = [...livePath];
     
-    // Calculate bounding box including handles
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
     
@@ -502,7 +501,6 @@ function DesignEditorInternal({
         drawingPointsRef.current = [[x, y]];
         scatterPointsRef.current = [];
         
-        // Initial particles based on flow/density
         const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
         if (isComplex) {
             const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
@@ -548,8 +546,6 @@ function DesignEditorInternal({
 
         if (livePath) {
             const hitRadius = 15 / viewState.zoom;
-            
-            // Check for closing path
             if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
                 const updatedPath = [...livePath];
                 const lastIdx = updatedPath.length - 1;
@@ -559,7 +555,6 @@ function DesignEditorInternal({
                 return;
             }
 
-            // Check for handle/anchor clicks
             for (let i = 0; i < livePath.length; i++) {
                 const p = livePath[i];
                 if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
@@ -577,7 +572,6 @@ function DesignEditorInternal({
             }
         }
 
-        // Add new point: initialized as straight
         let updatedPath = livePath ? [...livePath] : [];
         if (updatedPath.length > 0) {
             const lastIdx = updatedPath.length - 1;
@@ -615,7 +609,7 @@ function DesignEditorInternal({
         if (!lastPoint) return;
 
         const dist = Math.hypot(x - lastPoint[0], y - lastPoint[1]);
-        const spacing = brushOptions.size * 0.1; // Photoshop-like spacing
+        const spacing = brushOptions.size * 0.1; 
         
         if (dist >= spacing || brushOptions.tool === 'spray') {
             const steps = Math.max(1, Math.floor(dist / spacing));
@@ -654,7 +648,6 @@ function DesignEditorInternal({
                 }
             }
             
-            // Limit point collection for performance during very long strokes
             if (points.length > 500 && !isComplex) {
                 points.splice(0, points.length - 500);
             }
@@ -1150,7 +1143,7 @@ function DesignEditorInternal({
     let newPages: Page[] = [];
     for(let i = 0; i < newTotalPages; i++) {
         const pageElements = isMultiPageElements ? (design.elements as DesignElement[][])[i] : (i === 0 ? design.elements as DesignElement[] : []);
-        const pageBackground = isMultiPageBackground ? (design.background as Background[])[i] : (i === 0 ? design.background as Background : { type: 'solid', color: '#ffffff' });
+        const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? design.background as Background : { type: 'solid', color: '#ffffff' });
         
         newPages.push({
             elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],

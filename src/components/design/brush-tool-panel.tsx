@@ -4,10 +4,15 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { CMYKColorPicker as ColorPicker } from './cmyk-color-picker';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Brush, SprayCan, Square, Cloud, Sparkles, WandSparkles, Move, Zap, Waves, Activity } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/components/ui/accordion';
 
 type BrushToolPanelProps = {
     options: {
@@ -48,7 +53,7 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
             </div>
             <Slider
                 value={[value]}
-                onValueChange={(v) => setOptions({ ...options, [field]: v[0] })}
+                onValueChange={(v) => setOptions((prev: any) => ({ ...prev, [field]: v[0] }))}
                 min={min}
                 max={max}
                 step={step}
@@ -60,13 +65,12 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
     return (
         <div className="flex flex-col h-full bg-background/50">
             <div className="p-4 space-y-6">
-                {/* Header / Tool Toggle */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="font-black text-xs uppercase tracking-tighter text-foreground/80">Brush Engine v2.0</h3>
+                        <h3 className="font-black text-xs uppercase tracking-tighter text-foreground/80">Active Tools</h3>
                         <div className="flex bg-muted rounded-lg p-0.5 border border-border/50">
                             <button
-                                onClick={() => setOptions({ ...options, tool: 'brush' })}
+                                onClick={() => setOptions((prev: any) => ({ ...prev, tool: 'brush' }))}
                                 className={cn(
                                     "px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all",
                                     options.tool === 'brush' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
@@ -75,7 +79,7 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                                 Brush
                             </button>
                             <button
-                                onClick={() => setOptions({ ...options, tool: 'spray' })}
+                                onClick={() => setOptions((prev: any) => ({ ...prev, tool: 'spray' }))}
                                 className={cn(
                                     "px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all",
                                     options.tool === 'spray' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
@@ -86,12 +90,11 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                         </div>
                     </div>
 
-                    {/* Tip Presets Grid */}
                     <div className="grid grid-cols-5 gap-2">
                         {tips.map((tip) => (
                             <button
                                 key={tip.id}
-                                onClick={() => setOptions({ ...options, brushTip: tip.id })}
+                                onClick={() => setOptions((prev: any) => ({ ...prev, brushTip: tip.id }))}
                                 className={cn(
                                     "aspect-square rounded-xl flex flex-col items-center justify-center gap-1 border-2 transition-all",
                                     options.brushTip === tip.id 
@@ -108,7 +111,6 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
 
                 <Separator className="opacity-50" />
 
-                {/* Main Sliders */}
                 <div className="space-y-5">
                     <PropertyControl 
                         label="Master Size" 
@@ -126,7 +128,7 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                         display={`${Math.round(options.hardness * 100)}%`} 
                         min={0} max={100} step={1} 
                         field="hardness" 
-                        onChange={(v: number) => setOptions({ ...options, hardness: v / 100 })}
+                        onChange={(v: number) => setOptions((prev: any) => ({ ...prev, hardness: v / 100 }))}
                     />
 
                     <PropertyControl 
@@ -136,6 +138,7 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                         display={`${Math.round(options.opacity * 100)}%`} 
                         min={1} max={100} step={1} 
                         field="opacity" 
+                        onChange={(v: number) => setOptions((prev: any) => ({ ...prev, opacity: v / 100 }))}
                     />
 
                     <PropertyControl 
@@ -148,7 +151,6 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                     />
                 </div>
 
-                {/* Advanced Dynamics Section */}
                 <div className="pt-2">
                    <Accordion type="single" collapsible>
                         <AccordionItem value="dynamics" className="border-none">
@@ -178,21 +180,13 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
                 </div>
             </div>
 
-            {/* Bottom Color Stick */}
             <div className="mt-auto p-4 border-t bg-background/80 backdrop-blur-md">
                 <ColorPicker
                     label="Stroke Pigment"
                     color={options.color}
-                    onChange={(color: string) => setOptions({ ...options, color })}
+                    onChange={(color: string) => setOptions((prev: any) => ({ ...prev, color }))}
                 />
             </div>
         </div>
     );
 }
-
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from '@/components/ui/accordion';
