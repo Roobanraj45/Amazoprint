@@ -5,7 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { CMYKColorPicker as ColorPicker } from './cmyk-color-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Brush, SprayCan, Square, Cloud, Sparkles, WandSparkles } from 'lucide-react';
+import { Brush, SprayCan, Square, Cloud, Sparkles, WandSparkles, Move, Zap, Waves, Activity } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 type BrushToolPanelProps = {
     options: {
@@ -23,106 +25,163 @@ type BrushToolPanelProps = {
 };
 
 export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
+    const tips = [
+        { id: 'round', icon: Cloud, label: 'Soft Round' },
+        { id: 'square', icon: Square, label: 'Chisel' },
+        { id: 'chalk', icon: Sparkles, label: 'Chalk' },
+        { id: 'spraySoft', icon: SprayCan, label: 'Airbrush' },
+        { id: 'texture', icon: WandSparkles, label: 'Textured' },
+    ];
+
+    const PropertyControl = ({ label, icon: Icon, value, display, min, max, step, field }: any) => (
+        <div className="space-y-2">
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1.5">
+                    <Icon size={12} className="text-muted-foreground" />
+                    <Label className="text-[10px] font-black uppercase tracking-[0.1em] text-muted-foreground">
+                        {label}
+                    </Label>
+                </div>
+                <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded font-bold">
+                    {display}
+                </span>
+            </div>
+            <Slider
+                value={[value]}
+                onValueChange={(v) => setOptions({ ...options, [field]: v[0] })}
+                min={min}
+                max={max}
+                step={step}
+                className="py-1"
+            />
+        </div>
+    );
+
     return (
-        <div className="p-4 space-y-6">
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-sm">Advanced Brush</h3>
-                    <div className="text-[10px] uppercase font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                        PS Engine
+        <div className="flex flex-col h-full bg-background/50">
+            <div className="p-4 space-y-6">
+                {/* Header / Tool Toggle */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-black text-xs uppercase tracking-tighter text-foreground/80">Brush Engine v2.0</h3>
+                        <div className="flex bg-muted rounded-lg p-0.5 border border-border/50">
+                            <button
+                                onClick={() => setOptions({ ...options, tool: 'brush' })}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all",
+                                    options.tool === 'brush' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                Brush
+                            </button>
+                            <button
+                                onClick={() => setOptions({ ...options, tool: 'spray' })}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all",
+                                    options.tool === 'spray' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                Spray
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Tip Presets Grid */}
+                    <div className="grid grid-cols-5 gap-2">
+                        {tips.map((tip) => (
+                            <button
+                                key={tip.id}
+                                onClick={() => setOptions({ ...options, brushTip: tip.id })}
+                                className={cn(
+                                    "aspect-square rounded-xl flex flex-col items-center justify-center gap-1 border-2 transition-all",
+                                    options.brushTip === tip.id 
+                                        ? "border-primary bg-primary/5 text-primary" 
+                                        : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted"
+                                )}
+                                title={tip.label}
+                            >
+                                <tip.icon size={18} />
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Tool</Label>
-                        <Select value={options.tool} onValueChange={(v) => setOptions({ ...options, tool: v as any })}>
-                            <SelectTrigger className="h-9">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="brush"><div className="flex items-center gap-2"><Brush size={12}/> Brush</div></SelectItem>
-                                <SelectItem value="spray"><div className="flex items-center gap-2"><SprayCan size={12}/> Spray</div></SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Brush Tip</Label>
-                        <Select value={options.brushTip} onValueChange={(v) => setOptions({ ...options, brushTip: v as any })}>
-                            <SelectTrigger className="h-9">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="round"><div className="flex items-center gap-2"><Cloud size={12}/> Round</div></SelectItem>
-                                <SelectItem value="square"><div className="flex items-center gap-2"><Square size={12}/> Square</div></SelectItem>
-                                <SelectItem value="chalk"><div className="flex items-center gap-2"><Sparkles size={12}/> Chalk</div></SelectItem>
-                                <SelectItem value="spraySoft"><div className="flex items-center gap-2"><Cloud size={12}/> Soft Spray</div></SelectItem>
-                                <SelectItem value="texture"><div className="flex items-center gap-2"><WandSparkles size={12}/> Texture</div></SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                <Separator className="opacity-50" />
+
+                {/* Main Sliders */}
+                <div className="space-y-5">
+                    <PropertyControl 
+                        label="Master Size" 
+                        icon={Zap} 
+                        value={options.size} 
+                        display={`${options.size}px`} 
+                        min={1} max={300} step={1} 
+                        field="size" 
+                    />
+
+                    <PropertyControl 
+                        label="Edge Hardness" 
+                        icon={Waves} 
+                        value={options.hardness * 100} 
+                        display={`${Math.round(options.hardness * 100)}%`} 
+                        min={0} max={100} step={1} 
+                        field="hardness" 
+                        onChange={(v: number) => setOptions({ ...options, hardness: v / 100 })}
+                    />
+
+                    <PropertyControl 
+                        label="Opacity" 
+                        icon={Move} 
+                        value={options.opacity * 100} 
+                        display={`${Math.round(options.opacity * 100)}%`} 
+                        min={1} max={100} step={1} 
+                        field="opacity" 
+                    />
+
+                    <PropertyControl 
+                        label="Flow Rate" 
+                        icon={Activity} 
+                        value={options.flow} 
+                        display={`${options.flow}x`} 
+                        min={1} max={10} step={1} 
+                        field="flow" 
+                    />
                 </div>
 
-                <div className="space-y-4 pt-2">
-                    {/* Size */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                            <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Size</Label>
-                            <span className="font-mono">{options.size}px</span>
-                        </div>
-                        <Slider value={[options.size]} onValueChange={(v) => setOptions({ ...options, size: v[0] })} min={1} max={300} step={1} />
-                    </div>
-
-                    {/* Opacity */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                            <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Opacity</Label>
-                            <span className="font-mono">{Math.round(options.opacity * 100)}%</span>
-                        </div>
-                        <Slider value={[options.opacity * 100]} onValueChange={(v) => setOptions({ ...options, opacity: v[0] / 100 })} min={1} max={100} step={1} />
-                    </div>
-
-                    {/* Hardness (only for brush) */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                            <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Hardness</Label>
-                            <span className="font-mono">{Math.round(options.hardness * 100)}%</span>
-                        </div>
-                        <Slider value={[options.hardness * 100]} onValueChange={(v) => setOptions({ ...options, hardness: v[0] / 100 })} min={0} max={100} step={1} />
-                    </div>
-
-                    {/* Density (only for spray) */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                            <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Density</Label>
-                            <span className="font-mono">{options.density}</span>
-                        </div>
-                        <Slider value={[options.density]} onValueChange={(v) => setOptions({ ...options, density: v[0] })} min={10} max={200} step={1} />
-                    </div>
-
-                    {/* Scatter */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                            <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Scatter</Label>
-                            <span className="font-mono">{options.scatter}%</span>
-                        </div>
-                        <Slider value={[options.scatter]} onValueChange={(v) => setOptions({ ...options, scatter: v[0] })} min={1} max={100} step={1} />
-                    </div>
-
-                    {/* Flow */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                            <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Flow</Label>
-                            <span className="font-mono">{options.flow}</span>
-                        </div>
-                        <Slider value={[options.flow]} onValueChange={(v) => setOptions({ ...options, flow: v[0] })} min={1} max={10} step={1} />
-                    </div>
+                {/* Advanced Dynamics Section */}
+                <div className="pt-2">
+                   <Accordion type="single" collapsible>
+                        <AccordionItem value="dynamics" className="border-none">
+                            <AccordionTrigger className="py-2 hover:no-underline">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Advanced Dynamics</span>
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-4 space-y-5">
+                                <PropertyControl 
+                                    label="Scatter Amount" 
+                                    icon={Zap} 
+                                    value={options.scatter} 
+                                    display={`${options.scatter}%`} 
+                                    min={0} max={100} step={1} 
+                                    field="scatter" 
+                                />
+                                <PropertyControl 
+                                    label="Particle Count" 
+                                    icon={Waves} 
+                                    value={options.density} 
+                                    display={options.density} 
+                                    min={10} max={300} step={5} 
+                                    field="density" 
+                                />
+                            </AccordionContent>
+                        </AccordionItem>
+                   </Accordion>
                 </div>
             </div>
 
-            <div className="pt-4 border-t">
+            {/* Bottom Color Stick */}
+            <div className="mt-auto p-4 border-t bg-background/80 backdrop-blur-md">
                 <ColorPicker
-                    label="Brush Color"
+                    label="Stroke Pigment"
                     color={options.color}
                     onChange={(color: string) => setOptions({ ...options, color })}
                 />
@@ -130,3 +189,10 @@ export function BrushToolPanel({ options, setOptions }: BrushToolPanelProps) {
         </div>
     );
 }
+
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/components/ui/accordion';

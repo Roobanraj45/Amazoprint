@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -152,7 +151,6 @@ function DesignEditorInternal({
   const panStart = useRef({ x: 0, y: 0 });
   const [activeSmartGuides, setActiveSmartGuides] = useState<Guide[]>([]);
   
-  // MOUSE POS STATE - Includes screen coordinates for precise cursor tracking
   const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
   
   const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
@@ -641,11 +639,13 @@ function DesignEditorInternal({
                 point.cp1x += dx; point.cp1y += dy;
                 point.cp2x += dx; point.cp2y += dy;
             } else if (draggingPoint.type === 'cp2') {
-                point.cp2x = x; point.cp2y = y;
+                point.cp2x = x;
+                point.cp2y = y;
                 point.cp1x = point.x - (x - point.x);
                 point.cp1y = point.y - (y - point.y);
             } else if (draggingPoint.type === 'cp1') {
-                point.cp1x = x; point.cp1y = y;
+                point.cp1x = x;
+                point.cp1y = y;
                 point.cp2x = point.x - (x - point.x);
                 point.cp2y = point.y - (y - point.y);
             }
@@ -1531,7 +1531,7 @@ function DesignEditorInternal({
                   <div className={cn(
                     "group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex", 
                     "w-[26rem]",
-                    activeTool === 'pen' && "hidden" // Remove left panel space for pen tool
+                    activeTool === 'pen' && "hidden" 
                   )}>
                     <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
@@ -1572,7 +1572,6 @@ function DesignEditorInternal({
               style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'brush' || activeTool === 'pen') ? 'none' : 'default', backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
-              {/* REAL BRUSH CURSOR - Fixed positioning for zero lag and perfect alignment */}
               {(activeTool === 'brush') && mousePos && !isPanning.current && (
                   <div 
                     style={{

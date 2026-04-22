@@ -222,8 +222,8 @@ type DesignCanvasProps = {
     strokeWidth: number;
     hardness: number;
     opacity: number;
-    brushTip: 'round' | 'square' | 'scatter' | 'calligraphy';
-    scatterData?: {x: number; y: number; r: number}[];
+    brushTip: 'round' | 'square' | 'chalk' | 'spraySoft' | 'texture' | 'scatter' | 'calligraphy';
+    scatterData?: {x: number; y: number; r: number; w?: number; h?: number; opacity?: number}[];
   } | null;
   livePath?: PathPoint[] | null;
   mousePos?: { x: number, y: number } | null;
@@ -373,7 +373,7 @@ export function DesignCanvas({
   const rulerOffset = showRulers ? RULER_SIZE : 0;
   
   const stdDeviation = livePencilPath?.hardness !== undefined 
-    ? ((100 - livePencilPath.hardness) / 100) * (livePencilPath.strokeWidth / 2)
+    ? ((1 - livePencilPath.hardness)) * (livePencilPath.strokeWidth / 2)
     : 0;
 
   return (
@@ -524,16 +524,28 @@ export function DesignCanvas({
                         </filter>
                     </defs>
                   )}
-                  {livePencilPath.brushTip === 'scatter' ? (
+                  {['chalk', 'spraySoft', 'texture', 'scatter'].includes(livePencilPath.brushTip) ? (
                       livePencilPath.scatterData?.map((p, i) => (
-                          <circle 
-                            key={i} 
-                            cx={p.x + safetyMargin} 
-                            cy={p.y + safetyMargin} 
-                            r={p.r} 
-                            fill={livePencilPath.strokeColor}
-                            filter={stdDeviation > 0 ? "url(#live-brush-blur)" : undefined}
-                          />
+                          livePencilPath.brushTip === 'texture' ? (
+                                <rect 
+                                    key={i}
+                                    x={p.x + safetyMargin} y={p.y + safetyMargin}
+                                    width={p.w || 5} height={p.h || 5}
+                                    fill={livePencilPath.strokeColor}
+                                    opacity={p.opacity || 1}
+                                    filter={stdDeviation > 0 ? "url(#live-brush-blur)" : undefined}
+                                />
+                          ) : (
+                                <circle 
+                                    key={i} 
+                                    cx={p.x + safetyMargin} 
+                                    cy={p.y + safetyMargin} 
+                                    r={p.r} 
+                                    fill={livePencilPath.strokeColor}
+                                    opacity={p.opacity || 1}
+                                    filter={stdDeviation > 0 ? "url(#live-brush-blur)" : undefined}
+                                />
+                          )
                       ))
                   ) : (
                     <path
@@ -544,7 +556,6 @@ export function DesignCanvas({
                         strokeLinecap={livePencilPath.brushTip === 'square' ? 'butt' : 'round'}
                         strokeLinejoin={livePencilPath.brushTip === 'square' ? 'miter' : 'round'}
                         filter={stdDeviation > 0 && livePencilPath.brushTip !== 'square' ? "url(#live-brush-blur)" : undefined}
-                        style={livePencilPath.brushTip === 'calligraphy' ? { transform: 'scaleX(0.3) rotate(45deg)' } : undefined}
                     />
                   )}
               </svg>
