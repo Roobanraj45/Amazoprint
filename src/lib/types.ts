@@ -137,15 +137,12 @@ export type DesignElement = {
   
   // Brush specific properties
   path?: [number, number][];
-  sprayDots?: { x: number; y: number; r: number; o: number }[];
   strokeColor?: string;
   strokeWidth?: number;
-  brushStyle?: 'solid' | 'dashed' | 'dotted' | 'spray';
+  brushTip?: 'round' | 'square' | 'scatter' | 'calligraphy';
   brushHardness?: number; // 0-100
-  strokeLineCap?: 'butt' | 'round' | 'square';
-  sprayDensity?: number;
-  sprayRadius?: number;
-
+  scatterData?: { x: number; y: number; r: number }[]; // For scatter/particle brushes
+  
   // QR Code specific properties
   qrValue?: string;
   qrColor?: string;

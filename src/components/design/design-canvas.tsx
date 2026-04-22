@@ -222,6 +222,8 @@ type DesignCanvasProps = {
     strokeWidth: number;
     hardness: number;
     opacity: number;
+    brushTip: 'round' | 'square' | 'scatter' | 'calligraphy';
+    scatterData?: {x: number; y: number; r: number}[];
   } | null;
   livePath?: PathPoint[] | null;
   mousePos?: { x: number, y: number } | null;
@@ -370,7 +372,6 @@ export function DesignCanvas({
 
   const rulerOffset = showRulers ? RULER_SIZE : 0;
   
-  // Photoshop-like blur standard deviation for live preview
   const stdDeviation = livePencilPath?.hardness !== undefined 
     ? ((100 - livePencilPath.hardness) / 100) * (livePencilPath.strokeWidth / 2)
     : 0;
@@ -513,24 +514,39 @@ export function DesignCanvas({
           
           <PenToolCanvas livePath={livePath} mousePos={mousePos} zoom={zoom} safetyMargin={safetyMargin} />
 
-          {livePencilPath && livePencilPath.path.length > 1 && (
+          {/* LIVE BRUSH PREVIEW */}
+          {livePencilPath && (
               <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 999, opacity: livePencilPath.opacity }}>
-                  {stdDeviation > 0 && (
+                  {stdDeviation > 0 && livePencilPath.brushTip !== 'square' && (
                     <defs>
                         <filter id="live-brush-blur" x="-50%" y="-50%" width="200%" height="200%">
                             <feGaussianBlur stdDeviation={stdDeviation} />
                         </filter>
                     </defs>
                   )}
-                  <path
-                      d={"M " + livePencilPath.path.map(p => `${p[0] + safetyMargin} ${p[1] + safetyMargin}`).join(" L ")}
-                      stroke={livePencilPath.strokeColor}
-                      strokeWidth={livePencilPath.strokeWidth}
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      filter={stdDeviation > 0 ? "url(#live-brush-blur)" : undefined}
-                  />
+                  {livePencilPath.brushTip === 'scatter' ? (
+                      livePencilPath.scatterData?.map((p, i) => (
+                          <circle 
+                            key={i} 
+                            cx={p.x + safetyMargin} 
+                            cy={p.y + safetyMargin} 
+                            r={p.r} 
+                            fill={livePencilPath.strokeColor}
+                            filter={stdDeviation > 0 ? "url(#live-brush-blur)" : undefined}
+                          />
+                      ))
+                  ) : (
+                    <path
+                        d={"M " + livePencilPath.path.map(p => `${p[0] + safetyMargin} ${p[1] + safetyMargin}`).join(" L ")}
+                        stroke={livePencilPath.strokeColor}
+                        strokeWidth={livePencilPath.strokeWidth}
+                        fill="none"
+                        strokeLinecap={livePencilPath.brushTip === 'square' ? 'butt' : 'round'}
+                        strokeLinejoin={livePencilPath.brushTip === 'square' ? 'miter' : 'round'}
+                        filter={stdDeviation > 0 && livePencilPath.brushTip !== 'square' ? "url(#live-brush-blur)" : undefined}
+                        style={livePencilPath.brushTip === 'calligraphy' ? { transform: 'scaleX(0.3) rotate(45deg)' } : undefined}
+                    />
+                  )}
               </svg>
           )}
         </div>

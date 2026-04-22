@@ -431,21 +431,44 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
         return <StyledQrCode element={element} />;
       }
       case 'brush': {
-        if (!element.path || element.path.length < 2) return null;
-
-        const pathData = "M " + element.path.map(p => `${p[0]} ${p[1]}`).join(" L ");
-        
-        // Photoshop-like hardness uses standard deviation for blur
         const stdDeviation = element.brushHardness !== undefined 
             ? ((100 - element.brushHardness) / 100) * ((element.strokeWidth || 5) / 2)
             : 0;
 
+        if (element.brushTip === 'scatter' && element.scatterData) {
+            return (
+                <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }}>
+                    {stdDeviation > 0 && (
+                        <defs>
+                            <filter id={`brush-blur-${element.id}`} x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation={stdDeviation} />
+                            </filter>
+                        </defs>
+                    )}
+                    <g filter={stdDeviation > 0 ? `url(#brush-blur-${element.id})` : undefined}>
+                        {element.scatterData.map((p, i) => (
+                            <circle 
+                                key={i} 
+                                cx={p.x} 
+                                cy={p.y} 
+                                r={p.r} 
+                                fill={isSpotUv ? 'black' : element.strokeColor || '#000000'}
+                            />
+                        ))}
+                    </g>
+                </svg>
+            );
+        }
+
+        if (!element.path || element.path.length < 2) return null;
+        const pathData = "M " + element.path.map(p => `${p[0]} ${p[1]}`).join(" L ");
+
         return (
             <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }}>
-                {stdDeviation > 0 && (
+                {stdDeviation > 0 && element.brushTip !== 'square' && (
                     <defs>
                         <filter id={`brush-blur-${element.id}`} x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur in="SourceGraphic" stdDeviation={stdDeviation} />
+                            <feGaussianBlur stdDeviation={stdDeviation} />
                         </filter>
                     </defs>
                 )}
@@ -454,9 +477,9 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
                     stroke={isSpotUv ? 'black' : element.strokeColor || '#000000'}
                     strokeWidth={element.strokeWidth || 5}
                     fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    filter={stdDeviation > 0 ? `url(#brush-blur-${element.id})` : undefined}
+                    strokeLinecap={element.brushTip === 'square' ? 'butt' : 'round'}
+                    strokeLinejoin={element.brushTip === 'square' ? 'miter' : 'round'}
+                    filter={stdDeviation > 0 && element.brushTip !== 'square' ? `url(#brush-blur-${element.id})` : undefined}
                 />
             </svg>
         )
@@ -668,9 +691,8 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
           default: {
             // Fallback for all other shapes to render from lucide-react
             const shapeNamePascal = element.shapeType
-              .split('-')
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join('');
+              ? element.shapeType.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('')
+              : 'Square';
             
             const Icon = (lucide as any)[shapeNamePascal];
 
@@ -800,7 +822,7 @@ const _CanvasElement = ({
       y: element.y,
       width: element.width,
       height: element.height,
-      fontSize: element.fontSize,
+      fontSize: element.fontSize || 0,
       children: element.children || []
     };
 
@@ -899,7 +921,7 @@ const _CanvasElement = ({
       y: element.y,
       width: element.width,
       height: element.height,
-      fontSize: element.fontSize,
+      fontSize: element.fontSize || 0,
       children: element.children || []
     };
 
@@ -966,7 +988,7 @@ const _CanvasElement = ({
         newProps.height = newHeight;
     }
     
-    if (element.type === 'group' || element.type === 'path') {
+    if (element.type === 'group' || element.type === 'path' || (element.type === 'brush' && element.brushTip === 'scatter')) {
       const scaleX = newWidth / width;
       const scaleY = newHeight / height;
 
@@ -981,7 +1003,7 @@ const _CanvasElement = ({
               height: child.height * scaleY,
             };
             if (child.type === 'text') {
-              scaledChild.fontSize = child.fontSize * Math.min(scaleX, scaleY);
+              scaledChild.fontSize = (child.fontSize || 0) * Math.min(scaleX, scaleY);
             }
             return scaledChild;
           });
@@ -996,6 +1018,13 @@ const _CanvasElement = ({
             cp2x: p.cp2x * scaleX,
             cp2y: p.cp2y * scaleY,
           }));
+        }
+        if (element.type === 'brush' && element.scatterData) {
+            newProps.scatterData = element.scatterData.map(p => ({
+                x: p.x * scaleX,
+                y: p.y * scaleY,
+                r: p.r * Math.min(scaleX, scaleY)
+            }));
         }
       }
     }
@@ -1024,7 +1053,7 @@ const _CanvasElement = ({
     borderColor: renderMode === 'spotuv' ? 'transparent' : (element.type === 'shape' || element.type === 'brush' || element.type === 'qrcode' || element.type === 'path' ? 'transparent' : element.borderColor),
     borderStyle: element.type === 'shape' || element.type === 'brush' || element.type === 'qrcode' || element.type === 'path' ? 'solid' : element.borderStyle,
     borderRadius: renderMode === 'spotuv' ? 0 : (element.type !== 'shape' ? element.borderRadius : 0),
-    overflow: (isWarped || element.type === 'path') ? 'visible' : 'hidden', // Ensure paths can render curves slightly outside bounds
+    overflow: (isWarped || element.type === 'path' || element.type === 'brush') ? 'visible' : 'hidden', // Ensure paths/brushes can render curves slightly outside bounds
   };
   
   const resizeHandles: ResizeHandle[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top', 'bottom', 'left', 'right'];

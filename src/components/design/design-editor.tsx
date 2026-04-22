@@ -150,17 +150,31 @@ function DesignEditorInternal({
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0 });
   const [activeSmartGuides, setActiveSmartGuides] = useState<Guide[]>([]);
+  
+  // MOUSE POS STATE - Essential for real-time previews
   const [mousePos, setMousePos] = useState<{ x: number, y: number } | null>(null);
   
   const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
   const [isDrawing, setIsDrawing] = useState(false);
   const drawingPointsRef = useRef<[number, number][]>([]);
-  const [livePencilPath, setLivePencilPath] = useState<{ path: [number, number][]; strokeColor: string; strokeWidth: number; hardness: number; opacity: number } | null>(null);
+  const scatterPointsRef = useRef<{x: number; y: number; r: number}[]>([]);
+  
+  const [livePencilPath, setLivePencilPath] = useState<{ 
+      path: [number, number][]; 
+      strokeColor: string; 
+      strokeWidth: number; 
+      hardness: number; 
+      opacity: number;
+      brushTip: 'round' | 'square' | 'scatter' | 'calligraphy';
+      scatterData?: {x: number; y: number; r: number}[];
+  } | null>(null);
+
   const [brushOptions, setBrushOptions] = useState({
-      size: 10,
-      hardness: 100,
+      size: 40,
+      hardness: 80,
       opacity: 1,
       color: '#000000',
+      brushTip: 'round' as const,
   });
   
   // Pen Tool States
@@ -357,12 +371,10 @@ function DesignEditorInternal({
         }
       }
 
-      // Undo last point in Pen tool: Ctrl + X or Cmd + X
       if ((e.ctrlKey || e.metaKey) && e.key === 'x' && activeTool === 'pen' && !isInput) {
           e.preventDefault();
           setLivePath(prev => {
-              if (!prev || prev.length === 0) return null;
-              if (prev.length === 1) return null;
+              if (!prev || prev.length <= 1) return null;
               return prev.slice(0, -1);
           });
       }
@@ -457,14 +469,31 @@ function DesignEditorInternal({
         e.stopPropagation();
         beginTransaction();
         setIsDrawing(true);
-        const startPoint = getPointInCanvas(e);
-        drawingPointsRef.current = [startPoint];
+        const [x, y] = getPointInCanvas(e);
+        drawingPointsRef.current = [[x, y]];
+        scatterPointsRef.current = [];
+        
+        if (brushOptions.brushTip === 'scatter') {
+            const count = Math.ceil(brushOptions.size / 5);
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.random() * (brushOptions.size / 2);
+                scatterPointsRef.current.push({
+                    x: x + Math.cos(angle) * r,
+                    y: y + Math.sin(angle) * r,
+                    r: Math.random() * (brushOptions.size / 10) + 1
+                });
+            }
+        }
+
         setLivePencilPath({
-            path: [startPoint, startPoint],
+            path: [[x, y], [x, y]],
             strokeColor: brushOptions.color,
             strokeWidth: brushOptions.size,
             hardness: brushOptions.hardness,
-            opacity: brushOptions.opacity
+            opacity: brushOptions.opacity,
+            brushTip: brushOptions.brushTip,
+            scatterData: scatterPointsRef.current
         });
         return;
     }
@@ -478,7 +507,6 @@ function DesignEditorInternal({
             
             // Check for closing path
             if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
-                // RETRACT PREVIOUS EXIT HANDLE TO ENSURE STRAIGHT FINISH
                 const updatedPath = [...livePath];
                 const lastIdx = updatedPath.length - 1;
                 updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
@@ -505,22 +533,16 @@ function DesignEditorInternal({
             }
         }
 
-        // Add new point: initialized as straight (retract previous exit handle first)
+        // Add new point: initialized as straight
         let updatedPath = livePath ? [...livePath] : [];
         if (updatedPath.length > 0) {
             const lastIdx = updatedPath.length - 1;
-            updatedPath[lastIdx] = {
-                ...updatedPath[lastIdx],
-                cp2x: updatedPath[lastIdx].x,
-                cp2y: updatedPath[lastIdx].y,
-            };
+            updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
         }
 
         const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
         updatedPath.push(newPoint);
         setLivePath(updatedPath);
-        
-        // Start dragging the EXIT handle (cp2) for mirroring curvature on drag
         setDraggingPoint({ index: updatedPath.length - 1, type: 'cp2' });
         return;
     }
@@ -544,9 +566,22 @@ function DesignEditorInternal({
     setMousePos({ x, y });
 
     if (isDrawing && activeTool === 'brush') {
-        const currentPoint = [x, y] as [number, number];
-        drawingPointsRef.current.push(currentPoint);
-        setLivePencilPath(prev => prev ? { ...prev, path: [...drawingPointsRef.current] } : null);
+        drawingPointsRef.current.push([x, y]);
+        
+        if (brushOptions.brushTip === 'scatter') {
+            const count = Math.ceil(brushOptions.size / 15);
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.random() * (brushOptions.size / 2);
+                scatterPointsRef.current.push({
+                    x: x + Math.cos(angle) * r,
+                    y: y + Math.sin(angle) * r,
+                    r: Math.random() * (brushOptions.size / 10) + 1
+                });
+            }
+        }
+
+        setLivePencilPath(prev => prev ? { ...prev, path: [...drawingPointsRef.current], scatterData: [...scatterPointsRef.current] } : null);
         return;
     }
 
@@ -555,27 +590,20 @@ function DesignEditorInternal({
             if (!prev) return null;
             const newPath = prev.map(p => ({...p}));
             const point = newPath[draggingPoint.index];
-            if (!point) return prev; // Safety check
+            if (!point) return prev;
 
             if (draggingPoint.type === 'anchor') {
                 const dx = x - point.x;
                 const dy = y - point.y;
-                point.x = x;
-                point.y = y;
-                point.cp1x += dx;
-                point.cp1y += dy;
-                point.cp2x += dx;
-                point.cp2y += dy;
+                point.x = x; point.y = y;
+                point.cp1x += dx; point.cp1y += dy;
+                point.cp2x += dx; point.cp2y += dy;
             } else if (draggingPoint.type === 'cp2') {
-                point.cp2x = x;
-                point.cp2y = y;
-                // Mirrored CP1 for smooth curves
+                point.cp2x = x; point.cp2y = y;
                 point.cp1x = point.x - (x - point.x);
                 point.cp1y = point.y - (y - point.y);
             } else if (draggingPoint.type === 'cp1') {
-                point.cp1x = x;
-                point.cp1y = y;
-                // Mirrored CP2
+                point.cp1x = x; point.cp1y = y;
                 point.cp2x = point.x - (x - point.x);
                 point.cp2y = point.y - (y - point.y);
             }
@@ -585,10 +613,7 @@ function DesignEditorInternal({
     }
 
     if (isPanning.current) {
-      const newPan = {
-        x: e.clientX - panStart.current.x,
-        y: e.clientY - panStart.current.y,
-      };
+      const newPan = { x: e.clientX - panStart.current.x, y: e.clientY - panStart.current.y };
       setViewState({ ...viewState, pan: newPan });
     }
   };
@@ -600,11 +625,17 @@ function DesignEditorInternal({
         endTransaction();
 
         const points = drawingPointsRef.current;
-        if (points.length >= 2) {
-            const minX = Math.min(...points.map(p => p[0]));
-            const minY = Math.min(...points.map(p => p[1]));
-            const maxX = Math.max(...points.map(p => p[0]));
-            const maxY = Math.max(...points.map(p => p[1]));
+        const scatter = scatterPointsRef.current;
+
+        if (points.length >= 2 || (brushOptions.brushTip === 'scatter' && scatter.length > 0)) {
+            const allX = brushOptions.brushTip === 'scatter' ? scatter.map(p => p.x) : points.map(p => p[0]);
+            const allY = brushOptions.brushTip === 'scatter' ? scatter.map(p => p.y) : points.map(p => p[1]);
+            
+            const padding = brushOptions.size;
+            const minX = Math.min(...allX) - padding;
+            const minY = Math.min(...allY) - padding;
+            const maxX = Math.max(...allX) + padding;
+            const maxY = Math.max(...allY) + padding;
 
             const newElement: DesignElement = {
                 id: crypto.randomUUID(),
@@ -616,16 +647,18 @@ function DesignEditorInternal({
                 rotation: 0,
                 opacity: brushOptions.opacity,
                 path: points.map(([px, py]) => [px - minX, py - minY]),
+                scatterData: scatter.map(p => ({ x: p.x - minX, y: p.y - minY, r: p.r })),
                 strokeColor: brushOptions.color,
                 strokeWidth: brushOptions.size,
+                brushTip: brushOptions.brushTip,
                 brushHardness: brushOptions.hardness,
-                strokeLineCap: 'round',
                 content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
             };
             updatePage(currentPage, { elements: [...currentElements, newElement] });
             setSelectedElementIds([newElement.id]);
         }
         drawingPointsRef.current = [];
+        scatterPointsRef.current = [];
         return;
     }
 
@@ -1462,9 +1495,30 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'brush' || activeTool === 'pen') ? 'crosshair' : 'default', backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'brush' || activeTool === 'pen') ? 'none' : 'default', backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
+              {/* REAL BRUSH CURSOR */}
+              {activeTool === 'brush' && mousePos && !isPanning.current && (
+                  <div 
+                    style={{
+                        position: 'fixed',
+                        left: (mousePos.x + safetyMargin) * viewState.zoom + viewState.pan.x + (showRulers ? RULER_SIZE : 0),
+                        top: (mousePos.y + safetyMargin) * viewState.zoom + viewState.pan.y + (showRulers ? RULER_SIZE : 0),
+                        width: brushOptions.size * viewState.zoom,
+                        height: brushOptions.size * viewState.zoom,
+                        transform: 'translate(-50%, -50%)',
+                        pointerEvents: 'none',
+                        zIndex: 1000,
+                        border: '1.5px solid white',
+                        boxShadow: '0 0 0 1px black, inset 0 0 4px rgba(0,0,0,0.2)',
+                        borderRadius: brushOptions.brushTip === 'square' ? '2px' : '50%',
+                        opacity: 0.8,
+                        background: brushOptions.brushTip === 'scatter' ? `radial-gradient(circle, ${brushOptions.color} 20%, transparent 80%)` : 'transparent'
+                    }}
+                  />
+              )}
+
               {selectedElements.length > 0 && 
                 <ElementToolbar 
                     selectedElements={selectedElements} 
