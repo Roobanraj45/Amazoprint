@@ -70,7 +70,7 @@ import { LayersPanel } from './layers-panel';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { getMyDesigns, saveDesign, updateDesign } from '@/app/actions/design-actions';
 import { submitContestEntry } from '@/app/actions/contest-actions';
-import { linkDesignToVerification } from '@/app/actions/verification-actions';
+import { linkDesignToVerification = () => Promise.resolve() } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from './load-design-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -784,7 +784,8 @@ function DesignEditorInternal({
       isPanning.current = false;
       let newCursor = 'default';
       if (isSpacePressed) newCursor = 'grab';
-      else if (activeTool === 'brush' || activeTool === 'pen') newCursor = 'crosshair';
+      else if (activeTool === 'pen') newCursor = 'crosshair';
+      else if (activeTool === 'brush') newCursor = 'none';
       e.currentTarget.style.cursor = newCursor;
     }
   };
@@ -1634,7 +1635,7 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'brush' || activeTool === 'pen') ? 'crosshair' : 'default', backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? 'crosshair' : activeTool === 'brush' ? 'none' : 'default', backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
               {(activeTool === 'brush') && mousePos && !isPanning.current && (
