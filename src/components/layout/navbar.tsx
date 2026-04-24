@@ -55,8 +55,8 @@ export function Navbar() {
   const navLinks = [
     { href: '/products', label: 'Products' },
     { href: '/contests', label: 'Contests' },
+    { href: '/client/verifications', label: 'Design Verification' },
     { href: '/about', label: 'About' },
-    { href: '/sustainability', label: 'Sustainability' },
   ];
 
   return (

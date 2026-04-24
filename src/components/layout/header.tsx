@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { CartSheet } from "../cart/cart-sheet";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, Home, Settings } from "lucide-react";
+import { LayoutGrid, Home, Settings, ShieldCheck } from "lucide-react";
 
 type Session = Awaited<ReturnType<typeof getSession>>;
 
@@ -44,6 +44,7 @@ export function Header() {
   const navLinks = [
     { href: '/products', label: 'Products', icon: <Settings className="w-3.5 h-3.5" /> },
     { href: '/contests', label: 'Contests', icon: <Home className="w-3.5 h-3.5" /> },
+    { href: '/client/verifications', label: 'Verification', icon: <ShieldCheck className="w-3.5 h-3.5" /> },
   ];
 
   return (
