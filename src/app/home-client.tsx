@@ -77,6 +77,9 @@ export function HomeClient({
   contests: any[]
 }) {
 
+  // Numeric summation to avoid concatenation
+  const totalBountyPool = contests.reduce((acc, curr) => acc + parseFloat(curr.contest.prizeAmount || '0'), 0);
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10 selection:text-primary">
       <Navbar />
@@ -93,13 +96,13 @@ export function HomeClient({
               transition={{ duration: 0.8 }}
             >
               <Badge className="mb-6 py-2 px-4 bg-primary/5 text-primary border-primary/10 hover:bg-primary/5 rounded-full font-semibold">
-                <Sparkles className="w-4 h-4 mr-2" /> Join 25 million+ users
+                <Sparkles className="w-4 h-4 mr-2" /> Redefining the Print Industry
               </Badge>
               <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-tight mb-8">
-                Easy marketing for <br/> <span className="gradient-text">busy people.</span>
+                Design. Compete. <br/> <span className="gradient-text">Get Paid.</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed max-w-2xl mx-auto font-medium">
-                The all-in-one platform for high-end custom prints. Use our AI designer, run a design contest, or upload your own files to get started.
+                The all-in-one ecosystem for high-end custom prints. Use our professional AI studio, run a design battle, or showcase your talent to earn bounties.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button size="lg" asChild className="h-14 px-8 rounded-full text-base font-bold group shadow-xl shadow-primary/20">
@@ -108,8 +111,8 @@ export function HomeClient({
                   </Link>
                 </Button>
                 <Button variant="secondary" size="lg" asChild className="h-14 px-8 rounded-full text-base font-bold shadow-sm glass-card !bg-transparent !border-foreground/20 hover:!bg-foreground/10">
-                  <Link href="/products">
-                    Create with AI
+                  <Link href="/contests">
+                    Browse Bounties
                   </Link>
                 </Button>
               </div>
@@ -117,7 +120,7 @@ export function HomeClient({
           </div>
         </section>
 
-        {/* --- 2. THE DESIGN ARENA (NEW) --- */}
+        {/* --- 2. THE DESIGN ARENA --- */}
         {contests && contests.length > 0 && (
           <section className="py-24 bg-slate-900 text-white overflow-hidden relative">
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-primary/10 blur-[120px] rounded-full"></div>
@@ -127,19 +130,19 @@ export function HomeClient({
               <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
                 <div className="space-y-4">
                   <Badge className="bg-primary/20 text-primary-foreground border-primary/30 py-1.5 px-4 rounded-full font-bold uppercase tracking-widest text-[10px]">
-                    <Trophy className="w-3 h-3 mr-2" /> Elite Design Challenges
+                    <Trophy className="w-3 h-3 mr-2" /> Elite Design Arena
                   </Badge>
                   <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-none">
                     Showcase Talent. <br/><span className="text-primary">Earn Bounties.</span>
                   </h2>
                   <p className="text-slate-400 text-lg max-w-xl font-medium">
-                    Compete in high-stakes design battles. Top designers walk away with thousands in prizes and premium project credits.
+                    Compete in high-stakes design battles. Top designers walk away with thousands in prizes and industrial project credits.
                   </p>
                 </div>
                 <div className="hidden lg:block">
                   <div className="bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10 shadow-2xl">
                     <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Active Bounty Pool</p>
-                    <p className="text-4xl font-black text-emerald-400">₹{contests.reduce((acc, curr) => acc + Number(curr.contest.prizeAmount), 0).toLocaleString()}</p>
+                    <p className="text-4xl font-black text-emerald-400">₹{totalBountyPool.toLocaleString('en-IN')}</p>
                   </div>
                 </div>
               </div>
@@ -157,7 +160,7 @@ export function HomeClient({
                             </Badge>
                             <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
                               <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                              Earn ₹{Number(contest.prizeAmount).toLocaleString()}
+                              ₹{parseFloat(contest.prizeAmount || '0').toLocaleString('en-IN')} Bounty
                             </div>
                           </div>
                           <CardTitle className="text-xl font-bold text-white group-hover:text-primary transition-colors line-clamp-2 leading-snug">
@@ -165,6 +168,13 @@ export function HomeClient({
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6 pt-0 space-y-6 flex-grow">
+                          {/* Visual Prize Box */}
+                          <div className="relative p-6 rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Winning Prize</p>
+                              <p className="text-2xl font-black text-white">₹{parseFloat(contest.prizeAmount || '0').toLocaleString('en-IN')}</p>
+                              <Award className="absolute right-[-10px] bottom-[-10px] w-16 h-16 text-primary/10 rotate-12" />
+                          </div>
+
                           <div className="space-y-4">
                             <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-tight">
                               <div className="flex items-center gap-2">
@@ -178,13 +188,13 @@ export function HomeClient({
                             </div>
                             <div className="space-y-1.5">
                               <Progress value={progressValue} className="h-1.5 bg-white/5" />
-                              <p className="text-[10px] text-slate-500 font-bold text-center uppercase tracking-tighter">Arena Fill Rate</p>
+                              <p className="text-[10px] text-slate-500 font-bold text-center uppercase tracking-tighter">Arena Capacity</p>
                             </div>
                           </div>
                         </CardContent>
                         <CardFooter className="p-6 bg-white/5 border-t border-white/5">
                           <Button asChild className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20">
-                            <Link href={`/contests/${contest.id}`}>Join Arena</Link>
+                            <Link href={`/contests/${contest.id}`}>View Intel</Link>
                           </Button>
                         </CardFooter>
                       </Card>
@@ -196,7 +206,7 @@ export function HomeClient({
               <div className="mt-16 text-center">
                 <Button variant="link" asChild className="text-slate-400 hover:text-white font-bold uppercase tracking-widest text-xs">
                   <Link href="/contests" className="flex items-center gap-2">
-                    View All Active Bounties <ArrowRight size={14} />
+                    View All Elite Bounties <ArrowRight size={14} />
                   </Link>
                 </Button>
               </div>
@@ -210,16 +220,16 @@ export function HomeClient({
             <div className="container px-4 mx-auto">
               <div className="text-center mb-12">
                 <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
-                  Explore Our Best Deals
+                  Explore Industrial Canvas
                 </h2>
                 <p className="text-muted-foreground text-lg max-w-2xl mx-auto font-medium">
-                  Handpicked for you. Get the best prices on our most popular product variants.
+                  Premium materials curated for high-impact branding and marketing.
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {subProducts.map((subProduct: any) => {
                   const price = Number(subProduct.price || 0);
-                  const originalPrice = price * 1.25; // Dummy original price for deal display
+                  const originalPrice = price * 1.25;
                   const imageUrl = resolveImagePath(subProduct.imageUrl || subProduct.parentProductImageUrl);
                   return (
                     <motion.div key={subProduct.id} {...FADE_UP} whileHover={{ y: -8 }} transition={{ type: 'spring', stiffness: 300 }}>
@@ -255,16 +265,16 @@ export function HomeClient({
           </section>
         )}
         
-        {/* --- 3.6. Direct Selling Products --- */}
+        {/* --- 4. Direct Selling Products --- */}
         {directSellingProducts && directSellingProducts.length > 0 && (
           <section className="py-24">
             <div className="container px-4 mx-auto">
               <div className="text-center mb-12">
                 <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
-                  Ready to Ship
+                  Shop Ready-to-Ship
                 </h2>
                 <p className="text-muted-foreground text-lg max-w-2xl mx-auto font-medium">
-                  Explore our curated collection of products available for direct purchase.
+                  Curated business essentials available for instant industrial delivery.
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -310,12 +320,12 @@ export function HomeClient({
           </section>
         )}
 
-        {/* --- 4. THE BENTO GRID FEATURES --- */}
+        {/* --- 5. THE BENTO GRID FEATURES --- */}
         <section className="py-24 bg-muted/20">
           <div className="container px-4 mx-auto">
             <div className="max-w-3xl mb-12">
-              <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-6 gradient-text">Built for Modern Brands.</h2>
-              <p className="text-xl text-muted-foreground font-medium">We've reimagined every step of the printing process with intelligence.</p>
+              <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-6 gradient-text">Built for Global Brands.</h2>
+              <p className="text-xl text-muted-foreground font-medium">Reimagined printing with industrial-grade AI and precision engineering.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-full">
@@ -323,8 +333,8 @@ export function HomeClient({
                 <div className="relative z-10 h-full flex flex-col justify-between">
                   <Palette className="w-12 h-12 text-primary mb-8" />
                   <div>
-                    <h3 className="text-4xl font-bold mb-4">Professional Design Studio</h3>
-                    <p className="text-muted-foreground text-lg max-w-md">Our cloud editor handles vectors, high-res images, and CMYK profiles perfectly. No downloads required.</p>
+                    <h3 className="text-4xl font-bold mb-4">Industrial Design Studio</h3>
+                    <p className="text-muted-foreground text-lg max-w-md">Cloud-native engine supporting high-fidelity vectors, raw assets, and perfect pre-press accuracy.</p>
                   </div>
                 </div>
               </motion.div>
@@ -332,26 +342,26 @@ export function HomeClient({
               <motion.div {...FADE_UP} className="md:col-span-4 glass-card flex flex-col justify-between min-h-[400px]">
                 <Sparkles className="w-12 h-12 text-primary/70 animate-float" />
                 <div>
-                  <h3 className="text-3xl font-bold mb-4">AI Magic</h3>
-                  <p className="text-muted-foreground">Instant layouts and background removal powered by neural networks.</p>
+                  <h3 className="text-3xl font-bold mb-4">Neural Proofing</h3>
+                  <p className="text-muted-foreground">Automated resolution checking and background isolation powered by GenAI.</p>
                 </div>
               </motion.div>
 
               <motion.div {...FADE_UP} className="md:col-span-4 glass-card min-h-[300px] flex flex-col justify-between">
                 <Trophy className="text-primary/70 w-10 h-10" />
                 <div>
-                  <h4 className="text-2xl font-bold mb-2">Crowdsourcing</h4>
-                  <p className="text-muted-foreground">Launch a contest and let 15k designers compete for your project.</p>
+                  <h4 className="text-2xl font-bold mb-2">Bounty Network</h4>
+                  <p className="text-muted-foreground">Connect with global creative talent through high-stakes design battles.</p>
                 </div>
               </motion.div>
 
               <motion.div {...FADE_UP} className="md:col-span-8 glass-card flex flex-col md:flex-row gap-8 items-center min-h-[300px]">
                 <div className="flex-1">
-                  <h4 className="text-2xl font-bold mb-4">The Global Print Network</h4>
-                  <p className="text-muted-foreground mb-6">We route your order to the nearest facility to reduce carbon emissions and ensure 48h delivery.</p>
+                  <h4 className="text-2xl font-bold mb-4">Precision Print Network</h4>
+                  <p className="text-muted-foreground mb-6">Real-time routing to the optimal production facility for maximum speed and minimum carbon footprint.</p>
                   <div className="flex gap-4">
-                    <Badge variant="outline" className="bg-background">150+ Countries</Badge>
-                    <Badge variant="outline" className="bg-background">Next Day Shipping</Badge>
+                    <Badge variant="outline" className="bg-background">Global Fulfillment</Badge>
+                    <Badge variant="outline" className="bg-background">Industrial Speed</Badge>
                   </div>
                 </div>
                 <div className="flex-shrink-0 w-32 h-32 bg-background/50 rounded-2xl flex items-center justify-center shadow-inner">
@@ -362,77 +372,21 @@ export function HomeClient({
           </div>
         </section>
 
-        {/* --- 5. STEP-BY-STEP PROCESS --- */}
-        <section className="py-24">
-          <div className="container px-4 mx-auto">
-            <div className="grid lg:grid-cols-2 gap-20 items-center">
-              <div>
-                <Badge className="bg-primary/10 text-primary mb-6">How it works</Badge>
-                <h2 className="text-5xl font-black mb-12">From Concept to <br /> Doorstep in 72h.</h2>
-                <div className="space-y-12">
-                   {[
-                     { step: '01', t: 'Design or Launch Contest', d: 'Use our AI studio or let thousands of freelancers create your vision.' },
-                     { step: '02', t: 'Pro Proofing', d: 'Every design is automatically checked for resolution, bleed, and CMYK accuracy.' },
-                     { step: '03', t: 'Eco-Smart Print', d: 'We print using soy-based inks at the facility closest to your location.' }
-                   ].map((item, idx) => (
-                     <div key={idx} className="flex gap-8 group">
-                        <div className="text-5xl font-black text-foreground/10 group-hover:text-primary transition-colors">{item.step}</div>
-                        <div>
-                          <h4 className="text-2xl font-bold mb-2">{item.t}</h4>
-                          <p className="text-muted-foreground max-w-sm leading-relaxed">{item.d}</p>
-                        </div>
-                     </div>
-                   ))}
-                </div>
-              </div>
-              <div className="relative aspect-square rounded-[3rem] overflow-hidden glass-card p-0 bg-gradient-to-br from-primary/10 to-transparent">
-                <Image 
-                  src="https://images.unsplash.com/photo-1562564055-71e051d33c19?auto=format&fit=crop&q=100&w=1000" 
-                  alt="Process" fill className="object-cover opacity-60 mix-blend-luminosity"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* --- 6. TESTIMONIALS --- */}
-        <section className="py-24">
-          <div className="container px-4 mx-auto text-center">
-            <h2 className="text-4xl font-black mb-12 tracking-tight">Loved by 50k+ Businesses.</h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              {[1, 2, 3].map((item) => (
-                <div key={item} className="glass-card text-left p-8">
-                  <Quote className="w-12 h-12 text-primary/20 mb-6" />
-                  <div className="flex text-amber-400 mb-6"><Star className="fill-current"/><Star className="fill-current"/><Star className="fill-current"/><Star className="fill-current"/><Star className="fill-current"/></div>
-                  <p className="text-lg text-muted-foreground mb-8 italic">"Amazoprint transformed our branding. The quality of the matte business cards is better than any local boutique printer we've used."</p>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="w-12 h-12 shadow-lg"><AvatarImage src={`https://i.pravatar.cc/150?u=${item}`} /></Avatar>
-                    <div>
-                      <p className="font-bold">Alex Rivera</p>
-                      <p className="text-sm text-muted-foreground">Marketing Lead, TechFlow</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* --- PRINTER CTA --- */}
+        {/* --- 6. PRINTER CTA --- */}
         <section className="py-24">
           <div className="container mx-auto px-4">
             <Card className="p-10 flex flex-col items-center text-center bg-transparent bg-[radial-gradient(hsl(var(--muted))_1px,transparent_1px)] [background-size:16px_16px]">
-              <Badge>For Production Houses</Badge>
-              <h2 className="text-3xl font-bold mt-4">Join Our Print Network</h2>
+              <Badge>Production Operations</Badge>
+              <h2 className="text-3xl font-bold mt-4">Scale Your Press</h2>
               <p className="text-muted-foreground mt-4 mb-8 max-w-xl mx-auto">
-                Expand your business by joining our network of printing partners. Get access to a steady stream of jobs from clients all over the world.
+                Join our decentralized print network. Gain access to a continuous stream of verified industrial and custom orders from global clients.
               </p>
               <div className="relative aspect-video rounded-2xl overflow-hidden w-full max-w-2xl mb-8 shadow-lg">
-                <Image src="https://images.unsplash.com/photo-1555095582-93e2a8649cde?q=80&w=1000&auto=format&fit=crop" alt="Printing Press" fill className="object-cover" />
+                <Image src="https://images.unsplash.com/photo-1555095582-93e2a8649cde?q=80&w=1000&auto=format&fit=crop" alt="Industrial Press" fill className="object-cover" />
               </div>
               <Button asChild size="lg" className="rounded-full px-8 font-bold">
                 <Link href="/printer-registration">
-                  Register as a Printer <ArrowRight className="ml-2 h-4 w-4" />
+                  Register Facility <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </Card>
@@ -444,14 +398,14 @@ export function HomeClient({
           <div className="container px-4 mx-auto">
             <div className="rounded-[4rem] p-16 md:p-32 text-center text-primary-foreground relative overflow-hidden bg-gradient-to-br from-blue-600 via-primary to-indigo-700">
                <div className="relative z-10 max-w-3xl mx-auto">
-                <h2 className="text-5xl md:text-7xl font-black mb-8 leading-[1.1]">Ready to make your mark?</h2>
-                <p className="text-xl md:text-2xl mb-12 opacity-80 font-medium">Create your first design for free or hire a pro in seconds.</p>
+                <h2 className="text-5xl md:text-7xl font-black mb-8 leading-[1.1]">Join the Arena.</h2>
+                <p className="text-xl md:text-2xl mb-12 opacity-80 font-medium">Create your first industrial project for free or hire an elite designer today.</p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button size="xl" variant="secondary" asChild className="h-16 px-12 rounded-full text-xl font-bold shadow-2xl glass-card !bg-white/90 text-black hover:!bg-white">
-                    <Link href="/register">Create Account</Link>
+                    <Link href="/register">Scale Account</Link>
                   </Button>
                   <Button size="xl" variant="outline" asChild className="h-16 px-12 rounded-full text-xl font-bold border-white/30 hover:bg-white/10">
-                    <Link href="/contact">Talk to Sales</Link>
+                    <Link href="/contact">Talk to Scale</Link>
                   </Button>
                 </div>
               </div>
@@ -466,7 +420,7 @@ export function HomeClient({
           <div className="grid grid-cols-2 md:grid-cols-5 gap-12 mb-16">
             <div className="col-span-2 space-y-6">
               <AmazoprintLogo />
-              <p className="text-muted-foreground max-w-xs">High-fidelity printing with AI intelligence and a global soul.</p>
+              <p className="text-muted-foreground max-w-xs">Industrial-grade printing powered by high-performance AI and global logistics.</p>
               <div className="flex gap-4">
                 <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-white transition-all cursor-pointer"><Globe size={20}/></div>
                 <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center hover:bg-primary hover:text-white transition-all cursor-pointer"><Briefcase size={20}/></div>
@@ -475,10 +429,10 @@ export function HomeClient({
             <div>
               <h4 className="font-bold mb-6 text-foreground">Explore</h4>
               <ul className="space-y-4 text-muted-foreground font-medium">
-                <li><Link href="/products" className="hover:text-primary transition-colors">All Products</Link></li>
-                <li><Link href="/contests" className="hover:text-primary transition-colors">Design Contests</Link></li>
-                <li><Link href="/products" className="hover:text-primary transition-colors">AI Studio</Link></li>
-                <li><Link href="/freelancer/dashboard" className="hover:text-primary transition-colors">For Freelancers</Link></li>
+                <li><Link href="/products" className="hover:text-primary transition-colors">Industrial Catalog</Link></li>
+                <li><Link href="/contests" className="hover:text-primary transition-colors">Design Battles</Link></li>
+                <li><Link href="/products" className="hover:text-primary transition-colors">Neural Studio</Link></li>
+                <li><Link href="/freelancer/dashboard" className="hover:text-primary transition-colors">Designer Portal</Link></li>
               </ul>
             </div>
             <div>
@@ -486,22 +440,22 @@ export function HomeClient({
               <ul className="space-y-4 text-muted-foreground font-medium">
                 <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
                 <li><Link href="/sustainability" className="hover:text-primary transition-colors">Sustainability</Link></li>
-                <li><Link href="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
+                <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Operations</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-6 text-foreground">Support</h4>
               <ul className="space-y-4 text-muted-foreground font-medium">
-                <li><Link href="/help" className="hover:text-primary transition-colors">Help Center</Link></li>
-                <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
-                <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/printer-registration" className="hover:text-primary transition-colors">For Printers</Link></li>
-                <li><Link href="/admin-login" className="hover:text-primary transition-colors">Admin Login</Link></li>
+                <li><Link href="/help" className="hover:text-primary transition-colors">Command Center</Link></li>
+                <li><Link href="/terms" className="hover:text-primary transition-colors">Service Level Agreement</Link></li>
+                <li><Link href="/privacy" className="hover:text-primary transition-colors">Data Policy</Link></li>
+                <li><Link href="/printer-registration" className="hover:text-primary transition-colors">Facility Enrollment</Link></li>
+                <li><Link href="/admin-login" className="hover:text-primary transition-colors">Admin Console</Link></li>
               </ul>
             </div>
           </div>
           <div className="pt-10 border-t flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-muted-foreground text-sm font-medium">© {new Date().getFullYear()} Amazoprint Inc. All rights reserved.</p>
+            <p className="text-muted-foreground text-sm font-medium">© {new Date().getFullYear()} Amazoprint Inc. Precision Operations.</p>
             <div className="flex gap-8 text-muted-foreground font-bold text-xs uppercase tracking-widest">
               <Link href="/privacy" className="cursor-pointer hover:text-primary transition-colors">Privacy</Link>
               <Link href="/terms" className="cursor-pointer hover:text-primary transition-colors">Terms</Link>

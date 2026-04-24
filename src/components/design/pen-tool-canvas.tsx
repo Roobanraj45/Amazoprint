@@ -33,13 +33,15 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
 
   if (mousePos && lastPoint) {
       const distToStart = Math.hypot(mousePos.x - firstPoint.x, mousePos.y - firstPoint.y);
-      const snapRadius = 20 / zoom;
+      const snapRadius = 25 / zoom; // Increased snap radius for better feel
       
       // If near start point and path is long enough, snap the joining line
       if (livePath.length > 2 && distToStart < snapRadius) {
           isClosingNear = true;
+          // Solid line to join first and last point
           previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} L ${firstPoint.x + safetyMargin} ${firstPoint.y + safetyMargin}`;
       } else {
+          // Standard rubber-band line to mouse cursor
           previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} L ${mousePos.x + safetyMargin} ${mousePos.y + safetyMargin}`;
       }
   }
@@ -57,7 +59,7 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
             zIndex: 999 
         }}
     >
-      {/* Rubber-band preview line (Dashed for clarity) */}
+      {/* Rubber-band preview line (Solid green when closing, dashed blue otherwise) */}
       {previewLineD && (
           <path
             d={previewLineD}
@@ -99,7 +101,7 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
             y={p.y + safetyMargin - pointSize / 2} 
             width={pointSize} 
             height={pointSize} 
-            fill={i === 0 ? "#10b981" : "white"} 
+            fill={i === 0 && isClosingNear ? "#10b981" : (i === 0 ? "#2563eb" : "white")} 
             stroke="#2563eb" 
             strokeWidth={strokeWidth} 
             style={{ cursor: 'move', pointerEvents: 'auto' }}

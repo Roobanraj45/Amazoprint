@@ -290,7 +290,6 @@ function DesignEditorInternal({
 
     const finalPath = [...livePath];
     
-    // Calculate bounding box including handles
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
     
@@ -502,7 +501,6 @@ function DesignEditorInternal({
         drawingPointsRef.current = [[x, y]];
         scatterPointsRef.current = [];
         
-        // Initial particles based on flow/density
         const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
         if (isComplex) {
             const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
@@ -548,8 +546,6 @@ function DesignEditorInternal({
 
         if (livePath) {
             const hitRadius = 15 / viewState.zoom;
-            
-            // Check for closing path
             if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
                 const updatedPath = [...livePath];
                 const lastIdx = updatedPath.length - 1;
@@ -559,7 +555,6 @@ function DesignEditorInternal({
                 return;
             }
 
-            // Check for handle/anchor clicks
             for (let i = 0; i < livePath.length; i++) {
                 const p = livePath[i];
                 if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
@@ -577,7 +572,6 @@ function DesignEditorInternal({
             }
         }
 
-        // Add new point: initialized as straight
         let updatedPath = livePath ? [...livePath] : [];
         if (updatedPath.length > 0) {
             const lastIdx = updatedPath.length - 1;
@@ -615,7 +609,7 @@ function DesignEditorInternal({
         if (!lastPoint) return;
 
         const dist = Math.hypot(x - lastPoint[0], y - lastPoint[1]);
-        const spacing = brushOptions.size * 0.05; // Increased density for smoothness
+        const spacing = brushOptions.size * 0.1; 
         
         if (dist >= spacing || brushOptions.tool === 'spray') {
             const steps = Math.max(1, Math.floor(dist / spacing));
@@ -654,9 +648,8 @@ function DesignEditorInternal({
                 }
             }
             
-            // Limit point collection for performance during very long strokes
-            if (points.length > 1000 && !isComplex) {
-                points.splice(0, points.length - 1000);
+            if (points.length > 500 && !isComplex) {
+                points.splice(0, points.length - 500);
             }
             if (scatterPointsRef.current.length > 5000) {
                 scatterPointsRef.current.splice(0, scatterPointsRef.current.length - 5000);
@@ -675,7 +668,6 @@ function DesignEditorInternal({
         setLivePath(prev => {
             if (!prev) return null;
             const newPath = prev.map(p => ({...p}));
-            if (draggingPoint.index >= newPath.length) return prev; // Safety check
             const point = newPath[draggingPoint.index];
             if (!point) return prev;
 
@@ -792,8 +784,7 @@ function DesignEditorInternal({
       isPanning.current = false;
       let newCursor = 'default';
       if (isSpacePressed) newCursor = 'grab';
-      else if (activeTool === 'brush') newCursor = 'none';
-      else if (activeTool === 'pen') newCursor = 'crosshair';
+      else if (activeTool === 'brush' || activeTool === 'pen') newCursor = 'crosshair';
       e.currentTarget.style.cursor = newCursor;
     }
   };
@@ -1643,7 +1634,7 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? 'crosshair' : activeTool === 'brush' ? 'none' : 'default', backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'brush' || activeTool === 'pen') ? 'crosshair' : 'default', backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
               {(activeTool === 'brush') && mousePos && !isPanning.current && (

@@ -21,6 +21,9 @@ export default async function ContestsPage() {
     userParticipations = await db.select({ contestId: contestParticipants.contestId }).from(contestParticipants).where(eq(contestParticipants.freelancerId, session.sub));
   }
 
+  // Explicitly sum prize amounts as numbers to avoid string concatenation
+  const totalPrizePool = contestsData.reduce((acc, curr) => acc + parseFloat(curr.contest.prizeAmount || '0'), 0);
+
   return (
     <main className="flex-1 py-16 pt-32 bg-background relative overflow-hidden">
       {/* Background Decor */}
@@ -47,7 +50,7 @@ export default async function ContestsPage() {
             <div className="px-6 py-4 rounded-3xl bg-white dark:bg-slate-900 border border-border/60 shadow-xl shadow-sky-500/5">
               <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Total Prize Pool</p>
               <p className="text-3xl font-black text-sky-600 tabular-nums">
-                ₹{contestsData.reduce((acc, curr) => acc + Number(curr.contest.prizeAmount), 0).toLocaleString()}
+                ₹{totalPrizePool.toLocaleString('en-IN')}
               </p>
             </div>
           </div>
@@ -82,7 +85,7 @@ export default async function ContestsPage() {
                   <div className="relative p-6 rounded-[1.5rem] bg-gradient-to-br from-slate-50 to-white dark:from-slate-800 dark:to-slate-900 border border-border/40 overflow-hidden group-hover:border-sky-500/30 transition-colors">
                     <div className="relative z-10">
                       <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Winning Prize</p>
-                      <p className="text-3xl font-black text-slate-900 dark:text-white">₹{Number(contest.prizeAmount).toLocaleString('en-IN')}</p>
+                      <p className="text-3xl font-black text-slate-900 dark:text-white">₹{parseFloat(contest.prizeAmount || '0').toLocaleString('en-IN')}</p>
                     </div>
                     <Award className="absolute right-[-10px] bottom-[-10px] w-24 h-24 text-sky-500/5 group-hover:text-sky-500/10 transition-all duration-500 rotate-12" />
                   </div>
