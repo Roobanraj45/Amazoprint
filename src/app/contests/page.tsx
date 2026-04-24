@@ -21,8 +21,11 @@ export default async function ContestsPage() {
     userParticipations = await db.select({ contestId: contestParticipants.contestId }).from(contestParticipants).where(eq(contestParticipants.freelancerId, session.sub));
   }
 
-  // Explicitly sum prize amounts as numbers to avoid string concatenation
-  const totalPrizePool = contestsData.reduce((acc, curr) => acc + parseFloat(curr.contest.prizeAmount || '0'), 0);
+  // Fixed summation logic to perform numeric addition instead of string concatenation
+  const totalPrizePool = contestsData.reduce((acc, curr) => {
+    const amount = parseFloat(curr.contest.prizeAmount || '0');
+    return acc + (isNaN(amount) ? 0 : amount);
+  }, 0);
 
   return (
     <main className="flex-1 py-16 pt-32 bg-background relative overflow-hidden">
@@ -50,7 +53,7 @@ export default async function ContestsPage() {
             <div className="px-6 py-4 rounded-3xl bg-white dark:bg-slate-900 border border-border/60 shadow-xl shadow-sky-500/5">
               <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Total Prize Pool</p>
               <p className="text-3xl font-black text-sky-600 tabular-nums">
-                ₹{totalPrizePool.toLocaleString('en-IN')}
+                ₹{totalPrizePool.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
           </div>

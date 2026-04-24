@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -294,6 +293,10 @@ function DesignEditorInternal({
 
     const finalPath = [...pathToFinalize];
     
+    const firstPoint = finalPath[0];
+    const lastPoint = finalPath[finalPath.length - 1];
+    const isClosed = forceClosed || (finalPath.length > 2 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 25 / viewState.zoom);
+
     // Bounding box calculation for the new element
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
@@ -306,10 +309,10 @@ function DesignEditorInternal({
     const newPathElement: DesignElement = {
         id: crypto.randomUUID(),
         type: 'path',
-        fillType: forceClosed ? 'solid' : 'none', 
+        fillType: isClosed ? 'solid' : 'none', 
         x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY),
         rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 2, borderStyle: 'solid',
-        isPathClosed: forceClosed || false,
+        isPathClosed: isClosed,
         pathPoints: finalPath.map(p => ({
             ...p,
             x: p.x - minX, y: p.y - minY,
@@ -545,17 +548,26 @@ function DesignEditorInternal({
         beginTransaction();
         const [x, y] = getPointInCanvas(e);
 
-        if (livePath && livePath.length >= 2) {
-            const hitRadius = 25 / viewState.zoom;
-            // Check for hit on the starting point specifically
-            if (Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
-                // Clicking start point to close. Finalize using current path segments.
-                finalizePath(livePath, true);
+        if (livePath) {
+            const hitRadius = 25 / viewState.zoom; // Increased hit radius for easier closure
+            if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
+                const updatedPath = [...livePath];
+                // Snap the last point to the exact coordinates of the first point for perfect closure
+                const firstPoint = updatedPath[0];
+                const lastIdx = updatedPath.length - 1;
+                updatedPath[lastIdx] = { 
+                    ...updatedPath[lastIdx], 
+                    x: firstPoint.x, 
+                    y: firstPoint.y,
+                    cp2x: firstPoint.x, 
+                    cp2y: firstPoint.y 
+                };
+                setLivePath(updatedPath);
+                finalizePath(updatedPath, true);
                 return;
             }
 
-            // Also check other anchor points for potential dragging or handle adjustment
-            for (let i = 1; i < livePath.length; i++) {
+            for (let i = 0; i < livePath.length; i++) {
                 const p = livePath[i];
                 if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'anchor' });
@@ -567,7 +579,6 @@ function DesignEditorInternal({
         let updatedPath = livePath ? [...livePath] : [];
         if (updatedPath.length > 0) {
             const lastIdx = updatedPath.length - 1;
-            // Freeze previous exit handle to point position before adding new point
             updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
         }
 
@@ -1453,10 +1464,10 @@ function DesignEditorInternal({
                 {isGroupSelected && <Button variant="ghost" size="icon" onClick={handleUngroup} title="Ungroup Elements"><Ungroup /></Button>}
                 {isSingleElementSelected && (
                   <>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('front')} title="Bring to Front"><BringToFront size={14} /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => moveLayer('front')} title="Bring to Front"><BringToFront /></Button>
                     <Button variant="ghost" size="icon" onClick={() => moveLayer('forward')} title="Bring Forward"><ChevronsUp className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => moveLayer('backward')} title="Send Backward"><ChevronsDown className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('back')} title="Send to Back"><SendToBack size={14} /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => moveLayer('back')} title="Send to Back"><SendToBack /></Button>
                   </>
                 )}
               </>

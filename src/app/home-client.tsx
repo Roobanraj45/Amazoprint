@@ -82,7 +82,11 @@ export function HomeClient({
   contests: any[]
 }) {
 
-  const totalBountyPool = contests.reduce((acc, curr) => acc + parseFloat(curr.contest.prizeAmount || '0'), 0);
+  // Fixed summation logic to perform numeric addition
+  const totalBountyPool = contests.reduce((acc, curr) => {
+    const amount = parseFloat(curr.contest.prizeAmount || '0');
+    return acc + (isNaN(amount) ? 0 : amount);
+  }, 0);
 
   const topDesigners = [
     { name: 'Arun Kumar', wins: 12, earnings: '₹85,000', avatar: 'https://picsum.photos/seed/arun/200' },
@@ -464,7 +468,7 @@ export function HomeClient({
                     <Link href="/register">Start Account</Link>
                   </Button>
                   <Button size="xl" variant="outline" asChild className="h-20 px-16 rounded-full text-2xl font-black border-white/30 hover:bg-white/10 hover:border-white transition-all">
-                    <Link href="/contact">Talk toScale</Link>
+                    <Link href="/contact">Talk to Scale</Link>
                   </Button>
                 </div>
               </div>
@@ -498,7 +502,6 @@ export function HomeClient({
               <h4 className="font-black text-xs uppercase tracking-[0.3em] mb-8 text-foreground">Scale</h4>
               <ul className="space-y-5 text-muted-foreground font-bold text-sm">
                 <li><Link href="/about" className="hover:text-primary transition-colors">Company Ops</Link></li>
-                <li><Link href="/sustainability" className="hover:text-primary transition-colors">Sustainability</Link></li>
                 <li><Link href="/contact" className="hover:text-primary transition-colors">Global Support</Link></li>
                 <li><Link href="/printer-registration" className="hover:text-primary transition-colors">Partner Hub</Link></li>
               </ul>
