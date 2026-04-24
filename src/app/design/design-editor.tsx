@@ -70,7 +70,7 @@ import { LayersPanel } from './layers-panel';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { getMyDesigns, saveDesign, updateDesign } from '@/app/actions/design-actions';
 import { submitContestEntry } from '@/app/actions/contest-actions';
-import { linkDesignToVerification = () => Promise.resolve() } from '@/app/actions/verification-actions';
+import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from './load-design-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -280,15 +280,16 @@ function DesignEditorInternal({
     })
   }, [setState]);
 
-  const finalizePath = useCallback(() => {
-    if (!livePath || livePath.length < 2) {
+  const finalizePath = useCallback((pathOverride?: PathPoint[], forceClosed?: boolean) => {
+    const pathToFinalize = pathOverride || livePath;
+    if (!pathToFinalize || pathToFinalize.length < 2) {
         setLivePath(null);
         setDraggingPoint(null);
         setActiveTool('select');
         return;
     }
 
-    const finalPath = [...livePath];
+    const finalPath = [...pathToFinalize];
     
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
@@ -300,7 +301,7 @@ function DesignEditorInternal({
 
     const firstPoint = finalPath[0];
     const lastPoint = finalPath[finalPath.length - 1];
-    const isClosed = finalPath.length > 2 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 25 / viewState.zoom;
+    const isClosed = forceClosed || (finalPath.length > 2 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 25 / viewState.zoom);
 
     const newPathElement: DesignElement = {
         id: crypto.randomUUID(),
@@ -551,7 +552,7 @@ function DesignEditorInternal({
                 const lastIdx = updatedPath.length - 1;
                 updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
                 setLivePath(updatedPath);
-                finalizePath();
+                finalizePath(updatedPath, true);
                 return;
             }
 
@@ -1635,7 +1636,7 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? 'crosshair' : activeTool === 'brush' ? 'none' : 'default', backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? 'crosshair' : (activeTool === 'brush' ? 'none' : 'default'), backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
               {(activeTool === 'brush') && mousePos && !isPanning.current && (
@@ -1679,6 +1680,7 @@ function DesignEditorInternal({
                 mousePos={mousePos}
                 activeTool={activeTool}
                 croppingElementId={croppingElementId}
+                borderStyle="solid"
                 setCroppingElementId={setCroppingElementId}
               />
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-end justify-center gap-2">
