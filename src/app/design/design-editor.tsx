@@ -792,7 +792,8 @@ function DesignEditorInternal({
       isPanning.current = false;
       let newCursor = 'default';
       if (isSpacePressed) newCursor = 'grab';
-      else if (activeTool === 'brush' || activeTool === 'pen') newCursor = 'none';
+      else if (activeTool === 'brush') newCursor = 'none';
+      else if (activeTool === 'pen') newCursor = 'crosshair';
       e.currentTarget.style.cursor = newCursor;
     }
   };
@@ -1642,7 +1643,7 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'brush' || activeTool === 'pen') ? 'none' : 'default', backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? 'crosshair' : activeTool === 'brush' ? 'none' : 'default', backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
               {(activeTool === 'brush') && mousePos && !isPanning.current && (

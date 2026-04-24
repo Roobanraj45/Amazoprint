@@ -25,14 +25,23 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
   const handleLineStroke = 1 / zoom;
 
   const lastPoint = livePath[livePath.length - 1];
+  const firstPoint = livePath[0];
   
   // Render rubber-band line from last point to mouse
   let previewLineD = '';
+  let isClosingNear = false;
+
   if (mousePos && lastPoint) {
-      // FORCE PREVIEW AS STRAIGHT LINE
-      // This ensures that the user sees exactly what the next "fresh" segment will look like
-      // until they explicitly drag at the next point to create a curve.
-      previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} L ${mousePos.x + safetyMargin} ${mousePos.y + safetyMargin}`;
+      const distToStart = Math.hypot(mousePos.x - firstPoint.x, mousePos.y - firstPoint.y);
+      const snapRadius = 20 / zoom;
+      
+      // If near start point and path is long enough, snap the joining line
+      if (livePath.length > 2 && distToStart < snapRadius) {
+          isClosingNear = true;
+          previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} L ${firstPoint.x + safetyMargin} ${firstPoint.y + safetyMargin}`;
+      } else {
+          previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} L ${mousePos.x + safetyMargin} ${mousePos.y + safetyMargin}`;
+      }
   }
 
   return (
@@ -53,10 +62,10 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
           <path
             d={previewLineD}
             fill="none"
-            stroke="#2563eb"
+            stroke={isClosingNear ? "#10b981" : "#2563eb"}
             strokeWidth={strokeWidth}
-            strokeDasharray={`${5/zoom} ${5/zoom}`}
-            opacity={0.6}
+            strokeDasharray={isClosingNear ? 'none' : `${5/zoom} ${5/zoom}`}
+            opacity={0.8}
           />
       )}
 
