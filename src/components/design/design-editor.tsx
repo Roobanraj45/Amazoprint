@@ -91,6 +91,9 @@ const PX_TO_MM = MM_PER_INCH / DPI;
 const MM_TO_PX = DPI / MM_PER_INCH;
 const RULER_SIZE = 60;
 
+// High-precision crosshair cursor for pen tool
+const PEN_CURSOR = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><line x1="16" y1="8" x2="16" y2="24" stroke="white" stroke-width="3" stroke-linecap="round"/><line x1="8" y1="16" x2="24" y2="16" stroke="white" stroke-width="3" stroke-linecap="round"/><line x1="16" y1="8" x2="16" y2="24" stroke="black" stroke-width="1" stroke-linecap="round"/><line x1="8" y1="16" x2="24" y2="16" stroke="black" stroke-width="1" stroke-linecap="round"/></svg>') 16 16, crosshair`;
+
 type DesignEditorProps = {
   product: Product;
   quantity: number;
@@ -244,7 +247,6 @@ function DesignEditorInternal({
     }
     return true;
   }, [isDirty]);
-  // --- End Protection ---
 
   useEffect(() => {
     const fontFamilies = [
@@ -280,16 +282,22 @@ function DesignEditorInternal({
     })
   }, [setState]);
 
-  const finalizePath = useCallback(() => {
-    if (!livePath || livePath.length < 2) {
+  const finalizePath = useCallback((pathOverride?: PathPoint[], forceClosed?: boolean) => {
+    const pathToFinalize = pathOverride || livePath;
+    if (!pathToFinalize || pathToFinalize.length < 2) {
         setLivePath(null);
         setDraggingPoint(null);
         setActiveTool('select');
         return;
     }
 
-    const finalPath = [...livePath];
+    const finalPath = [...pathToFinalize];
     
+    const firstPoint = finalPath[0];
+    const lastPoint = finalPath[finalPath.length - 1];
+    const isClosed = forceClosed || (finalPath.length > 2 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 25 / viewState.zoom);
+
+    // Bounding box calculation for the new element
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
     
@@ -297,10 +305,6 @@ function DesignEditorInternal({
     const minY = Math.min(...allY) - 2;
     const maxX = Math.max(...allX) + 2;
     const maxY = Math.max(...allY) + 2;
-
-    const firstPoint = finalPath[0];
-    const lastPoint = finalPath[finalPath.length - 1];
-    const isClosed = finalPath.length > 2 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 25 / viewState.zoom;
 
     const newPathElement: DesignElement = {
         id: crypto.randomUUID(),
@@ -545,13 +549,21 @@ function DesignEditorInternal({
         const [x, y] = getPointInCanvas(e);
 
         if (livePath) {
-            const hitRadius = 15 / viewState.zoom;
+            const hitRadius = 25 / viewState.zoom; // Increased hit radius for easier closure
             if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
                 const updatedPath = [...livePath];
+                // Snap the last point to the exact coordinates of the first point for perfect closure
+                const firstPoint = updatedPath[0];
                 const lastIdx = updatedPath.length - 1;
-                updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
+                updatedPath[lastIdx] = { 
+                    ...updatedPath[lastIdx], 
+                    x: firstPoint.x, 
+                    y: firstPoint.y,
+                    cp2x: firstPoint.x, 
+                    cp2y: firstPoint.y 
+                };
                 setLivePath(updatedPath);
-                finalizePath();
+                finalizePath(updatedPath, true);
                 return;
             }
 
@@ -559,14 +571,6 @@ function DesignEditorInternal({
                 const p = livePath[i];
                 if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'anchor' });
-                    return;
-                }
-                if (Math.hypot(x - p.cp1x, p.cp1y) < hitRadius) {
-                    setDraggingPoint({ index: i, type: 'cp1' });
-                    return;
-                }
-                if (Math.hypot(x - p.cp2x, p.cp2y) < hitRadius) {
-                    setDraggingPoint({ index: i, type: 'cp2' });
                     return;
                 }
             }
@@ -784,7 +788,8 @@ function DesignEditorInternal({
       isPanning.current = false;
       let newCursor = 'default';
       if (isSpacePressed) newCursor = 'grab';
-      else if (activeTool === 'brush' || activeTool === 'pen') newCursor = 'none';
+      else if (activeTool === 'pen') newCursor = PEN_CURSOR;
+      else if (activeTool === 'brush') newCursor = 'none';
       e.currentTarget.style.cursor = newCursor;
     }
   };
@@ -1389,7 +1394,7 @@ function DesignEditorInternal({
         case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
         case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
         case 'brush': return <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} />;
-        case 'pen': return <PenToolPanel onFinish={finalizePath} />;
+        case 'pen': return <PenToolPanel onFinish={() => finalizePath()} />;
         case 'properties': return (
             <div className="p-4">
                 <PropertiesPanel
@@ -1634,7 +1639,7 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'brush' || activeTool === 'pen') ? 'none' : 'default', backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? PEN_CURSOR : (activeTool === 'brush' ? 'none' : 'default'), backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
               {(activeTool === 'brush') && mousePos && !isPanning.current && (
