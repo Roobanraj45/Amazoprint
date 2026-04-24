@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -90,6 +91,9 @@ const MM_PER_INCH = 25.4;
 const PX_TO_MM = MM_PER_INCH / DPI;
 const MM_TO_PX = DPI / MM_PER_INCH;
 const RULER_SIZE = 60;
+
+// High-precision crosshair cursor for pen tool
+const PEN_CURSOR = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><line x1="16" y1="8" x2="16" y2="24" stroke="white" stroke-width="3" stroke-linecap="round"/><line x1="8" y1="16" x2="24" y2="16" stroke="white" stroke-width="3" stroke-linecap="round"/><line x1="16" y1="8" x2="16" y2="24" stroke="black" stroke-width="1" stroke-linecap="round"/><line x1="8" y1="16" x2="24" y2="16" stroke="black" stroke-width="1" stroke-linecap="round"/></svg>') 16 16, crosshair`;
 
 type DesignEditorProps = {
   product: Product;
@@ -244,7 +248,6 @@ function DesignEditorInternal({
     }
     return true;
   }, [isDirty]);
-  // --- End Protection ---
 
   useEffect(() => {
     const fontFamilies = [
@@ -291,6 +294,7 @@ function DesignEditorInternal({
 
     const finalPath = [...pathToFinalize];
     
+    // Bounding box calculation for the new element
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
     
@@ -299,17 +303,13 @@ function DesignEditorInternal({
     const maxX = Math.max(...allX) + 2;
     const maxY = Math.max(...allY) + 2;
 
-    const firstPoint = finalPath[0];
-    const lastPoint = finalPath[finalPath.length - 1];
-    const isClosed = forceClosed || (finalPath.length > 2 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 25 / viewState.zoom);
-
     const newPathElement: DesignElement = {
         id: crypto.randomUUID(),
         type: 'path',
-        fillType: isClosed ? 'solid' : 'none', 
+        fillType: forceClosed ? 'solid' : 'none', 
         x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY),
         rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 2, borderStyle: 'solid',
-        isPathClosed: isClosed,
+        isPathClosed: forceClosed || false,
         pathPoints: finalPath.map(p => ({
             ...p,
             x: p.x - minX, y: p.y - minY,
@@ -545,29 +545,20 @@ function DesignEditorInternal({
         beginTransaction();
         const [x, y] = getPointInCanvas(e);
 
-        if (livePath) {
-            const hitRadius = 15 / viewState.zoom;
-            if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
-                const updatedPath = [...livePath];
-                const lastIdx = updatedPath.length - 1;
-                updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
-                setLivePath(updatedPath);
-                finalizePath(updatedPath, true);
+        if (livePath && livePath.length >= 2) {
+            const hitRadius = 25 / viewState.zoom;
+            // Check for hit on the starting point specifically
+            if (Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
+                // Clicking start point to close. Finalize using current path segments.
+                finalizePath(livePath, true);
                 return;
             }
 
-            for (let i = 0; i < livePath.length; i++) {
+            // Also check other anchor points for potential dragging or handle adjustment
+            for (let i = 1; i < livePath.length; i++) {
                 const p = livePath[i];
                 if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'anchor' });
-                    return;
-                }
-                if (Math.hypot(x - p.cp1x, p.cp1y) < hitRadius) {
-                    setDraggingPoint({ index: i, type: 'cp1' });
-                    return;
-                }
-                if (Math.hypot(x - p.cp2x, p.cp2y) < hitRadius) {
-                    setDraggingPoint({ index: i, type: 'cp2' });
                     return;
                 }
             }
@@ -576,6 +567,7 @@ function DesignEditorInternal({
         let updatedPath = livePath ? [...livePath] : [];
         if (updatedPath.length > 0) {
             const lastIdx = updatedPath.length - 1;
+            // Freeze previous exit handle to point position before adding new point
             updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
         }
 
@@ -785,7 +777,7 @@ function DesignEditorInternal({
       isPanning.current = false;
       let newCursor = 'default';
       if (isSpacePressed) newCursor = 'grab';
-      else if (activeTool === 'pen') newCursor = 'crosshair';
+      else if (activeTool === 'pen') newCursor = PEN_CURSOR;
       else if (activeTool === 'brush') newCursor = 'none';
       e.currentTarget.style.cursor = newCursor;
     }
@@ -1391,7 +1383,7 @@ function DesignEditorInternal({
         case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
         case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
         case 'brush': return <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} />;
-        case 'pen': return <PenToolPanel onFinish={finalizePath} />;
+        case 'pen': return <PenToolPanel onFinish={() => finalizePath()} />;
         case 'properties': return (
             <div className="p-4">
                 <PropertiesPanel
@@ -1461,10 +1453,10 @@ function DesignEditorInternal({
                 {isGroupSelected && <Button variant="ghost" size="icon" onClick={handleUngroup} title="Ungroup Elements"><Ungroup /></Button>}
                 {isSingleElementSelected && (
                   <>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('front')} title="Bring to Front"><BringToFront /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => moveLayer('front')} title="Bring to Front"><BringToFront size={14} /></Button>
                     <Button variant="ghost" size="icon" onClick={() => moveLayer('forward')} title="Bring Forward"><ChevronsUp className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => moveLayer('backward')} title="Send Backward"><ChevronsDown className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('back')} title="Send to Back"><SendToBack /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => moveLayer('back')} title="Send to Back"><SendToBack size={14} /></Button>
                   </>
                 )}
               </>
@@ -1636,7 +1628,7 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? 'crosshair' : (activeTool === 'brush' ? 'none' : 'default'), backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? PEN_CURSOR : (activeTool === 'brush' ? 'none' : 'default'), backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
               {(activeTool === 'brush') && mousePos && !isPanning.current && (
@@ -1680,7 +1672,6 @@ function DesignEditorInternal({
                 mousePos={mousePos}
                 activeTool={activeTool}
                 croppingElementId={croppingElementId}
-                borderStyle="solid"
                 setCroppingElementId={setCroppingElementId}
               />
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-end justify-center gap-2">
