@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
@@ -44,6 +45,8 @@ import {
   SlidersHorizontal,
   Library,
   Undo,
+  UploadCloud,
+  Sparkles,
 } from 'lucide-react';
 import { PropertiesPanel } from './properties-panel';
 import { DesignCanvas } from './design-canvas';
@@ -84,6 +87,8 @@ import { BrushToolPanel } from './brush-tool-panel';
 const MediaPanel = lazy(() => import('./panels/media-panel').then(m => ({ default: m.MediaPanel })));
 const QrCodePanel = lazy(() => import('./panels/qrcode-panel').then(m => ({ default: m.QrCodePanel })));
 const PenToolPanel = lazy(() => import('./pen-tool-panel').then(m => ({ default: m.PenToolPanel })));
+const UploadPanel = lazy(() => import('./panels/upload-panel').then(m => ({ default: m.UploadPanel })));
+const AiPanel = lazy(() => import('./panels/ai-panel').then(m => ({ default: m.AiPanel })));
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -1371,11 +1376,13 @@ function DesignEditorInternal({
   const isGroupSelected = isSingleElementSelected && selectedElement?.type === 'group';
 
   const editorPanels = [
-    { id: 'elements', label: 'Text', icon: <Type size={24} />, color: 'text-blue-600 bg-blue-500/10 data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
+    { id: 'upload', label: 'Upload Design', icon: <UploadCloud size={24} />, color: 'text-lime-600 bg-lime-500/10 data-[state=active]:bg-lime-500 data-[state=active]:text-white' },
     { id: 'media', label: 'Media', icon: <LayoutGrid size={24} />, color: 'text-purple-600 bg-purple-500/10 data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
-    { id: 'qrcode', label: 'QR Code', icon: <QrCode size={24} />, color: 'text-emerald-600 bg-emerald-500/10 data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
+    { id: 'pen', label: 'Pen', icon: <PenTool size={24} />, color: 'text-indigo-600 bg-indigo-500/10 data-[state=active]:bg-indigo-600 data-[state=active]:text-white' },
+    { id: 'elements', label: 'Text', icon: <Type size={24} />, color: 'text-blue-600 bg-blue-500/10 data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
     { id: 'brush', label: 'Brush', icon: <Brush size={24} />, color: 'text-orange-600 bg-orange-500/10 data-[state=active]:bg-orange-600 data-[state=active]:text-white' },
-    { id: 'pen', label: 'Pen', icon: <PenTool size={24} />, color: 'text-indigo-600 bg-indigo-500/10 data-[state=active]:bg-indigo-600 data-[state=active]:text-white', className: 'mt-auto' },
+    { id: 'ai', label: 'AI', icon: <Sparkles size={24} />, color: 'text-pink-600 bg-pink-500/10 data-[state=active]:bg-pink-600 data-[state=active]:text-white' },
+    { id: 'qrcode', label: 'QR Code', icon: <QrCode size={24} />, color: 'text-emerald-600 bg-emerald-500/10 data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
   ];
 
   const handleMobilePanelOpen = (panel: string) => {
@@ -1390,11 +1397,13 @@ function DesignEditorInternal({
 
   const renderMobilePanelContent = () => {
     switch (activeMobilePanel) {
-        case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />;
+        case 'upload': return <UploadPanel onImageSelect={handleAddImageFromLibrary} isAdmin={isAdmin} />;
         case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
-        case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
-        case 'brush': return <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} />;
         case 'pen': return <PenToolPanel onFinish={() => finalizePath()} />;
+        case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />;
+        case 'brush': return <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} />;
+        case 'ai': return <AiPanel onImageProcessed={handleAddImageFromLibrary} />;
+        case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
         case 'properties': return (
             <div className="p-4">
                 <PropertiesPanel
@@ -1559,7 +1568,7 @@ function DesignEditorInternal({
             <SidebarContent className="p-0 overflow-y-hidden">
               <TooltipProvider>
                 <Tabs 
-                  defaultValue="elements" 
+                  defaultValue="upload" 
                   orientation="vertical" 
                   className="w-full h-full flex" 
                   onValueChange={(val) => {
@@ -1579,8 +1588,7 @@ function DesignEditorInternal({
                             className={cn(
                               "h-20 w-20 p-0 flex flex-col gap-1 items-center justify-center rounded-2xl transition-all duration-200",
                               "data-[state=active]:scale-110 data-[state=active]:shadow-lg",
-                              panel.color,
-                              (panel as any).className
+                              panel.color
                             )}
                             onClick={() => {
                                 if (panel.id === 'pen') {
@@ -1591,7 +1599,9 @@ function DesignEditorInternal({
                             }}
                           >
                             {panel.icon}
-                            <span className="text-xs font-bold">{panel.label}</span>
+                            <span className="text-[10px] font-black uppercase text-center tracking-tight leading-tight px-1">
+                              {panel.label.split(' ')[0]}<br/>{panel.label.split(' ')[1] || ''}
+                            </span>
                           </TabsTrigger>
                         </TooltipTrigger>
                         <TooltipContent side="right"><p>{panel.label}</p></TooltipContent>
@@ -1603,9 +1613,9 @@ function DesignEditorInternal({
                     "w-[26rem]",
                     activeTool === 'pen' && "hidden" 
                   )}>
-                    <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
+                    <TabsContent value="upload" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
-                          <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />
+                          <UploadPanel onImageSelect={handleAddImageFromLibrary} isAdmin={isAdmin} />
                       </Suspense>
                     </TabsContent>
                     <TabsContent value="media" className="flex-1 overflow-auto mt-0">
@@ -1618,14 +1628,24 @@ function DesignEditorInternal({
                         />
                       </Suspense>
                     </TabsContent>
-                    <TabsContent value="qrcode" className="flex-1 overflow-auto mt-0">
+                    <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
-                        <QrCodePanel onAddQrCode={addQrCodeElement} />
+                          <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />
                       </Suspense>
                     </TabsContent>
                     <TabsContent value="brush" className="flex-1 overflow-auto mt-0">
                       <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
                         <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} />
+                      </Suspense>
+                    </TabsContent>
+                    <TabsContent value="ai" className="flex-1 overflow-auto mt-0">
+                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
+                        <AiPanel onImageProcessed={handleAddImageFromLibrary} />
+                      </Suspense>
+                    </TabsContent>
+                    <TabsContent value="qrcode" className="flex-1 overflow-auto mt-0">
+                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
+                        <QrCodePanel onAddQrCode={addQrCodeElement} />
                       </Suspense>
                     </TabsContent>
                   </div>
