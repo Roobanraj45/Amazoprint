@@ -5,47 +5,39 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   SidebarProvider,
   SidebarInset,
+  SidebarTrigger,
   SidebarRail,
   useSidebar,
   Sidebar,
   SidebarContent,
 } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
 import {
-  Button
-} from '@/components/ui/button';
-import {
-  Separator
-} from '@/components/ui/separator';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuSeparator,
-  DropdownMenuItem
-} from '@/components/ui/dropdown-menu';
-import {
-  Undo2,
-  Redo2,
-  Layers,
-  Eye,
-  Library,
-  Save,
   Download,
-  ShoppingCart,
-  ArrowRight,
-  MoreVertical,
-  Loader2,
-  AlignCenter,
+  Save,
   BringToFront,
   SendToBack,
   ChevronsUp,
   ChevronsDown,
+  Home,
+  ZoomIn,
+  ZoomOut,
+  Group,
+  Ungroup,
+  Redo,
+  Loader2,
+  Layers,
+  Eye,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  ShoppingCart,
+  MoreVertical,
+  SlidersHorizontal,
+  Library,
+  Undo,
+  CirclePlay,
+  AlignCenter,
   AlignHorizontalJustifyStart,
   AlignHorizontalJustifyCenter,
   AlignHorizontalJustifyEnd,
@@ -54,35 +46,35 @@ import {
   AlignVerticalJustifyEnd,
   Copy,
   Trash2,
-  CirclePlay,
-  Blend,
-  Grid3X3,
-  Group,
-  Ungroup,
-  ChevronLeft,
-  ChevronRight,
-  Undo
+  Blend
 } from 'lucide-react';
 import { PropertiesPanel } from '@/components/design/properties-panel';
 import { DesignCanvas } from '@/components/design/design-canvas';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import type { DesignElement, Product, Background, Guide, ViewState, Page, RenderData, FoilType, PathPoint } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
+import { Separator } from '@/components/ui/separator';
 import { ElementToolbar } from '@/components/design/element-toolbar';
+import { LayersPanel } from '@/components/design/layers-panel';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { getDesign, saveDesign, updateDesign } from '@/app/actions/design-actions';
 import { submitContestEntry } from '@/app/actions/contest-actions';
 import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from '@/components/design/load-design-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { useUndoRedo } from '@/hooks/use-undo-redo';
-import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
-import { AmazoprintLogo } from '@/components/ui/logo';
-import { LayersPanel } from '@/components/design/layers-panel';
 import { cn } from '@/lib/utils';
-import { Slider } from '@/components/ui/slider';
 import { CropDialog } from '@/components/design/crop-dialog';
-import Link from 'next/link';
+import { useUndoRedo } from '@/hooks/use-undo-redo';
+import { AmazoprintLogo } from '@/components/ui/logo';
+import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
+import { Slider } from '@/components/ui/slider';
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -197,6 +189,24 @@ function DesignEditorInternal({
   
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+
+  // --- Dynamic Font Loader ---
+  useEffect(() => {
+    const fonts = [
+        'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
+        'Playfair Display', 'Merriweather', 'Ubuntu', 'PT Sans', 'Lora', 'Source Sans Pro',
+        'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat',
+        'Bevan', 'Bree Serif', 'Coda', 'Fugaz One', 'Jura'
+    ];
+    const fontUrl = `https://fonts.googleapis.com/css2?${fonts.map(f => `family=${f.replace(/ /g, '+')}`).join('&')}&display=swap`;
+    const link = document.createElement('link');
+    link.href = fontUrl;
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+        document.head.removeChild(link);
+    };
+  }, []);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -1180,11 +1190,11 @@ function DesignEditorInternal({
             {/* Undo / Redo */}
             <div className="flex items-center gap-0.5 shrink-0">
               <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} className="h-9 gap-1.5 px-3 hover:bg-zinc-100" title="Undo (Ctrl+Z)">
-                <Undo2 size={16} className="text-zinc-500" />
+                <Undo size={16} className="text-zinc-500" />
                 <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Undo</span>
               </Button>
               <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo} className="h-9 gap-1.5 px-3 hover:bg-zinc-100" title="Redo (Ctrl+Y)">
-                <Redo2 size={16} className="text-zinc-500" />
+                <Redo size={16} className="text-zinc-500" />
                 <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Redo</span>
               </Button>
             </div>

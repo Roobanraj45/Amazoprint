@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState } from "react";
@@ -27,7 +25,10 @@ import { AssetLibrary } from "./asset-library";
 import { cn } from "@/lib/utils";
 
 const fontFamilies = [
-    'Inter', 'Arial', 'Helvetica', 'Times New Roman', 'Georgia', 'Courier New', 'Verdana', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito', 'Playfair Display', 'Merriweather', 'Ubuntu', 'PT Sans', 'Lora', 'Source Sans Pro', 'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat'
+  'Inter', 'Arial', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
+  'Playfair Display', 'Merriweather', 'Ubuntu', 'PT Sans', 'Lora', 'Source Sans Pro',
+  'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat',
+  'Bevan', 'Bree Serif', 'Coda', 'Fugaz One', 'Jura'
 ];
 
 type TextPropertiesPanelProps = {
@@ -154,8 +155,8 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                                 </SelectTrigger>
                                 <SelectContent>
                                     {fontFamilies.map(font => (
-                                        <SelectItem key={font} value={font} style={{ fontFamily: font }}>
-                                            {font}
+                                        <SelectItem key={font} value={font}>
+                                            <span style={{ fontFamily: font }}>{font}</span>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
