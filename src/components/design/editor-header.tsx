@@ -201,12 +201,14 @@ export function EditorHeader({
 
       {/* 2. Central Design Tools Toolbar */}
       <div className="flex flex-1 items-center gap-0.5">
-        <div className="flex items-center">
-            <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} className="h-9 w-9 text-zinc-600 hover:bg-zinc-100" title="Undo (Ctrl+Z)">
+        <div className="flex items-center gap-0.5">
+            <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} className="h-9 gap-2 text-zinc-600 font-bold hover:bg-zinc-100 px-3" title="Undo (Ctrl+Z)">
                 <Undo2 size={16} />
+                <span className="text-[11px] uppercase tracking-wider hidden xl:inline">Undo</span>
             </Button>
-            <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} className="h-9 w-9 text-zinc-600 hover:bg-zinc-100" title="Redo (Ctrl+Y)">
+            <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo} className="h-9 gap-2 text-zinc-600 font-bold hover:bg-zinc-100 px-3" title="Redo (Ctrl+Y)">
                 <Redo2 size={16} />
+                <span className="text-[11px] uppercase tracking-wider hidden xl:inline">Redo</span>
             </Button>
         </div>
 
@@ -237,8 +239,18 @@ export function EditorHeader({
         {(isMultiSelect || isGroupSelected) && (
            <div className="flex items-center gap-0.5 ml-1">
              <Separator orientation="vertical" className="h-8 mx-1 opacity-30" />
-             {isMultiSelect && <Button variant="ghost" size="icon" onClick={handleGroup} className="h-9 w-9 text-zinc-600" title="Group"><Group size={16} /></Button>}
-             {isGroupSelected && <Button variant="ghost" size="icon" onClick={handleUngroup} className="h-9 w-9 text-zinc-600" title="Ungroup"><Ungroup size={16} /></Button>}
+             {isMultiSelect && (
+               <Button variant="ghost" size="sm" onClick={handleGroup} className="h-9 gap-2 text-zinc-600 font-bold hover:bg-zinc-100 px-3" title="Group">
+                 <Group size={16} />
+                 <span className="text-[11px] uppercase tracking-wider hidden xl:inline">Group</span>
+               </Button>
+             )}
+             {isGroupSelected && (
+               <Button variant="ghost" size="sm" onClick={handleUngroup} className="h-9 gap-2 text-zinc-600 font-bold hover:bg-zinc-100 px-3" title="Ungroup">
+                 <Ungroup size={16} />
+                 <span className="text-[11px] uppercase tracking-wider hidden xl:inline">Ungroup</span>
+               </Button>
+             )}
            </div>
         )}
 
@@ -317,12 +329,14 @@ export function EditorHeader({
                 </PopoverContent>
             </Popover>
 
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-600" onClick={() => handleDuplicateLayer(selectedElementIds[0])} title="Duplicate">
+            <Button variant="ghost" size="sm" className="h-9 gap-2 text-zinc-600 font-bold hover:bg-zinc-100 px-3" onClick={() => handleDuplicateLayer(selectedElementIds[0])} title="Duplicate">
                 <Copy size={16} />
+                <span className="text-[11px] uppercase tracking-wider hidden 2xl:inline">Duplicate</span>
             </Button>
 
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteLayer(selectedElementIds[0])} title="Delete">
+            <Button variant="ghost" size="sm" className="h-9 gap-2 text-red-500 font-bold hover:text-red-600 hover:bg-red-50 px-3" onClick={() => handleDeleteLayer(selectedElementIds[0])} title="Delete">
                 <Trash2 size={16} />
+                <span className="text-[11px] uppercase tracking-wider hidden 2xl:inline">Delete</span>
             </Button>
         </div>
 
