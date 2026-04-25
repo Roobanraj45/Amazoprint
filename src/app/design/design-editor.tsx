@@ -10,13 +10,6 @@ import {
   Sidebar,
   SidebarContent,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import {
-  ZoomIn,
-  ZoomOut,
-  Loader2,
-  SlidersHorizontal,
-} from 'lucide-react';
 import { PropertiesPanel } from '@/components/design/properties-panel';
 import { DesignCanvas } from '@/components/design/design-canvas';
 import type { DesignElement, Product, Background, Guide, ViewState, Page, RenderData, FoilType, PathPoint } from '@/lib/types';
@@ -33,6 +26,8 @@ import { CropDialog } from '@/components/design/crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
 import { EditorHeader } from '@/components/design/editor-header';
+import { Loader2, SlidersHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -106,7 +101,7 @@ function DesignEditorInternal({
   
   const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
   
-  const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
+  const [activeTool, setActiveTool] = useState<'select' | 'pen'>('select');
   
   // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
@@ -442,7 +437,7 @@ function DesignEditorInternal({
     
     if ((e.button === 0 && isCanvasBackground) || isSpacePressed || e.button === 1) {
       isPanning.current = true;
-      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - viewState.pan.y };
+      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - panStart.current.y };
       e.currentTarget.style.cursor = 'grabbing';
     }
   };
@@ -1080,7 +1075,7 @@ function DesignEditorInternal({
   const handleMobilePanelOpen = (panel: string) => {
     setActiveMobilePanel(panel);
     setMobileSheetOpen(true);
-    if(panel === 'brush' || panel === 'pen') {
+    if(panel === 'pen') {
         setActiveTool(panel as any);
     } else {
         setActiveTool('select');
@@ -1114,7 +1109,7 @@ function DesignEditorInternal({
 
   return (
     <>
-      <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden">
+      <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden overflow-hidden">
         <EditorHeader
           product={product}
           quantity={quantity}
@@ -1166,7 +1161,7 @@ function DesignEditorInternal({
           onUpdateElement={updateElement}
         />
 
-        <div className="flex overflow-hidden relative">
+        <div className="flex overflow-hidden relative h-full">
           <EditorSidebarLeft
               activeTool={activeTool}
               setActiveTool={setActiveTool}
@@ -1184,7 +1179,7 @@ function DesignEditorInternal({
           <SidebarInset className="min-h-0 flex-1 p-0 m-0 lg:pb-0" style={{ paddingBottom: isMobile ? '80px' : '0' }}>
             <div
               ref={mainCanvasRef}
-              className="flex-1 overflow-hidden p-0 relative"
+              className="flex-1 overflow-hidden p-0 relative h-full"
               style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? PEN_CURSOR : 'default', backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
@@ -1222,7 +1217,7 @@ function DesignEditorInternal({
 
           <SidebarRail side="right" />
           <Sidebar side="right" collapsible="icon" className="hidden lg:block">
-            <SidebarContent className="p-0">
+            <SidebarContent className="p-0 h-full">
               <ScrollArea className="h-full">
                 <div className="p-4">
                   <PropertiesPanel
@@ -1305,9 +1300,8 @@ function DesignEditorInternal({
 
 export function DesignEditor(props: DesignEditorProps) {
   return (
-    <SidebarProvider defaultLeftOpen={false} defaultLeftWidth={32}>
+    <SidebarProvider defaultLeftOpen={false}>
       <DesignEditorInternal {...props} />
     </SidebarProvider>
   );
 }
-
