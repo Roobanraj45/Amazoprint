@@ -493,7 +493,7 @@ function DesignEditorInternal({
     
     if ((e.button === 0 && isCanvasBackground) || isSpacePressed || e.button === 1) {
       isPanning.current = true;
-      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - viewState.pan.y };
+      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - panStart.current.y };
       e.currentTarget.style.cursor = 'grabbing';
     }
   };

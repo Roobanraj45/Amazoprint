@@ -150,13 +150,13 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         <div className="col-span-2 space-y-1.5">
                             <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Font Family</Label>
                             <Select value={element.fontFamily} onValueChange={(v) => handleUpdate({ fontFamily: v })}>
-                                <SelectTrigger className="h-9 bg-background border-none shadow-sm text-xs font-medium">
+                                <SelectTrigger className="h-11 bg-background border-none shadow-sm text-xs font-medium">
                                     <SelectValue placeholder="Font Family" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="max-h-[300px]">
                                     {fontFamilies.map(font => (
                                         <SelectItem key={font} value={font}>
-                                            <span style={{ fontFamily: font }}>{font}</span>
+                                            <span style={{ fontFamily: `"${font}", sans-serif` }}>{font}</span>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

@@ -29,13 +29,13 @@ export default function PdfRenderPage() {
 
   useEffect(() => {
     // --- FONT LOADING LOGIC ---
-    const fontFamilies = [
-      'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
-      'Playfair Display', 'Merriweather', 'Ubuntu', 'PT Sans', 'Lora', 'Source Sans Pro',
-      'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat',
-      'Big Apple NF', 'Agent Orange', 'Airstream', 'Bevan', 'Bree Serif', 'Coda', 'Frijole', 'Fugaz One', 'Jura'
+    const fonts = [
+        'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
+        'Playfair Display', 'Merriweather', 'Ubuntu', 'PT Sans', 'Lora', 'Source Sans Pro',
+        'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat',
+        'Bevan', 'Bree Serif', 'Coda', 'Fugaz One', 'Jura'
     ];
-    const fontUrl = `https://fonts.googleapis.com/css2?${fontFamilies.map(f => `family=${f.replace(/ /g, '+')}`).join('&')}&display=swap`;
+    const fontUrl = `https://fonts.googleapis.com/css2?${fonts.map(f => `family=${f.replace(/ /g, '+')}`).join('&')}&display=swap`;
 
     const link = document.createElement('link');
     link.id = 'google-fonts-dynamic-render';
