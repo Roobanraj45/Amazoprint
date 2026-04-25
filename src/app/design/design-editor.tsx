@@ -22,7 +22,6 @@ import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from '@/components/design/load-design-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { CropDialog } from '@/components/design/crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
 import { EditorHeader } from '@/components/design/editor-header';
@@ -418,7 +417,7 @@ function DesignEditorInternal({
         let updatedPath = livePath ? [...livePath] : [];
         if (updatedPath.length > 0) {
             const lastIdx = updatedPath.length - 1;
-            updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, updatedPath[lastIdx].y };
+            updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
         }
 
         const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };

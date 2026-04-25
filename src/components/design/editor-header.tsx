@@ -386,7 +386,7 @@ export function EditorHeader({
 
         {contestId && !isAdmin && (
             <Button onClick={handleSubmitToContest} disabled={isSubmitting} className="h-10 px-6 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 gap-2 ml-4">
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-16 w-16" />}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}
                 <span className="text-[12px] font-black uppercase tracking-wider">Submit Entry</span>
             </Button>
         )}
