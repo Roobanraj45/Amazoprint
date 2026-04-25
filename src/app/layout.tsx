@@ -2,7 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { PageLoader } from '@/components/layout/page-loader';
-import { inter, oswald } from './fonts';
+import { inter, jakarta } from './fonts';
 import { cn } from '@/lib/utils';
 import CartProviderWrapper from './cart-provider-wrapper';
 
@@ -61,7 +61,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("antialiased", inter.variable, oswald.variable)}>
+    <html lang="en" className={cn("antialiased", inter.variable, jakarta.variable)}>
       <head>
         <link rel="icon" href="/uploads/amazoLogo.png" sizes="any" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

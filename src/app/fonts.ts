@@ -1,4 +1,4 @@
-import { Inter, Oswald } from 'next/font/google';
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 
 export const inter = Inter({
   subsets: ['latin'],
@@ -6,8 +6,8 @@ export const inter = Inter({
   variable: '--font-inter',
 });
 
-export const oswald = Oswald({
+export const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-oswald',
+  variable: '--font-jakarta',
 });
