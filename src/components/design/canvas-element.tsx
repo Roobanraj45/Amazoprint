@@ -281,7 +281,7 @@ type CanvasElementProps = {
   onInteractionStart?: () => void;
   onInteractionEnd?: () => void;
   renderMode?: 'default' | 'cmyk' | 'spotuv';
-  activeTool?: 'select' | 'brush' | 'pen';
+  activeTool?: 'select' | 'pen';
   croppingElementId?: string | null;
   setCroppingElementId?: (id: string | null) => void;
 };
@@ -429,60 +429,6 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
         }
         
         return <StyledQrCode element={element} />;
-      }
-      case 'brush': {
-        const stdDeviation = element.brushHardness !== undefined 
-            ? ((100 - element.brushHardness) / 100) * ((element.strokeWidth || 5) / 2)
-            : 0;
-
-        if (element.brushTip === 'scatter' && element.scatterData) {
-            return (
-                <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }}>
-                    {stdDeviation > 0 && (
-                        <defs>
-                            <filter id={`brush-blur-${element.id}`} x="-50%" y="-50%" width="200%" height="200%">
-                                <feGaussianBlur stdDeviation={stdDeviation} />
-                            </filter>
-                        </defs>
-                    )}
-                    <g filter={stdDeviation > 0 ? `url(#brush-blur-${element.id})` : undefined}>
-                        {element.scatterData.map((p, i) => (
-                            <circle 
-                                key={i} 
-                                cx={p.x} 
-                                cy={p.y} 
-                                r={p.r} 
-                                fill={isSpotUv ? 'black' : element.strokeColor || '#000000'}
-                            />
-                        ))}
-                    </g>
-                </svg>
-            );
-        }
-
-        if (!element.path || element.path.length < 2) return null;
-        const pathData = "M " + element.path.map(p => `${p[0]} ${p[1]}`).join(" L ");
-
-        return (
-            <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }}>
-                {stdDeviation > 0 && element.brushTip !== 'square' && (
-                    <defs>
-                        <filter id={`brush-blur-${element.id}`} x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur stdDeviation={stdDeviation} />
-                        </filter>
-                    </defs>
-                )}
-                <path
-                    d={pathData}
-                    stroke={isSpotUv ? 'black' : element.strokeColor || '#000000'}
-                    strokeWidth={element.strokeWidth || 5}
-                    fill="none"
-                    strokeLinecap={element.brushTip === 'square' ? 'butt' : 'round'}
-                    strokeLinejoin={element.brushTip === 'square' ? 'miter' : 'round'}
-                    filter={stdDeviation > 0 && element.brushTip !== 'square' ? `url(#brush-blur-${element.id})` : undefined}
-                />
-            </svg>
-        )
       }
       case 'path': {
         if (!element.pathPoints || element.pathPoints.length === 0) return null;
@@ -988,7 +934,7 @@ const _CanvasElement = ({
         newProps.height = newHeight;
     }
     
-    if (element.type === 'group' || element.type === 'path' || (element.type === 'brush' && element.brushTip === 'scatter')) {
+    if (element.type === 'group' || element.type === 'path') {
       const scaleX = newWidth / width;
       const scaleY = newHeight / height;
 
@@ -1019,13 +965,6 @@ const _CanvasElement = ({
             cp2y: p.cp2y * scaleY,
           }));
         }
-        if (element.type === 'brush' && element.scatterData) {
-            newProps.scatterData = element.scatterData.map(p => ({
-                x: p.x * scaleX,
-                y: p.y * scaleY,
-                r: p.r * Math.min(scaleX, scaleY)
-            }));
-        }
       }
     }
 
@@ -1049,11 +988,11 @@ const _CanvasElement = ({
     opacity: renderMode === 'spotuv' ? 1 : element.opacity,
     boxShadow: renderMode === 'spotuv' ? 'none' : (element.spotUv ? `0 0 8px 2px hsla(var(--accent), 0.8), ${existingShadow}` : existingShadow),
     backgroundColor: renderMode === 'spotuv' ? 'transparent' : ((element.type === 'text' || element.type === 'group') ? element.backgroundColor : 'transparent'),
-    borderWidth: element.type === 'shape' || element.type === 'brush' || element.type === 'qrcode' || element.type === 'path' ? 0 : element.borderWidth,
-    borderColor: renderMode === 'spotuv' ? 'transparent' : (element.type === 'shape' || element.type === 'brush' || element.type === 'qrcode' || element.type === 'path' ? 'transparent' : element.borderColor),
-    borderStyle: element.type === 'shape' || element.type === 'brush' || element.type === 'qrcode' || element.type === 'path' ? 'solid' : element.borderStyle,
+    borderWidth: element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 0 : element.borderWidth,
+    borderColor: renderMode === 'spotuv' ? 'transparent' : (element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 'transparent' : element.borderColor),
+    borderStyle: element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 'solid' : element.borderStyle,
     borderRadius: renderMode === 'spotuv' ? 0 : (element.type !== 'shape' ? element.borderRadius : 0),
-    overflow: (isWarped || element.type === 'path' || element.type === 'brush') ? 'visible' : 'hidden', // Ensure paths/brushes can render curves slightly outside bounds
+    overflow: (isWarped || element.type === 'path') ? 'visible' : 'hidden', // Ensure paths can render curves slightly outside bounds
   };
   
   const resizeHandles: ResizeHandle[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top', 'bottom', 'left', 'right'];

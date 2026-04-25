@@ -21,7 +21,7 @@ import {
 import {
   Type,
   LayoutGrid,
-  Brush,
+  Paintbrush,
   QrCode,
   UploadCloud,
   Sparkles,
@@ -37,11 +37,10 @@ const PenToolPanel = lazy(() => import('./pen-tool-panel').then(m => ({ default:
 const UploadPanel = lazy(() => import('./panels/upload-panel').then(m => ({ default: m.UploadPanel })));
 const AiPanel = lazy(() => import('./panels/ai-panel').then(m => ({ default: m.AiPanel })));
 const TextAddPanel = lazy(() => import('./panels/text-add-panel').then(m => ({ default: m.TextAddPanel })));
-const BrushToolPanel = lazy(() => import('./brush-tool-panel').then(m => ({ default: m.BrushToolPanel })));
 
 type EditorSidebarLeftProps = {
-    activeTool: 'select' | 'brush' | 'pen';
-    setActiveTool: (tool: 'select' | 'brush' | 'pen') => void;
+    activeTool: 'select' | 'pen';
+    setActiveTool: (tool: 'select' | 'pen') => void;
     isAdmin?: boolean;
     onAddImage: (src: string) => void;
     onAddShape: (shapeType: string) => void;
@@ -49,8 +48,6 @@ type EditorSidebarLeftProps = {
     onAddText: (options: any) => void;
     onAddGroupedElements: (elements: any[]) => void;
     onAddQrCode: (value: string, style: string) => void;
-    brushOptions: any;
-    setBrushOptions: React.Dispatch<React.SetStateAction<any>>;
     finalizePath: () => void;
 };
 
@@ -64,8 +61,6 @@ export function EditorSidebarLeft({
     onAddText,
     onAddGroupedElements,
     onAddQrCode,
-    brushOptions,
-    setBrushOptions,
     finalizePath,
 }: EditorSidebarLeftProps) {
     const { setLeftOpen } = useSidebar();
@@ -75,7 +70,7 @@ export function EditorSidebarLeft({
         { id: 'media', label: 'Media', icon: <LayoutGrid size={24} />, color: 'text-purple-600 bg-purple-500/10 data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
         { id: 'pen', label: 'Pen', icon: <PenTool size={24} />, color: 'text-indigo-600 bg-indigo-500/10 data-[state=active]:bg-indigo-600 data-[state=active]:text-white' },
         { id: 'elements', label: 'Text', icon: <Type size={24} />, color: 'text-blue-600 bg-blue-500/10 data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
-        { id: 'brush', label: 'Brush', icon: <Brush size={24} />, color: 'text-orange-600 bg-orange-500/10 data-[state=active]:bg-orange-600 data-[state=active]:text-white' },
+        { id: 'brush-dummy', label: 'Draw', icon: <Paintbrush size={24} />, color: 'text-orange-600 bg-orange-500/10 data-[state=active]:bg-orange-600 data-[state=active]:text-white' },
         { id: 'ai', label: 'AI', icon: <Sparkles size={24} />, color: 'text-pink-600 bg-pink-500/10 data-[state=active]:bg-pink-600 data-[state=active]:text-white' },
         { id: 'qrcode', label: 'QR Code', icon: <QrCode size={24} />, color: 'text-emerald-600 bg-emerald-500/10 data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
     ];
@@ -89,7 +84,7 @@ export function EditorSidebarLeft({
                         orientation="vertical"
                         className="w-full h-full flex"
                         onValueChange={(val) => {
-                            if (val === 'brush' || val === 'pen') {
+                            if (val === 'pen') {
                                 setActiveTool(val as any);
                             } else {
                                 setActiveTool('select');
@@ -146,8 +141,14 @@ export function EditorSidebarLeft({
                                 <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
                                     <TextAddPanel onAddText={onAddText} onAddGroupedElements={onAddGroupedElements} />
                                 </TabsContent>
-                                <TabsContent value="brush" className="flex-1 overflow-auto mt-0">
-                                    <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} />
+                                <TabsContent value="brush-dummy" className="flex-1 flex items-center justify-center flex-col gap-4 text-center p-8 mt-0">
+                                    <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                                        <Paintbrush size={32} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg">Drawing Tools</h3>
+                                        <p className="text-sm text-muted-foreground">The advanced brush engine is currently under maintenance. Please use the Pen tool for custom vector paths.</p>
+                                    </div>
                                 </TabsContent>
                                 <TabsContent value="ai" className="flex-1 overflow-auto mt-0">
                                     <AiPanel onImageProcessed={onAddImage} />

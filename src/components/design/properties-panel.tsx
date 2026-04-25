@@ -13,7 +13,6 @@ import {
 import { TextPropertiesPanel } from './text-properties-panel';
 import { ImagePropertiesPanel } from './image-properties-panel';
 import { ShapePropertiesPanel } from './shape-properties-panel';
-import { BrushPropertiesPanel } from './brush-properties-panel';
 import { QrCodePropertiesPanel } from './qrcode-properties-panel';
 import { PathPropertiesPanel } from './path-properties-panel';
 import { Slider } from '../ui/slider';
@@ -502,17 +501,6 @@ export function PropertiesPanel({
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-6">
               <PathPropertiesPanel element={element} onUpdate={onUpdate} />
-            </AccordionContent>
-          </AccordionItem>
-        )}
-
-        {element.type === 'brush' && (
-          <AccordionItem value="specific" className="border-b">
-            <AccordionTrigger className="hover:no-underline py-4 px-4">
-              <SectionHeader icon={Layers} title="Brush Properties" />
-            </AccordionTrigger>
-            <AccordionContent className="px-4 pb-6">
-              <BrushPropertiesPanel element={element} onUpdate={onUpdate} />
             </AccordionContent>
           </AccordionItem>
         )}

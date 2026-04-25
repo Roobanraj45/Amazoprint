@@ -136,32 +136,7 @@ function DesignEditorInternal({
   
   const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
   
-  const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
-  const [isDrawing, setIsDrawing] = useState(false);
-  const drawingPointsRef = useRef<[number, number][]>([]);
-  const scatterPointsRef = useRef<{x: number; y: number; r: number; w?: number; h?: number; opacity?: number}[]>([]);
-  
-  const [livePencilPath, setLivePencilPath] = useState<{ 
-      path: [number, number][]; 
-      strokeColor: string; 
-      strokeWidth: number; 
-      hardness: number; 
-      opacity: number;
-      brushTip: 'round' | 'square' | 'chalk' | 'spraySoft' | 'texture' | 'scatter' | 'calligraphy';
-      scatterData?: {x: number; y: number; r: number; w?: number; h?: number; opacity?: number}[];
-  } | null>(null);
-
-  const [brushOptions, setBrushOptions] = useState({
-      tool: 'brush' as 'brush' | 'spray',
-      brushTip: 'round' as const,
-      size: 40,
-      opacity: 1,
-      density: 80,
-      scatter: 40,
-      hardness: 0.5,
-      flow: 3,
-      color: '#000000',
-  });
+  const [activeTool, setActiveTool] = useState<'select' | 'pen'>('select');
   
   // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
@@ -452,66 +427,21 @@ function DesignEditorInternal({
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (activeTool === 'brush') {
-        e.stopPropagation();
-        beginTransaction();
-        setIsDrawing(true);
-        const [x, y] = getPointInCanvas(e);
-        drawingPointsRef.current = [[x, y]];
-        scatterPointsRef.current = [];
-        
-        const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
-        if (isComplex) {
-            const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
-            for (let i = 0; i < count; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const scatterRatio = brushOptions.scatter / 100;
-                const radius = Math.pow(Math.random(), 1 - brushOptions.hardness) * brushOptions.size * scatterRatio;
-                const particleX = x + Math.cos(angle) * radius;
-                const particleY = y + Math.sin(angle) * radius;
-
-                if (brushOptions.brushTip === 'texture') {
-                    scatterPointsRef.current.push({
-                        x: particleX, y: particleY, r: 0,
-                        w: Math.random() * brushOptions.size * 0.3,
-                        h: Math.random() * brushOptions.size * 0.3,
-                        opacity: Math.random() * brushOptions.opacity
-                    });
-                } else {
-                    scatterPointsRef.current.push({
-                        x: particleX, y: particleY, 
-                        r: brushOptions.tool === 'spray' ? 1.5 : (Math.random() * 1.5 + 0.5),
-                        opacity: (1 - radius / brushOptions.size) * brushOptions.opacity
-                    });
-                }
-            }
-        }
-
-        setLivePencilPath({
-            path: [[x, y], [x, y]],
-            strokeColor: brushOptions.color,
-            strokeWidth: brushOptions.size,
-            hardness: brushOptions.hardness,
-            opacity: brushOptions.opacity,
-            brushTip: brushOptions.brushTip,
-            scatterData: scatterPointsRef.current
-        });
-        return;
-    }
      if (activeTool === 'pen') {
         e.stopPropagation();
         beginTransaction();
         const [x, y] = getPointInCanvas(e);
 
-        if (livePath) {
-            const hitRadius = 25 / viewState.zoom; // Increased hit radius for easier closure
-            if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
-                // Perfect closure: Snap path and finalize
+        if (livePath && livePath.length > 2) {
+            const firstPoint = livePath[0];
+            const hitRadius = 25 / viewState.zoom;
+            if (Math.hypot(x - firstPoint.x, y - firstPoint.y) < hitRadius) {
+                // Clicking start point: Complete the shape.
                 finalizePath(livePath, true);
                 return;
             }
-
-            for (let i = 0; i < livePath.length; i++) {
+            
+            for (let i = 1; i < livePath.length; i++) {
                 const p = livePath[i];
                 if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'anchor' });
@@ -542,7 +472,7 @@ function DesignEditorInternal({
     
     if ((e.button === 0 && isCanvasBackground) || isSpacePressed || e.button === 1) {
       isPanning.current = true;
-      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - panStart.current.y };
+      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - viewState.pan.y };
       e.currentTarget.style.cursor = 'grabbing';
     }
   };
@@ -550,67 +480,6 @@ function DesignEditorInternal({
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const [x, y] = getPointInCanvas(e);
     setMousePos({ x, y, screenX: e.clientX, screenY: e.clientY });
-
-    if (isDrawing && activeTool === 'brush') {
-        const points = drawingPointsRef.current;
-        const lastPoint = points[points.length - 1];
-        if (!lastPoint) return;
-
-        const dist = Math.hypot(x - lastPoint[0], y - lastPoint[1]);
-        const spacing = brushOptions.size * 0.1; 
-        
-        if (dist >= spacing || brushOptions.tool === 'spray') {
-            const steps = Math.max(1, Math.floor(dist / spacing));
-
-            for (let s = 1; s <= steps; s++) {
-                const t = s / steps;
-                const interX = lastPoint[0] + (x - lastPoint[0]) * t;
-                const interY = lastPoint[1] + (y - lastPoint[1]) * t;
-                points.push([interX, interY]);
-
-                const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
-                if (isComplex) {
-                    const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
-                    for (let i = 0; i < count; i++) {
-                        const angle = Math.random() * Math.PI * 2;
-                        const scatterRatio = brushOptions.scatter / 100;
-                        const radius = Math.pow(Math.random(), 1 - brushOptions.hardness) * brushOptions.size * scatterRatio;
-                        const px = interX + Math.cos(angle) * radius;
-                        const py = interY + Math.sin(angle) * radius;
-
-                        if (brushOptions.brushTip === 'texture') {
-                            scatterPointsRef.current.push({
-                                x: px, y: py, r: 0,
-                                w: Math.random() * brushOptions.size * 0.3,
-                                h: Math.random() * brushOptions.size * 0.3,
-                                opacity: Math.random() * brushOptions.opacity
-                            });
-                        } else {
-                            scatterPointsRef.current.push({
-                                x: px, y: py, 
-                                r: brushOptions.tool === 'spray' ? 1.5 : (Math.random() * 1.5 + 0.5),
-                                opacity: (1 - (radius / (brushOptions.size * scatterRatio || 1))) * brushOptions.opacity
-                            });
-                        }
-                    }
-                }
-            }
-            
-            if (points.length > 500 && !isComplex) {
-                points.splice(0, points.length - 500);
-            }
-            if (scatterPointsRef.current.length > 5000) {
-                scatterPointsRef.current.splice(0, scatterPointsRef.current.length - 5000);
-            }
-
-            setLivePencilPath(prev => prev ? { 
-                ...prev, 
-                path: [...points], 
-                scatterData: [...scatterPointsRef.current] 
-            } : null);
-        }
-        return;
-    }
 
     if (activeTool === 'pen' && draggingPoint) {
         setLivePath(prev => {
@@ -648,81 +517,6 @@ function DesignEditorInternal({
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isDrawing && activeTool === 'brush') {
-        setIsDrawing(false);
-        setLivePencilPath(null);
-        endTransaction();
-
-        const points = drawingPointsRef.current;
-        const scatter = scatterPointsRef.current;
-        const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
-
-        if (points.length >= 2 || (isComplex && scatter.length > 0)) {
-            const allX = isComplex ? scatter.map(p => p.x) : points.map(p => p[0]);
-            const allY = isComplex ? scatter.map(p => p.y) : points.map(p => p[1]);
-            
-            const padding = brushOptions.size * 2;
-            const minX = Math.min(...allX) - padding;
-            const minY = Math.min(...allY) - padding;
-            const maxX = Math.max(...allX) + padding;
-            const maxY = Math.max(...allY) + padding;
-            
-            const width = Math.max(1, maxX - minX);
-            const height = Math.max(1, maxY - minY);
-
-            if (isComplex) {
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.fillStyle = brushOptions.color;
-                    scatter.forEach(p => {
-                        ctx.globalAlpha = p.opacity || brushOptions.opacity;
-                        if (brushOptions.brushTip === 'texture') {
-                            ctx.fillRect(p.x - minX, p.y - minY, p.w || 5, p.h || 5);
-                        } else {
-                            ctx.beginPath();
-                            ctx.arc(p.x - minX, p.y - minY, p.r, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
-                    });
-                    
-                    const dataUrl = canvas.toDataURL();
-                    const newElement: DesignElement = {
-                        id: crypto.randomUUID(), type: 'image', x: minX, y: minY, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
-                        src: dataUrl, objectFit: 'contain', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-                        content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
-                    };
-                    updatePage(currentPage, { elements: [...currentElements, newElement] });
-                    setSelectedElementIds([newElement.id]);
-                }
-            } else {
-                const newElement: DesignElement = {
-                    id: crypto.randomUUID(),
-                    type: 'brush',
-                    x: minX,
-                    y: minY,
-                    width: width,
-                    height: height,
-                    rotation: 0,
-                    opacity: brushOptions.opacity,
-                    path: points.map(([px, py]) => [px - minX, py - minY]),
-                    strokeColor: brushOptions.color,
-                    strokeWidth: brushOptions.size,
-                    brushTip: brushOptions.brushTip,
-                    brushHardness: brushOptions.hardness,
-                    content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-                };
-                updatePage(currentPage, { elements: [...currentElements, newElement] });
-                setSelectedElementIds([newElement.id]);
-            }
-        }
-        drawingPointsRef.current = [];
-        scatterPointsRef.current = [];
-        return;
-    }
-
     if (activeTool === 'pen') {
         setDraggingPoint(null);
         endTransaction();
@@ -733,7 +527,6 @@ function DesignEditorInternal({
       let newCursor = 'default';
       if (isSpacePressed) newCursor = 'grab';
       else if (activeTool === 'pen') newCursor = PEN_CURSOR;
-      else if (activeTool === 'brush') newCursor = 'none';
       e.currentTarget.style.cursor = newCursor;
     }
   };
@@ -925,7 +718,7 @@ function DesignEditorInternal({
 
   const handleSelectElement = (id: string | null, isShift?: boolean) => {
     if (croppingElementId) return;
-    if (activeTool === 'brush' || activeTool === 'pen') return;
+    if (activeTool === 'pen') return;
 
     if (id) {
         const element = findElementRecursive(currentElements, id);
@@ -1317,7 +1110,7 @@ function DesignEditorInternal({
   const handleMobilePanelOpen = (panel: string) => {
     setActiveMobilePanel(panel);
     setMobileSheetOpen(true);
-    if(panel === 'brush' || panel === 'pen') {
+    if(panel === 'pen') {
         setActiveTool(panel as any);
     } else {
         setActiveTool('select');
@@ -1496,8 +1289,6 @@ function DesignEditorInternal({
               onAddText={addTextElement}
               onAddGroupedElements={handleAddGroupedElements}
               onAddQrCode={addQrCodeElement}
-              brushOptions={brushOptions}
-              setBrushOptions={setBrushOptions}
               finalizePath={finalizePath}
           />
           <SidebarRail side="left" />
@@ -1506,29 +1297,9 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? PEN_CURSOR : (activeTool === 'brush' ? 'none' : 'default'), backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? PEN_CURSOR : 'default', backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
-              {(activeTool === 'brush') && mousePos && !isPanning.current && (
-                  <div 
-                    style={{
-                        position: 'fixed',
-                        left: mousePos.screenX ?? 0,
-                        top: mousePos.screenY ?? 0,
-                        width: brushOptions.size * viewState.zoom,
-                        height: brushOptions.size * viewState.zoom,
-                        transform: 'translate(-50%, -50%)',
-                        pointerEvents: 'none',
-                        zIndex: 1000,
-                        border: '1.5px solid white',
-                        boxShadow: '0 0 0 1px black, inset 0 0 4px rgba(0,0,0,0.2)',
-                        borderRadius: brushOptions.brushTip === 'square' ? '2px' : '50%',
-                        opacity: 0.8,
-                        background: (brushOptions.brushTip === 'chalk' || brushOptions.brushTip === 'spraySoft' || brushOptions.brushTip === 'texture') ? `radial-gradient(circle, ${brushOptions.color} 20%, transparent 80%)` : 'transparent'
-                    }}
-                  />
-              )}
-
               {selectedElements.length > 0 && 
                 <ElementToolbar 
                     selectedElements={selectedElements} 
@@ -1545,7 +1316,6 @@ function DesignEditorInternal({
                 onAddGuide={addGuide} onUpdateGuide={updateGuide} onRemoveGuide={removeGuide} onSmartGuidesChange={setActiveSmartGuides}
                 showPrintGuidelines={showPrintGuidelines} bleed={bleed} safetyMargin={safetyMargin} viewState={viewState}
                 onInteractionStart={beginTransaction} onInteractionEnd={endTransaction}
-                livePencilPath={livePencilPath}
                 livePath={livePath}
                 mousePos={mousePos}
                 activeTool={activeTool}
