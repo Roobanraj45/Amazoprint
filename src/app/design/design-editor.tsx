@@ -27,6 +27,7 @@ import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
 import { EditorHeader } from '@/components/design/editor-header';
 import { Loader2, SlidersHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CropDialog } from '@/components/design/crop-dialog';
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -436,7 +437,7 @@ function DesignEditorInternal({
     
     if ((e.button === 0 && isCanvasBackground) || isSpacePressed || e.button === 1) {
       isPanning.current = true;
-      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - viewState.pan.y };
+      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - panStart.current.y };
       e.currentTarget.style.cursor = 'grabbing';
     }
   };
