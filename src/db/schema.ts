@@ -31,6 +31,8 @@ export const paymentProviderEnum = pgEnum('payment_provider', [
     'paypal'
 ]);
 
+export const printerStatusEnum = pgEnum('printer_status', ['pending', 'approved', 'rejected']);
+
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 150 }).notNull(),
@@ -94,6 +96,12 @@ export const printPressUsers = pgTable('print_press_users', {
   state: varchar('state', { length: 100 }),
   postalCode: varchar('postal_code', { length: 20 }),
   country: varchar('country', { length: 100 }).default('India'),
+  gstNumber: varchar('gst_number', { length: 20 }),
+  workDescription: text('work_description'),
+  shopImages: text('shop_images').array(),
+  acceptPrivacyPolicy: boolean('accept_privacy_policy').default(false),
+  acceptTermsConditions: boolean('accept_terms_conditions').default(false),
+  status: printerStatusEnum('status').default('pending'),
   isActive: boolean('is_active').default(true),
   isApproved: boolean('is_approved').default(false),
   emailVerified: boolean('email_verified').default(false),
@@ -110,7 +118,7 @@ export const printPressUsers = pgTable('print_press_users', {
     emailIdx: index('idx_print_press_users_email').on(table.email),
     usernameIdx: index('idx_print_press_users_username').on(table.username),
     activeIdx: index('idx_print_press_users_active').on(table.isActive),
-    approvedIdx: index('idx_print_press_users_approved').on(table.isApproved),
+    statusIdx: index('idx_print_press_users_status').on(table.status),
     emailVerifiedIdx: index('idx_print_press_users_email_verified').on(table.emailVerified),
   };
 });

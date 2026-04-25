@@ -63,13 +63,6 @@ export function HomeClient({
     return acc + (isNaN(amount) ? 0 : amount);
   }, 0);
 
-  const topDesigners = [
-    { name: 'Arun Kumar', wins: 12, rating: '4.9', avatar: 'https://picsum.photos/seed/arun/200' },
-    { name: 'Priya S.', wins: 8, rating: '5.0', avatar: 'https://picsum.photos/seed/priya/200' },
-    { name: 'Rahul V.', wins: 15, rating: '4.8', avatar: 'https://picsum.photos/seed/rahul/200' },
-    { name: 'Anita D.', wins: 5, rating: '4.9', avatar: 'https://picsum.photos/seed/anita/200' },
-  ];
-
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10 selection:text-primary overflow-x-hidden">
       <Navbar />
@@ -334,7 +327,54 @@ export function HomeClient({
           </div>
         </section>
 
-        {/* --- 6. CTA --- */}
+        {/* --- 6. PARTNER CTA SECTION --- */}
+        <section className="py-24 bg-zinc-50 dark:bg-zinc-950/50">
+          <div className="container px-4 mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <motion.div {...FADE_UP} className="space-y-6">
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold uppercase text-[10px]">
+                        Production Network
+                    </Badge>
+                    <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase font-headline">Join as a <span className="text-primary">Printing Partner.</span></h2>
+                    <p className="text-lg text-muted-foreground font-medium max-w-xl leading-relaxed">Expand your reach and fill your production capacity. Join our global network of verified printing presses and receive steady, high-quality orders directly to your dashboard.</p>
+                    <div className="space-y-4 pt-4">
+                        {[
+                            "Reliable order volume from global brands",
+                            "Automated pre-press and file handling",
+                            "Seamless payment and financial tracking",
+                            "Industrial-grade workflow management"
+                        ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-3">
+                                <CheckCircle2 className="text-primary w-5 h-5" />
+                                <span className="font-semibold text-sm">{item}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <Button size="lg" asChild className="rounded-full h-14 px-8 font-bold mt-4 shadow-lg shadow-primary/20">
+                        <Link href="/printer-registration" className="flex items-center gap-2">
+                          Get Registered <ArrowRight className="w-4 h-4"/>
+                        </Link>
+                    </Button>
+                </motion.div>
+                
+                <motion.div {...FADE_UP} className="relative aspect-square lg:aspect-auto lg:h-[500px] rounded-[3rem] overflow-hidden border border-border/40 shadow-2xl">
+                    <Image 
+                        src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1000" 
+                        alt="Printing Press" 
+                        fill 
+                        className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div className="absolute bottom-10 left-10 text-white">
+                        <p className="text-3xl font-black uppercase font-headline leading-none mb-2">Enterprise Grade</p>
+                        <p className="text-xs font-bold opacity-80 uppercase tracking-widest">Global Fulfillment Logic</p>
+                    </div>
+                </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* --- 7. FINAL CTA --- */}
         <section className="py-32">
           <div className="container px-4 mx-auto">
             <div className="rounded-[4rem] p-16 md:p-32 text-center text-white relative overflow-hidden bg-zinc-950 shadow-2xl">

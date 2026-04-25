@@ -20,6 +20,10 @@ const printerSchema = z.object({
   state: z.string().optional(),
   postalCode: z.string().optional(),
   country: z.string().optional(),
+  gstNumber: z.string().optional(),
+  workDescription: z.string().optional(),
+  acceptPrivacyPolicy: z.boolean().refine(val => val === true, "Privacy policy must be accepted."),
+  acceptTermsConditions: z.boolean().refine(val => val === true, "Terms and conditions must be accepted."),
 });
 
 export async function registerPrinter(data: z.infer<typeof printerSchema>) {
@@ -38,6 +42,7 @@ export async function registerPrinter(data: z.infer<typeof printerSchema>) {
     const result = await db.insert(printPressUsers).values({
         ...validated,
         passwordHash,
+        status: 'pending',
     }).returning();
 
     revalidatePath('/admin/printers');
@@ -62,7 +67,11 @@ export async function getPrinters() {
 export async function updatePrinterApproval(id: string, isApproved: boolean) {
     await verifyAdmin();
     await db.update(printPressUsers)
-        .set({ isApproved, updatedAt: new Date() })
+        .set({ 
+          isApproved, 
+          status: isApproved ? 'approved' : 'rejected',
+          updatedAt: new Date() 
+        })
         .where(eq(printPressUsers.id, id));
     revalidatePath('/admin/printers');
 }
