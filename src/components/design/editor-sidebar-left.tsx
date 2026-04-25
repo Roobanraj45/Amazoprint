@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { Suspense, lazy } from 'react';
@@ -29,6 +30,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '../ui/scroll-area';
 
 // Lazy load panels to optimize performance
 const MediaPanel = lazy(() => import('./panels/media-panel').then(m => ({ default: m.MediaPanel })));
@@ -91,14 +93,14 @@ export function EditorSidebarLeft({
                             }
                         }}
                     >
-                        <TabsList className="flex flex-col h-full p-3 gap-3 bg-transparent">
+                        <TabsList className="flex flex-col h-full p-3 gap-3 bg-transparent shrink-0">
                             {panels.map((panel) => (
                                 <Tooltip key={panel.id}>
                                     <TooltipTrigger asChild>
                                         <TabsTrigger
                                             value={panel.id}
                                             className={cn(
-                                                "h-20 w-20 p-0 flex flex-col gap-1 items-center justify-center rounded-2xl transition-all duration-200",
+                                                "h-16 w-16 p-0 flex flex-col gap-1 items-center justify-center rounded-2xl transition-all duration-200",
                                                 "data-[state=active]:scale-110 data-[state=active]:shadow-lg",
                                                 panel.color
                                             )}
@@ -110,9 +112,9 @@ export function EditorSidebarLeft({
                                                 }
                                             }}
                                         >
-                                            {panel.icon}
-                                            <span className="text-[10px] font-black uppercase text-center tracking-tight leading-tight px-1">
-                                                {panel.label.split(' ')[0]}<br />{panel.label.split(' ')[1] || ''}
+                                            {React.cloneElement(panel.icon as React.ReactElement, { size: 20 })}
+                                            <span className="text-[9px] font-black uppercase text-center tracking-tight leading-tight px-1">
+                                                {panel.label.split(' ')[0]}
                                             </span>
                                         </TabsTrigger>
                                     </TooltipTrigger>
@@ -122,41 +124,42 @@ export function EditorSidebarLeft({
                         </TabsList>
 
                         <div className={cn(
-                            "group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex",
-                            "w-[26rem]",
+                            "group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex flex-col bg-background/50 border-l",
                             activeTool === 'pen' && "hidden"
                         )}>
-                            <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="animate-spin h-6 w-6 text-muted-foreground" /></div>}>
-                                <TabsContent value="upload" className="flex-1 overflow-auto mt-0">
-                                    <UploadPanel onImageSelect={onAddImage} isAdmin={isAdmin} />
-                                </TabsContent>
-                                <TabsContent value="media" className="flex-1 overflow-auto mt-0">
-                                    <MediaPanel
-                                        onImageSelect={onAddImage}
-                                        onAddShape={onAddShape}
-                                        onEmojiSelect={onAddEmoji}
-                                        isAdmin={isAdmin}
-                                    />
-                                </TabsContent>
-                                <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
-                                    <TextAddPanel onAddText={onAddText} onAddGroupedElements={onAddGroupedElements} />
-                                </TabsContent>
-                                <TabsContent value="brush-dummy" className="flex-1 flex items-center justify-center flex-col gap-4 text-center p-8 mt-0">
-                                    <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
-                                        <Paintbrush size={32} />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-lg">Drawing Tools</h3>
-                                        <p className="text-sm text-muted-foreground">The advanced brush engine is currently under maintenance. Please use the Pen tool for custom vector paths.</p>
-                                    </div>
-                                </TabsContent>
-                                <TabsContent value="ai" className="flex-1 overflow-auto mt-0">
-                                    <AiPanel onImageProcessed={onAddImage} />
-                                </TabsContent>
-                                <TabsContent value="qrcode" className="flex-1 overflow-auto mt-0">
-                                    <QrCodePanel onAddQrCode={onAddQrCode} />
-                                </TabsContent>
-                            </Suspense>
+                            <ScrollArea className="flex-1">
+                                <Suspense fallback={<div className="flex-1 flex items-center justify-center pt-20"><Loader2 className="animate-spin h-6 w-6 text-muted-foreground" /></div>}>
+                                    <TabsContent value="upload" className="flex-1 m-0 focus-visible:outline-none">
+                                        <UploadPanel onImageSelect={onAddImage} isAdmin={isAdmin} />
+                                    </TabsContent>
+                                    <TabsContent value="media" className="flex-1 m-0 focus-visible:outline-none">
+                                        <MediaPanel
+                                            onImageSelect={onAddImage}
+                                            onAddShape={onAddShape}
+                                            onEmojiSelect={onAddEmoji}
+                                            isAdmin={isAdmin}
+                                        />
+                                    </TabsContent>
+                                    <TabsContent value="elements" className="flex-1 m-0 focus-visible:outline-none">
+                                        <TextAddPanel onAddText={onAddText} onAddGroupedElements={onAddGroupedElements} />
+                                    </TabsContent>
+                                    <TabsContent value="brush-dummy" className="flex-1 flex items-center justify-center flex-col gap-4 text-center p-8 m-0 focus-visible:outline-none">
+                                        <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                                            <Paintbrush size={32} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-lg">Drawing Tools</h3>
+                                            <p className="text-sm text-muted-foreground">The advanced brush engine is currently under maintenance. Please use the Pen tool for custom vector paths.</p>
+                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="ai" className="flex-1 m-0 focus-visible:outline-none">
+                                        <AiPanel onImageProcessed={onAddImage} />
+                                    </TabsContent>
+                                    <TabsContent value="qrcode" className="flex-1 m-0 focus-visible:outline-none">
+                                        <QrCodePanel onAddQrCode={onAddQrCode} />
+                                    </TabsContent>
+                                </Suspense>
+                            </ScrollArea>
                         </div>
                     </Tabs>
                 </TooltipProvider>

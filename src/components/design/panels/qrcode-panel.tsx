@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -41,7 +42,7 @@ const QrStylePreview = ({ options, size = 64 }: { options: any, size?: number })
         qrCode.append(ref.current);
     }, [options, size]);
 
-    return <div ref={ref} />;
+    return <div ref={ref} className="flex items-center justify-center overflow-hidden rounded" />;
 };
 
 
@@ -50,36 +51,44 @@ export const QrCodePanel = ({ onAddQrCode }: QrCodePanelProps) => {
     const [selectedStyle, setSelectedStyle] = useState('default');
 
     return (
-        <div className="p-4 space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="qr-value-input">QR Code Value (URL or Text)</Label>
+        <div className="p-5 space-y-6">
+            <div className="space-y-3">
+                <Label htmlFor="qr-value-input" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">QR Value (URL or Text)</Label>
                 <Textarea
                     id="qr-value-input"
                     value={qrValue}
                     onChange={(e) => setQrValue(e.target.value)}
                     placeholder="https://example.com"
+                    className="min-h-[100px] resize-none bg-background border-none shadow-inner"
                 />
             </div>
-            <div className="space-y-2">
-                <Label>Style</Label>
-                <div className="grid grid-cols-3 gap-2">
+            
+            <div className="space-y-3">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Visual Style</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {styles.map(style => (
                         <button
                             key={style.name}
                             className={cn(
-                                "h-auto flex-col p-2 gap-1 aspect-square rounded-lg border-2 transition-all",
-                                selectedStyle === style.name ? "border-primary bg-primary/10" : "border-transparent bg-muted hover:bg-accent"
+                                "flex flex-col items-center justify-center p-3 gap-2 rounded-xl border-2 transition-all group",
+                                selectedStyle === style.name 
+                                    ? "border-primary bg-primary/5 shadow-sm" 
+                                    : "border-transparent bg-background/50 hover:bg-muted"
                             )}
                             onClick={() => setSelectedStyle(style.name)}
                         >
                             <QrStylePreview options={style.options} size={48} />
-                            <span className="text-[10px] font-semibold">{style.label}</span>
+                            <span className={cn(
+                                "text-[9px] font-black uppercase tracking-tight",
+                                selectedStyle === style.name ? "text-primary" : "text-muted-foreground"
+                            )}>{style.label}</span>
                         </button>
                     ))}
                 </div>
             </div>
-            <Button onClick={() => onAddQrCode(qrValue, selectedStyle)} className="w-full">
-                <QrCode className="mr-2 h-4 w-4"/>Add QR Code
+
+            <Button onClick={() => onAddQrCode(qrValue, selectedStyle)} className="w-full h-12 font-black uppercase tracking-[0.1em] text-xs shadow-lg shadow-primary/20">
+                <QrCode className="mr-2 h-4 w-4"/> Generate & Add
             </Button>
         </div>
     );

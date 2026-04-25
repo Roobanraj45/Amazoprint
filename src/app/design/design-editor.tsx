@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense } from 'react';
@@ -472,7 +473,7 @@ function DesignEditorInternal({
     
     if ((e.button === 0 && isCanvasBackground) || isSpacePressed || e.button === 1) {
       isPanning.current = true;
-      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - viewState.pan.y };
+      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - panStart.current.y };
       e.currentTarget.style.cursor = 'grabbing';
     }
   };
@@ -1417,7 +1418,7 @@ function DesignEditorInternal({
 
 export function DesignEditor(props: DesignEditorProps) {
   return (
-    <SidebarProvider defaultLeftOpen={false}>
+    <SidebarProvider defaultLeftOpen={false} defaultLeftWidth={32}>
       <DesignEditorInternal {...props} />
     </SidebarProvider>
   );
