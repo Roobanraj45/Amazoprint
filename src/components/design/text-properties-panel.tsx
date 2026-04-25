@@ -25,7 +25,7 @@ import { AssetLibrary } from "./asset-library";
 import { cn } from "@/lib/utils";
 
 const fontFamilies = [
-  'Inter', 'Arial', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
+  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
   'Playfair Display', 'Merriweather', 'Ubuntu', 'PT Sans', 'Lora', 'Source Sans Pro',
   'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat',
   'Bevan', 'Bree Serif', 'Coda', 'Fugaz One', 'Jura'
@@ -151,12 +151,14 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                             <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Font Family</Label>
                             <Select value={element.fontFamily} onValueChange={(v) => handleUpdate({ fontFamily: v })}>
                                 <SelectTrigger className="h-11 bg-background border-none shadow-sm text-xs font-medium">
-                                    <SelectValue placeholder="Font Family" />
+                                    <span style={{ fontFamily: `"${element.fontFamily}", sans-serif` }}>
+                                        <SelectValue placeholder="Font Family" />
+                                    </span>
                                 </SelectTrigger>
                                 <SelectContent className="max-h-[300px]">
                                     {fontFamilies.map(font => (
                                         <SelectItem key={font} value={font}>
-                                            <span style={{ fontFamily: `"${font}", sans-serif` }}>{font}</span>
+                                            <span style={{ fontFamily: `"${font}", sans-serif`, fontSize: '1rem' }}>{font}</span>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -279,7 +281,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         {(!element.fillType || element.fillType === 'solid') && (
                             <ColorPicker
                                 label=""
-                                color={element.color}
+                                color={element.color || '#000000'}
                                 onChange={(color) => handleUpdate({ color })}
                             />
                         )}
@@ -293,7 +295,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         )}
                         {element.fillType === 'stepped-gradient' && (
                            <div className="space-y-6">
-                                <div className="flex items-center gap-4 bg-muted/40 p-3 rounded-xl border border-border/40">
+                                <div className="flex items-center gap-4 bg-muted/40 p-3 rounded-xl border border-border/50 shadow-sm">
                                     <div className="flex-1 space-y-2">
                                         <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
                                             <Label>Angle</Label>
