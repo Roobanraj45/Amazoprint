@@ -22,16 +22,9 @@ import {
   DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
 import {
-  Home,
-  Undo,
-  Redo,
+  Undo2,
+  Redo2,
   Layers,
-  Group,
-  Ungroup,
-  BringToFront,
-  SendToBack,
-  ChevronsUp,
-  ChevronsDown,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -41,11 +34,30 @@ import {
   ShoppingCart,
   ArrowRight,
   MoreVertical,
-  Loader2
+  Loader2,
+  AlignCenter,
+  BringToFront,
+  SendToBack,
+  ChevronsUp,
+  ChevronsDown,
+  AlignHorizontalJustifyStart,
+  AlignHorizontalJustifyCenter,
+  AlignHorizontalJustifyEnd,
+  AlignVerticalJustifyStart,
+  AlignVerticalJustifyCenter,
+  AlignVerticalJustifyEnd,
+  Copy,
+  Trash2,
+  CirclePlay,
+  Blend,
+  Grid3X3,
+  CircleDashed
 } from 'lucide-react';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { LayersPanel } from '@/components/design/layers-panel';
 import type { Product, DesignElement, FoilType } from '@/lib/types';
+import { Slider } from '../ui/slider';
+import { cn } from '@/lib/utils';
 
 type EditorHeaderProps = {
   product: Product;
@@ -95,6 +107,7 @@ type EditorHeaderProps = {
   isMultiSelect: boolean;
   isGroupSelected: boolean;
   isSingleElementSelected: boolean;
+  onUpdateElement: (id: string, props: Partial<DesignElement>) => void;
 };
 
 export function EditorHeader({
@@ -145,55 +158,65 @@ export function EditorHeader({
   isMultiSelect,
   isGroupSelected,
   isSingleElementSelected,
+  onUpdateElement,
 }: EditorHeaderProps) {
+  
+  const selectedElement = currentElements.find(el => selectedElementIds.includes(el.id));
+
   return (
-    <header className="relative z-20 flex h-14 items-center gap-4 border-b bg-card px-4 lg:px-6">
-      <div className="flex items-center gap-2">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="lg:hidden" 
-          onClick={(e) => { 
-            if(confirmNavigation(e as any)) window.history.back(); 
-          }}
-        >
-          <Home />
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="hidden lg:flex" 
-          asChild
-        >
-          <Link href="/" onClick={confirmNavigation}>
-            <Home />
-          </Link>
-        </Button>
-        <Separator orientation="vertical" className="h-6" />
-        <div className="flex items-center gap-3">
-          <AmazoprintLogo isSimple className="w-12 h-12" />
-          <div className="hidden md:block">
-            <h2 className="font-semibold text-sm">{product.name}</h2>
-            <p className="text-xs text-muted-foreground truncate max-w-xs">{product.description}</p>
-          </div>
+    <header className="relative z-50 flex h-14 items-center gap-2 border-b bg-white px-4 shadow-sm">
+      {/* Brand & Product Info */}
+      <div className="flex items-center gap-3 pr-4">
+        <AmazoprintLogo isSimple className="w-10 h-10" />
+        <div className="flex flex-col -space-y-1">
+          <span className="font-bold text-[13px] text-zinc-900 leading-tight">
+            {product.name}
+          </span>
+          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">WS</span>
         </div>
       </div>
-      
-      <div className="hidden lg:flex flex-1 justify-center items-center gap-1">
-        <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
-          <Undo className="h-4 w-4" />
+
+      {/* Navigation & Basic Actions */}
+      <div className="flex items-center gap-1 border-x px-2 h-full">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-primary font-bold text-xs hover:bg-primary/5 rounded-lg h-9 px-3"
+          asChild
+        >
+          <Link href="/products" onClick={(e) => { if(!confirmNavigation(e as any)) e.preventDefault(); }}>
+            <ChevronLeft className="mr-1.5 h-4 w-4" />
+            Back to products
+          </Link>
         </Button>
-        <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)">
-          <Redo className="h-4 w-4" />
-        </Button>
+      </div>
+
+      {/* Design Tools Toolbar */}
+      <div className="flex flex-1 items-center gap-0.5 px-2">
+        <div className="flex items-center">
+            <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} className="h-9 w-9 text-zinc-600" title="Undo">
+                <Undo2 className="h-4 w-4" />
+                <span className="sr-only">Undo</span>
+            </Button>
+            <span className="text-[10px] text-zinc-400 font-medium ml-1 mr-2 hidden xl:inline">Undo</span>
+            
+            <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} className="h-9 w-9 text-zinc-600" title="Redo">
+                <Redo2 className="h-4 w-4" />
+                <span className="sr-only">Redo</span>
+            </Button>
+            <span className="text-[10px] text-zinc-400 font-medium ml-1 mr-2 hidden xl:inline">Redo</span>
+        </div>
+
+        <Separator orientation="vertical" className="h-8 mx-1 opacity-50" />
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" title="Layers">
-              <Layers />
+            <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-zinc-600 font-medium hover:bg-zinc-50">
+              <Layers className="h-4 w-4" />
+              <span className="text-xs">Layers</span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" side="bottom" align="center">
+          <PopoverContent className="w-80 p-0" side="bottom" align="start">
             <LayersPanel 
               elements={currentElements} 
               selectedElementIds={selectedElementIds} 
@@ -206,106 +229,151 @@ export function EditorHeader({
             />
           </PopoverContent>
         </Popover>
-        
-        {(isMultiSelect || isGroupSelected || isSingleElementSelected) && (
-          <>
-            <Separator orientation="vertical" className="h-8 mx-1" />
-            {isMultiSelect && <Button variant="ghost" size="icon" onClick={handleGroup} title="Group Elements"><Group /></Button>}
-            {isGroupSelected && <Button variant="ghost" size="icon" onClick={handleUngroup} title="Ungroup Elements"><Ungroup /></Button>}
-            {isSingleElementSelected && (
-              <>
-                <Button variant="ghost" size="icon" onClick={() => moveLayer('front')} title="Bring to Front"><BringToFront /></Button>
-                <Button variant="ghost" size="icon" onClick={() => moveLayer('forward')} title="Bring Forward"><ChevronsUp className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" onClick={() => moveLayer('backward')} title="Send Backward"><ChevronsDown className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" onClick={() => moveLayer('back')} title="Send to Back"><SendToBack /></Button>
-              </>
-            )}
-          </>
-        )}
-        {totalPages > 1 && (
-          <>
-            <Separator orientation="vertical" className="h-8 mx-1" />
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0}>
-                <ChevronLeft />
-              </Button>
-              <span className="text-xs font-mono w-24 text-center">
-                Page {currentPage + 1} / {totalPages}
-              </span>
-              <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={currentPage === totalPages - 1}>
-                <ChevronRight />
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
 
-      <div className="flex flex-1 lg:hidden justify-center items-center">
-        <span className="text-sm font-semibold">{currentDesignName || product.name}</span>
-      </div>
+        {/* Alignment & Arrangement (Contextual) */}
+        <div className="flex items-center gap-1 px-1">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" disabled={!isSingleElementSelected} className="h-9 gap-1.5 text-zinc-600 font-medium">
+                        <AlignCenter className="h-4 w-4" />
+                        <span className="text-xs">Align</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                    <div className="grid grid-cols-3 gap-1 p-2">
+                        <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => onUpdateElement(selectedElementIds[0], { x: 0 })}>
+                            <AlignHorizontalJustifyStart size={18} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => onUpdateElement(selectedElementIds[0], { x: (product.width - (selectedElement?.width || 0)) / 2 })}>
+                            <AlignHorizontalJustifyCenter size={18} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => onUpdateElement(selectedElementIds[0], { x: product.width - (selectedElement?.width || 0) })}>
+                            <AlignHorizontalJustifyEnd size={18} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => onUpdateElement(selectedElementIds[0], { y: 0 })}>
+                            <AlignVerticalJustifyStart size={18} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => onUpdateElement(selectedElementIds[0], { y: (product.height - (selectedElement?.height || 0)) / 2 })}>
+                            <AlignVerticalJustifyCenter size={18} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => onUpdateElement(selectedElementIds[0], { y: product.height - (selectedElement?.height || 0) })}>
+                            <AlignVerticalJustifyEnd size={18} />
+                        </Button>
+                    </div>
+                </DropdownMenuContent>
+            </DropdownMenu>
 
-      <div className="flex items-center gap-2">
-        <div className="hidden lg:flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Eye className="mr-2 h-4 w-4" />View
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuCheckboxItem checked={showRulers} onCheckedChange={setShowRulers}>Show Rulers</DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem checked={showGrid} onCheckedChange={setShowGrid}>Show Grid</DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem checked={showPrintGuidelines} onCheckedChange={setShowPrintGuidelines}>Show Print Guidelines</DropdownMenuCheckboxItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem checked={snapToGrid} onCheckedChange={setSnapToGrid}>Snap to Grid</DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Button variant="outline" size="sm" onClick={() => setIsLoadDialogOpen(true)}><Library className="mr-2 h-4 w-4" />Load</Button>
-          <Button variant="outline" size="sm" onClick={handleSave}>
-            <Save className="mr-2 h-4 w-4" />
-            {currentDesignId ? (verificationId ? 'Update Revision' : 'Update') : 'Save'}
-          </Button>
-          <Button variant="outline" size="sm" onClick={handlePreview}><Eye className="mr-2 h-4 w-4" />Preview</Button>
-        </div>
-        <div className="lg:hidden">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={handleSave}>
-                <Save className="mr-2 h-4 w-4" />
-                {currentDesignId ? (verificationId ? 'Update Revision' : 'Update') : 'Save'}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setIsLoadDialogOpen(true)}><Library className="mr-2 h-4 w-4" />Load</DropdownMenuItem>
-              <DropdownMenuItem onSelect={handlePreview}><Eye className="mr-2 h-4 w-4" />Preview</DropdownMenuItem>
-              {isAdmin && <DropdownMenuItem onSelect={handleDownload}><Download className="mr-2 h-4 w-4" />Download</DropdownMenuItem>}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        
-        {isAdmin ? (
-          <Button onClick={handleDownload} size="sm" disabled={isDownloadingPdf} className="h-10 hidden lg:flex">
-            {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Download
-          </Button>
-        ) : (
-          <>
-            {!contestId && !verificationId && (
-              <Button onClick={handleOrder} size="sm" disabled={isOrdering} className="h-10">
-                {isOrdering ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
-                <span className="hidden sm:inline">{isOrdering ? 'Processing...' : 'Order Now'}</span>
-              </Button>
-            )}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" disabled={!isSingleElementSelected} className="h-9 gap-1.5 text-zinc-600 font-medium">
+                        <BringToFront className="h-4 w-4" />
+                        <span className="text-xs">Arrange</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                    <DropdownMenuItem onClick={() => moveLayer('front')}><BringToFront className="mr-2 h-4 w-4"/> Bring to Front</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => moveLayer('forward')}><ChevronsUp className="mr-2 h-4 w-4"/> Bring Forward</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => moveLayer('backward')}><ChevronsDown className="mr-2 h-4 w-4"/> Send Backward</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => moveLayer('back')}><SendToBack className="mr-2 h-4 w-4"/> Send to Back</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
             
-            {contestId && (
-              <Button onClick={handleSubmitToContest} disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}
-                Submit to Contest
-              </Button>
-            )}
-          </>
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" disabled={!isSingleElementSelected} className="h-9 gap-1.5 text-zinc-600 font-medium">
+                        <Blend className="h-4 w-4" />
+                        <span className="text-xs">Opacity</span>
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-60 p-4">
+                    <div className="space-y-3">
+                        <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-500">
+                            <span>Transparency</span>
+                            <span className="font-mono">{Math.round((selectedElement?.opacity || 1) * 100)}%</span>
+                        </div>
+                        <Slider 
+                            value={[(selectedElement?.opacity || 1) * 100]} 
+                            onValueChange={(v) => onUpdateElement(selectedElementIds[0], { opacity: v[0] / 100 })}
+                            max={100} step={1}
+                        />
+                    </div>
+                </PopoverContent>
+            </Popover>
+
+            <Button variant="ghost" size="sm" disabled={!isSingleElementSelected} className="h-9 gap-1.5 text-zinc-600 font-medium" onClick={() => handleDuplicateLayer(selectedElementIds[0])}>
+                <Copy className="h-4 w-4" />
+                <span className="text-xs">Duplicate</span>
+            </Button>
+
+            <Button variant="ghost" size="sm" disabled={!isSingleElementSelected} className="h-9 gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 font-medium" onClick={() => handleDeleteLayer(selectedElementIds[0])}>
+                <Trash2 className="h-4 w-4" />
+                <span className="text-xs">Delete</span>
+            </Button>
+        </div>
+      </div>
+
+      {/* Tutorials & Secondary Actions */}
+      <div className="flex items-center gap-1.5 border-l pl-4">
+        <Button variant="ghost" size="sm" className="text-red-600 font-bold hover:bg-red-50 gap-2 h-9 px-3 rounded-lg hidden 2xl:flex">
+            <CirclePlay className="h-5 w-5 fill-red-600 text-white" />
+            <span className="text-xs">Video Tutorials</span>
+        </Button>
+
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="sm" className="bg-zinc-100/80 hover:bg-zinc-200 text-zinc-700 h-9 px-3 rounded-lg gap-2">
+                    <Eye className="h-4 w-4" />
+                    <span className="text-xs font-semibold">View</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuCheckboxItem checked={showRulers} onCheckedChange={setShowRulers} className="text-xs font-medium">Show Rulers</DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={showGrid} onCheckedChange={setShowGrid} className="text-xs font-medium">Show Grid</DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem checked={showPrintGuidelines} onCheckedChange={setShowPrintGuidelines} className="text-xs font-medium">Show Print Guidelines</DropdownMenuCheckboxItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem checked={snapToGrid} onCheckedChange={setSnapToGrid} className="text-xs font-medium">Snap to Grid</DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Button variant="secondary" size="sm" onClick={() => setIsLoadDialogOpen(true)} className="bg-zinc-100/80 hover:bg-zinc-200 text-zinc-700 h-9 px-3 rounded-lg gap-2">
+            <Library className="h-4 w-4" />
+            <span className="text-xs font-semibold">Load</span>
+        </Button>
+
+        <Button variant="secondary" size="sm" onClick={handleSave} className="bg-zinc-100/80 hover:bg-zinc-200 text-zinc-700 h-9 px-3 rounded-lg gap-2">
+            <Save className="h-4 w-4" />
+            <span className="text-xs font-semibold">
+                 {currentDesignId ? (verificationId ? 'Update' : 'Update') : 'Save'}
+            </span>
+        </Button>
+
+        <Button variant="secondary" size="sm" onClick={handlePreview} className="bg-zinc-100/80 hover:bg-zinc-200 text-zinc-700 h-9 px-3 rounded-lg gap-2">
+            <Eye className="h-4 w-4" />
+            <span className="text-xs font-semibold">Preview</span>
+        </Button>
+
+        {isAdmin && (
+            <Button onClick={handleDownload} size="sm" disabled={isDownloadingPdf} className="h-9 px-3 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 gap-2">
+                 {isDownloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                 <span className="text-xs font-bold uppercase tracking-tight">Export</span>
+            </Button>
+        )}
+
+        {!isAdmin && !contestId && !verificationId && (
+            <Button onClick={handleOrder} size="sm" disabled={isOrdering} className="h-10 px-5 bg-primary text-white rounded-full hover:bg-primary/90 shadow-md shadow-primary/20 gap-2 ml-1">
+                {isOrdering ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+                <span className="text-xs font-black uppercase tracking-wider">{isOrdering ? 'Processing' : 'Order Now'}</span>
+            </Button>
+        )}
+
+        {contestId && !isAdmin && (
+            <Button onClick={handleSubmitToContest} disabled={isSubmitting} className="h-10 px-5 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 shadow-md gap-2 ml-1">
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                <span className="text-xs font-black uppercase tracking-wider">Submit Quest</span>
+            </Button>
         )}
       </div>
     </header>
   );
 }
+

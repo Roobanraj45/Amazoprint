@@ -1163,6 +1163,7 @@ function DesignEditorInternal({
           isMultiSelect={isMultiSelect}
           isGroupSelected={isGroupSelected}
           isSingleElementSelected={isSingleElementSelected}
+          onUpdateElement={updateElement}
         />
 
         <div className="flex overflow-hidden relative">
@@ -1309,3 +1310,4 @@ export function DesignEditor(props: DesignEditorProps) {
     </SidebarProvider>
   );
 }
+
