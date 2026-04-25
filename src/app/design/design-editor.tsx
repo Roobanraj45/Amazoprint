@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, Suspense } from 'react';
@@ -6,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   SidebarProvider,
   SidebarInset,
-  SidebarTrigger,
   SidebarRail,
   useSidebar,
   Sidebar,
@@ -14,56 +12,27 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
-  Download,
-  Save,
-  BringToFront,
-  SendToBack,
-  ChevronsUp,
-  ChevronsDown,
-  Home,
   ZoomIn,
   ZoomOut,
-  Group,
-  Ungroup,
-  Redo,
   Loader2,
-  Layers,
-  Eye,
-  ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  ShoppingCart,
-  MoreVertical,
   SlidersHorizontal,
-  Library,
-  Undo,
 } from 'lucide-react';
 import { PropertiesPanel } from '@/components/design/properties-panel';
 import { DesignCanvas } from '@/components/design/design-canvas';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import type { DesignElement, Product, Background, Guide, ViewState, Page, RenderData, FoilType, PathPoint } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import Link from 'next/link';
-import { Separator } from '@/components/ui/separator';
 import { ElementToolbar } from '@/components/design/element-toolbar';
-import { LayersPanel } from '@/components/design/layers-panel';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { getDesign, saveDesign, updateDesign } from '@/app/actions/design-actions';
 import { submitContestEntry } from '@/app/actions/contest-actions';
 import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from '@/components/design/load-design-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
 import { CropDialog } from '@/components/design/crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
-import { AmazoprintLogo } from '@/components/ui/logo';
 import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
+import { EditorHeader } from '@/components/design/editor-header';
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -137,7 +106,7 @@ function DesignEditorInternal({
   
   const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
   
-  const [activeTool, setActiveTool] = useState<'select' | 'pen'>('select');
+  const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
   
   // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
@@ -473,7 +442,7 @@ function DesignEditorInternal({
     
     if ((e.button === 0 && isCanvasBackground) || isSpacePressed || e.button === 1) {
       isPanning.current = true;
-      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - panStart.current.y };
+      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - viewState.pan.y };
       e.currentTarget.style.cursor = 'grabbing';
     }
   };
@@ -1111,7 +1080,7 @@ function DesignEditorInternal({
   const handleMobilePanelOpen = (panel: string) => {
     setActiveMobilePanel(panel);
     setMobileSheetOpen(true);
-    if(panel === 'pen') {
+    if(panel === 'brush' || panel === 'pen') {
         setActiveTool(panel as any);
     } else {
         setActiveTool('select');
@@ -1146,138 +1115,55 @@ function DesignEditorInternal({
   return (
     <>
       <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden">
-        <header className="relative z-20 flex h-14 items-center gap-4 border-b bg-card px-4 lg:px-6">
-          <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="lg:hidden" onClick={(e) => { if(confirmNavigation(e as any)) router.back(); }}><Home/></Button>
-              <Button variant="ghost" size="icon" className="hidden lg:flex" asChild onClick={confirmNavigation}><Link href="/"><Home /></Link></Button>
-              <Separator orientation="vertical" className="h-6" />
-              <div className="flex items-center gap-3">
-                  <AmazoprintLogo isSimple className="w-12 h-12" />
-                  <div className="hidden md:block">
-                      <h2 className="font-semibold text-sm">{product.name}</h2>
-                      <p className="text-xs text-muted-foreground truncate max-w-xs">{product.description}</p>
-                  </div>
-              </div>
-          </div>
-          
-          <div className="hidden lg:flex flex-1 justify-center items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"><Undo className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"><Redo className="h-4 w-4" /></Button>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" title="Layers"><Layers /></Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" side="bottom" align="center">
-                <LayersPanel 
-                    elements={currentElements} 
-                    selectedElementIds={selectedElementIds} 
-                    onSelectElement={handleSelectElement}
-                    onToggleVisibility={handleToggleLayerVisibility}
-                    onToggleLock={handleToggleLayerLock}
-                    onDuplicate={handleDuplicateLayer}
-                    onDelete={handleDeleteLayer}
-                    onDeleteAll={handleDeleteAll}
-                />
-              </PopoverContent>
-            </Popover>
-            
-            {(isMultiSelect || isGroupSelected || isSingleElementSelected) && (
-              <>
-                <Separator orientation="vertical" className="h-8 mx-1" />
-                {isMultiSelect && <Button variant="ghost" size="icon" onClick={handleGroup} title="Group Elements"><Group /></Button>}
-                {isGroupSelected && <Button variant="ghost" size="icon" onClick={handleUngroup} title="Ungroup Elements"><Ungroup /></Button>}
-                {isSingleElementSelected && (
-                  <>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('front')} title="Bring to Front"><BringToFront /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('forward')} title="Bring Forward"><ChevronsUp className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('backward')} title="Send Backward"><ChevronsDown className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('back')} title="Send to Back"><SendToBack /></Button>
-                  </>
-                )}
-              </>
-            )}
-             {totalPages > 1 && (
-                <>
-                <Separator orientation="vertical" className="h-8 mx-1" />
-                <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0}>
-                        <ChevronLeft />
-                    </Button>
-                    <span className="text-xs font-mono w-24 text-center">
-                        Page {currentPage + 1} / {totalPages}
-                    </span>
-                    <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={currentPage === totalPages - 1}>
-                        <ChevronRight />
-                    </Button>
-                </div>
-                </>
-            )}
-          </div>
-
-          <div className="flex flex-1 lg:hidden justify-center items-center">
-              <span className="text-sm font-semibold">{currentDesignName || product.name}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="hidden lg:flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild><Button variant="outline" size="sm"><Eye className="mr-2 h-4 w-4" />View</Button></DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuCheckboxItem checked={showRulers} onCheckedChange={setShowRulers}>Show Rulers</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem checked={showGrid} onCheckedChange={setShowGrid}>Show Grid</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem checked={showPrintGuidelines} onCheckedChange={setShowPrintGuidelines}>Show Print Guidelines</DropdownMenuCheckboxItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuCheckboxItem checked={snapToGrid} onCheckedChange={setSnapToGrid}>Snap to Grid</DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                <Button variant="outline" size="sm" onClick={() => setIsLoadDialogOpen(true)}><Library className="mr-2 h-4 w-4" />Load</Button>
-                <Button variant="outline" size="sm" onClick={handleSave}>
-                    <Save className="mr-2 h-4 w-4" />
-                    {currentDesignId ? (verificationId ? 'Update Revision' : 'Update') : 'Save'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handlePreview}><Eye className="mr-2 h-4 w-4" />Preview</Button>
-            </div>
-             <div className="lg:hidden">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={handleSave}>
-                            <Save className="mr-2 h-4 w-4" />
-                            {currentDesignId ? (verificationId ? 'Update Revision' : 'Update') : 'Save'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setIsLoadDialogOpen(true)}><Library className="mr-2 h-4 w-4" />Load</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={handlePreview}><Eye className="mr-2 h-4 w-4" />Preview</DropdownMenuItem>
-                        {isAdmin && <DropdownMenuItem onSelect={handleDownload}><Download className="mr-2 h-4 w-4" />Download</DropdownMenuItem>}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-             </div>
-            
-            {isAdmin ? (
-                <Button onClick={handleDownload} size="sm" disabled={isDownloadingPdf} className="h-10 hidden lg:flex">
-                    {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                    Download
-                </Button>
-            ) : (
-                <>
-                    {!contestId && !verificationId && (
-                        <Button onClick={handleOrder} size="sm" disabled={isOrdering} className="h-10">
-                            {isOrdering ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
-                            <span className="hidden sm:inline">{isOrdering ? 'Processing...' : 'Order Now'}</span>
-                        </Button>
-                    )}
-                    
-                    {contestId && (
-                        <Button onClick={handleSubmitToContest} disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}
-                            Submit to Contest
-                        </Button>
-                    )}
-                </>
-            )}
-          </div>
-        </header>
+        <EditorHeader
+          product={product}
+          quantity={quantity}
+          totalPages={totalPages || 1}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          undo={undo}
+          redo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          currentDesignId={currentDesignId}
+          currentDesignName={currentDesignName}
+          isDirty={isDirty}
+          confirmNavigation={confirmNavigation}
+          handleSave={handleSave}
+          handlePreview={handlePreview}
+          handleDownload={handleDownload}
+          handleOrder={handleOrder}
+          setIsLoadDialogOpen={setIsLoadDialogOpen}
+          handleSubmitToContest={handleSubmitToContest}
+          isAdmin={!!isAdmin}
+          verificationId={verificationId}
+          contestId={contestId}
+          isDownloadingPdf={isDownloadingPdf}
+          isOrdering={isOrdering}
+          isSubmitting={isSubmitting}
+          showRulers={showRulers}
+          setShowRulers={setShowRulers}
+          showGrid={showGrid}
+          setShowGrid={setShowGrid}
+          showPrintGuidelines={showPrintGuidelines}
+          setShowPrintGuidelines={setShowPrintGuidelines}
+          snapToGrid={snapToGrid}
+          setSnapToGrid={setSnapToGrid}
+          currentElements={currentElements}
+          selectedElementIds={selectedElementIds}
+          handleSelectElement={handleSelectElement}
+          handleToggleLayerVisibility={handleToggleLayerVisibility}
+          handleToggleLayerLock={handleToggleLayerLock}
+          handleDuplicateLayer={handleDuplicateLayer}
+          handleDeleteLayer={handleDeleteLayer}
+          handleDeleteAll={handleDeleteAll}
+          moveLayer={moveLayer}
+          handleGroup={handleGroup}
+          handleUngroup={handleUngroup}
+          isMultiSelect={isMultiSelect}
+          isGroupSelected={isGroupSelected}
+          isSingleElementSelected={isSingleElementSelected}
+        />
 
         <div className="flex overflow-hidden relative">
           <EditorSidebarLeft
