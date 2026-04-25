@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Eraser, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, Eraser, Loader2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { removeBackground } from '@/ai/flows/remove-background-flow';
 import { useToast } from '@/hooks/use-toast';

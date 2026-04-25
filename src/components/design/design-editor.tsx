@@ -1,16 +1,15 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
+import React, { useState, useCallback, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   SidebarProvider,
-  Sidebar,
   SidebarInset,
-  SidebarHeader,
-  SidebarContent,
   SidebarTrigger,
   SidebarRail,
   useSidebar,
+  Sidebar,
+  SidebarContent,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,65 +24,45 @@ import {
   ZoomOut,
   Group,
   Ungroup,
-  Type,
-  Image as ImageIcon,
-  LayoutGrid,
-  Brush,
   Redo,
-  X,
   Loader2,
   Layers,
   Eye,
   ArrowRight,
   ChevronLeft,
   ChevronRight,
-  QrCode,
   ShoppingCart,
-  PenTool,
   MoreVertical,
   SlidersHorizontal,
   Library,
   Undo,
 } from 'lucide-react';
-import { PropertiesPanel } from './properties-panel';
-import { DesignCanvas } from './design-canvas';
+import { PropertiesPanel } from '@/components/design/properties-panel';
+import { DesignCanvas } from '@/components/design/design-canvas';
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import type { DesignElement, Product, Background, Guide, ViewState, Page, RenderData, FoilType, PathPoint } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '../ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
-import { ElementToolbar } from './element-toolbar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { LayersPanel } from './layers-panel';
+import { ElementToolbar } from '@/components/design/element-toolbar';
+import { LayersPanel } from '@/components/design/layers-panel';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { getMyDesigns, saveDesign, updateDesign } from '@/app/actions/design-actions';
+import { getDesign, saveDesign, updateDesign } from '@/app/actions/design-actions';
 import { submitContestEntry } from '@/app/actions/contest-actions';
 import { linkDesignToVerification } from '@/app/actions/verification-actions';
-import { LoadDesignDialog } from './load-design-dialog';
+import { LoadDesignDialog } from '@/components/design/load-design-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { cn, resolveImagePath } from '@/lib/utils';
-import { CropDialog } from './crop-dialog';
+import { cn } from '@/lib/utils';
+import { CropDialog } from '@/components/design/crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
-import { TextAddPanel } from './panels/text-add-panel';
-import { AmazoprintLogo } from '../ui/logo';
-import { BrushToolPanel } from './brush-tool-panel';
-
-const MediaPanel = lazy(() => import('./panels/media-panel').then(m => ({ default: m.MediaPanel })));
-const QrCodePanel = lazy(() => import('./panels/qrcode-panel').then(m => ({ default: m.QrCodePanel })));
-const PenToolPanel = lazy(() => import('./pen-tool-panel').then(m => ({ default: m.PenToolPanel })));
+import { AmazoprintLogo } from '@/components/ui/logo';
+import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -247,30 +226,6 @@ function DesignEditorInternal({
     }
     return true;
   }, [isDirty]);
-
-  useEffect(() => {
-    const fontFamilies = [
-      'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
-      'Playfair Display', 'Merriweather', 'Ubuntu', 'PT Sans', 'Lora', 'Source Sans Pro',
-      'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat',
-      'Bevan', 'Bree Serif', 'Coda', 'Frijole', 'Fugaz One', 'Jura'
-    ];
-    const fontUrl = `https://fonts.googleapis.com/css2?${fontFamilies.map(f => `family=${f.replace(/ /g, '+')}`).join('&')}&display=swap`;
-
-    const link = document.createElement('link');
-    link.id = 'google-fonts-dynamic';
-    link.href = fontUrl;
-    link.rel = 'stylesheet';
-    
-    document.head.appendChild(link);
-
-    return () => {
-      const existingLink = document.getElementById('google-fonts-dynamic');
-      if (existingLink) {
-        document.head.removeChild(existingLink);
-      }
-    };
-  }, []);
 
   const updatePage = useCallback((pageIndex: number, newPageData: Partial<Page>) => {
     setIsDirty(true);
@@ -548,26 +503,16 @@ function DesignEditorInternal({
         beginTransaction();
         const [x, y] = getPointInCanvas(e);
 
-        if (livePath) {
-            const hitRadius = 25 / viewState.zoom; // Increased hit radius for easier closure
-            if (livePath.length > 2 && Math.hypot(x - livePath[0].x, y - livePath[0].y) < hitRadius) {
-                const updatedPath = [...livePath];
-                // Snap the last point to the exact coordinates of the first point for perfect closure
-                const firstPoint = updatedPath[0];
-                const lastIdx = updatedPath.length - 1;
-                updatedPath[lastIdx] = { 
-                    ...updatedPath[lastIdx], 
-                    x: firstPoint.x, 
-                    y: firstPoint.y,
-                    cp2x: firstPoint.x, 
-                    cp2y: firstPoint.y 
-                };
-                setLivePath(updatedPath);
-                finalizePath(updatedPath, true);
+        if (livePath && livePath.length > 2) {
+            const firstPoint = livePath[0];
+            const hitRadius = 25 / viewState.zoom;
+            if (Math.hypot(x - firstPoint.x, y - firstPoint.y) < hitRadius) {
+                // Clicking start point: Complete the shape.
+                finalizePath(livePath, true);
                 return;
             }
-
-            for (let i = 0; i < livePath.length; i++) {
+            
+            for (let i = 1; i < livePath.length; i++) {
                 const p = livePath[i];
                 if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
                     setDraggingPoint({ index: i, type: 'anchor' });
@@ -1370,14 +1315,6 @@ function DesignEditorInternal({
   const isSingleElementSelected = selectedElements.length === 1;
   const isGroupSelected = isSingleElementSelected && selectedElement?.type === 'group';
 
-  const editorPanels = [
-    { id: 'elements', label: 'Text', icon: <Type size={24} />, color: 'text-blue-600 bg-blue-500/10 data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
-    { id: 'media', label: 'Media', icon: <LayoutGrid size={24} />, color: 'text-purple-600 bg-purple-500/10 data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
-    { id: 'qrcode', label: 'QR Code', icon: <QrCode size={24} />, color: 'text-emerald-600 bg-emerald-500/10 data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
-    { id: 'brush', label: 'Brush', icon: <Brush size={24} />, color: 'text-orange-600 bg-orange-500/10 data-[state=active]:bg-orange-600 data-[state=active]:text-white' },
-    { id: 'pen', label: 'Pen', icon: <PenTool size={24} />, color: 'text-indigo-600 bg-indigo-500/10 data-[state=active]:bg-indigo-600 data-[state=active]:text-white', className: 'mt-auto' },
-  ];
-
   const handleMobilePanelOpen = (panel: string) => {
     setActiveMobilePanel(panel);
     setMobileSheetOpen(true);
@@ -1555,84 +1492,20 @@ function DesignEditorInternal({
         </header>
 
         <div className="flex overflow-hidden relative">
-          <Sidebar collapsible="icon" variant="floating" className="hidden lg:block">
-            <SidebarContent className="p-0 overflow-y-hidden">
-              <TooltipProvider>
-                <Tabs 
-                  defaultValue="elements" 
-                  orientation="vertical" 
-                  className="w-full h-full flex" 
-                  onValueChange={(val) => {
-                    if (val === 'brush' || val === 'pen') {
-                        setActiveTool(val as any);
-                    } else {
-                        setActiveTool('select');
-                    }
-                  }}
-                >
-                <TabsList className="flex flex-col h-full p-3 gap-3 bg-transparent">
-                    {editorPanels.map((panel) => (
-                      <Tooltip key={panel.id}>
-                        <TooltipTrigger asChild>
-                          <TabsTrigger
-                            value={panel.id}
-                            className={cn(
-                              "h-20 w-20 p-0 flex flex-col gap-1 items-center justify-center rounded-2xl transition-all duration-200",
-                              "data-[state=active]:scale-110 data-[state=active]:shadow-lg",
-                              panel.color,
-                              (panel as any).className
-                            )}
-                            onClick={() => {
-                                if (panel.id === 'pen') {
-                                    setLeftOpen(false);
-                                } else {
-                                    setLeftOpen(true);
-                                }
-                            }}
-                          >
-                            {panel.icon}
-                            <span className="text-xs font-bold">{panel.label}</span>
-                          </TabsTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent side="right"><p>{panel.label}</p></TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </TabsList>
-                  <div className={cn(
-                    "group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex", 
-                    "w-[26rem]",
-                    activeTool === 'pen' && "hidden" 
-                  )}>
-                    <TabsContent value="elements" className="flex-1 overflow-auto mt-0">
-                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
-                          <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />
-                      </Suspense>
-                    </TabsContent>
-                    <TabsContent value="media" className="flex-1 overflow-auto mt-0">
-                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
-                        <MediaPanel 
-                          onImageSelect={handleAddImageFromLibrary} 
-                          onAddShape={handleAddShape}
-                          onEmojiSelect={handleAddEmoji}
-                          isAdmin={isAdmin}
-                        />
-                      </Suspense>
-                    </TabsContent>
-                    <TabsContent value="qrcode" className="flex-1 overflow-auto mt-0">
-                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
-                        <QrCodePanel onAddQrCode={addQrCodeElement} />
-                      </Suspense>
-                    </TabsContent>
-                    <TabsContent value="brush" className="flex-1 overflow-auto mt-0">
-                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>}>
-                        <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} />
-                      </Suspense>
-                    </TabsContent>
-                  </div>
-                </Tabs>
-              </TooltipProvider>
-            </SidebarContent>
-          </Sidebar>
+          <EditorSidebarLeft
+              activeTool={activeTool}
+              setActiveTool={setActiveTool}
+              isAdmin={isAdmin}
+              onAddImage={handleAddImageFromLibrary}
+              onAddShape={handleAddShape}
+              onAddEmoji={handleAddEmoji}
+              onAddText={addTextElement}
+              onAddGroupedElements={handleAddGroupedElements}
+              onAddQrCode={addQrCodeElement}
+              brushOptions={brushOptions}
+              setBrushOptions={setBrushOptions}
+              finalizePath={finalizePath}
+          />
           <SidebarRail side="left" />
 
           <SidebarInset className="min-h-0 flex-1 p-0 m-0 lg:pb-0" style={{ paddingBottom: isMobile ? '80px' : '0' }}>
@@ -1730,19 +1603,7 @@ function DesignEditorInternal({
               <footer className="fixed bottom-0 left-0 right-0 z-10 bg-card border-t p-2">
                 <ScrollArea orientation="horizontal" className="w-full">
                     <div className="flex gap-1 justify-center px-4">
-                        {editorPanels.map(panel => (
-                           <Button 
-                            key={panel.id}
-                            variant={activeMobilePanel === panel.id ? 'selected' : 'ghost'}
-                            size="sm"
-                            className="flex flex-col h-auto p-2 gap-1"
-                            onClick={() => handleMobilePanelOpen(panel.id)}
-                           >
-                            {panel.icon}
-                            <span className="text-[10px]">{panel.label}</span>
-                           </Button> 
-                        ))}
-                         <Button 
+                        <Button 
                             variant={activeMobilePanel === 'properties' ? 'selected' : 'ghost'}
                             size="sm"
                             className="flex flex-col h-auto p-2 gap-1"
