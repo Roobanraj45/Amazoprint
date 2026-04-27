@@ -383,7 +383,6 @@ function DesignEditorInternal({
         strokeCanvas.height = product.height;
         const ctx = strokeCanvas.getContext('2d');
         if (ctx) {
-            // Draw from the live canvas but offset back to 0,0
             ctx.drawImage(brushCanvasRef.current, -safetyMargin, -safetyMargin);
         }
         
@@ -395,7 +394,6 @@ function DesignEditorInternal({
         };
         updatePage(currentPage, { elements: [...currentElements, newElement] });
         
-        // Clear live canvas
         const liveCtx = brushCanvasRef.current.getContext('2d');
         liveCtx?.clearRect(0, 0, brushCanvasRef.current.width, brushCanvasRef.current.height);
         
@@ -690,7 +688,7 @@ function DesignEditorInternal({
         </header>
 
         <div className="flex overflow-hidden relative h-full">
-          <EditorSidebarLeft activeTool={activeTool} setActiveTool={setActiveTool} isAdmin={isAdmin} onAddImage={handleAddImageFromLibrary} onAddShape={handleAddShape} onAddEmoji={handleAddEmoji} onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddQrCode={addQrCodeElement} brushOptions={brushOptions} setBrushOptions={setBrushOptions} onClearBrush={() => { const liveCanvas = document.getElementById('live-brush-canvas') as HTMLCanvasElement; const ctx = liveCanvas?.getContext('2d'); ctx?.clearRect(0,0,liveCanvas.width,liveCanvas.height); }} finalizePath={finalizePath} />
+          <EditorSidebarLeft activeTool={activeTool} setActiveTool={setActiveTool} isAdmin={isAdmin} onAddImage={handleAddImageFromLibrary} onAddShape={handleAddShape} onAddEmoji={handleAddEmoji} onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddQrCode={(val, style) => {}} brushOptions={brushOptions} setBrushOptions={setBrushOptions} onClearBrush={() => { const liveCanvas = document.getElementById('live-brush-canvas') as HTMLCanvasElement; const ctx = liveCanvas?.getContext('2d'); ctx?.clearRect(0,0,liveCanvas.width,liveCanvas.height); }} finalizePath={finalizePath} />
           <SidebarInset className="min-h-0 flex-1 p-0 m-0 relative">
             <div ref={mainCanvasRef} className="flex-1 overflow-hidden relative h-full bg-muted" style={{ cursor: activeTool === 'brush' ? 'crosshair' : (activeTool === 'pen' ? 'crosshair' : 'default') }} onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
                 <DesignCanvas product={product} elements={currentElements} selectedElementIds={selectedElementIds} onSelectElement={handleSelectElement} onUpdateElement={updateElement} background={currentBackground} showRulers={showRulers} showGrid={showGrid} gridSize={gridSize} guides={guides} smartGuides={activeSmartGuides} showPrintGuidelines={showPrintGuidelines} bleed={bleed} safetyMargin={safetyMargin} viewState={viewState} activeTool={activeTool} />

@@ -47,12 +47,12 @@ export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelP
                 <div className="space-y-4">
                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Brush Engine</Label>
                     <Select value={options.tip} onValueChange={(v) => updateOption('tip', v)}>
-                        <SelectTrigger className="w-full bg-background border-none shadow-sm h-11">
+                        <SelectTrigger className="w-full bg-background border-none shadow-sm h-11 text-xs">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             {tips.map(tip => (
-                                <SelectItem key={tip.id} value={tip.id}>{tip.label}</SelectItem>
+                                <SelectItem key={tip.id} value={tip.id} className="text-xs">{tip.label}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
