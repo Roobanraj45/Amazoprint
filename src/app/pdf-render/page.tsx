@@ -35,7 +35,7 @@ export default function PdfRenderPage() {
         'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat',
         'Bevan', 'Bree Serif', 'Coda', 'Fugaz One', 'Jura'
     ];
-    const fontUrl = `https://fonts.googleapis.com/css2?${fonts.map(f => `family=${f.replace(/ /g, '+')}`).join('&')}&display=swap`;
+    const fontUrl = `https://fonts.googleapis.com/css2?${fonts.map(f => `family=${f.replace(/ /g, '+')}:wght@400;700;900`).join('&')}&display=swap`;
 
     const link = document.createElement('link');
     link.id = 'google-fonts-dynamic-render';

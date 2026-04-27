@@ -198,7 +198,7 @@ function DesignEditorInternal({
         'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat',
         'Bevan', 'Bree Serif', 'Coda', 'Fugaz One', 'Jura'
     ];
-    const fontUrl = `https://fonts.googleapis.com/css2?${fonts.map(f => `family=${f.replace(/ /g, '+')}`).join('&')}&display=swap`;
+    const fontUrl = `https://fonts.googleapis.com/css2?${fonts.map(f => `family=${f.replace(/ /g, '+')}:wght@400;700;900`).join('&')}&display=swap`;
     const link = document.createElement('link');
     link.href = fontUrl;
     link.rel = 'stylesheet';
@@ -1165,7 +1165,7 @@ function DesignEditorInternal({
     <>
       <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden overflow-hidden">
         {/* ================= HEADER SUITE ================= */}
-        <header className="relative z-50 flex h-14 items-center gap-2 border-b bg-white px-4 shadow-sm">
+        <header className="relative z-50 flex h-16 items-center gap-2 border-b bg-white px-4 shadow-sm">
           {/* Brand Identity - Larger Logo as Home Link */}
           <div className="flex items-center gap-3">
             <Link 

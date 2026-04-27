@@ -25,10 +25,7 @@ import { AssetLibrary } from "./asset-library";
 import { cn } from "@/lib/utils";
 
 const fontFamilies = [
-  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
-  'Playfair Display', 'Merriweather', 'Ubuntu', 'PT Sans', 'Lora', 'Source Sans Pro',
-  'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat',
-  'Bevan', 'Bree Serif', 'Coda', 'Fugaz One', 'Jura'
+    'Inter', 'Oswald', 'Bebas Neue', 'Poppins', 'Montserrat', 'Raleway', 'Nunito', 'Roboto', 'Open Sans', 'Lato', 'Playfair Display', 'Merriweather', 'Lora', 'Ubuntu', 'PT Sans', 'Pacifico', 'Dancing Script', 'Lobster', 'Caveat', 'Bevan', 'Bree Serif', 'Coda', 'Fugaz One', 'Jura'
 ];
 
 type TextPropertiesPanelProps = {
@@ -139,26 +136,24 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
         <div className="flex flex-col gap-4">
             <Textarea
                 value={element.content}
-                className="min-h-[80px] bg-background/60 border-none shadow-inner resize-none text-base focus-visible:ring-1 ring-primary/30 w-full"
+                className="min-h-[80px] bg-background/60 border-none shadow-inner resize-none text-base focus-visible:ring-1 ring-primary/30 m-3 w-auto"
                 onChange={(e) => handleUpdate({ content: e.target.value })}
                 placeholder="Type something..."
             />
             
-            <div className="space-y-4">
+            <div className="space-y-2 bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm mx-3">
                 <SectionCard title="Typography" icon={<Type size={14} />}>
                     <div className="grid grid-cols-2 gap-3">
                         <div className="col-span-2 space-y-1.5">
                             <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Font Family</Label>
                             <Select value={element.fontFamily} onValueChange={(v) => handleUpdate({ fontFamily: v })}>
-                                <SelectTrigger className="h-11 bg-background border-none shadow-sm text-xs font-medium">
-                                    <span style={{ fontFamily: `"${element.fontFamily}", sans-serif` }}>
-                                        <SelectValue placeholder="Font Family" />
-                                    </span>
+                                <SelectTrigger className="h-10 bg-background border-border/50 shadow-sm text-sm" style={{ fontFamily: element.fontFamily }}>
+                                    <SelectValue placeholder="Font Family" />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-[300px]">
                                     {fontFamilies.map(font => (
-                                        <SelectItem key={font} value={font}>
-                                            <span style={{ fontFamily: `"${font}", sans-serif`, fontSize: '1rem' }}>{font}</span>
+                                        <SelectItem key={font} value={font} className="py-2.5">
+                                            <span style={{ fontFamily: font, fontSize: '1.1rem' }}>{font}</span>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -207,7 +202,9 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         </div>
                     </div>
                 </SectionCard>
+            </div>
 
+            <div className="space-y-2 bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm mx-3">
                 <SectionCard title="Fill & Stroke" icon={<Palette size={14} />}>
                     <div className="space-y-2">
                         <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Fill Type</Label>
@@ -293,7 +290,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         )}
                         {element.fillType === 'stepped-gradient' && (
                            <div className="space-y-6">
-                                <div className="flex items-center gap-4 bg-muted/40 p-3 rounded-xl border border-border/40 shadow-sm">
+                                <div className="flex items-center gap-4 bg-muted/40 p-3 rounded-xl border border-border/40">
                                     <div className="flex-1 space-y-2">
                                         <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
                                             <Label>Angle</Label>
@@ -390,7 +387,6 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         )}
                     </div>
                 </SectionCard>
-
                 <div className="pt-3 border-t border-border/40">
                     <SectionCard title="Stroke" icon={<Edit3 size={14} />}>
                        <ColorPicker
@@ -411,7 +407,9 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         </div>
                     </SectionCard>
                 </div>
-
+            </div>
+            
+            <div className="space-y-2 bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm mx-3">
                 <SectionCard title="Layout & Spacing" icon={<Layout size={14}/>}>
                      <div className="space-y-2">
                         <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Alignment</Label>
@@ -470,7 +468,9 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         </div>
                     </div>
                 </SectionCard>
-
+            </div>
+            
+            <div className="space-y-2 bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm mx-3">
                 <SectionCard title="Effects" icon={<WandSparkles size={14} />}>
                    <div className="space-y-3 px-1 pt-2">
                         <div className="flex items-center justify-between">
