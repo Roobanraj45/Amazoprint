@@ -9,8 +9,6 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
-  ChevronsUp,
-  ChevronsDown,
   Undo,
   Redo,
   Layers,
@@ -37,9 +35,7 @@ import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import { LayersPanel } from '@/components/design/layers-panel';
 import { saveDesign, updateDesign } from '@/app/actions/design-actions';
-import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from '@/components/design/load-design-dialog';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
@@ -49,9 +45,6 @@ const DPI = 300;
 const MM_PER_INCH = 25.4;
 const PX_TO_MM = MM_PER_INCH / DPI;
 const MM_TO_PX = DPI / MM_PER_INCH;
-const RULER_SIZE = 60;
-
-const PEN_CURSOR = 'crosshair';
 
 type DesignEditorProps = {
   product: Product;
@@ -87,7 +80,6 @@ function DesignEditorInternal({
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const { toast } = useToast();
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
-  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -108,7 +100,6 @@ function DesignEditorInternal({
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0 });
   const [activeSmartGuides, setActiveSmartGuides] = useState<Guide[]>([]);
-  const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
   
   const [activeTool, setActiveTool] = useState<'select' | 'pen' | 'brush'>('select');
   
@@ -127,8 +118,6 @@ function DesignEditorInternal({
   // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
   const [draggingPoint, setDraggingPoint] = useState<{ index: number; type: 'anchor' | 'cp1' | 'cp2' } | null>(null);
-
-  const isMobile = useIsMobile();
 
   type DesignState = {
     pages: Page[];
@@ -164,7 +153,7 @@ function DesignEditorInternal({
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
-  // Brush Tip Builder (The "Profile" of the brush head from HTML example)
+  // Brush Tip Builder
   const buildBrushTip = useCallback(() => {
     const tip = [];
     const density = 80;
@@ -311,11 +300,9 @@ function DesignEditorInternal({
         setIsDrawing(true);
         lastDrawingPos.current = { x, y };
 
-        if (!brushCanvasRef.current) {
-            const canvas = document.createElement('canvas');
-            canvas.width = product.width;
-            canvas.height = product.height;
-            brushCanvasRef.current = canvas;
+        const liveCanvas = document.getElementById('live-brush-canvas') as HTMLCanvasElement;
+        if (liveCanvas) {
+            brushCanvasRef.current = liveCanvas;
         }
         return;
     }
@@ -351,12 +338,11 @@ function DesignEditorInternal({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const [x, y] = getPointInCanvas(e);
-    setMousePos({ x, y, screenX: e.clientX, screenY: e.clientY });
-
+    
     if (isDrawing && activeTool === 'brush' && brushCanvasRef.current) {
         const ctx = brushCanvasRef.current.getContext('2d');
         if (ctx) {
-            drawBrushStroke(ctx, lastDrawingPos.current.x, lastDrawingPos.current.y, x, y);
+            drawBrushStroke(ctx, lastDrawingPos.current.x + safetyMargin, lastDrawingPos.current.y + safetyMargin, x + safetyMargin, y + safetyMargin);
             lastDrawingPos.current = { x, y };
         }
         return;
@@ -391,15 +377,28 @@ function DesignEditorInternal({
   const handleMouseUp = () => {
     if (isDrawing && activeTool === 'brush' && brushCanvasRef.current) {
         setIsDrawing(false);
-        const dataUrl = brushCanvasRef.current.toDataURL();
+        
+        const strokeCanvas = document.createElement('canvas');
+        strokeCanvas.width = product.width;
+        strokeCanvas.height = product.height;
+        const ctx = strokeCanvas.getContext('2d');
+        if (ctx) {
+            // Draw from the live canvas but offset back to 0,0
+            ctx.drawImage(brushCanvasRef.current, -safetyMargin, -safetyMargin);
+        }
+        
+        const dataUrl = strokeCanvas.toDataURL();
         const newElement: DesignElement = {
             id: crypto.randomUUID(), type: 'image', x: 0, y: 0, width: product.width, height: product.height, rotation: 0, opacity: 1, visible: true, locked: false,
             src: dataUrl, objectFit: 'contain', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
             content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
         };
         updatePage(currentPage, { elements: [...currentElements, newElement] });
-        const ctx = brushCanvasRef.current.getContext('2d');
-        ctx?.clearRect(0, 0, brushCanvasRef.current.width, brushCanvasRef.current.height);
+        
+        // Clear live canvas
+        const liveCtx = brushCanvasRef.current.getContext('2d');
+        liveCtx?.clearRect(0, 0, brushCanvasRef.current.width, brushCanvasRef.current.height);
+        
         endTransaction();
         return;
     }
@@ -407,9 +406,6 @@ function DesignEditorInternal({
     if (isPanning.current) isPanning.current = false;
   };
 
-  const handleZoomIn = () => setViewState(vs => ({...vs, zoom: Math.min(vs.zoom * 1.2, 5) }));
-  const handleZoomOut = () => setViewState(vs => ({...vs, zoom: Math.max(vs.zoom / 1.2, 0.1) }));
-  
   const handlePreview = () => {
     try {
       localStorage.setItem('design_preview', JSON.stringify({ elements: currentElements, product, background: currentBackground, bleed, safetyMargin }));
@@ -417,18 +413,6 @@ function DesignEditorInternal({
     } catch (error) { toast({ variant: 'destructive', title: 'Could not open preview' }); }
   };
 
-  const addQrCodeElement = (value: string, style: string) => {
-    const size = 300;
-    const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'qrcode', x: (product.width - size)/2, y: (product.height - size)/2, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
-      backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-      qrValue: value || 'https://amazoprint.com', qrColor: '#000000', qrBgColor: '#FFFFFF', qrLevel: 'M', qrIconSize: 20, qrStylePreset: style as any || 'default',
-      content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle'
-    };
-    updatePage(currentPage, { elements: [...currentElements, newElement] });
-    setSelectedElementIds([newElement.id]);
-  };
-  
   const addTextElement = (options: Partial<DesignElement>) => {
     const defaultTextElement: DesignElement = {
       id: crypto.randomUUID(), type: 'text', x: 0, y: 0, width: 250, height: 50, rotation: 0, opacity: 1, visible: true, locked: false,
@@ -601,7 +585,6 @@ function DesignEditorInternal({
   const selectedElements = selectedElementIds.map(id => findElementRecursive(currentElements, id)).filter((el): el is DesignElement => !!el);
   const selectedElement = selectedElements[0];
 
-  // ====================== KEYBOARD SHORTCUTS ======================
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -609,15 +592,9 @@ function DesignEditorInternal({
 
       if (e.key === 'Escape' && !isInput) {
         e.preventDefault();
-        if (croppingElementId) {
-          setCroppingElementId(null);
-        } else if (activeTool === 'pen') {
-          // Force connect starting point when Escape is pressed
-          finalizePath(livePath, true);
-        } else {
-          setSelectedElementIds([]);
-          setActiveTool('select');
-        }
+        if (croppingElementId) setCroppingElementId(null);
+        else if (activeTool === 'pen') finalizePath(livePath, true);
+        else { setSelectedElementIds([]); setActiveTool('select'); }
       }
 
       if ((e.ctrlKey || e.metaKey) && !isInput) {
@@ -625,7 +602,6 @@ function DesignEditorInternal({
         else if (e.key === 'y') { e.preventDefault(); redo(); }
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo, activeTool, finalizePath, livePath, croppingElementId]);
@@ -714,9 +690,9 @@ function DesignEditorInternal({
         </header>
 
         <div className="flex overflow-hidden relative h-full">
-          <EditorSidebarLeft activeTool={activeTool} setActiveTool={setActiveTool} isAdmin={isAdmin} onAddImage={handleAddImageFromLibrary} onAddShape={handleAddShape} onAddEmoji={handleAddEmoji} onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddQrCode={addQrCodeElement} brushOptions={brushOptions} setBrushOptions={setBrushOptions} onClearBrush={() => { const ctx = brushCanvasRef.current?.getContext('2d'); ctx?.clearRect(0,0,product.width,product.height); }} finalizePath={finalizePath} />
+          <EditorSidebarLeft activeTool={activeTool} setActiveTool={setActiveTool} isAdmin={isAdmin} onAddImage={handleAddImageFromLibrary} onAddShape={handleAddShape} onAddEmoji={handleAddEmoji} onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddQrCode={addQrCodeElement} brushOptions={brushOptions} setBrushOptions={setBrushOptions} onClearBrush={() => { const liveCanvas = document.getElementById('live-brush-canvas') as HTMLCanvasElement; const ctx = liveCanvas?.getContext('2d'); ctx?.clearRect(0,0,liveCanvas.width,liveCanvas.height); }} finalizePath={finalizePath} />
           <SidebarInset className="min-h-0 flex-1 p-0 m-0 relative">
-            <div ref={mainCanvasRef} className="flex-1 overflow-hidden relative h-full bg-muted" style={{ cursor: activeTool === 'brush' ? 'crosshair' : (activeTool === 'pen' ? PEN_CURSOR : 'default') }} onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+            <div ref={mainCanvasRef} className="flex-1 overflow-hidden relative h-full bg-muted" style={{ cursor: activeTool === 'brush' ? 'crosshair' : (activeTool === 'pen' ? 'crosshair' : 'default') }} onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
                 <DesignCanvas product={product} elements={currentElements} selectedElementIds={selectedElementIds} onSelectElement={handleSelectElement} onUpdateElement={updateElement} background={currentBackground} showRulers={showRulers} showGrid={showGrid} gridSize={gridSize} guides={guides} smartGuides={activeSmartGuides} showPrintGuidelines={showPrintGuidelines} bleed={bleed} safetyMargin={safetyMargin} viewState={viewState} activeTool={activeTool} />
             </div>
           </SidebarInset>

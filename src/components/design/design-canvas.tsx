@@ -218,7 +218,7 @@ type DesignCanvasProps = {
   highlightSpotUv?: boolean;
   livePath?: PathPoint[] | null;
   mousePos?: { x: number, y: number } | null;
-  activeTool?: 'select' | 'pen';
+  activeTool?: 'select' | 'pen' | 'brush';
   croppingElementId?: string | null;
   setCroppingElementId?: (id: string | null) => void;
 };
@@ -499,6 +499,21 @@ export function DesignCanvas({
           </div>
           
           <PenToolCanvas livePath={livePath} mousePos={mousePos} zoom={zoom} safetyMargin={safetyMargin} />
+
+          {/* Live Brush Canvas Overlay */}
+          <canvas
+            id="live-brush-canvas"
+            width={editorCanvasWidth}
+            height={editorCanvasHeight}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              pointerEvents: 'none',
+              zIndex: 1000,
+              visibility: activeTool === 'brush' ? 'visible' : 'hidden'
+            }}
+          />
         </div>
       </div>
     </div>
