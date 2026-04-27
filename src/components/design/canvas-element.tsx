@@ -684,6 +684,46 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
           }
         }
       }
+      case 'brush': {
+        if (!element.path || element.path.length < 2) return null;
+        // Build SVG polyline points string from stored path
+        const points = (element.path as [number, number][]).map(([px, py]) => `${px},${py}`).join(' ');
+        const hardness = element.brushHardness ?? 0.5;
+        // For round/square tips use a smooth polyline; for calligraphy use a skewed line cap
+        const lineCap: 'round' | 'square' | 'butt' =
+          element.brushTip === 'square' || element.brushTip === 'calligraphy' ? 'square' : 'round';
+        const lineJoin: 'round' | 'bevel' | 'miter' = 'round';
+        // Simulate hardness via a blur filter (soft brush → more blur)
+        const blurAmount = (1 - hardness) * (element.strokeWidth ?? 10) * 0.25;
+        const filterId = `brush-blur-${element.id}`;
+
+        return (
+          <svg
+            width="100%"
+            height="100%"
+            viewBox={`0 0 ${element.width} ${element.height}`}
+            style={{ overflow: 'visible', display: 'block' }}
+            preserveAspectRatio="none"
+          >
+            {blurAmount > 0.5 && (
+              <defs>
+                <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation={blurAmount} />
+                </filter>
+              </defs>
+            )}
+            <polyline
+              points={points}
+              fill="none"
+              stroke={isSpotUv ? 'black' : (element.strokeColor || element.color || '#000000')}
+              strokeWidth={element.strokeWidth ?? 10}
+              strokeLinecap={lineCap}
+              strokeLinejoin={lineJoin}
+              filter={blurAmount > 0.5 ? `url(#${filterId})` : undefined}
+            />
+          </svg>
+        );
+      }
       default:
         return null;
     }

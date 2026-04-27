@@ -66,6 +66,7 @@ export default function RootLayout({
         <link rel="icon" href="/uploads/amazoLogo.png" sizes="any" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter&family=Roboto&family=Open+Sans&family=Lato&family=Montserrat&family=Poppins&family=Oswald&family=Source+Sans+3&family=Raleway&family=Ubuntu&family=Playfair+Display&family=Merriweather&family=PT+Serif&family=Lora&family=Nunito&family=Roboto+Mono&family=Fira+Code&family=Outfit&family=Dancing+Script&family=Pacifico&family=Caveat&family=Righteous&family=Lobster&family=Bebas+Neue&family=Anton&family=Josefin+Sans&family=Titillium+Web&family=Quicksand&family=Rubik&family=Inconsolata&family=Cinzel&family=Amatic+SC&family=Comfortaa&family=Comic+Neue&family=Permanent+Marker&family=Bungee&family=Rakkas&family=Kalam&family=Indie+Flower&family=Satisfy&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body">
         <CartProviderWrapper>

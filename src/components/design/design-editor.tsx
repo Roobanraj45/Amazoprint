@@ -36,9 +36,20 @@ import {
   SlidersHorizontal,
   Library,
   Undo,
+  AlignLeft,
+  Blend,
+  Copy,
+  Trash2,
+  PlayCircle,
+  LayoutDashboard,
 } from 'lucide-react';
 import { PropertiesPanel } from '@/components/design/properties-panel';
 import { DesignCanvas } from '@/components/design/design-canvas';
+import { TextAddPanel } from '@/components/design/panels/text-add-panel';
+import { MediaPanel } from '@/components/design/panels/media-panel';
+import { QrCodePanel } from '@/components/design/panels/qrcode-panel';
+import { BrushToolPanel } from '@/components/design/brush-tool-panel';
+import { PenToolPanel } from '@/components/design/pen-tool-panel';
 import {
   Popover,
   PopoverContent,
@@ -51,8 +62,10 @@ import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import { ElementToolbar } from '@/components/design/element-toolbar';
 import { LayersPanel } from '@/components/design/layers-panel';
+import { EditorHeader } from '@/components/design/editor-header';
+import { buildBrushTip, renderBristleSegment, BristleProfile, BrushEngineTip } from '@/lib/brush-engine';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { getDesign, saveDesign, updateDesign } from '@/app/actions/design-actions';
+import { getDesign, saveDesign, updateDesign, getMyDesigns } from '@/app/actions/design-actions';
 import { submitContestEntry } from '@/app/actions/contest-actions';
 import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from '@/components/design/load-design-dialog';
@@ -139,28 +152,26 @@ function DesignEditorInternal({
   const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
   const [isDrawing, setIsDrawing] = useState(false);
   const drawingPointsRef = useRef<[number, number][]>([]);
-  const scatterPointsRef = useRef<{x: number; y: number; r: number; w?: number; h?: number; opacity?: number}[]>([]);
+  const bristleTipRef = useRef<BristleProfile>([]);
   
   const [livePencilPath, setLivePencilPath] = useState<{ 
       path: [number, number][]; 
       strokeColor: string; 
-      strokeWidth: number; 
-      hardness: number; 
-      opacity: number;
-      brushTip: 'round' | 'square' | 'chalk' | 'spraySoft' | 'texture' | 'scatter' | 'calligraphy';
-      scatterData?: {x: number; y: number; r: number; w?: number; h?: number; opacity?: number}[];
+      flow: number;
+      brushTip: BrushEngineTip;
+      bristleTipData: BristleProfile;
   } | null>(null);
 
-  const [brushOptions, setBrushOptions] = useState({
-      tool: 'brush' as 'brush' | 'spray',
-      brushTip: 'round' as const,
-      size: 40,
-      opacity: 1,
-      density: 80,
-      scatter: 40,
-      hardness: 0.5,
-      flow: 3,
-      color: '#000000',
+  const [brushOptions, setBrushOptions] = useState<{
+      brushTip: BrushEngineTip;
+      size: number;
+      flow: number;
+      color: string;
+  }>({
+      brushTip: 'chisel',
+      size: 60,
+      flow: 0.25,
+      color: '#222222',
   });
   
   // Pen Tool States
@@ -458,43 +469,16 @@ function DesignEditorInternal({
         setIsDrawing(true);
         const [x, y] = getPointInCanvas(e);
         drawingPointsRef.current = [[x, y]];
-        scatterPointsRef.current = [];
         
-        const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
-        if (isComplex) {
-            const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
-            for (let i = 0; i < count; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const scatterRatio = brushOptions.scatter / 100;
-                const radius = Math.pow(Math.random(), 1 - brushOptions.hardness) * brushOptions.size * scatterRatio;
-                const particleX = x + Math.cos(angle) * radius;
-                const particleY = y + Math.sin(angle) * radius;
-
-                if (brushOptions.brushTip === 'texture') {
-                    scatterPointsRef.current.push({
-                        x: particleX, y: particleY, r: 0,
-                        w: Math.random() * brushOptions.size * 0.3,
-                        h: Math.random() * brushOptions.size * 0.3,
-                        opacity: Math.random() * brushOptions.opacity
-                    });
-                } else {
-                    scatterPointsRef.current.push({
-                        x: particleX, y: particleY, 
-                        r: brushOptions.tool === 'spray' ? 1.5 : (Math.random() * 1.5 + 0.5),
-                        opacity: (1 - radius / brushOptions.size) * brushOptions.opacity
-                    });
-                }
-            }
-        }
+        // Generate the bristle profile for this stroke
+        bristleTipRef.current = buildBrushTip(brushOptions.brushTip as BrushEngineTip, brushOptions.size);
 
         setLivePencilPath({
             path: [[x, y], [x, y]],
             strokeColor: brushOptions.color,
-            strokeWidth: brushOptions.size,
-            hardness: brushOptions.hardness,
-            opacity: brushOptions.opacity,
-            brushTip: brushOptions.brushTip,
-            scatterData: scatterPointsRef.current
+            flow: brushOptions.flow,
+            brushTip: brushOptions.brushTip as BrushEngineTip,
+            bristleTipData: bristleTipRef.current
         });
         return;
     }
@@ -557,57 +541,19 @@ function DesignEditorInternal({
         const lastPoint = points[points.length - 1];
         if (!lastPoint) return;
 
+        // Add point if we moved
         const dist = Math.hypot(x - lastPoint[0], y - lastPoint[1]);
-        const spacing = brushOptions.size * 0.1; 
-        
-        if (dist >= spacing || brushOptions.tool === 'spray') {
-            const steps = Math.max(1, Math.floor(dist / spacing));
-
-            for (let s = 1; s <= steps; s++) {
-                const t = s / steps;
-                const interX = lastPoint[0] + (x - lastPoint[0]) * t;
-                const interY = lastPoint[1] + (y - lastPoint[1]) * t;
-                points.push([interX, interY]);
-
-                const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
-                if (isComplex) {
-                    const count = Math.ceil(brushOptions.density * (brushOptions.flow / 5));
-                    for (let i = 0; i < count; i++) {
-                        const angle = Math.random() * Math.PI * 2;
-                        const scatterRatio = brushOptions.scatter / 100;
-                        const radius = Math.pow(Math.random(), 1 - brushOptions.hardness) * brushOptions.size * scatterRatio;
-                        const px = interX + Math.cos(angle) * radius;
-                        const py = interY + Math.sin(angle) * radius;
-
-                        if (brushOptions.brushTip === 'texture') {
-                            scatterPointsRef.current.push({
-                                x: px, y: py, r: 0,
-                                w: Math.random() * brushOptions.size * 0.3,
-                                h: Math.random() * brushOptions.size * 0.3,
-                                opacity: Math.random() * brushOptions.opacity
-                            });
-                        } else {
-                            scatterPointsRef.current.push({
-                                x: px, y: py, 
-                                r: brushOptions.tool === 'spray' ? 1.5 : (Math.random() * 1.5 + 0.5),
-                                opacity: (1 - (radius / (brushOptions.size * scatterRatio || 1))) * brushOptions.opacity
-                            });
-                        }
-                    }
-                }
-            }
+        if (dist > 1) {
+            points.push([x, y]);
             
-            if (points.length > 500 && !isComplex) {
-                points.splice(0, points.length - 500);
-            }
-            if (scatterPointsRef.current.length > 5000) {
-                scatterPointsRef.current.splice(0, scatterPointsRef.current.length - 5000);
+            // Limit memory usage
+            if (points.length > 2000) {
+                points.splice(0, points.length - 2000);
             }
 
             setLivePencilPath(prev => prev ? { 
                 ...prev, 
-                path: [...points], 
-                scatterData: [...scatterPointsRef.current] 
+                path: [...points]
             } : null);
         }
         return;
@@ -655,14 +601,14 @@ function DesignEditorInternal({
         endTransaction();
 
         const points = drawingPointsRef.current;
-        const scatter = scatterPointsRef.current;
-        const isComplex = brushOptions.tool === 'spray' || ['chalk', 'spraySoft', 'texture'].includes(brushOptions.brushTip);
+        const bristleTipData = bristleTipRef.current;
 
-        if (points.length >= 2 || (isComplex && scatter.length > 0)) {
-            const allX = isComplex ? scatter.map(p => p.x) : points.map(p => p[0]);
-            const allY = isComplex ? scatter.map(p => p.y) : points.map(p => p[1]);
+        if (points.length >= 2) {
+            const allX = points.map(p => p[0]);
+            const allY = points.map(p => p[1]);
             
-            const padding = brushOptions.size * 2;
+            // Add padding for the stroke thickness and bristle spread
+            const padding = brushOptions.size * 1.5;
             const minX = Math.min(...allX) - padding;
             const minY = Math.min(...allY) - padding;
             const maxX = Math.max(...allX) + padding;
@@ -671,56 +617,43 @@ function DesignEditorInternal({
             const width = Math.max(1, maxX - minX);
             const height = Math.max(1, maxY - minY);
 
-            if (isComplex) {
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.fillStyle = brushOptions.color;
-                    scatter.forEach(p => {
-                        ctx.globalAlpha = p.opacity || brushOptions.opacity;
-                        if (brushOptions.brushTip === 'texture') {
-                            ctx.fillRect(p.x - minX, p.y - minY, p.w || 5, p.h || 5);
-                        } else {
-                            ctx.beginPath();
-                            ctx.arc(p.x - minX, p.y - minY, p.r, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
-                    });
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d', { alpha: true });
+            
+            if (ctx) {
+                // Adjust points relative to the new cropped canvas
+                const localPoints = points.map(([px, py]) => [px - minX, py - minY]);
+                
+                // Render the finalized stroke using the same engine
+                for (let i = 1; i < localPoints.length; i++) {
+                    const [x1, y1] = localPoints[i - 1];
+                    const [x2, y2] = localPoints[i];
                     
-                    const dataUrl = canvas.toDataURL();
-                    const newElement: DesignElement = {
-                        id: crypto.randomUUID(), type: 'image', x: minX, y: minY, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
-                        src: dataUrl, objectFit: 'contain', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-                        content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
-                    };
-                    updatePage(currentPage, { elements: [...currentElements, newElement] });
-                    setSelectedElementIds([newElement.id]);
+                    renderBristleSegment(
+                        ctx, 
+                        x1, y1, x2, y2, 
+                        bristleTipData, 
+                        brushOptions.brushTip as BrushEngineTip, 
+                        brushOptions.color, 
+                        brushOptions.flow
+                    );
                 }
-            } else {
+                
+                const dataUrl = canvas.toDataURL();
+                // We save it as an image layer to lock in the rendering. Fast and deterministic!
                 const newElement: DesignElement = {
-                    id: crypto.randomUUID(),
-                    type: 'brush',
-                    x: minX,
-                    y: minY,
-                    width: width,
-                    height: height,
-                    rotation: 0,
-                    opacity: brushOptions.opacity,
-                    path: points.map(([px, py]) => [px - minX, py - minY]),
-                    strokeColor: brushOptions.color,
-                    strokeWidth: brushOptions.size,
-                    brushTip: brushOptions.brushTip,
-                    brushHardness: brushOptions.hardness,
-                    content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+                    id: crypto.randomUUID(), type: 'image', x: minX, y: minY, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
+                    src: dataUrl, objectFit: 'contain', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+                    content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
                 };
                 updatePage(currentPage, { elements: [...currentElements, newElement] });
                 setSelectedElementIds([newElement.id]);
             }
         }
         drawingPointsRef.current = [];
-        scatterPointsRef.current = [];
+        bristleTipRef.current = [];
         return;
     }
 
@@ -1222,12 +1155,30 @@ function DesignEditorInternal({
     const recursiveDelete = (els: DesignElement[], idToRemove: string): DesignElement[] => {
       const filtered = els.filter(el => el.id !== idToRemove);
       return filtered.map(el => {
-        if (el.type === 'group' && el.children) return {...el, children: recursiveDelete(el.children, idToRemove)};
-        return el;
+          if (el.type === 'group' && el.children) {
+              return { ...el, children: recursiveDelete(el.children, idToRemove) };
+          }
+          return el;
       });
-    }
+    };
     updatePage(currentPage, { elements: recursiveDelete(currentElements, id) });
-    setSelectedElementIds(ids => ids.filter(selectedId => selectedId !== id));
+    if (selectedElementIds.includes(id)) {
+        setSelectedElementIds(ids => ids.filter(selectedId => selectedId !== id));
+    }
+  };
+
+  const handleAlign = (alignment: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
+    if (!selectedElement) return;
+    const el = selectedElement;
+    let newX = el.x;
+    let newY = el.y;
+    if (alignment === 'left') newX = 0;
+    if (alignment === 'center') newX = (product.width - (el.width || 0)) / 2;
+    if (alignment === 'right') newX = product.width - (el.width || 0);
+    if (alignment === 'top') newY = 0;
+    if (alignment === 'middle') newY = (product.height - (el.height || 0)) / 2;
+    if (alignment === 'bottom') newY = product.height - (el.height || 0);
+    updateElement(el.id, { x: newX, y: newY });
   };
 
   const handleDeleteAll = () => {
@@ -1311,6 +1262,15 @@ function DesignEditorInternal({
     }
   };
 
+  const handleClearBrushStrokes = () => {
+    // Remove brush-type elements and dataURL images (created by spray/complex brush tools)
+    const filtered = currentElements.filter(el =>
+      el.type !== 'brush' && !(el.type === 'image' && el.src?.startsWith('data:image'))
+    );
+    updatePage(currentPage, { elements: filtered });
+    setSelectedElementIds([]);
+  };
+
   const isMultiSelect = selectedElements.length > 1;
   const isSingleElementSelected = selectedElements.length === 1;
   const isGroupSelected = isSingleElementSelected && selectedElement?.type === 'group';
@@ -1330,7 +1290,7 @@ function DesignEditorInternal({
         case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />;
         case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
         case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
-        case 'brush': return <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} />;
+        case 'brush': return <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} onClear={handleClearBrushStrokes} />;
         case 'pen': return <PenToolPanel onFinish={() => finalizePath()} />;
         case 'properties': return (
             <div className="p-4">
@@ -1358,138 +1318,52 @@ function DesignEditorInternal({
   return (
     <>
       <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden">
-        <header className="relative z-20 flex h-14 items-center gap-4 border-b bg-card px-4 lg:px-6">
-          <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="lg:hidden" onClick={(e) => { if(confirmNavigation(e as any)) router.back(); }}><Home/></Button>
-              <Button variant="ghost" size="icon" className="hidden lg:flex" asChild onClick={confirmNavigation}><Link href="/"><Home /></Link></Button>
-              <Separator orientation="vertical" className="h-6" />
-              <div className="flex items-center gap-3">
-                  <AmazoprintLogo isSimple className="w-12 h-12" />
-                  <div className="hidden md:block">
-                      <h2 className="font-semibold text-sm">{product.name}</h2>
-                      <p className="text-xs text-muted-foreground truncate max-w-xs">{product.description}</p>
-                  </div>
-              </div>
-          </div>
-          
-          <div className="hidden lg:flex flex-1 justify-center items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"><Undo className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"><Redo className="h-4 w-4" /></Button>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" title="Layers"><Layers /></Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" side="bottom" align="center">
-                <LayersPanel 
-                    elements={currentElements} 
-                    selectedElementIds={selectedElementIds} 
-                    onSelectElement={handleSelectElement}
-                    onToggleVisibility={handleToggleLayerVisibility}
-                    onToggleLock={handleToggleLayerLock}
-                    onDuplicate={handleDuplicateLayer}
-                    onDelete={handleDeleteLayer}
-                    onDeleteAll={handleDeleteAll}
-                />
-              </PopoverContent>
-            </Popover>
-            
-            {(isMultiSelect || isGroupSelected || isSingleElementSelected) && (
-              <>
-                <Separator orientation="vertical" className="h-8 mx-1" />
-                {isMultiSelect && <Button variant="ghost" size="icon" onClick={handleGroup} title="Group Elements"><Group /></Button>}
-                {isGroupSelected && <Button variant="ghost" size="icon" onClick={handleUngroup} title="Ungroup Elements"><Ungroup /></Button>}
-                {isSingleElementSelected && (
-                  <>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('front')} title="Bring to Front"><BringToFront /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('forward')} title="Bring Forward"><ChevronsUp className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('backward')} title="Send Backward"><ChevronsDown className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => moveLayer('back')} title="Send to Back"><SendToBack /></Button>
-                  </>
-                )}
-              </>
-            )}
-             {totalPages > 1 && (
-                <>
-                <Separator orientation="vertical" className="h-8 mx-1" />
-                <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0}>
-                        <ChevronLeft />
-                    </Button>
-                    <span className="text-xs font-mono w-24 text-center">
-                        Page {currentPage + 1} / {totalPages}
-                    </span>
-                    <Button variant="ghost" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={currentPage === totalPages - 1}>
-                        <ChevronRight />
-                    </Button>
-                </div>
-                </>
-            )}
-          </div>
-
-          <div className="flex flex-1 lg:hidden justify-center items-center">
-              <span className="text-sm font-semibold">{currentDesignName || product.name}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="hidden lg:flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild><Button variant="outline" size="sm"><Eye className="mr-2 h-4 w-4" />View</Button></DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuCheckboxItem checked={showRulers} onCheckedChange={setShowRulers}>Show Rulers</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem checked={showGrid} onCheckedChange={setShowGrid}>Show Grid</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem checked={showPrintGuidelines} onCheckedChange={setShowPrintGuidelines}>Show Print Guidelines</DropdownMenuCheckboxItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuCheckboxItem checked={snapToGrid} onCheckedChange={setSnapToGrid}>Snap to Grid</DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                <Button variant="outline" size="sm" onClick={() => setIsLoadDialogOpen(true)}><Library className="mr-2 h-4 w-4" />Load</Button>
-                <Button variant="outline" size="sm" onClick={handleSave}>
-                    <Save className="mr-2 h-4 w-4" />
-                    {currentDesignId ? (verificationId ? 'Update Revision' : 'Update') : 'Save'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handlePreview}><Eye className="mr-2 h-4 w-4" />Preview</Button>
-            </div>
-             <div className="lg:hidden">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={handleSave}>
-                            <Save className="mr-2 h-4 w-4" />
-                            {currentDesignId ? (verificationId ? 'Update Revision' : 'Update') : 'Save'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setIsLoadDialogOpen(true)}><Library className="mr-2 h-4 w-4" />Load</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={handlePreview}><Eye className="mr-2 h-4 w-4" />Preview</DropdownMenuItem>
-                        {isAdmin && <DropdownMenuItem onSelect={handleDownload}><Download className="mr-2 h-4 w-4" />Download</DropdownMenuItem>}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-             </div>
-            
-            {isAdmin ? (
-                <Button onClick={handleDownload} size="sm" disabled={isDownloadingPdf} className="h-10 hidden lg:flex">
-                    {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                    Download
-                </Button>
-            ) : (
-                <>
-                    {!contestId && !verificationId && (
-                        <Button onClick={handleOrder} size="sm" disabled={isOrdering} className="h-10">
-                            {isOrdering ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
-                            <span className="hidden sm:inline">{isOrdering ? 'Processing...' : 'Order Now'}</span>
-                        </Button>
-                    )}
-                    
-                    {contestId && (
-                        <Button onClick={handleSubmitToContest} disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}
-                            Submit to Contest
-                        </Button>
-                    )}
-                </>
-            )}
-          </div>
-        </header>
+        <EditorHeader 
+          product={product}
+          currentDesignName={currentDesignName}
+          currentDesignId={currentDesignId}
+          verificationId={verificationId}
+          contestId={contestId}
+          undo={undo}
+          redo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          currentElements={currentElements}
+          selectedElementIds={selectedElementIds}
+          selectedElement={selectedElement}
+          selectedElements={selectedElements}
+          handleSelectElement={handleSelectElement}
+          handleToggleLayerVisibility={handleToggleLayerVisibility}
+          handleToggleLayerLock={handleToggleLayerLock}
+          handleDuplicateLayer={handleDuplicateLayer}
+          handleDeleteLayer={handleDeleteLayer}
+          handleDeleteAll={handleDeleteAll}
+          handleDuplicateElement={handleDuplicateElement}
+          handleDeleteElement={handleDeleteElement}
+          moveLayer={moveLayer}
+          handleAlign={handleAlign}
+          updateElement={updateElement}
+          isSingleElementSelected={isSingleElementSelected}
+          showRulers={showRulers}
+          setShowRulers={setShowRulers}
+          showGrid={showGrid}
+          setShowGrid={setShowGrid}
+          showPrintGuidelines={showPrintGuidelines}
+          setShowPrintGuidelines={setShowPrintGuidelines}
+          snapToGrid={snapToGrid}
+          setSnapToGrid={setSnapToGrid}
+          setIsLoadDialogOpen={setIsLoadDialogOpen}
+          handleSave={handleSave}
+          handlePreview={handlePreview}
+          handleDownload={handleDownload}
+          handleOrder={handleOrder}
+          handleSubmitToContest={handleSubmitToContest}
+          isAdmin={isAdmin}
+          isDownloadingPdf={isDownloadingPdf}
+          isOrdering={isOrdering}
+          isSubmitting={isSubmitting}
+          confirmNavigation={confirmNavigation}
+        />
 
         <div className="flex overflow-hidden relative">
           <EditorSidebarLeft
@@ -1504,6 +1378,7 @@ function DesignEditorInternal({
               onAddQrCode={addQrCodeElement}
               brushOptions={brushOptions}
               setBrushOptions={setBrushOptions}
+              onClearBrush={handleClearBrushStrokes}
               finalizePath={finalizePath}
           />
           <SidebarRail side="left" />
@@ -1528,9 +1403,9 @@ function DesignEditorInternal({
                         zIndex: 1000,
                         border: '1.5px solid white',
                         boxShadow: '0 0 0 1px black, inset 0 0 4px rgba(0,0,0,0.2)',
-                        borderRadius: brushOptions.brushTip === 'square' ? '2px' : '50%',
+                        borderRadius: brushOptions.brushTip === 'chisel' ? '2px' : '50%',
                         opacity: 0.8,
-                        background: (brushOptions.brushTip === 'chalk' || brushOptions.brushTip === 'spraySoft' || brushOptions.brushTip === 'texture') ? `radial-gradient(circle, ${brushOptions.color} 20%, transparent 80%)` : 'transparent'
+                        background: 'transparent'
                     }}
                   />
               )}
@@ -1658,3 +1533,4 @@ export function DesignEditor(props: DesignEditorProps) {
     </SidebarProvider>
   );
 }
+

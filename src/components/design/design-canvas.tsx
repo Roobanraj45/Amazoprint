@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import type { DesignElement, Product, Background, Guide, ViewState, PathPoint } from '@/lib/types';
 import { CanvasElement } from './canvas-element';
 import { Scissors } from 'lucide-react';
 import { PenToolCanvas } from './pen-tool-canvas';
+import { renderBristleSegment, BristleProfile, BrushEngineTip } from '@/lib/brush-engine';
 
 const RULER_SIZE = 60; 
 
@@ -218,7 +219,14 @@ type DesignCanvasProps = {
   highlightSpotUv?: boolean;
   livePath?: PathPoint[] | null;
   mousePos?: { x: number, y: number } | null;
-  activeTool?: 'select' | 'pen' | 'brush';
+  activeTool?: 'select' | 'pen' | 'brush' | 'spray';
+  livePencilPath?: {
+    path: [number, number][];
+    strokeColor: string;
+    flow: number;
+    brushTip: BrushEngineTip;
+    bristleTipData: BristleProfile;
+  } | null;
   croppingElementId?: string | null;
   setCroppingElementId?: (id: string | null) => void;
 };
@@ -252,11 +260,45 @@ export function DesignCanvas({
   livePath,
   mousePos,
   activeTool = 'select',
+  livePencilPath,
   croppingElementId,
   setCroppingElementId,
 }: DesignCanvasProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const liveBrushCanvasRef = useRef<HTMLCanvasElement>(null);
   const { zoom, pan } = viewState;
+
+  // Draw live brush preview onto overlay canvas
+  useEffect(() => {
+    const canvas = liveBrushCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!livePencilPath || activeTool !== 'brush') return;
+
+    const { path, strokeColor, flow, brushTip, bristleTipData } = livePencilPath;
+    if (path.length < 2) return;
+
+    ctx.save();
+    
+    // Draw using our Bristle Brush Engine
+    for (let i = 1; i < path.length; i++) {
+        const [x1, y1] = path[i - 1];
+        const [x2, y2] = path[i];
+        
+        renderBristleSegment(
+            ctx, 
+            x1 + safetyMargin, y1 + safetyMargin, 
+            x2 + safetyMargin, y2 + safetyMargin, 
+            bristleTipData, brushTip, strokeColor, flow
+        );
+    }
+
+    ctx.restore();
+  }, [livePencilPath, activeTool, safetyMargin]);
 
   const editorCanvasWidth = product.width + safetyMargin * 2;
   const editorCanvasHeight = product.height + safetyMargin * 2;
@@ -502,6 +544,7 @@ export function DesignCanvas({
 
           {/* Live Brush Canvas Overlay */}
           <canvas
+            ref={liveBrushCanvasRef}
             id="live-brush-canvas"
             width={editorCanvasWidth}
             height={editorCanvasHeight}

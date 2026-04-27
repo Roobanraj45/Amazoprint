@@ -62,7 +62,7 @@ const SvgGradientDefs = ({ element, product }: { element: DesignElement; product
     return null;
   }
 
-  let stopElements: JSX.Element[] | null = null;
+  let stopElements: React.ReactNode[] | null = null;
   
   if (fillType === 'stepped-gradient') {
     const totalWeight = gradientStops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
@@ -110,110 +110,6 @@ const SvgGradientDefs = ({ element, product }: { element: DesignElement; product
   );
 };
 
-const SteppedCurvedText = ({ element, isSpotUv, shadowFilterDef }: { element: DesignElement, isSpotUv: boolean, shadowFilterDef: React.ReactNode }) => {
-    const { content = '', fontSize = 16, letterSpacing = 0, fontFamily, fontWeight, fontStyle, textTransform } = element;
-    const { radius = 100, value: rotation = 0, reverse = false } = element.textWarp || {};
-
-    const effectiveRadius = reverse ? radius - fontSize * 0.8 : radius;
-    const textStyle: React.CSSProperties = { fontSize, fontFamily, fontWeight, fontStyle };
-    const dominantBaseline = 'auto';
-
-    let transformedContent = content;
-    if (textTransform === 'uppercase') {
-        transformedContent = content.toUpperCase();
-    } else if (textTransform === 'lowercase') {
-        transformedContent = content.toLowerCase();
-    } else if (textTransform === 'capitalize') {
-        transformedContent = content.replace(/\b\w/g, char => char.toUpperCase());
-    }
-
-    const chars = transformedContent.split('');
-    const approximateCharWidth = fontSize * 0.6;
-    
-    const totalTextWidth = (chars.length * approximateCharWidth) + (Math.max(0, chars.length - 1) * letterSpacing);
-    const circumference = 2 * Math.PI * effectiveRadius;
-    const totalAngle = (totalTextWidth / circumference) * 360;
-
-    let currentAngle = rotation - (totalAngle / 2);
-
-    const centerX = element.width / 2;
-    const pathCenterY = element.height / 2;
-
-    const gradientStops = (element.gradientStops || []).length > 0 ? element.gradientStops : [{ id: '1', color: '#000', weight: 1 }];
-    const totalWeight = gradientStops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
-
-    const charElements = chars.map((char) => {
-      const charAngleWidth = ((approximateCharWidth + letterSpacing) / circumference) * 360;
-      const midAngle = currentAngle + charAngleWidth / 2;
-      const angleRad = midAngle * (Math.PI / 180);
-
-      const x = centerX + effectiveRadius * Math.cos(angleRad);
-      const y = pathCenterY + effectiveRadius * Math.sin(angleRad);
-      
-      const charRotation = midAngle + (reverse ? -90 : 90);
-      
-      currentAngle += charAngleWidth;
-
-      return {
-        char,
-        x,
-        y,
-        transform: `rotate(${charRotation}, ${x}, ${y})`
-      };
-    });
-
-    const getCharFill = (charIndex: number) => {
-      if (isSpotUv) return 'black';
-      
-      const charProgress = charIndex / (chars.length - 1 || 1);
-      
-      if (!totalWeight) return element.color || '#000000';
-
-      let accumulatedWeight = 0;
-      for (const stop of gradientStops) {
-        const stopEnd = (accumulatedWeight + (stop.weight ?? 1)) / totalWeight;
-        if (charProgress <= stopEnd) {
-          return stop.color;
-        }
-        accumulatedWeight += (stop.weight ?? 1);
-      }
-      return gradientStops[gradientStops.length - 1]?.color || '#000000';
-    };
-
-
-    return (
-        <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }}>
-            {shadowFilterDef}
-            <g filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}>
-                 {charElements.map(({ char, x, y, transform }, index) => {
-                    const fill = getCharFill(index);
-                    const strokeAndFill = (
-                      <g key={`char-group-${index}`}>
-                        {element.textStrokeWidth && element.textStrokeWidth > 0 && !isSpotUv ? (
-                          <text
-                              x={x} y={y} transform={transform} style={textStyle}
-                              textAnchor="middle" dominantBaseline={dominantBaseline}
-                              stroke={element.textStrokeColor || '#000000'} strokeWidth={element.textStrokeWidth}
-                              strokeLinejoin="round" fill="none"
-                          >
-                              {char}
-                          </text>
-                        ) : null}
-                        <text
-                            x={x} y={y} transform={transform} style={textStyle}
-                            textAnchor="middle" dominantBaseline={dominantBaseline} fill={fill}
-                        >
-                            {char}
-                        </text>
-                      </g>
-                    )
-                    return strokeAndFill;
-                })}
-            </g>
-        </svg>
-    );
-};
-
 export function TextCanvasElement({ 
   element, 
   product, 
@@ -248,10 +144,6 @@ export function TextCanvasElement({
         </defs>
       );
   }
-
-  if (warpStyle === 'circle' && element.fillType === 'stepped-gradient') {
-      return <SteppedCurvedText element={element} isSpotUv={isSpotUv} shadowFilterDef={shadowFilterDef} />;
-  }
   
   const textStyle: React.CSSProperties = {
     fontSize: element.fontSize,
@@ -267,7 +159,7 @@ export function TextCanvasElement({
   const getSvgFill = () => {
     if (isSpotUv) return 'black';
     if (element.fillType === 'image' && element.fillImageSrc) return `url(#img-fill-${element.id})`;
-    if ((element.fillType === 'gradient' || element.fillType === 'stepped-gradient') && element.gradientStops?.length > 0) {
+    if ((element.fillType === 'gradient' || element.fillType === 'stepped-gradient') && element.gradientStops && element.gradientStops.length > 0) {
       return `url(#grad-${element.id})`;
     }
     if (element.fillType === 'none') return 'none';
@@ -275,7 +167,7 @@ export function TextCanvasElement({
   };
   
   if (warpStyle === 'circle') {
-    const { radius = 100, value: rotation = 0, reverse = false } = warp;
+    const { radius = 100, value: rotation = 0, reverse = false } = warp || {};
     const fontSize = element.fontSize || 16;
     const effectiveRadius = reverse ? radius - fontSize * 0.8 : radius;
 
@@ -301,14 +193,44 @@ export function TextCanvasElement({
 
     const d = `M ${start.x} ${start.y} A ${effectiveRadius} ${effectiveRadius} 0 ${largeArcFlag} ${sweepFlag} ${end.x} ${end.y}`;
 
-    const textContent = (
-      <textPath 
-        href={`#path-${element.id}`} 
-        startOffset="50%" 
-        textAnchor="middle"
-        side={reverse ? "right" : "left"}
-      >
-        {element.content}
+    let contentToWrap = element.content || '';
+    if (element.textTransform === 'uppercase') contentToWrap = contentToWrap.toUpperCase();
+    else if (element.textTransform === 'lowercase') contentToWrap = contentToWrap.toLowerCase();
+    else if (element.textTransform === 'capitalize') contentToWrap = contentToWrap.replace(/\b\w/g, char => char.toUpperCase());
+
+    const charArray = Array.from(contentToWrap);
+    const gradientStops = (element.gradientStops || []).length > 0 ? element.gradientStops! : [{ id: '1', color: '#000', weight: 1, position: 0 }];
+    const totalWeight = gradientStops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
+
+    const getCharFill = (charIndex: number) => {
+        if (isSpotUv) return 'black';
+        if (element.fillType !== 'stepped-gradient') return undefined; // Let it fallback to parent
+        
+        const charProgress = charArray.length > 1 ? charIndex / (charArray.length - 1) : 0;
+        if (!totalWeight) return element.color || '#000000';
+
+        let accumulatedWeight = 0;
+        for (const stop of gradientStops) {
+            const stopEnd = (accumulatedWeight + (stop.weight ?? 1)) / totalWeight;
+            if (charProgress <= stopEnd) return stop.color;
+            accumulatedWeight += (stop.weight ?? 1);
+        }
+        return gradientStops[gradientStops.length - 1]?.color || '#000000';
+    };
+
+    // For the stroke layer, we do NOT want tspan fill overrides! We just use simple text.
+    const strokeContent = (
+      <textPath href={`#path-${element.id}`} startOffset="50%" textAnchor="middle" {...({ side: reverse ? "right" : "left" } as any)}>
+        {contentToWrap}
+      </textPath>
+    );
+
+    // For the fill layer, if it is a stepped gradient, we colorize letter by letter.
+    const fillContent = (
+      <textPath href={`#path-${element.id}`} startOffset="50%" textAnchor="middle" {...({ side: reverse ? "right" : "left" } as any)}>
+        {element.fillType === 'stepped-gradient' 
+            ? charArray.map((char, i) => <tspan key={i} fill={getCharFill(i)}>{char}</tspan>)
+            : contentToWrap}
       </textPath>
     );
 
@@ -328,7 +250,7 @@ export function TextCanvasElement({
         <g filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}>
           <text style={textStyle} dominantBaseline={reverse ? "hanging" : "auto"}>
             {element.textStrokeWidth && element.textStrokeWidth > 0 && !isSpotUv ? (
-                React.cloneElement(textContent, {
+                React.cloneElement(strokeContent, {
                     stroke: element.textStrokeColor || '#000000',
                     strokeWidth: element.textStrokeWidth,
                     strokeLinejoin: 'round',
@@ -336,10 +258,8 @@ export function TextCanvasElement({
                 })
             ) : null}
           </text>
-           <text style={textStyle} dominantBaseline={reverse ? "hanging" : "auto"}>
-              {React.cloneElement(textContent, {
-                  fill: getSvgFill(),
-              })}
+           <text style={textStyle} dominantBaseline={reverse ? "hanging" : "auto"} fill={getSvgFill()}>
+              {fillContent}
           </text>
         </g>
       </svg>

@@ -43,6 +43,15 @@ const SectionCard = ({ title, icon, children, ...props }: any) => (
   </div>
 );
 
+const GOOGLE_FONTS = [
+  "Inter", "Roboto", "Open Sans", "Lato", "Montserrat", "Poppins", "Oswald", "Source Sans 3",
+  "Raleway", "Ubuntu", "Playfair Display", "Merriweather", "PT Serif", "Lora", "Nunito",
+  "Roboto Mono", "Fira Code", "Outfit", "Dancing Script", "Pacifico", "Caveat", "Righteous",
+  "Lobster", "Bebas Neue", "Anton", "Josefin Sans", "Titillium Web", "Quicksand", "Rubik",
+  "Inconsolata", "Cinzel", "Amatic SC", "Comfortaa", "Comic Neue", "Permanent Marker",
+  "Bungee", "Rakkas", "Kalam", "Indie Flower", "Satisfy"
+];
+
 export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: TextPropertiesPanelProps) {
     const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
     
@@ -139,6 +148,21 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
             
             <div className="space-y-2 bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm mx-3">
                 <SectionCard title="Typography" icon={<Type size={14} />}>
+                    <div className="space-y-1.5 mb-3">
+                        <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Font Family</Label>
+                        <Select value={element.fontFamily || 'Inter'} onValueChange={(f) => handleUpdate({fontFamily: f})}>
+                            <SelectTrigger className="w-full bg-background border-none shadow-sm h-9 text-xs" style={{ fontFamily: element.fontFamily || 'Inter' }}>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[300px]">
+                                {GOOGLE_FONTS.map(font => (
+                                    <SelectItem key={font} value={font} style={{ fontFamily: font, fontSize: '14px' }} className="cursor-pointer">
+                                        {font}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                             <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Size</Label>
