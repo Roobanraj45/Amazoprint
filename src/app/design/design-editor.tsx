@@ -1,42 +1,27 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   SidebarProvider,
   SidebarInset,
   useSidebar,
-  Sidebar,
-  SidebarContent,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
-  Download,
-  Save,
-  BringToFront,
-  SendToBack,
   ChevronsUp,
   ChevronsDown,
-  Home,
-  ZoomIn,
-  ZoomOut,
-  Group,
-  Ungroup,
-  Redo,
-  Loader2,
-  Layers,
-  Eye,
-  ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  ShoppingCart,
-  MoreVertical,
-  SlidersHorizontal,
-  Library,
   Undo,
-  CirclePlay,
+  Redo,
+  Layers,
   Copy,
   Trash2,
+  Loader2,
+  ShoppingCart,
+  Eye,
+  Save,
+  Library,
+  CirclePlay,
 } from 'lucide-react';
 import { PropertiesPanel } from '@/components/design/properties-panel';
 import { DesignCanvas } from '@/components/design/design-canvas';
@@ -45,24 +30,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import type { DesignElement, Product, Background, Guide, ViewState, Page, RenderData, FoilType, PathPoint } from '@/lib/types';
+import type { DesignElement, Product, Background, Guide, ViewState, Page, FoilType, PathPoint } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import { LayersPanel } from '@/components/design/layers-panel';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { saveDesign, updateDesign } from '@/app/actions/design-actions';
-import { submitContestEntry } from '@/app/actions/contest-actions';
 import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from '@/components/design/load-design-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
-import { CropDialog } from '@/components/design/crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
+import { cn } from '@/lib/utils';
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -110,10 +91,6 @@ function DesignEditorInternal({
   const [isOrdering, setIsOrdering] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  const searchParams = useSearchParams();
-  const contestId = searchParams.get('contestId');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [currentDesignId, setCurrentDesignId] = useState<number | null>(initialDesignId || null);
   const [currentDesignName, setCurrentDesignName] = useState<string | null>(initialDesignName || null);
   const [croppingElementId, setCroppingElementId] = useState<string | null>(null);
@@ -131,12 +108,11 @@ function DesignEditorInternal({
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0 });
   const [activeSmartGuides, setActiveSmartGuides] = useState<Guide[]>([]);
-  
   const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
   
   const [activeTool, setActiveTool] = useState<'select' | 'pen' | 'brush'>('select');
   
-  // Brush Tool States
+  // Brush Tool States (Bristle Engine)
   const [isDrawing, setIsDrawing] = useState(false);
   const lastDrawingPos = useRef({ x: 0, y: 0 });
   const bristleTipRef = useRef<any[]>([]);
@@ -188,7 +164,7 @@ function DesignEditorInternal({
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
-  // Brush Tip Builder
+  // Brush Tip Builder (The "Profile" of the brush head)
   const buildBrushTip = useCallback(() => {
     const tip = [];
     const density = 80;
@@ -439,16 +415,6 @@ function DesignEditorInternal({
       localStorage.setItem('design_preview', JSON.stringify({ elements: currentElements, product, background: currentBackground, bleed, safetyMargin }));
       window.open('/design/preview', '_blank');
     } catch (error) { toast({ variant: 'destructive', title: 'Could not open preview' }); }
-  };
-
-  const handleDownload = () => {
-    if (isDownloadingPdf) return;
-    setIsDownloadingPdf(true);
-    try {
-        localStorage.setItem('pdf_render_data', JSON.stringify({ pages, product, guides, bleed, safetyMargin }));
-        const pdfWindow = window.open('/pdf-render', '_blank');
-        if (!pdfWindow) throw new Error("Could not open new window. Please disable your pop-up blocker.");
-    } catch (error) { toast({ variant: 'destructive', title: 'Could not prepare PDF' }); } finally { setTimeout(() => setIsDownloadingPdf(false), 3000); }
   };
 
   const addQrCodeElement = (value: string, style: string) => {
