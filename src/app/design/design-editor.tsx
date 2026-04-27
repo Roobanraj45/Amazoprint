@@ -147,8 +147,21 @@ function DesignEditorInternal({
   
   const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
   
-  const [activeTool, setActiveTool] = useState<'select' | 'pen'>('select');
+  const [activeTool, setActiveTool] = useState<'select' | 'pen' | 'brush'>('select');
   
+  // Brush Tool States
+  const [isDrawing, setIsDrawing] = useState(false);
+  const lastDrawingPos = useRef({ x: 0, y: 0 });
+  const bristleTipRef = useRef<any[]>([]);
+  const brushCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [brushOptions, setBrushOptions] = useState({
+      tip: 'chisel' as const,
+      size: 60,
+      flow: 0.25,
+      color: '#222222'
+  });
+
+  // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
   const [draggingPoint, setDraggingPoint] = useState<{ index: number; type: 'anchor' | 'cp1' | 'cp2' } | null>(null);
 
@@ -190,23 +203,72 @@ function DesignEditorInternal({
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
-  // --- Dynamic Font Loader ---
+  // Brush Tip Builder
+  const buildBrushTip = useCallback(() => {
+    const tip = [];
+    const density = 80;
+    const { tip: type, size } = brushOptions;
+
+    for (let i = 0; i < density; i++) {
+        let x, y;
+        if (type === 'chisel') {
+            x = (Math.random() - 0.5) * size;
+            y = (Math.random() - 0.5) * 1.5;
+        } else if (type === 'rake') {
+            const gap = size / 4;
+            x = (Math.round((Math.random() - 0.5) * 4) * gap);
+            y = (Math.random() - 0.5) * 2;
+        } else if (type === 'charcoal' || type === 'ink') {
+            const r = (size/2) * Math.sqrt(Math.random());
+            const th = Math.random() * Math.PI * 2;
+            x = Math.cos(th) * r;
+            y = Math.sin(th) * r;
+        } else { // Dry Bristle
+            x = (Math.random() - 0.5) * size;
+            y = (Math.random() - 0.5) * (size * 0.3);
+        }
+        tip.push({
+            dx: x, dy: y,
+            length: Math.random() * 6 + 2,
+            thickness: Math.random() * 2 + 0.5,
+            opacity: Math.random() * 0.4 + 0.1
+        });
+    }
+    bristleTipRef.current = tip;
+  }, [brushOptions]);
+
   useEffect(() => {
-    const fonts = [
-        'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Oswald', 'Raleway', 'Poppins', 'Nunito',
-        'Playfair Display', 'Merriweather', 'Ubuntu', 'PT Sans', 'Lora', 'Source Sans Pro',
-        'Pacifico', 'Dancing Script', 'Lobster', 'Bebas Neue', 'Caveat',
-        'Bevan', 'Bree Serif', 'Coda', 'Fugaz One', 'Jura'
-    ];
-    const fontUrl = `https://fonts.googleapis.com/css2?${fonts.map(f => `family=${f.replace(/ /g, '+')}:wght@400;700;900`).join('&')}&display=swap`;
-    const link = document.createElement('link');
-    link.href = fontUrl;
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
-    return () => {
-        document.head.removeChild(link);
-    };
-  }, []);
+    buildBrushTip();
+  }, [buildBrushTip]);
+
+  const drawBrushStroke = (ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number) => {
+    const dist = Math.hypot(x2 - x1, y2 - y1);
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const velocity = Math.min(dist / 25, 1);
+    const pressure = 1 - (velocity * 0.4);
+
+    for (let i = 0; i < dist; i += 0.8) {
+        const cx = x1 + Math.cos(angle) * i;
+        const cy = y1 + Math.sin(angle) * i;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angle);
+
+        bristleTipRef.current.forEach(b => {
+            let skip = 0.95;
+            if (brushOptions.tip === 'charcoal') skip = 0.8;
+            if (Math.random() > skip) return;
+
+            ctx.globalAlpha = b.opacity * brushOptions.flow * pressure;
+            ctx.fillStyle = brushOptions.color;
+            const xPos = b.dy * pressure;
+            const yPos = b.dx * pressure;
+            ctx.fillRect(xPos, yPos, b.length, b.thickness);
+        });
+        ctx.restore();
+    }
+  };
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -247,213 +309,50 @@ function DesignEditorInternal({
         setActiveTool('select');
         return;
     }
-
     const finalPath = [...pathToFinalize];
     const firstPoint = finalPath[0];
     const lastPoint = finalPath[finalPath.length - 1];
     const isClosed = forceClosed || (finalPath.length > 2 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 25 / viewState.zoom);
-
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
-    
     const minX = Math.min(...allX) - 2;
     const minY = Math.min(...allY) - 2;
     const maxX = Math.max(...allX) + 2;
     const maxY = Math.max(...allY) + 2;
-
     const newPathElement: DesignElement = {
-        id: crypto.randomUUID(),
-        type: 'path',
-        fillType: isClosed ? 'solid' : 'none', 
+        id: crypto.randomUUID(), type: 'path', fillType: isClosed ? 'solid' : 'none', 
         x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY),
         rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 2, borderStyle: 'solid',
-        isPathClosed: isClosed,
-        pathPoints: finalPath.map(p => ({
-            ...p,
-            x: p.x - minX, y: p.y - minY,
-            cp1x: p.cp1x - minX, cp1y: p.cp1y - minY,
-            cp2x: p.cp2x - minX, cp2y: p.cp2y - minY,
-        })),
+        isPathClosed: isClosed, pathPoints: finalPath.map(p => ({ ...p, x: p.x - minX, y: p.y - minY, cp1x: p.cp1x - minX, cp1y: p.cp1y - minY, cp2x: p.cp2x - minX, cp2y: p.cp2y - minY, })),
         content: '', fontSize: 0, fontFamily: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none',
     };
-
     updatePage(currentPage, { elements: [...currentElements, newPathElement] });
     setLivePath(null);
     setDraggingPoint(null);
     setActiveTool('select');
   }, [livePath, viewState.zoom, currentPage, currentElements, updatePage]);
 
-  useEffect(() => {
-    const pagesToCreate = totalPages || 1;
-    let newPages: Page[] = [];
-
-    const isMultiPageElements = initialElements && initialElements.length > 0 && Array.isArray(initialElements[0]);
-    const isMultiPageBackground = initialBackground && Array.isArray(initialBackground);
-
-    for (let i = 0; i < pagesToCreate; i++) {
-        const pageElements = isMultiPageElements ? (initialElements as DesignElement[][])[i] : (i === 0 ? initialElements as DesignElement[] : []);
-        const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? initialBackground as Background : { type: 'solid', color: '#ffffff' });
-
-        newPages.push({
-            elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],
-            background: pageBackground || { type: 'solid', color: '#ffffff' }
-        });
-    }
-
-    resetHistory({
-        pages: newPages,
-        guides: [],
-        product: initialProduct,
-        quantity: initialQuantity,
-    });
-    
-    setCurrentDesignId(initialDesignId || null);
-    setCurrentDesignName(initialDesignName || null);
-    setCurrentPage(0);
-    setSelectedElementIds([]);
-    setIsDirty(false);
-  }, [initialProduct, initialQuantity, initialElements, initialBackground, initialDesignId, initialDesignName, totalPages, resetHistory]);
-  
-  const editorCanvasWidth = product.width + (safetyMargin * 2);
-  const editorCanvasHeight = product.height + (safetyMargin * 2);
-
-  const resetView = useCallback(() => {
-    if (!mainCanvasRef.current) return;
-    const { width: containerWidth, height: containerHeight } = mainCanvasRef.current.getBoundingClientRect();
-    
-    const rulerSize = showRulers ? RULER_SIZE : 0;
-    const canvasWidthWithRulers = editorCanvasWidth + rulerSize;
-    const canvasHeightWithRulers = editorCanvasHeight + rulerSize;
-
-    const zoomX = containerWidth / canvasWidthWithRulers;
-    const zoomY = containerHeight / canvasHeightWithRulers;
-    const newZoom = Math.min(zoomX, zoomY) * 0.9;
-
-    const newPanX = (containerWidth - canvasWidthWithRulers * newZoom) / 2;
-    const newPanY = (containerHeight - canvasHeightWithRulers * newZoom) / 2;
-
-    setViewState({ zoom: newZoom, pan: { x: newPanX, y: newPanY } });
-  }, [editorCanvasWidth, editorCanvasHeight, showRulers]);
-
-  useEffect(() => {
-    resetView();
-  }, [resetView, product.width, product.height]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-
-      if (e.key === 'Escape' && !isInput) {
-        e.preventDefault();
-        if (croppingElementId) {
-          setCroppingElementId(null);
-        } else if (activeTool === 'pen') {
-          finalizePath();
-        } else {
-          setSelectedElementIds([]);
-          setActiveTool('select');
-        }
-      }
-
-      if ((e.ctrlKey || e.metaKey) && e.key === 'x' && activeTool === 'pen' && !isInput) {
-          e.preventDefault();
-          setLivePath(prev => {
-              if (!prev || prev.length <= 1) return null;
-              return prev.slice(0, -1);
-          });
-      }
-
-      if (e.key === ' ' && !e.repeat && !isInput) {
-        e.preventDefault();
-        setIsSpacePressed(true);
-        if (mainCanvasRef.current) {
-          mainCanvasRef.current.style.cursor = 'grab';
-        }
-      }
-
-      if (e.key.toLowerCase() === 'p' && !isInput) {
-        e.preventDefault();
-        if (activeTool === 'pen') {
-            finalizePath();
-        } else {
-            setActiveTool('pen');
-            setLeftOpen(false);
-        }
-      }
-
-      if (e.key === 'Enter' && activeTool === 'pen' && !isInput) {
-          e.preventDefault();
-          finalizePath();
-      }
-      
-      if ((e.ctrlKey || e.metaKey) && !isInput) {
-        if (e.key === 'z' && !e.shiftKey) {
-            e.preventDefault();
-            undo();
-        } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
-            e.preventDefault();
-            redo();
-        }
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === ' ') {
-        setIsSpacePressed(false);
-        if (mainCanvasRef.current && !isPanning.current) {
-          mainCanvasRef.current.style.cursor = '';
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [undo, redo, activeTool, finalizePath, croppingElementId, setLeftOpen]);
-
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (!mainCanvasRef.current) return;
-
-    const rect = mainCanvasRef.current.getBoundingClientRect();
-    const zoomFactor = 1.1;
-    const newZoom = e.deltaY < 0 ? viewState.zoom * zoomFactor : viewState.zoom / zoomFactor;
-    const clampedZoom = Math.max(0.1, Math.min(5, newZoom));
-
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    const worldX = (mouseX - viewState.pan.x) / viewState.zoom;
-    const worldY = (mouseY - viewState.pan.y) / viewState.zoom;
-
-    const newPanX = mouseX - worldX * clampedZoom;
-    const newPanY = mouseY - worldY * clampedZoom;
-
-    setViewState({ zoom: clampedZoom, pan: { x: newPanX, y: newPanY } });
-  };
-  
-  const getPointInCanvas = (e: React.MouseEvent | MouseEvent): [number, number] => {
-      if (!mainCanvasRef.current) return [0, 0];
-      const parent = mainCanvasRef.current;
-      if (!parent) return [0, 0];
-      
-      const rect = parent.getBoundingClientRect();
-      const rulerOffset = showRulers ? RULER_SIZE : 0;
-      
-      const x = (e.clientX - rect.left - viewState.pan.x) / viewState.zoom - rulerOffset - safetyMargin;
-      const y = (e.clientY - rect.top - viewState.pan.y) / viewState.zoom - rulerOffset - safetyMargin;
-      return [x, y];
-  };
-
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-     if (activeTool === 'pen') {
+    const [x, y] = getPointInCanvas(e);
+    
+    if (activeTool === 'brush') {
         e.stopPropagation();
         beginTransaction();
-        const [x, y] = getPointInCanvas(e);
+        setIsDrawing(true);
+        lastDrawingPos.current = { x, y };
 
+        if (!brushCanvasRef.current) {
+            const canvas = document.createElement('canvas');
+            canvas.width = product.width;
+            canvas.height = product.height;
+            brushCanvasRef.current = canvas;
+        }
+        return;
+    }
+
+    if (activeTool === 'pen') {
+        e.stopPropagation();
+        beginTransaction();
         if (livePath && livePath.length > 2) {
             const firstPoint = livePath[0];
             const hitRadius = 25 / viewState.zoom;
@@ -461,22 +360,8 @@ function DesignEditorInternal({
                 finalizePath(livePath, true);
                 return;
             }
-            
-            for (let i = 1; i < livePath.length; i++) {
-                const p = livePath[i];
-                if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
-                    setDraggingPoint({ index: i, type: 'anchor' });
-                    return;
-                }
-            }
         }
-
         let updatedPath = livePath ? [...livePath] : [];
-        if (updatedPath.length > 0) {
-            const lastIdx = updatedPath.length - 1;
-            updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
-        }
-
         const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
         updatedPath.push(newPoint);
         setLivePath(updatedPath);
@@ -486,14 +371,10 @@ function DesignEditorInternal({
 
     const target = e.target as HTMLElement;
     const isCanvasBackground = target.classList.contains('print-area');
-    
-    if (isCanvasBackground) {
-        handleSelectElement(null, e.shiftKey);
-    }
-    
+    if (isCanvasBackground) handleSelectElement(null, e.shiftKey);
     if ((e.button === 0 && isCanvasBackground) || isSpacePressed || e.button === 1) {
       isPanning.current = true;
-      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - panStart.current.y };
+      panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - viewState.pan.y };
       e.currentTarget.style.cursor = 'grabbing';
     }
   };
@@ -502,13 +383,21 @@ function DesignEditorInternal({
     const [x, y] = getPointInCanvas(e);
     setMousePos({ x, y, screenX: e.clientX, screenY: e.clientY });
 
+    if (isDrawing && activeTool === 'brush' && brushCanvasRef.current) {
+        const ctx = brushCanvasRef.current.getContext('2d');
+        if (ctx) {
+            drawBrushStroke(ctx, lastDrawingPos.current.x, lastDrawingPos.current.y, x, y);
+            lastDrawingPos.current = { x, y };
+            // Trigger a redraw by updating a dummy state if needed, but here we can just rely on the canvas element in DesignCanvas
+        }
+        return;
+    }
+
     if (activeTool === 'pen' && draggingPoint) {
         setLivePath(prev => {
             if (!prev) return null;
             const newPath = prev.map(p => ({...p}));
             const point = newPath[draggingPoint.index];
-            if (!point) return prev;
-
             if (draggingPoint.type === 'anchor') {
                 const dx = x - point.x;
                 const dy = y - point.y;
@@ -516,15 +405,9 @@ function DesignEditorInternal({
                 point.cp1x += dx; point.cp1y += dy;
                 point.cp2x += dx; point.cp2y += dy;
             } else if (draggingPoint.type === 'cp2') {
-                point.cp2x = x;
-                point.cp2y = y;
+                point.cp2x = x; point.cp2y = y;
                 point.cp1x = point.x - (x - point.x);
                 point.cp1y = point.y - (y - point.y);
-            } else if (draggingPoint.type === 'cp1') {
-                point.cp1x = x;
-                point.cp1y = y;
-                point.cp2x = point.x - (x - point.x);
-                point.cp2y = point.y - (y - point.y);
             }
             return newPath;
         });
@@ -532,21 +415,28 @@ function DesignEditorInternal({
     }
 
     if (isPanning.current) {
-      const newPan = { x: e.clientX - panStart.current.x, y: e.clientY - panStart.current.y };
-      setViewState({ ...viewState, pan: newPan });
+      setViewState({ ...viewState, pan: { x: e.clientX - panStart.current.x, y: e.clientY - panStart.current.y } });
     }
   };
 
-  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (activeTool === 'pen') {
-        setDraggingPoint(null);
+  const handleMouseUp = () => {
+    if (isDrawing && activeTool === 'brush' && brushCanvasRef.current) {
+        setIsDrawing(false);
+        const dataUrl = brushCanvasRef.current.toDataURL();
+        const newElement: DesignElement = {
+            id: crypto.randomUUID(), type: 'image', x: 0, y: 0, width: product.width, height: product.height, rotation: 0, opacity: 1, visible: true, locked: false,
+            src: dataUrl, objectFit: 'contain', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+            content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+        };
+        updatePage(currentPage, { elements: [...currentElements, newElement] });
+        // Clear temp canvas
+        const ctx = brushCanvasRef.current.getContext('2d');
+        ctx?.clearRect(0, 0, brushCanvasRef.current.width, brushCanvasRef.current.height);
         endTransaction();
+        return;
     }
-
-    if (isPanning.current) {
-      isPanning.current = false;
-      e.currentTarget.style.cursor = '';
-    }
+    if (activeTool === 'pen') setDraggingPoint(null);
+    if (isPanning.current) isPanning.current = false;
   };
 
   const handleZoomIn = () => setViewState(vs => ({...vs, zoom: Math.min(vs.zoom * 1.2, 5) }));
@@ -554,66 +444,31 @@ function DesignEditorInternal({
   
   const handlePreview = () => {
     try {
-      const designData = {
-        elements: currentElements,
-        product: currentState.product,
-        background: currentBackground,
-        bleed: bleed,
-        safetyMargin: safetyMargin,
-      };
-      localStorage.setItem('design_preview', JSON.stringify(designData));
+      localStorage.setItem('design_preview', JSON.stringify({ elements: currentElements, product, background: currentBackground, bleed, safetyMargin }));
       window.open('/design/preview', '_blank');
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Could not open preview' });
-    }
+    } catch (error) { toast({ variant: 'destructive', title: 'Could not open preview' }); }
   };
 
   const handleDownload = () => {
     if (isDownloadingPdf) return;
     setIsDownloadingPdf(true);
-    toast({ title: 'Opening Print Preview...' });
     try {
-        const designData: RenderData = {
-            pages: pages,
-            product: product,
-            guides: guides,
-            bleed: bleed,
-            safetyMargin: safetyMargin,
-        };
-        localStorage.setItem('pdf_render_data', JSON.stringify(designData));
-        const renderUrl = '/pdf-render';
-        const pdfWindow = window.open(renderUrl, '_blank');
+        localStorage.setItem('pdf_render_data', JSON.stringify({ pages, product, guides, bleed, safetyMargin }));
+        const pdfWindow = window.open('/pdf-render', '_blank');
         if (!pdfWindow) throw new Error("Could not open new window. Please disable your pop-up blocker.");
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'Could not prepare PDF' });
-    } finally {
-        setTimeout(() => setIsDownloadingPdf(false), 3000);
-    }
-  };
-
-  const getCenterPosition = (elementWidth: number, elementHeight: number) => {
-    const centerX = (product.width - elementWidth) / 2;
-    const centerY = (product.height - elementHeight) / 2;
-    return { x: centerX, y: centerY };
+    } catch (error) { toast({ variant: 'destructive', title: 'Could not prepare PDF' }); } finally { setTimeout(() => setIsDownloadingPdf(false), 3000); }
   };
 
   const addQrCodeElement = (value: string, style: string) => {
     const size = 300;
-    const { x, y } = getCenterPosition(size, size);
     const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'qrcode', x, y, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
+      id: crypto.randomUUID(), type: 'qrcode', x: (product.width - size)/2, y: (product.height - size)/2, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
       backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-      qrValue: value || 'https://amazoprint.com',
-      qrColor: '#000000',
-      qrBgColor: '#FFFFFF',
-      qrLevel: 'M',
-      qrIconSize: 20,
-      qrStylePreset: style as any || 'default',
+      qrValue: value || 'https://amazoprint.com', qrColor: '#000000', qrBgColor: '#FFFFFF', qrLevel: 'M', qrIconSize: 20, qrStylePreset: style as any || 'default',
       content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle'
     };
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
-    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
   
   const addTextElement = (options: Partial<DesignElement>) => {
@@ -622,105 +477,71 @@ function DesignEditorInternal({
       backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid', borderRadius: 0,
       content: 'Hello World', fontSize: 24, fontFamily: 'Inter', color: '#000000', fontWeight: 'normal', fontStyle: 'normal',
       textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', textTransform: 'none', verticalAlign: 'middle',
-      src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
-      filterGrayscale: 0, filterSepia: 0, filterInvert: 0, filterHueRotate: 0, filterBlur: 0, flipHorizontal: false, flipVertical: false,
-      shapeType: 'rectangle',
+      src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle',
     };
-
     const newElement = { ...defaultTextElement, ...options };
-    
-    if (newElement.fontSize && !options.width && !options.height) {
-        newElement.width = (newElement.content?.length || 10) * (newElement.fontSize / 1.8) + newElement.fontSize;
-        newElement.height = newElement.fontSize * 1.5;
-    }
-
-
-    const { x, y } = getCenterPosition(newElement.width || 250, newElement.height || 50);
-    newElement.x = x;
-    newElement.y = y;
-
+    newElement.x = (product.width - (newElement.width || 250)) / 2;
+    newElement.y = (product.height - (newElement.height || 50)) / 2;
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
-    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
   
   const handleAddImageFromLibrary = (src: string) => {
     const size = 400;
-    const { x, y } = getCenterPosition(size, size);
     const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'image', x, y, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
+      id: crypto.randomUUID(), type: 'image', x: (product.width - size)/2, y: (product.height - size)/2, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
       backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
       src, objectFit: 'contain', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
       content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle',
     };
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
-    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
   const handleAddShape = (shapeType: string) => {
-    const isLine = shapeType === 'line';
-    const width = isLine ? 400 : 300;
-    const height = isLine ? 2 : 300;
-    const { x, y } = getCenterPosition(width, height);
+    const width = shapeType === 'line' ? 400 : 300;
+    const height = shapeType === 'line' ? 2 : 300;
     const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'shape', shapeType, x, y, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
+      id: crypto.randomUUID(), type: 'shape', shapeType, x: (product.width - width)/2, y: (product.height - height)/2, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
       backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 1, borderColor: '#000000', borderStyle: 'solid',
-      color: '#cccccc', fillType: 'solid',
-      content: '', fontSize: 0, fontFamily: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+      color: '#cccccc', fillType: 'solid', content: '', fontSize: 0, fontFamily: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
     };
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
-    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
   const handleAddEmoji = (emoji: string) => {
     const size = 250;
-    const { x, y } = getCenterPosition(size, size);
     const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'text', x, y, width: size, height: size, rotation: 0, opacity: 1, backgroundColor: 'transparent', visible: true, locked: false,
+      id: crypto.randomUUID(), type: 'text', x: (product.width - size)/2, y: (product.height - size)/2, width: size, height: size, rotation: 0, opacity: 1, backgroundColor: 'transparent', visible: true, locked: false,
       boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid', borderRadius: 0, content: emoji,
       fontSize: 200, fontFamily: 'Inter', color: '#000000', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none',
       letterSpacing: 0, lineHeight: 1, textAlign: 'center', textTransform: 'none', verticalAlign: 'middle', src: '', objectFit: 'cover',
-      filterBrightness: 1, filterContrast: 1, filterSaturate: 1, filterGrayscale: 0, filterSepia: 0, filterInvert: 0, filterHueRotate: 0, filterBlur: 0,
-      flipHorizontal: false, flipVertical: false, shapeType: 'rectangle',
+      filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle',
     };
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
-    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
   const handleAddGroupedElements = (elements: Partial<DesignElement>[]) => {
     if (elements.length === 0) return;
-
-    const newElements = elements.map(el => ({
-      ...el,
-      id: crypto.randomUUID(),
-    })) as DesignElement[];
-    
+    const newElements = elements.map(el => ({ ...el, id: crypto.randomUUID() })) as DesignElement[];
     const minX = Math.min(...newElements.map(el => el.x));
     const minY = Math.min(...newElements.map(el => el.y));
     const maxX = Math.max(...newElements.map(el => el.x + el.width));
     const maxY = Math.max(...newElements.map(el => el.y + el.height));
-    
     const groupWidth = maxX - minX;
     const groupHeight = maxY - minY;
-
-    const { x: groupX, y: groupY } = getCenterPosition(groupWidth, groupHeight);
-
     const newGroup: DesignElement = {
-        id: crypto.randomUUID(), type: 'group', x: groupX, y: groupY, width: groupWidth, height: groupHeight, rotation: 0, opacity: 1, visible: true, locked: false,
+        id: crypto.randomUUID(), type: 'group', x: (product.width - groupWidth)/2, y: (product.height - groupHeight)/2, width: groupWidth, height: groupHeight, rotation: 0, opacity: 1, visible: true, locked: false,
         children: newElements.map(el => ({ ...el, x: el.x - minX, y: el.y - minY })),
         backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
         borderRadius: 0, content: '', fontSize: 1, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal',
         textDecoration: 'none', letterSpacing: 0, lineHeight: 1, textAlign: 'left', src: '', objectFit: 'cover',
-        filterBrightness: 1, filterContrast: 1, filterSaturate: 1, filterGrayscale: 0, filterSepia: 0, filterInvert: 0,
-        filterHueRotate: 0, filterBlur: 0, flipHorizontal: false, flipVertical: false, shapeType: 'rectangle', textTransform: 'none', verticalAlign: 'top',
+        filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle',
     };
-    
     updatePage(currentPage, { elements: [...currentElements, newGroup] });
     setSelectedElementIds([newGroup.id]);
-    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
   const findElementRecursive = (elements: DesignElement[], id: string): DesignElement | undefined => {
@@ -735,25 +556,14 @@ function DesignEditorInternal({
   };
 
   const handleSelectElement = (id: string | null, isShift?: boolean) => {
-    if (croppingElementId) return;
-    if (activeTool === 'pen') return;
-
+    if (croppingElementId || activeTool === 'brush' || activeTool === 'pen') return;
     if (id) {
         const element = findElementRecursive(currentElements, id);
-        if (element?.locked) {
-            if (!isShift) {
-                setSelectedElementIds([]);
-            }
-            return;
-        }
+        if (element?.locked) { if (!isShift) setSelectedElementIds([]); return; }
     }
-
     setActiveTool('select');
-    if (isShift) {
-      setSelectedElementIds(prev => id === null ? prev : (prev.includes(id) ? prev.filter(sId => sId !== id) : [...prev, id]));
-    } else {
-      setSelectedElementIds(id ? [id] : []);
-    }
+    if (isShift) setSelectedElementIds(prev => id === null ? prev : (prev.includes(id) ? prev.filter(sId => sId !== id) : [...prev, id]));
+    else setSelectedElementIds(id ? [id] : []);
   };
 
   const updateElement = (id: string, newProps: Partial<DesignElement>) => {
@@ -767,86 +577,24 @@ function DesignEditorInternal({
         return el;
       });
     };
-
     let propsToUpdate = { ...newProps };
     if (snapToGrid) {
       if (propsToUpdate.x) propsToUpdate.x = Math.round(propsToUpdate.x / gridSize) * gridSize;
       if (propsToUpdate.y) propsToUpdate.y = Math.round(propsToUpdate.y / gridSize) * gridSize;
-      if (propsToUpdate.width) propsToUpdate.width = Math.round(propsToUpdate.width / gridSize) * gridSize;
-      if (propsToUpdate.height) propsToUpdate.height = Math.round(propsToUpdate.height / gridSize) * gridSize;
     }
-    
-    const newPageElements = recursiveUpdate(currentElements, id, propsToUpdate);
-    updatePage(currentPage, { elements: newPageElements });
+    updatePage(currentPage, { elements: recursiveUpdate(currentElements, id, propsToUpdate) });
   };
   
-  const addGuide = (orientation: 'horizontal' | 'vertical', position: number) => {
-    const newGuide = { id: crypto.randomUUID(), orientation, position };
-    setIsDirty(true);
-    setState((prev) => ({ ...prev, guides: [...prev.guides, newGuide] }));
-    return newGuide.id;
-  };
-
-  const updateGuide = (id: string, position: number) => {
-    setIsDirty(true);
-    setState((prev) => ({...prev, guides: prev.guides.map((g) => (g.id === id ? { ...g, position } : g))}));
-  };
-
-  const removeGuide = (id: string) => {
-    setIsDirty(true);
-    setState((prev) => ({ ...prev, guides: prev.guides.filter((g) => g.id !== id) }));
-  };
-  
-  const selectedElements = selectedElementIds.map(id => findElementRecursive(currentElements, id)).filter((el): el is DesignElement => !!el);
-  const selectedElement = selectedElements[0];
-
-  const handleProductUpdate = (newProps: Partial<Product>) => {
-    setIsDirty(true);
-    setState(s => ({ ...s, product: { ...s.product, ...newProps }}));
-  };
-
-  const onQuantityChange = (newQuantity: number) => {
-    setIsDirty(true);
-    setState(s => ({...s, quantity: newQuantity}));
-  };
-
-  const onBackgroundChange = (newBackground: Background) => updatePage(currentPage, { background: newBackground });
-
   const handleSave = async () => {
-    const saveData = {
-        productSlug: product.id,
-        elements: pages.map(p => p.elements),
-        background: pages.map(p => p.background),
-        guides,
-        quantity,
-        width: Math.round(product.width * PX_TO_MM),
-        height: Math.round(product.height * PX_TO_MM),
-    };
-
+    const saveData = { productSlug: product.id, elements: pages.map(p => p.elements), background: pages.map(p => p.background), guides, quantity, width: Math.round(product.width * PX_TO_MM), height: Math.round(product.height * PX_TO_MM) };
     if (currentDesignId && currentDesignName) {
-      try {
-        await updateDesign({ id: currentDesignId, name: currentDesignName, verificationId: verificationId || null, ...saveData });
-        toast({ title: 'Design Updated!' });
-        setIsDirty(false);
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Error Updating Design' });
-      }
+      try { await updateDesign({ id: currentDesignId, name: currentDesignName, verificationId: verificationId || null, ...saveData }); toast({ title: 'Design Updated!' }); setIsDirty(false); }
+      catch (error) { toast({ variant: 'destructive', title: 'Error Updating Design' }); }
     } else {
       const designName = prompt('Enter a name for your design:');
       if (designName) {
-        try {
-          const savedDesign = await saveDesign({ name: designName, ...saveData });
-          setCurrentDesignId(savedDesign.id);
-          setCurrentDesignName(savedDesign.name);
-          toast({ title: 'Design Saved!' });
-          setIsDirty(false);
-
-          if (verificationId) {
-            await linkDesignToVerification(Number(verificationId), savedDesign.id);
-          }
-        } catch (error) {
-          toast({ variant: 'destructive', title: 'Error Saving Design' });
-        }
+        try { const savedDesign = await saveDesign({ name: designName, ...saveData }); setCurrentDesignId(savedDesign.id); setCurrentDesignName(savedDesign.name); toast({ title: 'Design Saved!' }); setIsDirty(false); }
+        catch (error) { toast({ variant: 'destructive', title: 'Error Saving Design' }); }
       }
     }
   };
@@ -854,330 +602,44 @@ function DesignEditorInternal({
   const handleOrder = async () => {
     setIsOrdering(true);
     let designId = currentDesignId;
-
     if (!designId) {
       const designName = currentDesignName || prompt('Please name your design to proceed to order:');
       if (designName) {
         try {
-          const saveData = {
-            name: designName,
-            productSlug: product.id,
-            elements: pages.map(p => p.elements),
-            background: pages.map(p => p.background),
-            guides,
-            quantity,
-            width: Math.round(product.width * PX_TO_MM),
-            height: Math.round(product.height * PX_TO_MM),
-          };
-          const savedDesign = await saveDesign(saveData);
-          setCurrentDesignId(savedDesign.id);
-          setCurrentDesignName(savedDesign.name);
-          designId = savedDesign.id;
-          setIsDirty(false);
-          toast({ title: 'Design Saved!' });
-        } catch (error) {
-          toast({ variant: 'destructive', title: 'Error Saving Design', description: 'Could not save your design before ordering.' });
-          setIsOrdering(false);
-          return;
-        }
-      } else {
-        toast({ variant: 'destructive', title: 'Order Canceled', description: 'A design must be named and saved before ordering.' });
-        setIsOrdering(false);
-        return;
-      }
+          const savedDesign = await saveDesign({ name: designName, productSlug: product.id, elements: pages.map(p => p.elements), background: pages.map(p => p.background), guides, quantity, width: Math.round(product.width * PX_TO_MM), height: Math.round(product.height * PX_TO_MM) });
+          setCurrentDesignId(savedDesign.id); setCurrentDesignName(savedDesign.name); designId = savedDesign.id; setIsDirty(false); toast({ title: 'Design Saved!' });
+        } catch (error) { toast({ variant: 'destructive', title: 'Error Saving Design' }); setIsOrdering(false); return; }
+      } else { toast({ variant: 'destructive', title: 'Order Canceled', description: 'A design must be named and saved before ordering.' }); setIsOrdering(false); return; }
     }
-    
-    if (designId) {
-      router.push(`/checkout?designId=${designId}&quantity=${quantity}`);
-    } else {
-        setIsOrdering(false);
-    }
+    if (designId) router.push(`/checkout?designId=${designId}&quantity=${quantity}`);
+    else setIsOrdering(false);
   };
 
-  const handleLoadDesign = (design: Awaited<ReturnType<typeof getMyDesigns>>[0]) => {
+  const handleLoadDesign = (design: any) => {
     const isMultiPageElements = design.elements && Array.isArray(design.elements) && design.elements.length > 0 && Array.isArray(design.elements[0]);
-    const isMultiPageBackground = design.background && Array.isArray(design.background);
-
     const newTotalPages = isMultiPageElements ? (design.elements as DesignElement[][]).length : 1;
-
     let newPages: Page[] = [];
     for(let i = 0; i < newTotalPages; i++) {
         const pageElements = isMultiPageElements ? (design.elements as DesignElement[][])[i] : (i === 0 ? design.elements as DesignElement[] : []);
-        const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? design.background as Background : { type: 'solid', color: '#ffffff' });
-        
-        newPages.push({
-            elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],
-            background: pageBackground || { type: 'solid', color: '#ffffff' }
-        })
+        newPages.push({ elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [], background: (Array.isArray(design.background) ? design.background[i] : (i === 0 ? design.background : { type: 'solid', color: '#ffffff' })) });
     }
-
-    const loadedProduct: Product = {
-      id: design.productSlug,
-      name: design.name,
-      description: '',
-      imageId: design.thumbnailUrl || '',
-      width: Math.round(design.width * MM_TO_PX),
-      height: Math.round(design.height * MM_TO_PX),
-      type: design.productSlug.replace('-', ' '),
-    };
-
-    setCurrentDesignId(design.id);
-    setCurrentDesignName(design.name);
-
-    resetHistory({
-      pages: newPages,
-      guides: (design.guides as Guide[]) || [],
-      product: loadedProduct,
-      quantity: design.quantity,
-    });
-
-    setIsLoadDialogOpen(false);
-    setIsDirty(false);
-    toast({
-      title: "Design Loaded",
-      description: `"${design.name}" is now ready for editing.`,
-    });
+    setCurrentDesignId(design.id); setCurrentDesignName(design.name);
+    resetHistory({ pages: newPages, guides: (design.guides as Guide[]) || [], product: { ...product, width: Math.round(design.width * MM_TO_PX), height: Math.round(design.height * MM_TO_PX) }, quantity: design.quantity });
+    setIsLoadDialogOpen(false); setIsDirty(false);
   };
 
-  const handleSubmitToContest = async () => {
-    if (!contestId) return;
-    setIsSubmitting(true);
-    try {
-        const designData = {
-          productSlug: product.id,
-          elements: currentElements,
-          guides, quantity: quantity,
-          width: Math.round(product.width * PX_TO_MM),
-          height: Math.round(product.height * PX_TO_MM),
-          background: currentBackground,
-        };
-        await submitContestEntry(Number(contestId), designData);
-        toast({ title: 'Submission Successful!'});
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'Submission Failed' });
-    } finally {
-        setIsSubmitting(false);
-    }
-  }
-
-  const handleSetSpecialFinish = (active: boolean, foil?: FoilType | null) => {
-    if (selectedElementIds.length !== 1) return;
-    const selectedId = selectedElementIds[0];
-
-    if (!active) {
-      updateElement(selectedId, { spotUv: false, foilId: undefined });
-    } else {
-      if (foil) {
-        updateElement(selectedId, {
-          spotUv: true,
-          foilId: foil.id,
-        });
-      } else {
-        updateElement(selectedId, {
-          spotUv: true,
-          foilId: undefined,
-        });
-      }
-    }
-  };
-
-  const handleDuplicateElement = () => {
-    if (selectedElements.length === 0) return;
-    const newElementsToPush: DesignElement[] = [];
-    const duplicateRecursive = (element: DesignElement): DesignElement => {
-      const newEl = { ...element, id: crypto.randomUUID(), x: element.x + 10, y: element.y + 10, locked: false, visible: true };
-      if (newEl.type === 'group' && newEl.children) {
-        newEl.children = newEl.children.map(child => duplicateRecursive(child));
-      }
-      return newEl;
-    }
-    selectedElements.forEach(element => newElementsToPush.push(duplicateRecursive(element)));
-    updatePage(currentPage, { elements: [...currentElements, ...newElementsToPush] });
-    setSelectedElementIds(newElementsToPush.map(el => el.id));
-  };
-  
-  const handleDuplicateLayer = (id: string) => {
-    const elementToDuplicate = findElementRecursive(currentElements, id);
-    if (!elementToDuplicate) return;
-
-    const duplicateRecursive = (element: DesignElement): DesignElement => {
-      const newEl = { ...element, id: crypto.randomUUID(), x: element.x + 10, y: element.y + 10, locked: false, visible: true };
-      if (newEl.type === 'group' && newEl.children) {
-        newEl.children = newEl.children.map(child => duplicateRecursive(child));
-      }
-      return newEl;
-    }
-    
-    const newElement = duplicateRecursive(elementToDuplicate);
-    
-    const topLevelIndex = currentElements.findIndex(el => el.id === id || (el.children && findElementRecursive(el.children, id)));
-    
-    const newElements = [...currentElements];
-    if(topLevelIndex !== -1) {
-        newElements.splice(topLevelIndex + 1, 0, newElement);
-    } else {
-        newElements.push(newElement);
-    }
-
-    updatePage(currentPage, { elements: newElements });
-    setSelectedElementIds([newElement.id]);
-  };
-
-  const handleDeleteElement = () => {
-    if (selectedElementIds.length === 0) return;
-    handleDeleteLayer(selectedElementIds[0]);
-  };
-
-  const handleDeleteLayer = (id: string) => {
-    const recursiveDelete = (els: DesignElement[], idToRemove: string): DesignElement[] => {
-      const filtered = els.filter(el => el.id !== idToRemove);
-      return filtered.map(el => {
-        if (el.type === 'group' && el.children) return {...el, children: recursiveDelete(el.children, idToRemove)};
-        return el;
-      });
-    }
-    updatePage(currentPage, { elements: recursiveDelete(currentElements, id) });
-    setSelectedElementIds(ids => ids.filter(selectedId => selectedId !== id));
-  };
-
-  const handleDeleteAll = () => {
-    updatePage(currentPage, { elements: [] });
-    setSelectedElementIds([]);
-  };
-
-  const moveLayer = (direction: 'front' | 'back' | 'forward' | 'backward') => {
-    if (selectedElementIds.length !== 1) return;
-    const selectedId = selectedElementIds[0];
-    let newElements = [...currentElements];
-    const currentIndex = newElements.findIndex(el => el.id === selectedId);
-    if (currentIndex === -1) return;
-    const [element] = newElements.splice(currentIndex, 1);
-    if (direction === 'front') newElements.push(element);
-    else if (direction === 'back') newElements.unshift(element);
-    else if (direction === 'forward') newElements.splice(Math.min(newElements.length, currentIndex + 1), 0, element);
-    else if (direction === 'backward') newElements.splice(Math.max(0, currentIndex - 1), 0, element);
-    updatePage(currentPage, { elements: newElements });
-  };
-
-  const handleGroup = () => {
-    if (selectedElements.length < 2) return;
-    const minX = Math.min(...selectedElements.map(el => el.x));
-    const minY = Math.min(...selectedElements.map(el => el.y));
-    const maxX = Math.max(...selectedElements.map(el => el.x + el.width));
-    const maxY = Math.max(...selectedElements.map(el => el.y + el.height));
-    
-    const newGroup: DesignElement = {
-        id: crypto.randomUUID(), type: 'group', x: minX, y: minY, width: maxX - minX, height: maxY - minY, rotation: 0, opacity: 1, visible: true, locked: false,
-        children: selectedElements.map(el => ({ ...el, x: el.x - minX, y: el.y - minY })),
-        backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-        borderRadius: 0, content: '', fontSize: 1, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal',
-        textDecoration: 'none', letterSpacing: 0, lineHeight: 1, textAlign: 'left', src: '', objectFit: 'cover',
-        filterBrightness: 1, filterContrast: 1, filterSaturate: 1, filterGrayscale: 0, filterSepia: 0, filterInvert: 0,
-        filterHueRotate: 0, filterBlur: 0, flipHorizontal: false, flipVertical: false, shapeType: 'rectangle', textTransform: 'none', verticalAlign: 'top',
-    };
-    const elementsWithoutGrouped = currentElements.filter(el => !selectedElementIds.includes(el.id));
-    updatePage(currentPage, { elements: [...elementsWithoutGrouped, newGroup] });
-    setSelectedElementIds([newGroup.id]);
-  };
-
-  const handleUngroup = () => {
-      if (!selectedElement || selectedElement.type !== 'group' || !selectedElement.children) return;
-      const ungroupedChildren = selectedElement.children.map(child => ({ ...child, x: selectedElement.x + child.x, y: selectedElement.y + child.y, rotation: selectedElement.rotation + child.rotation }));
-      const elementsWithoutGroup = currentElements.filter(el => el.id !== selectedElement.id);
-      updatePage(currentPage, { elements: [...elementsWithoutGroup, ...ungroupedChildren] });
-      setSelectedElementIds(ungroupedChildren.map(c => c.id));
-  };
-  
-  const handleToggleLayerVisibility = (id: string) => {
-    const recursiveToggle = (els: DesignElement[]): DesignElement[] => {
-        return els.map(el => {
-            if (el.id === id) {
-                return { ...el, visible: !(el.visible ?? true) };
-            }
-            if (el.children) {
-                return { ...el, children: recursiveToggle(el.children) };
-            }
-            return el;
-        });
-    };
-    updatePage(currentPage, { elements: recursiveToggle(currentElements) });
-  };
-  
-  const handleToggleLayerLock = (id: string) => {
-    const recursiveToggle = (els: DesignElement[]): DesignElement[] => {
-        return els.map(el => {
-            if (el.id === id) {
-                return { ...el, locked: !el.locked };
-            }
-            if (el.children) {
-                return { ...el, children: recursiveToggle(el.children) };
-            }
-            return el;
-        });
-    };
-    updatePage(currentPage, { elements: recursiveToggle(currentElements) });
-    if (selectedElementIds.includes(id)) {
-        setSelectedElementIds(ids => ids.filter(selectedId => selectedId !== id));
-    }
-  };
-
-  const isMultiSelect = selectedElements.length > 1;
-  const isSingleElementSelected = selectedElements.length === 1;
-  const isGroupSelected = isSingleElementSelected && selectedElement?.type === 'group';
-
-  const handleMobilePanelOpen = (panel: string) => {
-    setActiveMobilePanel(panel);
-    setMobileSheetOpen(true);
-    if(panel === 'pen') {
-        setActiveTool(panel as any);
-    } else {
-        setActiveTool('select');
-    }
-  }
-
-  const renderMobilePanelContent = () => {
-    switch (activeMobilePanel) {
-        case 'elements': return <EditorSidebarLeft activeTool={activeTool} setActiveTool={setActiveTool} isAdmin={isAdmin} onAddImage={handleAddImageFromLibrary} onAddShape={handleAddShape} onAddEmoji={handleAddEmoji} onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddQrCode={addQrCodeElement} finalizePath={finalizePath} />;
-        case 'properties': return (
-            <div className="p-4">
-                <PropertiesPanel
-                    element={selectedElement} onUpdate={updateElement} product={product} onProductUpdate={handleProductUpdate}
-                    quantity={quantity} onQuantityChange={onQuantityChange} background={currentBackground} onBackgroundChange={onBackgroundChange}
-                    canvasSettings={{ showRulers, setShowRulers, showGrid, setShowGrid, snapToGrid, setSnapToGrid, gridSize, setGridSize, showPrintGuidelines, setShowPrintGuidelines, bleed, setBleed, safetyMargin, setSafetyMargin }}
-                    croppingElementId={croppingElementId}
-                    setCroppingElementId={setCroppingElementId}
-                    isAdmin={isAdmin}
-                    onMoveLayer={moveLayer}
-                />
-            </div>
-        );
-        default: return null;
-    }
-  }
-  
-  if (!currentState) {
-    return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
-  
-  const elementToCrop = croppingElementId ? findElementRecursive(currentElements, croppingElementId) : undefined;
+  const selectedElements = selectedElementIds.map(id => findElementRecursive(currentElements, id)).filter((el): el is DesignElement => !!el);
+  const selectedElement = selectedElements[0];
 
   return (
     <>
       <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden overflow-hidden">
-        {/* ================= HEADER SUITE ================= */}
         <header className="relative z-50 flex h-16 items-center gap-2 border-b bg-white px-4 shadow-sm">
-          {/* Brand Identity - Larger Logo as Home Link */}
           <div className="flex items-center gap-3">
-            <Link 
-              href="/" 
-              className="flex items-center gap-4 hover:opacity-80 transition-all group"
-              onClick={(e) => { if(!confirmNavigation(e as any)) e.preventDefault(); }}
-            >
+            <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-all group" onClick={(e) => { if(!confirmNavigation(e as any)) e.preventDefault(); }}>
               <AmazoprintLogo isSimple className="w-12 h-12" />
               <div className="flex flex-col -space-y-0.5">
-                <span className="font-bold text-sm text-zinc-900 leading-tight uppercase tracking-tight">
-                  {product.name}
-                </span>
+                <span className="font-bold text-sm text-zinc-900 leading-tight uppercase tracking-tight">{product.name}</span>
                 <span className="text-[10px] font-black text-primary uppercase leading-none tracking-widest">ws</span>
               </div>
             </Link>
@@ -1185,9 +647,7 @@ function DesignEditorInternal({
 
           <Separator orientation="vertical" className="h-8 mx-4 opacity-30" />
 
-          {/* Main Toolbar */}
           <div className="flex flex-1 items-center gap-0.5 overflow-hidden">
-            {/* Undo / Redo */}
             <div className="flex items-center gap-0.5 shrink-0">
               <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} className="h-9 gap-1.5 px-3 hover:bg-zinc-100" title="Undo (Ctrl+Z)">
                 <Undo size={16} className="text-zinc-500" />
@@ -1201,7 +661,6 @@ function DesignEditorInternal({
 
             <Separator orientation="vertical" className="h-8 mx-2 opacity-30" />
 
-            {/* Layers */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-zinc-100 shrink-0">
@@ -1210,322 +669,64 @@ function DesignEditorInternal({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0" side="bottom" align="start" sideOffset={10}>
-                <LayersPanel 
-                  elements={currentElements} 
-                  selectedElementIds={selectedElementIds} 
-                  onSelectElement={handleSelectElement}
-                  onToggleVisibility={handleToggleLayerVisibility}
-                  onToggleLock={handleToggleLayerLock}
-                  onDuplicate={handleDuplicateLayer}
-                  onDelete={handleDeleteLayer}
-                  onDeleteAll={handleDeleteAll}
-                />
+                <LayersPanel elements={currentElements} selectedElementIds={selectedElementIds} onSelectElement={handleSelectElement} onToggleVisibility={id => updateElement(id, { visible: !findElementRecursive(currentElements, id)?.visible })} onToggleLock={id => updateElement(id, { locked: !findElementRecursive(currentElements, id)?.locked })} onDuplicate={id => { const el = findElementRecursive(currentElements, id); if (el) updatePage(currentPage, { elements: [...currentElements, { ...el, id: crypto.randomUUID(), x: el.x + 20, y: el.y + 20 }] }); }} onDelete={id => updatePage(currentPage, { elements: currentElements.filter(el => el.id !== id) })} onDeleteAll={() => updatePage(currentPage, { elements: [] })} />
               </PopoverContent>
             </Popover>
 
-            {/* Contextual Tools */}
-            <div className={cn(
-              "flex items-center gap-0.5 transition-all duration-300 ml-1 shrink-0",
-              isSingleElementSelected ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"
-            )}>
+            <div className={cn("flex items-center gap-0.5 transition-all duration-300 ml-1 shrink-0", selectedElements.length > 0 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none")}>
                 <Separator orientation="vertical" className="h-8 mx-2 opacity-30" />
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-zinc-100">
-                      <AlignCenter size={16} className="text-zinc-500" />
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Align</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="p-1">
-                    <div className="grid grid-cols-3 gap-1 p-1">
-                      <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => updateElement(selectedElementIds[0], { x: 0 })} title="Align Left">
-                        <AlignHorizontalJustifyStart size={16} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => updateElement(selectedElementIds[0], { x: (product.width - (selectedElement?.width || 0)) / 2 })} title="Align Center">
-                        <AlignHorizontalJustifyCenter size={16} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => updateElement(selectedElementIds[0], { x: product.width - (selectedElement?.width || 0) })} title="Align Right">
-                        <AlignHorizontalJustifyEnd size={16} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => updateElement(selectedElementIds[0], { y: 0 })} title="Align Top">
-                        <AlignVerticalJustifyStart size={16} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => updateElement(selectedElementIds[0], { y: (product.height - (selectedElement?.height || 0)) / 2 })} title="Align Middle">
-                        <AlignVerticalJustifyCenter size={16} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => updateElement(selectedElementIds[0], { y: product.height - (selectedElement?.height || 0) })} title="Align Bottom">
-                        <AlignVerticalJustifyEnd size={16} />
-                      </Button>
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-zinc-100">
-                      <BringToFront size={16} className="text-zinc-500" />
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Arrange</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-44">
-                    <DropdownMenuItem onClick={() => moveLayer('front')}><BringToFront className="mr-2 h-4 w-4"/> Bring to Front</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => moveLayer('forward')}><ChevronsUp className="mr-2 h-4 w-4"/> Bring Forward</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => moveLayer('backward')}><ChevronsDown className="mr-2 h-4 w-4"/> Send Backward</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => moveLayer('back')}><SendToBack className="mr-2 h-4 w-4"/> Send to Back</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-zinc-100">
-                      <Blend size={16} className="text-zinc-500" />
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Opacity</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-4" sideOffset={10}>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center text-[10px] uppercase font-black text-zinc-500 tracking-widest">
-                        <span>Transparency</span>
-                        <span className="font-mono text-primary text-[12px]">{Math.round((selectedElement?.opacity || 1) * 100)}%</span>
-                      </div>
-                      <Slider 
-                        value={[(selectedElement?.opacity || 1) * 100]} 
-                        onValueChange={(v) => updateElement(selectedElementIds[0], { opacity: v[0] / 100 })}
-                        max={100} step={1}
-                      />
-                    </div>
-                  </PopoverContent>
-                </Popover>
-
-                <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-zinc-100" onClick={() => handleDuplicateLayer(selectedElementIds[0])}>
+                <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-zinc-100" onClick={() => { selectedElements.forEach(el => { const newEl = { ...el, id: crypto.randomUUID(), x: el.x + 20, y: el.y + 20 }; updatePage(currentPage, { elements: [...currentElements, newEl] }); }); }}>
                     <Copy size={16} className="text-zinc-500" />
                     <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Duplicate</span>
                 </Button>
-
-                <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-red-50 text-red-500 hover:text-red-600" onClick={() => handleDeleteLayer(selectedElementIds[0])}>
+                <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-red-50 text-red-500 hover:text-red-600" onClick={() => updatePage(currentPage, { elements: currentElements.filter(el => !selectedElementIds.includes(el.id)) })}>
                     <Trash2 size={16} />
                     <span className="text-[11px] font-bold uppercase tracking-wider">Delete</span>
                 </Button>
             </div>
-
-            {/* Grouping */}
-            {isMultiSelect && (
-               <div className="flex items-center gap-0.5 ml-1 shrink-0">
-                 <Separator orientation="vertical" className="h-8 mx-2 opacity-30" />
-                 <Button variant="ghost" size="sm" onClick={handleGroup} className="h-9 gap-1.5 px-3 hover:bg-zinc-100">
-                   <Group size={16} className="text-zinc-500" />
-                   <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Group</span>
-                 </Button>
-               </div>
-            )}
-            {isGroupSelected && (
-               <div className="flex items-center gap-0.5 ml-1 shrink-0">
-                 <Separator orientation="vertical" className="h-8 mx-2 opacity-30" />
-                 <Button variant="ghost" size="sm" onClick={handleUngroup} className="h-9 gap-1.5 px-3 hover:bg-zinc-100">
-                   <Ungroup size={16} className="text-zinc-500" />
-                   <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Ungroup</span>
-                 </Button>
-               </div>
-            )}
           </div>
 
-          {/* Right Action Suite */}
           <div className="flex items-center gap-2 h-full shrink-0">
             <Button variant="ghost" size="sm" className="text-zinc-900 font-bold hover:bg-zinc-100 gap-2 h-9 px-4 rounded-lg hidden xl:flex">
                 <CirclePlay className="h-5 w-5 text-red-600 fill-white" />
                 <span className="text-[12px] font-bold">Video Tutorials</span>
             </Button>
-
             <div className="flex items-center gap-1.5 ml-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100 h-9 px-4 rounded-lg gap-2 font-bold hidden lg:flex">
-                        <Eye size={16} />
-                        <span className="text-[11px] uppercase tracking-wider">View</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuCheckboxItem checked={showRulers} onCheckedChange={setShowRulers}>Show Rulers</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem checked={showGrid} onCheckedChange={setShowGrid}>Show Grid</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem checked={showPrintGuidelines} onCheckedChange={setShowPrintGuidelines}>Show Print Guidelines</DropdownMenuCheckboxItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuCheckboxItem checked={snapToGrid} onCheckedChange={setSnapToGrid}>Snap to Grid</DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
                 <Button variant="outline" size="sm" onClick={() => setIsLoadDialogOpen(true)} className="bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100 h-9 px-4 rounded-lg gap-2 font-bold hidden md:flex">
                     <Library size={16} />
                     <span className="text-[11px] uppercase tracking-wider">Load</span>
                 </Button>
-
                 <Button variant="outline" size="sm" onClick={handleSave} className="bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100 h-9 px-4 rounded-lg gap-2 font-bold">
                     <Save size={16} />
-                    <span className="text-[11px] uppercase tracking-wider">{currentDesignId ? (verificationId ? 'Update Revision' : 'Update') : 'Save'}</span>
+                    <span className="text-[11px] uppercase tracking-wider">{currentDesignId ? 'Update' : 'Save'}</span>
                 </Button>
-
                 <Button variant="outline" size="sm" onClick={handlePreview} className="bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100 h-9 px-4 rounded-lg gap-2 font-bold hidden md:flex">
                     <Eye size={16} />
                     <span className="text-[11px] uppercase tracking-wider">Preview</span>
                 </Button>
-                
-                {isAdmin && (
-                  <Button variant="outline" size="sm" onClick={handleDownload} disabled={isDownloadingPdf} className="bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100 h-9 px-4 rounded-lg gap-2 font-bold">
-                    {isDownloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download size={16} />}
-                    <span className="text-[11px] uppercase tracking-wider">Download</span>
-                  </Button>
-                )}
             </div>
-
-            {!isAdmin && !contestId && !verificationId && (
+            {!isAdmin && (
                 <Button onClick={handleOrder} size="sm" disabled={isOrdering} className="h-10 px-6 bg-primary text-white rounded-full hover:bg-primary/90 shadow-lg shadow-primary/20 gap-2 ml-4">
                     {isOrdering ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart size={18} />}
                     <span className="text-[12px] font-black uppercase tracking-wider">Order Now</span>
-                </Button>
-            )}
-
-            {contestId && !isAdmin && (
-                <Button onClick={handleSubmitToContest} disabled={isSubmitting} className="h-10 px-6 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 gap-2 ml-4">
-                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}
-                    <span className="text-[12px] font-black uppercase tracking-wider">Submit Entry</span>
                 </Button>
             )}
           </div>
         </header>
 
         <div className="flex overflow-hidden relative h-full">
-          <EditorSidebarLeft
-              activeTool={activeTool}
-              setActiveTool={setActiveTool}
-              isAdmin={isAdmin}
-              onAddImage={handleAddImageFromLibrary}
-              onAddShape={handleAddShape}
-              onAddEmoji={handleAddEmoji}
-              onAddText={addTextElement}
-              onAddGroupedElements={handleAddGroupedElements}
-              onAddQrCode={addQrCodeElement}
-              finalizePath={finalizePath}
-          />
-          <SidebarRail side="left" />
-
-          <SidebarInset className="min-h-0 flex-1 p-0 m-0 lg:pb-0" style={{ paddingBottom: isMobile ? '80px' : '0' }}>
-            <div
-              ref={mainCanvasRef}
-              className="flex-1 overflow-hidden p-0 relative h-full"
-              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? PEN_CURSOR : 'default', backgroundColor: 'hsl(var(--muted))' }}
-              onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
-            >
-              {selectedElements.length > 0 && 
-                <ElementToolbar 
-                    selectedElements={selectedElements} 
-                    viewState={viewState} 
-                    onDuplicate={handleDuplicateElement} 
-                    onDelete={handleDeleteElement}
-                    spotUvAllowed={spotUvAllowed}
-                    availableFoils={availableFoils}
-                    onSetSpecialFinish={handleSetSpecialFinish}
-                />}
-              <DesignCanvas
-                product={product} elements={currentElements} selectedElementIds={selectedElementIds} onSelectElement={handleSelectElement} onUpdateElement={updateElement} background={currentBackground}
-                showRulers={showRulers} showGrid={showGrid} gridSize={gridSize} guides={guides} smartGuides={activeSmartGuides}
-                onAddGuide={addGuide} onUpdateGuide={updateGuide} onRemoveGuide={removeGuide} onSmartGuidesChange={setActiveSmartGuides}
-                showPrintGuidelines={showPrintGuidelines} bleed={bleed} safetyMargin={safetyMargin} viewState={viewState}
-                onInteractionStart={beginTransaction} onInteractionEnd={endTransaction}
-                livePath={livePath}
-                mousePos={mousePos}
-                activeTool={activeTool}
-                croppingElementId={croppingElementId}
-                setCroppingElementId={setCroppingElementId}
-              />
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-end justify-center gap-2">
-                <div className="hidden lg:flex items-center gap-1 rounded-lg bg-card p-1.5 shadow-md border">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomOut}><ZoomOut className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs w-16" onClick={resetView}>{Math.round(viewState.zoom * 100)}%</Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomIn}><ZoomIn className="h-4 w-4" /></Button>
-                </div>
-              </div>
+          <EditorSidebarLeft activeTool={activeTool} setActiveTool={setActiveTool} isAdmin={isAdmin} onAddImage={handleAddImageFromLibrary} onAddShape={handleAddShape} onAddEmoji={handleAddEmoji} onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddQrCode={addQrCodeElement} brushOptions={brushOptions} setBrushOptions={setBrushOptions} onClearBrush={() => { const ctx = brushCanvasRef.current?.getContext('2d'); ctx?.clearRect(0,0,product.width,product.height); }} finalizePath={finalizePath} />
+          <SidebarInset className="min-h-0 flex-1 p-0 m-0 relative">
+            <div ref={mainCanvasRef} className="flex-1 overflow-hidden relative h-full bg-muted" style={{ cursor: activeTool === 'brush' ? 'crosshair' : (activeTool === 'pen' ? PEN_CURSOR : 'default') }} onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+                <DesignCanvas product={product} elements={currentElements} selectedElementIds={selectedElementIds} onSelectElement={handleSelectElement} onUpdateElement={updateElement} background={currentBackground} showRulers={showRulers} showGrid={showGrid} gridSize={gridSize} guides={guides} smartGuides={activeSmartGuides} showPrintGuidelines={showPrintGuidelines} bleed={bleed} safetyMargin={safetyMargin} viewState={viewState} activeTool={activeTool} />
             </div>
           </SidebarInset>
-
-          <SidebarRail side="right" />
-          <Sidebar side="right" collapsible="icon" className="hidden lg:block">
-            <SidebarContent className="p-0 h-full">
-              <ScrollArea className="h-full">
-                <div className="p-4">
-                  <PropertiesPanel
-                    element={selectedElement} onUpdate={updateElement} product={product} onProductUpdate={handleProductUpdate}
-                    quantity={quantity} onQuantityChange={onQuantityChange} background={currentBackground} onBackgroundChange={onBackgroundChange}
-                    canvasSettings={{ showRulers, setShowRulers, showGrid, setShowGrid, snapToGrid, setSnapToGrid, gridSize, setGridSize, showPrintGuidelines, setShowPrintGuidelines, bleed, setBleed, safetyMargin, setSafetyMargin }}
-                    croppingElementId={croppingElementId}
-                    setCroppingElementId={setCroppingElementId}
-                    isAdmin={isAdmin}
-                    onMoveLayer={moveLayer}
-                  />
-                </div>
-              </ScrollArea>
-            </SidebarContent>
+          <Sidebar side="right" collapsible="icon" className="hidden lg:block w-80">
+            <SidebarContent className="p-0 h-full"><ScrollArea className="h-full"><div className="p-4"><PropertiesPanel element={selectedElement} onUpdate={updateElement} product={product} onProductUpdate={p => setState(s => ({...s, product: {...s.product, ...p}}))} quantity={quantity} onQuantityChange={q => setState(s => ({...s, quantity: q}))} background={currentBackground} onBackgroundChange={onBackgroundChange} canvasSettings={{ showRulers, setShowRulers, showGrid, setShowGrid, snapToGrid, setSnapToGrid, gridSize, setGridSize, showPrintGuidelines, setShowPrintGuidelines, bleed, setBleed, safetyMargin, setSafetyMargin }} croppingElementId={croppingElementId} setCroppingElementId={setCroppingElementId} isAdmin={isAdmin} onMoveLayer={moveLayer} /></div></ScrollArea></SidebarContent>
           </Sidebar>
-          
-           {isMobile && (
-            <div className="lg:hidden">
-              <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
-                <SheetContent side="bottom" className="h-[70vh] flex flex-col p-0">
-                  <SheetHeader className="p-4 border-b">
-                    <SheetTitle className="capitalize">{activeMobilePanel} Panel</SheetTitle>
-                  </SheetHeader>
-                  <ScrollArea className="flex-1">
-                    {renderMobilePanelContent()}
-                  </ScrollArea>
-                </SheetContent>
-              </Sheet>
-
-              <footer className="fixed bottom-0 left-0 right-0 z-10 bg-card border-t p-2">
-                <ScrollArea orientation="horizontal" className="w-full">
-                    <div className="flex gap-1 justify-center px-4">
-                        <Button 
-                            variant={activeMobilePanel === 'properties' ? 'selected' : 'ghost'}
-                            size="sm"
-                            className="flex flex-col h-auto p-2 gap-1"
-                            disabled={!selectedElement}
-                            onClick={() => handleMobilePanelOpen('properties')}
-                           >
-                            <SlidersHorizontal/>
-                            <span className="text-[10px]">Properties</span>
-                           </Button> 
-                    </div>
-                </ScrollArea>
-              </footer>
-            </div>
-           )}
         </div>
       </div>
       <LoadDesignDialog isOpen={isLoadDialogOpen} onOpenChange={setIsLoadDialogOpen} onLoad={handleLoadDesign} />
-      {elementToCrop && (
-        <CropDialog
-          element={elementToCrop}
-          onClose={() => setCroppingElementId(null)}
-          onApply={(cropData) => {
-            const { processedSrc, crop, removeColor, threshold, newAspectRatio } = cropData;
-            
-            const currentElement = findElementRecursive(currentElements, elementToCrop.id);
-            if (!currentElement) return;
-
-            let newHeight = currentElement.height;
-            if (newAspectRatio && isFinite(newAspectRatio) && newAspectRatio > 0) {
-              newHeight = currentElement.width / newAspectRatio;
-            }
-
-            updateElement(elementToCrop.id, { 
-              src: processedSrc,
-              crop, 
-              removeColor, 
-              colorThreshold: threshold,
-              height: newHeight,
-            });
-            setCroppingElementId(null);
-          }}
-        />
-      )}
     </>
   );
 }

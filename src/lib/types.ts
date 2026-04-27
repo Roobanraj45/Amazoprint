@@ -139,12 +139,11 @@ export type DesignElement = {
   path?: [number, number][];
   strokeColor?: string;
   strokeWidth?: number;
-  brushTip?: 'round' | 'square' | 'chalk' | 'spraySoft' | 'texture' | 'scatter' | 'calligraphy';
-  brushHardness?: number; // 0-100
+  brushTip?: 'chisel' | 'dry_bristle' | 'rake' | 'charcoal' | 'ink';
+  brushHardness?: number; // 0-1
   brushFlow?: number;
   brushDensity?: number;
   brushScatter?: number;
-  scatterData?: { x: number; y: number; r: number; w?: number; h?: number; opacity?: number }[]; // For particle brushes
   
   // QR Code specific properties
   qrValue?: string;
