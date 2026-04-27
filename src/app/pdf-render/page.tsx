@@ -14,6 +14,7 @@ import {
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { getUserRole } from '@/app/actions/user-actions';
 
@@ -74,7 +75,8 @@ export default function PdfRenderPage() {
                 isComposite: false,
               });
 
-              const pageSpotUvElements = page.elements.filter(el => el.spotUv === true);
+              // Spot UV Mask (Excluding Foil)
+              const pageSpotUvElements = page.elements.filter(el => el.spotUv === true && el.foilId === undefined);
               if (pageSpotUvElements.length > 0) {
                 allLayers.push({
                   id: `page-${pageIndex}-spot-mask`,
@@ -82,6 +84,19 @@ export default function PdfRenderPage() {
                   elements: pageSpotUvElements,
                   background: { type: 'solid', color: 'transparent' },
                   renderMode: 'spotuv',
+                  isComposite: false,
+                });
+              }
+
+              // Foil Mask
+              const pageFoilElements = page.elements.filter(el => el.spotUv === true && el.foilId !== undefined);
+              if (pageFoilElements.length > 0) {
+                allLayers.push({
+                  id: `page-${pageIndex}-foil-mask`,
+                  label: `${pageLabel}Foil Mask`,
+                  elements: pageFoilElements,
+                  background: { type: 'solid', color: 'transparent' },
+                  renderMode: 'foil',
                   isComposite: false,
                 });
               }
@@ -116,7 +131,7 @@ export default function PdfRenderPage() {
     const printWidth = data.product.width + (data.bleed * 2);
     const printHeight = data.product.height + (data.bleed * 2);
     const activeLayer = layers.find(l => l.id === activeTab);
-    const isSpotUv = activeLayer?.renderMode === 'spotuv';
+    const isMask = activeLayer?.renderMode === 'spotuv' || activeLayer?.renderMode === 'foil';
 
     const styleEl = document.createElement('style');
     styleEl.id = 'print-fix';
@@ -130,8 +145,8 @@ export default function PdfRenderPage() {
           padding: 0 !important;
           width: ${printWidth}px !important;
           height: ${printHeight}px !important;
-          background: ${isSpotUv ? 'none' : 'white'} !important;
-          background-color: ${isSpotUv ? 'transparent' : 'white'} !important;
+          background: ${isMask ? 'none' : 'white'} !important;
+          background-color: ${isMask ? 'transparent' : 'white'} !important;
         }
 
         #printable-area {
@@ -146,8 +161,8 @@ export default function PdfRenderPage() {
           box-shadow: none !important;
           display: block !important;
           /* FORCE NO BACKGROUND */
-          background: ${isSpotUv ? 'none' : 'white'} !important;
-          background-color: ${isSpotUv ? 'transparent' : 'white'} !important;
+          background: ${isMask ? 'none' : 'white'} !important;
+          background-color: ${isMask ? 'transparent' : 'white'} !important;
         }
 
         @page {
@@ -172,20 +187,20 @@ export default function PdfRenderPage() {
     const width = data.product.width + (data.bleed * 2);
     const height = data.product.height + (data.bleed * 2);
     const activeLayer = layers.find(l => l.id === activeTab);
-    const isSpotUv = activeLayer?.renderMode === 'spotuv';
+    const isMask = activeLayer?.renderMode === 'spotuv' || activeLayer?.renderMode === 'foil';
 
     try {
       const canvas = await html2canvas(element, {
         useCORS: true,
         scale: 3, 
-        backgroundColor: isSpotUv && format === 'png' ? null : '#ffffff',
+        backgroundColor: isMask && format === 'png' ? null : '#ffffff',
         width: width,
         height: height,
         onclone: (clonedDoc) => {
           const el = clonedDoc.getElementById('printable-area');
           if (el) {
             el.style.transform = 'none';
-            if (isSpotUv) el.style.background = 'transparent';
+            if (isMask) el.style.background = 'transparent';
           }
         }
       });
@@ -207,34 +222,34 @@ export default function PdfRenderPage() {
   const printHeight = data.product.height + (data.bleed * 2);
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-950 text-white">
-      <nav className="no-print h-16 border-b border-zinc-800 bg-zinc-900 px-6 flex items-center justify-between sticky top-0 z-50">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+      <nav className="no-print h-14 border-b border-slate-200 bg-white px-6 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => window.close()} className="text-zinc-400">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Close
+          <Button variant="ghost" size="sm" onClick={() => window.close()} className="text-slate-600 hover:text-slate-900">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
           </Button>
-          <div className="h-6 w-[1px] bg-zinc-800" />
-          <span className="text-sm font-medium">{data.product.name}</span>
+          <div className="h-6 w-[1px] bg-slate-200" />
+          <span className="text-sm font-semibold text-slate-700">{data.product.name}</span>
         </div>
 
         {isAdmin && (
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button disabled={isExporting} className="bg-blue-600 hover:bg-blue-500">
+                <Button disabled={isExporting} className="bg-blue-600 hover:bg-blue-700 h-9 px-4 text-sm font-medium">
                 {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                Export File
+                Export Results
                 <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 text-white">
-                <DropdownMenuItem onClick={handlePrint} className="cursor-pointer">
-                <Printer className="mr-2 h-4 w-4" /> PDF (Print)
+            <DropdownMenuContent align="end" className="bg-white border-slate-200 text-slate-900">
+                <DropdownMenuItem onClick={handlePrint} className="cursor-pointer focus:bg-slate-100">
+                <Printer className="mr-2 h-4 w-4" /> Download PDF (Print)
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleDownloadImage('png')} className="cursor-pointer">
-                <FileImage className="mr-2 h-4 w-4" /> PNG Image
+                <DropdownMenuItem onClick={() => handleDownloadImage('png')} className="cursor-pointer focus:bg-slate-100">
+                <FileImage className="mr-2 h-4 w-4" /> Download PNG
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleDownloadImage('jpeg')} className="cursor-pointer">
-                <FileImage className="mr-2 h-4 w-4" /> JPG Image
+                <DropdownMenuItem onClick={() => handleDownloadImage('jpeg')} className="cursor-pointer focus:bg-slate-100">
+                <FileImage className="mr-2 h-4 w-4" /> Download JPG
                 </DropdownMenuItem>
             </DropdownMenuContent>
             </DropdownMenu>
@@ -242,35 +257,46 @@ export default function PdfRenderPage() {
       </nav>
 
       <div className="flex-1 flex overflow-hidden">
-        <aside className="w-56 border-r border-zinc-800 bg-zinc-900 no-print hidden md:block">
-          <ScrollArea className="h-full p-4">
-            <p className="text-[10px] font-bold text-zinc-500 uppercase mb-4 tracking-tighter">Separations</p>
-            <div className="space-y-4">
+        <aside className="w-52 border-r border-slate-200 bg-white no-print hidden md:block overflow-hidden flex flex-col">
+          <div className="p-3 border-b border-slate-100 bg-slate-50/50">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Design Separations</p>
+          </div>
+          <ScrollArea className="flex-1 px-3 py-4">
+            <div className="space-y-3">
               {layers.map((layer) => {
-                const scale = 140 / printWidth;
+                const scale = 160 / printWidth;
+                const isMask = layer.renderMode === 'spotuv' || layer.renderMode === 'foil';
                 return (
                   <button
                     key={layer.id}
                     onClick={() => setActiveTab(layer.id)}
                     className={cn(
-                      "w-full p-2 rounded-lg transition-all border",
-                      activeTab === layer.id ? "border-blue-500 bg-blue-500/10" : "border-transparent hover:bg-zinc-800"
+                      "w-full p-2.5 rounded-lg transition-all border text-left",
+                      activeTab === layer.id 
+                        ? "border-blue-200 bg-blue-50/80 shadow-sm" 
+                        : "border-slate-100 hover:border-slate-200 hover:bg-slate-50"
                     )}
                   >
                     <div className={cn(
-                        "overflow-hidden mb-2 mx-auto relative",
-                        layer.renderMode === 'spotuv' ? "bg-transparent" : "bg-white"
-                    )} style={{ width: 140, height: printHeight * scale }}>
+                        "overflow-hidden mb-2 mx-auto relative rounded shadow-sm border border-slate-200",
+                        isMask ? "bg-slate-50 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:8px_8px]" : "bg-white"
+                    )} style={{ width: 160, height: printHeight * scale }}>
                       <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: printWidth, height: printHeight, position: 'absolute' }}>
                         <DesignCanvas 
                           product={data.product} elements={layer.elements} background={layer.background} 
                           bleed={data.bleed} safetyMargin={data.safetyMargin} renderMode={layer.renderMode} 
                           viewState={{ zoom: 1, pan: { x: 0, y: 0 } }} guides={[]}
                           highlightSpotUv={layer.isComposite}
+                          showRulers={false}
+                          showGrid={false}
+                          showPrintGuidelines={false}
                         />
                       </div>
                     </div>
-                    <span className="text-[11px] text-zinc-300 block truncate text-center">{layer.label}</span>
+                    <span className={cn(
+                      "text-[10.5px] font-medium block truncate",
+                      activeTab === layer.id ? "text-blue-700" : "text-slate-600"
+                    )}>{layer.label}</span>
                   </button>
                 );
               })}
@@ -278,41 +304,65 @@ export default function PdfRenderPage() {
           </ScrollArea>
         </aside>
 
-        <main className="flex-1 overflow-auto flex items-center justify-center p-8 bg-[#121212]">
-          <div
-            id="printable-area"
-            ref={mainPreviewRef}
-            className={cn(
-                "shadow-2xl relative transition-all duration-200",
-                activeLayerData.renderMode === 'spotuv' ? "bg-transparent" : "bg-white"
-            )}
-            style={{
-              width: printWidth,
-              height: printHeight,
-              transform: `scale(min(0.85, calc(80vh / ${printHeight}px), calc(65vw / ${printWidth}px)))`,
-              transformOrigin: 'center center',
-            } as React.CSSProperties}
-          >
-            <DesignCanvas
-              product={data.product}
-              elements={activeLayerData.elements}
-              background={activeLayerData.background}
-              showPrintGuidelines={true}
-              bleed={data.bleed}
-              safetyMargin={data.safetyMargin}
-              renderMode={activeLayerData.renderMode}
-              viewState={{ zoom: 1, pan: { x: 0, y: 0 } }}
-              guides={(data as any).guides || []}
-              highlightSpotUv={activeLayerData.isComposite}
-            />
+        <main className="flex-1 overflow-auto flex items-center justify-center p-12 bg-slate-100">
+          <div className="relative">
+            <div
+                id="printable-area"
+                ref={mainPreviewRef}
+                className={cn(
+                    "shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] relative transition-all duration-200 rounded-[2px]",
+                    (activeLayerData.renderMode === 'spotuv' || activeLayerData.renderMode === 'foil') 
+                      ? "bg-white bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px]" 
+                      : "bg-white"
+                )}
+                style={{
+                width: printWidth,
+                height: printHeight,
+                transform: `scale(min(0.85, calc(75vh / ${printHeight}px), calc(60vw / ${printWidth}px)))`,
+                transformOrigin: 'center center',
+                } as React.CSSProperties}
+            >
+                <DesignCanvas
+                product={data.product}
+                elements={activeLayerData.elements}
+                background={activeLayerData.background}
+                showPrintGuidelines={true}
+                bleed={data.bleed}
+                safetyMargin={data.safetyMargin}
+                renderMode={activeLayerData.renderMode}
+                viewState={{ zoom: 1, pan: { x: 0, y: 0 } }}
+                guides={(data as any).guides || []}
+                highlightSpotUv={activeLayerData.isComposite}
+                showRulers={false}
+                showGrid={false}
+                />
+            </div>
+            
+            {/* Legend/Info Float */}
+            <div className="absolute -bottom-16 left-0 right-0 no-print flex justify-center">
+                <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-full border border-slate-200 shadow-sm text-[11px] font-medium text-slate-500 flex items-center gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-red-400" />
+                    Bleed Line
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-green-400" />
+                    Safety Margin
+                  </div>
+                  <Separator orientation="vertical" className="h-3" />
+                  <span>{printWidth} × {printHeight} PX</span>
+                </div>
+            </div>
           </div>
         </main>
       </div>
 
-      <footer className="no-print h-8 bg-zinc-900 border-t border-zinc-800 flex items-center justify-center gap-4 text-[10px] text-zinc-500 uppercase">
-        <span>{printWidth} × {printHeight} px</span>
-        <span className="opacity-30">|</span>
-        <span>Bleed: {data.bleed}px</span>
+      <footer className="no-print h-6 bg-white border-t border-slate-200 flex items-center justify-between px-6 text-[9px] text-slate-400 font-medium uppercase tracking-widest">
+        <span>Design Engine Render System v2.0</span>
+        <div className="flex items-center gap-4">
+          <span>Bleed: {data.bleed}px</span>
+          <span>Safety: {data.safetyMargin}px</span>
+        </div>
       </footer>
     </div>
   );

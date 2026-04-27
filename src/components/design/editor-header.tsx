@@ -24,6 +24,8 @@ import {
     Redo,
     Loader2,
     ArrowRight,
+    Group,
+    Ungroup,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -72,6 +74,8 @@ export function EditorHeader(props: any) {
         handleDeleteAll,
         handleDuplicateElement,
         handleDeleteElement,
+        handleGroup,
+        handleUngroup,
 
         moveLayer,
         handleAlign,
@@ -245,6 +249,16 @@ export function EditorHeader(props: any) {
 
                 <Button onClick={handleDeleteElement} disabled={!selectedElements.length} variant="ghost" className="h-8 px-2">
                     <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+
+                <Separator orientation="vertical" className="h-4 mx-1" />
+
+                <Button onClick={handleGroup} disabled={selectedElements.length < 2} variant="ghost" className="h-8 px-2" title="Group Elements">
+                    <Group className="h-3.5 w-3.5" />
+                </Button>
+
+                <Button onClick={handleUngroup} disabled={!(isSingleElementSelected && selectedElement?.type === 'group')} variant="ghost" className="h-8 px-2" title="Ungroup Elements">
+                    <Ungroup className="h-3.5 w-3.5" />
                 </Button>
 
                 <Separator orientation="vertical" className="h-4 mx-1" />

@@ -1,4 +1,4 @@
-export type BrushEngineTip = 'chisel' | 'dry_bristle' | 'rake' | 'charcoal' | 'ink';
+export type BrushEngineTip = 'chisel' | 'dry_bristle' | 'rake' | 'charcoal' | 'ink' | 'spray' | 'airbrush' | 'soft_round' | 'hard_round' | 'glow' | 'eraser';
 
 export type BristleProfile = {
     dx: number;
@@ -8,12 +8,47 @@ export type BristleProfile = {
     opacity: number;
 }[];
 
+// High-performance dab cache
+const dabCache: Record<string, HTMLCanvasElement> = {};
+
+function getSoftDab(color: string): HTMLCanvasElement {
+    if (dabCache[color]) return dabCache[color];
+
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+
+    const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+    grad.addColorStop(0, color);
+    grad.addColorStop(0.5, color); // Keep center dense
+    grad.addColorStop(1, 'transparent');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+
+    dabCache[color] = canvas;
+    return canvas;
+}
+
 /**
  * Generates the "profile" of the brush head based on the brush type and size.
  */
 export function buildBrushTip(type: BrushEngineTip, size: number): BristleProfile {
     const bristleTip: BristleProfile = [];
-    const density = 80;
+    const isRadial = ['airbrush', 'soft_round', 'hard_round', 'glow', 'eraser'].includes(type);
+    if (isRadial) {
+        return [{
+            dx: 0, dy: 0, 
+            length: size, 
+            thickness: size, 
+            opacity: 1 
+        }];
+    }
+
+    const density = type === 'spray' ? 120 : 80;
 
     for (let i = 0; i < density; i++) {
         let x = 0, y = 0;
@@ -25,8 +60,11 @@ export function buildBrushTip(type: BrushEngineTip, size: number): BristleProfil
             const gap = size / 4;
             x = (Math.round((Math.random() - 0.5) * 4) * gap);
             y = (Math.random() - 0.5) * 2;
-        } else if (type === 'charcoal' || type === 'ink') {
-            const r = (size / 2) * Math.sqrt(Math.random());
+        } else if (type === 'charcoal' || type === 'ink' || type === 'spray') {
+            // Spray uses a linear distribution which naturally clusters more at the center than sqrt(random)
+            const r = type === 'spray' 
+                ? (size / 2) * Math.random() 
+                : (size / 2) * Math.sqrt(Math.random());
             const th = Math.random() * Math.PI * 2;
             x = Math.cos(th) * r;
             y = Math.sin(th) * r;
@@ -37,9 +75,11 @@ export function buildBrushTip(type: BrushEngineTip, size: number): BristleProfil
 
         bristleTip.push({
             dx: x, dy: y,
-            length: Math.random() * 6 + 2,
-            thickness: Math.random() * 2 + 0.5,
-            opacity: Math.random() * 0.4 + 0.1
+            length: type === 'spray' ? Math.random() * (size / 3) + 10 : Math.random() * 6 + 2,
+            thickness: type === 'spray' ? Math.random() * (size / 3) + 10 : Math.random() * 2 + 0.5,
+            opacity: type === 'spray' 
+                ? Math.pow(1 - (Math.hypot(x, y) / (size / 2)), 3) * 0.15 // Cubic falloff for softer edges
+                : Math.random() * 0.4 + 0.1
         });
     }
 
@@ -59,8 +99,11 @@ export function renderBristleSegment(
     bristleTip: BristleProfile,
     type: BrushEngineTip,
     color: string,
-    flow: number
+    flow: number,
+    softness: number = 0.8
 ) {
+    const isRadial = ['airbrush', 'soft_round', 'hard_round', 'glow', 'eraser'].includes(type);
+
     const dist = Math.hypot(x2 - x1, y2 - y1);
     const angle = Math.atan2(y2 - y1, x2 - x1);
     
@@ -69,7 +112,8 @@ export function renderBristleSegment(
     const pressure = 1 - (velocity * 0.4);
 
     // High-resolution interpolation (no dots!)
-    for (let i = 0; i < dist; i += 0.8) {
+    const step = type === 'spray' ? 4 : 0.8;
+    for (let i = 0; i < dist; i += step) {
         const cx = x1 + Math.cos(angle) * i;
         const cy = y1 + Math.sin(angle) * i;
 
@@ -78,6 +122,12 @@ export function renderBristleSegment(
         ctx.rotate(angle);
 
         bristleTip.forEach(b => {
+            // Radial brushes don't use the bristle profile loop the same way
+            // But we can use the loop if we want multiple "spray" dabs.
+            // However, the user's example is a single shaped dab per coordinate.
+            // For now, if it's radial, we'll draw one dab per interpolation point.
+            if (isRadial) return;
+
             // Paper Texture Grain (skipping random bristles)
             let skip = 0.95;
             if (type === 'charcoal') skip = 0.8;
@@ -91,8 +141,65 @@ export function renderBristleSegment(
             const xPos = b.dy * pressure;
             const yPos = b.dx * pressure;
             
-            ctx.fillRect(xPos, yPos, b.length, b.thickness);
+            if (type === 'spray') {
+                const dab = getSoftDab(color);
+                const dabSize = b.thickness;
+                ctx.drawImage(dab, xPos - dabSize/2, yPos - dabSize/2, dabSize, dabSize);
+            } else {
+                ctx.fillRect(xPos, yPos, b.length, b.thickness);
+            }
         });
+
+        if (isRadial) {
+            const size = bristleTip[0]?.thickness || 50; // Use first bristle size as base
+            const radius = (size / 2) * pressure;
+
+            ctx.globalCompositeOperation = "source-over";
+            if (type === 'eraser') {
+                ctx.globalCompositeOperation = "destination-out";
+            }
+
+            if (type === 'hard_round') {
+                ctx.globalAlpha = flow * pressure;
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                if (type === 'glow') {
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 25 * pressure;
+                }
+
+                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+                const rgba = hexToRgba(color, flow * pressure);
+
+                if (type === 'airbrush') {
+                    gradient.addColorStop(0, rgba);
+                    gradient.addColorStop(softness, hexToRgba(color, flow * 0.5 * pressure));
+                    gradient.addColorStop(1, hexToRgba(color, 0));
+                } else if (type === 'eraser') {
+                    gradient.addColorStop(0, `rgba(0,0,0,${0.3 * flow * pressure})`);
+                    gradient.addColorStop(1, "rgba(0,0,0,0)");
+                } else { // soft_round or glow
+                    gradient.addColorStop(0, rgba);
+                    gradient.addColorStop(1, hexToRgba(color, 0));
+                }
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
         ctx.restore();
     }
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
 }

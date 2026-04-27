@@ -6,6 +6,7 @@ import * as lucide from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { TextCanvasElement } from './text-canvas-element';
 import { generatePathD } from '@/lib/utils';
+import { renderBristleSegment, buildBrushTip, BrushEngineTip, BristleProfile } from '@/lib/brush-engine';
 
 
 const createGradientString = (element: DesignElement, { reversed = false } = {}): string | null => {
@@ -94,21 +95,26 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
 
   // Image fill support
   if (fillType === 'image' && fillImageSrc) {
+    const scale = element.fillImageScale || 1;
+    const offsetX = element.fillImageOffsetX || 0;
+    const offsetY = element.fillImageOffsetY || 0;
+    
     defs.push(
       <pattern 
         key={`img-fill-${element.id}`}
         id={`img-fill-${element.id}`} 
         patternUnits="objectBoundingBox" 
+        patternContentUnits="userSpaceOnUse"
         width="1" 
         height="1"
       >
         <image 
           href={fillImageSrc} 
-          x="0" 
-          y="0" 
           width={element.width} 
           height={element.height} 
           preserveAspectRatio="xMidYMid slice" 
+          transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}
+          style={{ transformOrigin: 'center' }}
         />
       </pattern>
     );
@@ -280,8 +286,8 @@ type CanvasElementProps = {
   zoom: number;
   onInteractionStart?: () => void;
   onInteractionEnd?: () => void;
-  renderMode?: 'default' | 'cmyk' | 'spotuv';
-  activeTool?: 'select' | 'pen';
+  renderMode?: 'default' | 'cmyk' | 'spotuv' | 'foil';
+  activeTool?: 'select' | 'pen' | 'brush' | 'spray';
   croppingElementId?: string | null;
   setCroppingElementId?: (id: string | null) => void;
 };
@@ -291,8 +297,45 @@ type ResizeHandle = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 
 const SNAP_THRESHOLD = 5;
 const MIN_SIZE = 10;
 
-const NonInteractiveContent = memo(({ element, product, renderMode }: { element: DesignElement, product: Product, renderMode?: 'cmyk' | 'spotuv' }) => {
-  const isSpotUv = renderMode === 'spotuv';
+const CanvasBrushRenderer = ({ element, isSpotUv }: { element: DesignElement, isSpotUv: boolean }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || !element.path || element.path.length < 2) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const tip = (element.brushTip as BrushEngineTip) || 'chisel';
+        const bristleTipData = buildBrushTip(tip, element.strokeWidth || 10);
+        const color = isSpotUv ? '#000000' : (element.strokeColor || '#000000');
+
+        for (let i = 1; i < element.path.length; i++) {
+            const [x1, y1] = element.path[i - 1];
+            const [x2, y2] = element.path[i];
+            renderBristleSegment(
+                ctx, x1, y1, x2, y2, 
+                bristleTipData, tip, color, 
+                element.brushFlow || 1,
+                element.brushSoftness ?? 0.8
+            );
+        }
+    }, [element, isSpotUv]);
+
+    return (
+        <canvas 
+            ref={canvasRef}
+            width={element.width}
+            height={element.height}
+            style={{ width: '100%', height: '100%', display: 'block' }}
+        />
+    );
+};
+
+const NonInteractiveContent = memo(({ element, product, renderMode }: { element: DesignElement, product: Product, renderMode?: 'default' | 'cmyk' | 'spotuv' | 'foil' }) => {
+  const isSpotUv = renderMode === 'spotuv' || renderMode === 'foil';
 
     switch (element.type) {
       case 'text': {
@@ -686,7 +729,19 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
       }
       case 'brush': {
         if (!element.path || element.path.length < 2) return null;
-        // Build SVG polyline points string from stored path
+        
+        const isAdvanced = ['chisel', 'dry_bristle', 'rake', 'charcoal', 'ink', 'spray', 'airbrush', 'soft_round', 'hard_round', 'glow', 'eraser'].includes(element.brushTip || '');
+        
+        if (isAdvanced) {
+            return (
+                <CanvasBrushRenderer 
+                    element={element} 
+                    isSpotUv={!!isSpotUv}
+                />
+            );
+        }
+
+        // Fallback to SVG for simple brushes
         const points = (element.path as [number, number][]).map(([px, py]) => `${px},${py}`).join(' ');
         const hardness = element.brushHardness ?? 0.5;
         // For round/square tips use a smooth polyline; for calligraphy use a skewed line cap
@@ -772,7 +827,10 @@ const _CanvasElement = ({
   if (renderMode === 'cmyk' && element.spotUv) {
     return null;
   }
-  if (renderMode === 'spotuv' && !element.spotUv) {
+  if (renderMode === 'spotuv' && (!element.spotUv || element.foilId !== undefined)) {
+    return null;
+  }
+  if (renderMode === 'foil' && (!element.spotUv || element.foilId === undefined)) {
     return null;
   }
 
@@ -1025,9 +1083,9 @@ const _CanvasElement = ({
     outline: isSelected && !element.locked && !isCroppingThisElement ? `${2 / zoom}px solid hsl(var(--primary))` : 'none',
     outlineOffset: `${2 / zoom}px`,
     userSelect: 'none',
-    opacity: renderMode === 'spotuv' ? 1 : element.opacity,
-    boxShadow: renderMode === 'spotuv' ? 'none' : (element.spotUv ? `0 0 8px 2px hsla(var(--accent), 0.8), ${existingShadow}` : existingShadow),
-    backgroundColor: renderMode === 'spotuv' ? 'transparent' : ((element.type === 'text' || element.type === 'group') ? element.backgroundColor : 'transparent'),
+    opacity: (renderMode === 'spotuv' || renderMode === 'foil') ? 1 : element.opacity,
+    boxShadow: (renderMode === 'spotuv' || renderMode === 'foil') ? 'none' : (element.spotUv ? `0 0 8px 2px hsla(var(--accent), 0.8), ${existingShadow}` : existingShadow),
+    backgroundColor: (renderMode === 'spotuv' || renderMode === 'foil') ? 'transparent' : ((element.type === 'text' || element.type === 'group') ? element.backgroundColor : 'transparent'),
     borderWidth: element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 0 : element.borderWidth,
     borderColor: renderMode === 'spotuv' ? 'transparent' : (element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 'transparent' : element.borderColor),
     borderStyle: element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 'solid' : element.borderStyle,
@@ -1110,7 +1168,7 @@ const _CanvasElement = ({
       onMouseDown={isInteractive && !isCroppingThisElement ? handleMouseDown : undefined}
     >
       {renderContent()}
-      {isSelected && isInteractive && !isCroppingThisElement && renderMode !== 'spotuv' && resizeHandles.map(handle => (
+      {isSelected && isInteractive && !isCroppingThisElement && renderMode !== 'spotuv' && renderMode !== 'foil' && resizeHandles.map(handle => (
           <div key={handle} style={getHandleStyle(handle)} onMouseDown={(e) => handleResizeMouseDown(e, handle)}/>
       ))}
       {isCroppingThisElement && (

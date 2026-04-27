@@ -127,6 +127,9 @@ export type DesignElement = {
   borderRadius?: number;
   fillType?: 'solid' | 'gradient' | 'none' | 'stepped-gradient' | 'image';
   fillImageSrc?: string;
+  fillImageScale?: number;
+  fillImageOffsetX?: number;
+  fillImageOffsetY?: number;
   gradientStops?: GradientStop[];
   gradientDirection?: number;
   gradientSteps?: number;
@@ -139,7 +142,8 @@ export type DesignElement = {
   path?: [number, number][];
   strokeColor?: string;
   strokeWidth?: number;
-  brushTip?: 'chisel' | 'dry_bristle' | 'rake' | 'charcoal' | 'ink';
+  brushTip?: 'chisel' | 'dry_bristle' | 'rake' | 'charcoal' | 'ink' | 'spray' | 'airbrush' | 'soft_round' | 'hard_round' | 'glow' | 'eraser' | 'square' | 'calligraphy';
+  brushSoftness?: number; // 0-1
   brushHardness?: number; // 0-1
   brushFlow?: number;
   brushDensity?: number;

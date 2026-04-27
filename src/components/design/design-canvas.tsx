@@ -215,7 +215,7 @@ type DesignCanvasProps = {
   viewState: ViewState;
   onInteractionStart?: () => void;
   onInteractionEnd?: () => void;
-  renderMode?: 'default' | 'cmyk' | 'spotuv';
+  renderMode?: 'default' | 'cmyk' | 'spotuv' | 'foil';
   highlightSpotUv?: boolean;
   livePath?: PathPoint[] | null;
   mousePos?: { x: number, y: number } | null;
@@ -224,6 +224,7 @@ type DesignCanvasProps = {
     path: [number, number][];
     strokeColor: string;
     flow: number;
+    softness: number;
     brushTip: BrushEngineTip;
     bristleTipData: BristleProfile;
   } | null;
@@ -293,7 +294,8 @@ export function DesignCanvas({
             ctx, 
             x1 + safetyMargin, y1 + safetyMargin, 
             x2 + safetyMargin, y2 + safetyMargin, 
-            bristleTipData, brushTip, strokeColor, flow
+            bristleTipData, brushTip, strokeColor, flow,
+            livePencilPath.softness
         );
     }
 
@@ -343,7 +345,7 @@ export function DesignCanvas({
     width: editorCanvasWidth,
     height: editorCanvasHeight,
     boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-    backgroundColor: background.type === 'solid' ? background.color : 'white',
+    backgroundColor: (renderMode === 'spotuv' || renderMode === 'foil') ? 'transparent' : (background.type === 'solid' ? background.color : 'white'),
     overflow: 'hidden',
     padding: safetyMargin,
   };
@@ -353,7 +355,7 @@ export function DesignCanvas({
   const bgRepeats: string[] = [];
   const bgPositions: string[] = [];
 
-  if (showGrid && gridSize && renderMode !== 'spotuv') {
+  if (showGrid && gridSize && renderMode !== 'spotuv' && renderMode !== 'foil') {
     const gridColor = "rgba(0,0,0,0.3)"; 
     const gridSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${gridSize}' height='${gridSize}'><path d='M ${gridSize} 0 L 0 0 0 ${gridSize}' fill='none' stroke='${gridColor}' stroke-width='0.5'/></svg>`;
     bgImages.push(`url("data:image/svg+xml,${encodeURIComponent(gridSvg)}")`);
@@ -362,14 +364,14 @@ export function DesignCanvas({
     bgPositions.push('0% 0%');
   }
 
-  if (renderMode !== 'spotuv' && background.type === 'image' && background.imageSrc) {
+  if (renderMode !== 'spotuv' && renderMode !== 'foil' && background.type === 'image' && background.imageSrc) {
     bgImages.push(`url(${background.imageSrc})`);
     bgSizes.push(background.imagePosition === 'stretch' ? '100% 100%' : background.imagePosition || 'cover');
     bgRepeats.push('no-repeat');
     bgPositions.push('center');
   }
 
-  if (renderMode !== 'spotuv' && (background.type === 'gradient' || background.type === 'stepped-gradient') && background.gradientStops) {
+  if (renderMode !== 'spotuv' && renderMode !== 'foil' && (background.type === 'gradient' || background.type === 'stepped-gradient') && background.gradientStops) {
     if (background.type === 'stepped-gradient') {
       const stops = background.gradientStops;
       const totalWeight = stops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
@@ -540,7 +542,7 @@ export function DesignCanvas({
             ))}
           </div>
           
-          <PenToolCanvas livePath={livePath} mousePos={mousePos} zoom={zoom} safetyMargin={safetyMargin} />
+          <PenToolCanvas livePath={livePath || null} mousePos={mousePos || null} zoom={zoom} safetyMargin={safetyMargin} />
 
           {/* Live Brush Canvas Overlay */}
           <canvas

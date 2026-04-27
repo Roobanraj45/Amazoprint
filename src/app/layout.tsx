@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   },
   description: 'Your one-stop shop for high-quality custom printing and design services. Use our AI tools, start a design contest, or upload your own files.',
   icons: {
-    icon: '/uploads/amazoLogo.png',
-    shortcut: '/uploads/amazoLogo.png',
-    apple: '/uploads/amazoLogo.png',
+    icon: '/uploads/amazoIcon.png',
+    shortcut: '/uploads/amazoIcon.png',
+    apple: '/uploads/amazoIcon.png',
   },
   openGraph: {
     title: 'Amazoprint | Custom Printing & Design Services',
@@ -27,10 +27,10 @@ export const metadata: Metadata = {
     siteName: 'Amazoprint',
     images: [
       {
-        url: '/uploads/amazoLogo.png', 
+        url: '/uploads/amazoIcon.png', 
         width: 512,
         height: 512,
-        alt: 'Amazoprint Logo',
+        alt: 'Amazoprint Icon',
       },
     ],
     locale: 'en_US',
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Amazoprint | Custom Printing & Design Services',
     description: 'Your one-stop shop for high-quality custom printing and design services.',
-    images: [`${siteUrl}/uploads/amazoLogo.png`],
+    images: [`${siteUrl}/uploads/amazoIcon.png`],
   },
   robots: {
     index: true,
@@ -63,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("antialiased", inter.variable, jakarta.variable)}>
       <head>
-        <link rel="icon" href="/uploads/amazoLogo.png" sizes="any" />
+        <link rel="icon" href="/uploads/amazoIcon.png" sizes="any" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter&family=Roboto&family=Open+Sans&family=Lato&family=Montserrat&family=Poppins&family=Oswald&family=Source+Sans+3&family=Raleway&family=Ubuntu&family=Playfair+Display&family=Merriweather&family=PT+Serif&family=Lora&family=Nunito&family=Roboto+Mono&family=Fira+Code&family=Outfit&family=Dancing+Script&family=Pacifico&family=Caveat&family=Righteous&family=Lobster&family=Bebas+Neue&family=Anton&family=Josefin+Sans&family=Titillium+Web&family=Quicksand&family=Rubik&family=Inconsolata&family=Cinzel&family=Amatic+SC&family=Comfortaa&family=Comic+Neue&family=Permanent+Marker&family=Bungee&family=Rakkas&family=Kalam&family=Indie+Flower&family=Satisfy&display=swap" rel="stylesheet" />

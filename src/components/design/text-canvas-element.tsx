@@ -119,7 +119,7 @@ export function TextCanvasElement({
   product: Product; 
   renderMode?: string 
 }) {
-  const isSpotUv = renderMode === 'spotuv';
+  const isSpotUv = renderMode === 'spotuv' || renderMode === 'foil';
   const warp = element.textWarp;
   const warpStyle = warp?.style;
 
@@ -328,7 +328,14 @@ export function TextCanvasElement({
             {!isSpotUv && <SvgGradientDefs element={element} product={product} />}
             {!isSpotUv && element.fillType === 'image' && element.fillImageSrc && (
                 <pattern id={`img-fill-${element.id}`} patternUnits="userSpaceOnUse" width={element.width} height={element.height}>
-                    <image href={element.fillImageSrc} x="0" y="0" width={element.width} height={element.height} />
+                    <image 
+                        href={element.fillImageSrc} 
+                        width={element.width} 
+                        height={element.height} 
+                        preserveAspectRatio="xMidYMid slice"
+                        transform={`translate(${element.fillImageOffsetX || 0}, ${element.fillImageOffsetY || 0}) scale(${element.fillImageScale || 1})`}
+                        style={{ transformOrigin: 'center' }}
+                    />
                 </pattern>
             )}
             {shadowFilterDef}

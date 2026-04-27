@@ -153,11 +153,11 @@ function DesignEditorInternal({
   const [isDrawing, setIsDrawing] = useState(false);
   const drawingPointsRef = useRef<[number, number][]>([]);
   const bristleTipRef = useRef<BristleProfile>([]);
-  
   const [livePencilPath, setLivePencilPath] = useState<{ 
       path: [number, number][]; 
       strokeColor: string; 
       flow: number;
+      softness: number;
       brushTip: BrushEngineTip;
       bristleTipData: BristleProfile;
   } | null>(null);
@@ -167,11 +167,13 @@ function DesignEditorInternal({
       size: number;
       flow: number;
       color: string;
+      softness: number;
   }>({
-      brushTip: 'chisel',
+      brushTip: 'chisel' as BrushEngineTip,
       size: 60,
       flow: 0.25,
       color: '#222222',
+      softness: 0.8,
   });
   
   // Pen Tool States
@@ -308,7 +310,7 @@ function DesignEditorInternal({
 
         newPages.push({
             elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],
-            background: pageBackground || { type: 'solid', color: '#ffffff' }
+            background: (pageBackground || { type: 'solid', color: '#ffffff' }) as Background
         });
     }
 
@@ -477,6 +479,7 @@ function DesignEditorInternal({
             path: [[x, y], [x, y]],
             strokeColor: brushOptions.color,
             flow: brushOptions.flow,
+            softness: brushOptions.softness,
             brushTip: brushOptions.brushTip as BrushEngineTip,
             bristleTipData: bristleTipRef.current
         });
@@ -637,7 +640,8 @@ function DesignEditorInternal({
                         bristleTipData, 
                         brushOptions.brushTip as BrushEngineTip, 
                         brushOptions.color, 
-                        brushOptions.flow
+                        brushOptions.flow,
+                        brushOptions.softness
                     );
                 }
                 
@@ -1030,7 +1034,7 @@ function DesignEditorInternal({
         
         newPages.push({
             elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],
-            background: pageBackground || { type: 'solid', color: '#ffffff' }
+            background: (pageBackground || { type: 'solid', color: '#ffffff' }) as Background
         })
     }
 
@@ -1340,6 +1344,8 @@ function DesignEditorInternal({
           handleDeleteAll={handleDeleteAll}
           handleDuplicateElement={handleDuplicateElement}
           handleDeleteElement={handleDeleteElement}
+          handleGroup={handleGroup}
+          handleUngroup={handleUngroup}
           moveLayer={moveLayer}
           handleAlign={handleAlign}
           updateElement={updateElement}
@@ -1387,28 +1393,10 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? PEN_CURSOR : (activeTool === 'brush' ? 'none' : 'default'), backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? PEN_CURSOR : (activeTool === 'brush' ? 'crosshair' : 'default'), backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
-              {(activeTool === 'brush') && mousePos && !isPanning.current && (
-                  <div 
-                    style={{
-                        position: 'fixed',
-                        left: mousePos.screenX ?? 0,
-                        top: mousePos.screenY ?? 0,
-                        width: brushOptions.size * viewState.zoom,
-                        height: brushOptions.size * viewState.zoom,
-                        transform: 'translate(-50%, -50%)',
-                        pointerEvents: 'none',
-                        zIndex: 1000,
-                        border: '1.5px solid white',
-                        boxShadow: '0 0 0 1px black, inset 0 0 4px rgba(0,0,0,0.2)',
-                        borderRadius: brushOptions.brushTip === 'chisel' ? '2px' : '50%',
-                        opacity: 0.8,
-                        background: 'transparent'
-                    }}
-                  />
-              )}
+
 
               {selectedElements.length > 0 && 
                 <ElementToolbar 
@@ -1476,7 +1464,7 @@ function DesignEditorInternal({
               </Sheet>
 
               <footer className="fixed bottom-0 left-0 right-0 z-10 bg-card border-t p-2">
-                <ScrollArea orientation="horizontal" className="w-full">
+                <ScrollArea className="w-full">
                     <div className="flex gap-1 justify-center px-4">
                         <Button 
                             variant={activeMobilePanel === 'properties' ? 'selected' : 'ghost'}

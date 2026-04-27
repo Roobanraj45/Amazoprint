@@ -47,7 +47,7 @@ const SectionCard = ({ title, icon, children, ...props }: any) => (
   </div>
 );
 
-export function TextPropertiesPanel({ element, onUpdate, isAdmin }: TextPropertiesPanelProps) {
+export function TextWarpPanel({ element, onUpdate, isAdmin }: TextPropertiesPanelProps) {
     const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
     
     const handleUpdate = (props: Partial<DesignElement>) => {
@@ -383,6 +383,50 @@ export function TextPropertiesPanel({ element, onUpdate, isAdmin }: TextProperti
                                         />
                                     </DialogContent>
                                 </Dialog>
+
+                                <div className="space-y-4 pt-4 border-t border-border/40 mt-3">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
+                                            <Label>Texture Zoom</Label>
+                                            <span>{Math.round((element.fillImageScale || 1) * 100)}%</span>
+                                        </div>
+                                        <Slider 
+                                            value={[element.fillImageScale || 1]} 
+                                            onValueChange={v => handleUpdate({ fillImageScale: v[0]})} 
+                                            min={0.1} 
+                                            max={5} 
+                                            step={0.01} 
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
+                                                <Label>Offset X</Label>
+                                                <span>{Math.round(element.fillImageOffsetX || 0)}px</span>
+                                            </div>
+                                            <Slider 
+                                                value={[element.fillImageOffsetX || 0]} 
+                                                onValueChange={v => handleUpdate({ fillImageOffsetX: v[0]})} 
+                                                min={-element.width} 
+                                                max={element.width} 
+                                                step={1} 
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
+                                                <Label>Offset Y</Label>
+                                                <span>{Math.round(element.fillImageOffsetY || 0)}px</span>
+                                            </div>
+                                            <Slider 
+                                                value={[element.fillImageOffsetY || 0]} 
+                                                onValueChange={v => handleUpdate({ fillImageOffsetY: v[0]})} 
+                                                min={-element.height} 
+                                                max={element.height} 
+                                                step={1} 
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
