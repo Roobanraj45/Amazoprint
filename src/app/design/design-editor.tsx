@@ -601,6 +601,35 @@ function DesignEditorInternal({
   const selectedElements = selectedElementIds.map(id => findElementRecursive(currentElements, id)).filter((el): el is DesignElement => !!el);
   const selectedElement = selectedElements[0];
 
+  // ====================== KEYBOARD SHORTCUTS ======================
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      if (e.key === 'Escape' && !isInput) {
+        e.preventDefault();
+        if (croppingElementId) {
+          setCroppingElementId(null);
+        } else if (activeTool === 'pen') {
+          // Force connect starting point when Escape is pressed
+          finalizePath(livePath, true);
+        } else {
+          setSelectedElementIds([]);
+          setActiveTool('select');
+        }
+      }
+
+      if ((e.ctrlKey || e.metaKey) && !isInput) {
+        if (e.key === 'z') { e.preventDefault(); undo(); }
+        else if (e.key === 'y') { e.preventDefault(); redo(); }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, activeTool, finalizePath, livePath, croppingElementId]);
+
   return (
     <>
       <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden overflow-hidden">
@@ -708,39 +737,3 @@ export function DesignEditor(props: DesignEditorProps) {
     </SidebarProvider>
   );
 }
-
-// Add these missing helper components for Sidebar integration
-function TextAddPanel({ onAddText, onAddGroupedElements }: any) {
-  return (
-    <div className="p-4 space-y-4">
-      <Button variant="outline" className="w-full justify-start h-12 text-lg font-bold" onClick={() => onAddText({ content: 'Add a heading', fontSize: 48, fontWeight: 'bold' })}>Add Heading</Button>
-      <Button variant="outline" className="w-full justify-start h-10 font-semibold" onClick={() => onAddText({ content: 'Add a subheading', fontSize: 32 })}>Add Subheading</Button>
-      <Button variant="outline" className="w-full justify-start h-8 text-sm" onClick={() => onAddText({ content: 'Add body text', fontSize: 16 })}>Add Body Text</Button>
-    </div>
-  );
-}
-
-function MediaPanel({ onImageSelect, onAddShape, onEmojiSelect, isAdmin }: any) {
-  return (
-    <div className="p-4 space-y-4">
-        <AssetLibrary onImageSelect={onImageSelect} isAdmin={isAdmin} />
-    </div>
-  );
-}
-
-function QrCodePanel({ onAddQrCode }: any) {
-    const [val, setVal] = useState('https://amazoprint.com');
-    return (
-        <div className="p-4 space-y-4">
-            <Label>QR Destination</Label>
-            <Textarea value={val} onChange={e => setVal(e.target.value)} />
-            <Button className="w-full" onClick={() => onAddQrCode(val, 'default')}>Add QR Code</Button>
-        </div>
-    );
-}
-
-import { AssetLibrary } from '@/components/design/asset-library';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { BrushToolPanel } from '@/components/design/brush-tool-panel';
-import { PenToolPanel } from '@/components/design/pen-tool-panel';
