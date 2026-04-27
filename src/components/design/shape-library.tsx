@@ -660,7 +660,7 @@ export function ShapeLibrary({ onAddShape, onAddImage }: ShapeLibraryProps) {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type === 'image/png') {
+    if (file && (file.type === 'image/svg+xml' || file.name.endsWith('.svg'))) {
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
@@ -694,11 +694,11 @@ export function ShapeLibrary({ onAddShape, onAddImage }: ShapeLibraryProps) {
             <Label className="cursor-pointer aspect-square relative flex flex-col items-center justify-center overflow-hidden rounded-md group bg-muted hover:bg-accent text-foreground border-2 border-dashed">
               <lucide.Upload className="w-8 h-8 text-muted-foreground" />
               <span className="mt-2 text-sm text-center text-muted-foreground">
-                Upload PNG
+                Upload SVG
               </span>
               <Input
                 type="file"
-                accept="image/png"
+                accept=".svg, image/svg+xml"
                 className="hidden"
                 onChange={handleFileUpload}
               />

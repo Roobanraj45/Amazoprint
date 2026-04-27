@@ -9,11 +9,12 @@ import type { DesignElement, GradientStop } from "@/lib/types";
 import { CMYKColorPicker as ColorPicker } from "./cmyk-color-picker";
 import { GradientPicker } from "./gradient-picker";
 import { Input } from "../ui/input";
-import { PaintBucket, Edit3, ListFilter, X, ImageIcon, Library } from "lucide-react";
+import { X, ImageIcon, Library, PaintBucket, Edit3 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn, resolveImagePath } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 import { AssetLibrary } from "./asset-library";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
 type ShapePropertiesPanelProps = {
     element: DesignElement;
@@ -21,364 +22,196 @@ type ShapePropertiesPanelProps = {
     isAdmin?: boolean;
 };
 
-const SectionCard = ({ title, icon, children, ...props }: any) => (
-  <div {...props}>
-    <div className="flex items-center gap-2 mb-3 text-[11px] font-bold uppercase tracking-wider text-foreground">
-      <div className="p-1.5 rounded-md bg-primary/10 border border-primary/20">
-        {icon}
-      </div>
-      {title}
+const PropSlider = ({ label, value, display, min, max, step, onChange }: any) => (
+  <div className="space-y-2 py-1">
+    <div className="flex justify-between items-center">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="text-[11px] font-mono bg-muted px-2 py-0.5 rounded text-foreground/80 min-w-[36px] text-center">{display}</span>
     </div>
-    <div className="space-y-4">{children}</div>
+    <Slider value={[value]} min={min} max={max} step={step} onValueChange={(v) => onChange(v[0])} />
   </div>
 );
-
 
 export function ShapePropertiesPanel({ element, onUpdate, isAdmin }: ShapePropertiesPanelProps) {
     const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
 
-    const handleUpdate = (props: Partial<DesignElement>) => {
-        onUpdate(element.id, props);
-    };
+    const handleUpdate = (props: Partial<DesignElement>) => onUpdate(element.id, props);
 
     const handleFillTypeChange = (fillType: 'solid' | 'gradient' | 'stepped-gradient' | 'image' | 'none') => {
         const newProps: Partial<DesignElement> = { fillType };
         if (fillType === 'stepped-gradient') {
             const steps = element.gradientSteps || 2;
-            const currentStops = element.gradientStops || [];
-            const defaultColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#000000', '#ffffff', '#aaaaaa', '#555555'];
-            const newStops = Array.from({ length: steps }, (_, i) => ({
-                id: currentStops[i]?.id || crypto.randomUUID(),
-                color: currentStops[i]?.color || defaultColors[i % defaultColors.length],
-                position: 0, 
-                weight: currentStops[i]?.weight || 1
+            const stops = element.gradientStops || [];
+            const colors = ['#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#000000','#ffffff','#aaaaaa','#555555'];
+            newProps.gradientStops = Array.from({ length: steps }, (_, i) => ({
+                id: stops[i]?.id || crypto.randomUUID(), color: stops[i]?.color || colors[i % colors.length],
+                position: 0, weight: stops[i]?.weight || 1,
             }));
-            newProps.gradientStops = newStops;
             newProps.gradientSteps = steps;
+            newProps.gradientDirection = 180;
         }
         handleUpdate(newProps);
-    }
-    
+    };
+
     const handleGradientStepsChange = (steps: number) => {
         const newSteps = Math.max(2, Math.min(10, steps));
-        let currentStops = [...(element.gradientStops || [])];
-        const defaultColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#000000', '#ffffff', '#aaaaaa', '#555555'];
-
+        const stops = [...(element.gradientStops || [])];
+        const colors = ['#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#000000','#ffffff','#aaaaaa','#555555'];
         const newStops = Array.from({ length: newSteps }, (_, i) => ({
-            id: currentStops[i]?.id || crypto.randomUUID(),
-            color: currentStops[i]?.color || defaultColors[i % defaultColors.length],
-            position: 0,
-            weight: currentStops[i]?.weight || 1
+            id: stops[i]?.id || crypto.randomUUID(), color: stops[i]?.color || colors[i % colors.length], position: 0, weight: stops[i]?.weight || 1,
         }));
-        
         handleUpdate({ gradientSteps: newSteps, gradientStops: newStops });
-    }
+    };
 
-    const handleSteppedStopChange = (index: number, newProps: Partial<GradientStop>) => {
+    const handleSteppedStopChange = (index: number, props: Partial<GradientStop>) => {
         const newStops = [...(element.gradientStops || [])];
-        if (newStops[index]) {
-            newStops[index] = { ...newStops[index], ...newProps };
-            handleUpdate({ gradientStops: newStops });
-        }
-    }
+        if (newStops[index]) { newStops[index] = { ...newStops[index], ...props }; handleUpdate({ gradientStops: newStops }); }
+    };
 
     const shapeSupportsGradient = (element.type === 'shape' && !['line', 'arrow'].includes(element.shapeType || '')) || element.type === 'path';
 
-    const gradientStops = element.gradientStops?.length ? element.gradientStops : [
-        { id: crypto.randomUUID(), color: '#000000', position: 0 },
-        { id: crypto.randomUUID(), color: '#ffffff', position: 1 }
-    ];
+    const gradientStops = element.gradientStops?.length
+        ? element.gradientStops
+        : [{ id: crypto.randomUUID(), color: '#000000', position: 0 }, { id: crypto.randomUUID(), color: '#ffffff', position: 1 }];
+
+    const currentFill = element.fillType || 'solid';
+
+    const fillTypes = shapeSupportsGradient
+        ? [
+            { value: 'solid', label: 'Solid', preview: <div className="w-3.5 h-3.5 rounded-sm bg-gray-400 border border-gray-300" /> },
+            { value: 'gradient', label: 'Gradient', preview: <div className="w-3.5 h-3.5 rounded-sm bg-gradient-to-br from-blue-400 to-purple-500" /> },
+            { value: 'stepped', label: 'Stepped', preview: <div className="w-3.5 h-3.5 rounded-sm bg-gradient-to-r from-red-500 via-yellow-400 to-green-400" />, realValue: 'stepped-gradient' },
+            { value: 'image', label: 'Image', preview: <ImageIcon size={10} /> },
+            { value: 'none', label: 'None', preview: <X size={10} /> },
+          ]
+        : [
+            { value: 'solid', label: 'Solid', preview: <div className="w-3.5 h-3.5 rounded-sm bg-gray-400 border border-gray-300" /> },
+            { value: 'none', label: 'None', preview: <X size={10} /> },
+          ];
 
     return (
         <div className="space-y-4">
-            <div className="bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm space-y-4">
-                <SectionCard title="Fill" icon={<PaintBucket size={14}/>}>
-                        {shapeSupportsGradient && (
-                        <div className="space-y-2">
-                            <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Fill Type</Label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleFillTypeChange('solid')}
-                                    className={cn(
-                                        "h-10 flex items-center justify-start gap-2 text-xs",
-                                        (!element.fillType || element.fillType === 'solid') && "border-primary ring-1 ring-primary"
-                                    )}
-                                >
-                                    <div className="w-5 h-5 rounded-sm border bg-gray-400" />
-                                    Solid Color
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleFillTypeChange('gradient')}
-                                    className={cn(
-                                        "h-10 flex items-center justify-start gap-2 text-xs",
-                                        (element.fillType === 'gradient') && "border-primary ring-1 ring-primary"
-                                    )}
-                                >
-                                    <div className="w-5 h-5 rounded-sm border bg-gradient-to-br from-blue-400 to-purple-500" />
-                                    Gradient
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleFillTypeChange('stepped-gradient')}
-                                    className={cn(
-                                        "h-10 flex items-center justify-start gap-2 text-xs",
-                                        (element.fillType === 'stepped-gradient') && "border-primary ring-1 ring-primary"
-                                    )}
-                                >
-                                    <div className="w-5 h-5 rounded-sm border bg-gradient-to-r from-red-500 via-yellow-500 to-green-500" />
-                                    Stepped
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleFillTypeChange('image')}
-                                    className={cn(
-                                        "h-10 flex items-center justify-start gap-2 text-xs",
-                                        (element.fillType === 'image') && "border-primary ring-1 ring-primary"
-                                    )}
-                                >
-                                    <ImageIcon size={14} className="text-muted-foreground" />
-                                    Image Texture
-                                </Button>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleFillTypeChange('none')}
-                                className={cn(
-                                    "w-full text-xs",
-                                    element.fillType === 'none' ? 'text-primary bg-primary/10' : 'text-muted-foreground'
-                                )}
-                            >
-                                <X className="mr-2 h-3 w-3" />
-                                No Fill
-                            </Button>
+            <Tabs defaultValue="fill" className="w-full">
+                <div className="flex items-center gap-1.5 mb-2">
+                    <PaintBucket size={11} className="text-muted-foreground" />
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Color</p>
+                </div>
+                <TabsList className="h-7 grid grid-cols-2 bg-muted/60 rounded-lg w-full mb-3">
+                    <TabsTrigger value="fill" className="text-[10px] font-semibold h-5 rounded-md data-[state=active]:bg-background">Fill</TabsTrigger>
+                    <TabsTrigger value="stroke" className="text-[10px] font-semibold h-5 rounded-md data-[state=active]:bg-background">Stroke</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="fill" className="mt-0 space-y-3">
+                    {shapeSupportsGradient && (
+                        <div className="flex gap-1">
+                            {fillTypes.map(({ value, label, preview, realValue }) => {
+                                const actualValue = realValue || value;
+                                const isActive = currentFill === actualValue || (actualValue === 'solid' && !element.fillType);
+                                return (
+                                    <button key={value} onClick={() => handleFillTypeChange(actualValue as any)}
+                                        className={cn(
+                                            "flex-1 flex flex-col items-center gap-1 py-1.5 px-1 rounded-lg border text-[9px] font-semibold transition-all",
+                                            isActive ? "bg-primary/10 border-primary/60 text-primary" : "bg-muted/30 border-border/50 text-muted-foreground hover:bg-muted/60"
+                                        )}>
+                                        {preview}{label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
 
-                    <div className="pt-2">
-                        {(!element.fillType || element.fillType === 'solid') && (
-                            <ColorPicker
-                                label=""
-                                color={element.color || '#cccccc'}
-                                onChange={(color) => handleUpdate({ color })}
-                            />
+                    <div className="rounded-xl bg-muted/20 border border-border/40 p-2.5">
+                        {(currentFill === 'solid' || !element.fillType) && (
+                            <ColorPicker label="" color={element.color || '#cccccc'} onChange={(color) => handleUpdate({ color })} />
                         )}
-                        
-                        {element.fillType === 'gradient' && (
-                            <div className="space-y-6">
-                                <GradientPicker
-                                    stops={gradientStops}
-                                    direction={element.gradientDirection || 0}
-                                    onDirectionChange={direction => handleUpdate({ gradientDirection: direction })}
-                                    onStopsChange={stops => handleUpdate({ gradientStops: stops })}
-                                />
-                                <div className="pt-4 border-t border-border/40 space-y-4">
-                                    <ColorPicker
-                                        label="Overlay Tint"
-                                        color={element.color || '#000000'}
-                                        onChange={color => handleUpdate({ color })}
-                                    />
-                                    <div className="space-y-2 px-1">
-                                        <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
-                                            <Label>Tint Opacity</Label>
-                                            <span>{Math.round((element.tintOpacity || 0) * 100)}%</span>
-                                        </div>
-                                        <Slider value={[element.tintOpacity || 0]} onValueChange={v => handleUpdate({ tintOpacity: v[0]})} max={1} step={0.01} />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {element.fillType === 'stepped-gradient' && (
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-4 bg-muted/40 p-3 rounded-xl border border-border/40">
-                                    <div className="flex-1 space-y-2">
-                                        <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
-                                            <Label>Angle</Label>
-                                            <span>{element.gradientDirection || 0}°</span>
-                                        </div>
-                                        <Slider value={[element.gradientDirection || 0]} onValueChange={v => handleUpdate({gradientDirection: v[0]})} max={360} step={1} />
-                                    </div>
-                                    <div className="w-px h-10 bg-border/60" />
-                                    <div className="w-16 space-y-1">
-                                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Steps</Label>
-                                        <Input
-                                            type="number"
-                                            className="h-8 text-xs font-mono bg-background border-none"
-                                            value={element.gradientSteps || 2}
-                                            onChange={e => handleGradientStepsChange(parseInt(e.target.value))}
-                                            min={2} max={10}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3 pt-2">
-                                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">
-                                        <ListFilter size={12} />
-                                        Color Steps
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                                        {(element.gradientStops || []).map((stop, index) => (
-                                            <div key={stop.id} className="bg-background/40 p-3 rounded-xl border border-border/40">
-                                                <div className="flex gap-3 items-end">
-                                                    <ColorPicker
-                                                        label={`Step ${''}${index + 1}`}
-                                                        color={stop.color}
-                                                        onChange={color => handleSteppedStopChange(index, { color })}
-                                                        containerClassName="space-y-0 flex-1"
-                                                    />
-                                                    <div className="w-20 space-y-1">
-                                                        <Label className="text-[10px] font-bold uppercase text-muted-foreground text-center">Ratio</Label>
-                                                        <Input
-                                                            type="number"
-                                                            className="h-8 text-xs font-mono bg-background border-border/50 focus-visible:ring-1 ring-primary/30"
-                                                            value={stop.weight ?? 1}
-                                                            onChange={e => handleSteppedStopChange(index, { weight: parseInt(e.target.value, 10) || 1 })}
-                                                            min={1}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <Button variant="outline" size="sm" onClick={() => handleGradientStepsChange((element.gradientSteps || 2) + 1)} className="w-full mt-2">Add Step</Button>
-                                </div>
-                                
-                                <div className="pt-4 border-t border-border/40 space-y-4">
-                                    <ColorPicker
-                                        label="Overlay Tint"
-                                        color={element.color || '#000000'}
-                                        onChange={color => handleUpdate({ color })}
-                                    />
-                                    <div className="space-y-2 px-1">
-                                        <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
-                                            <Label>Tint Opacity</Label>
-                                            <span>{Math.round((element.tintOpacity || 0) * 100)}%</span>
-                                        </div>
-                                        <Slider value={[element.tintOpacity || 0]} onValueChange={v => handleUpdate({ tintOpacity: v[0]})} max={1} step={0.01} />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {element.fillType === 'image' && (
+                        {currentFill === 'gradient' && (
                             <div className="space-y-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden border">
-                                        {element.fillImageSrc ? (
-                                            <img src={resolveImagePath(element.fillImageSrc)} alt="Fill preview" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                                        )}
+                                <GradientPicker stops={gradientStops} direction={element.gradientDirection || 0}
+                                    onDirectionChange={(d) => handleUpdate({ gradientDirection: d })}
+                                    onStopsChange={(s) => handleUpdate({ gradientStops: s })} />
+                                <div className="pt-2 border-t border-border/40 space-y-3">
+                                    <ColorPicker label="Overlay Tint" color={element.color || '#000000'} onChange={(c) => handleUpdate({ color: c })} />
+                                    <PropSlider label="Tint Opacity" value={element.tintOpacity || 0} display={`${Math.round((element.tintOpacity || 0) * 100)}%`} min={0} max={1} step={0.01} onChange={(v: number) => handleUpdate({ tintOpacity: v })} />
+                                </div>
+                            </div>
+                        )}
+                        {currentFill === 'stepped-gradient' && (
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+                                    <PropSlider label="Angle" value={element.gradientDirection || 0} display={`${element.gradientDirection || 0}°`} min={0} max={360} step={1} onChange={(v: number) => handleUpdate({ gradientDirection: v })} />
+                                    <div className="space-y-1 w-14">
+                                        <Label className="text-[9px] uppercase text-muted-foreground/60">Steps</Label>
+                                        <Input type="number" className="h-7 text-xs font-mono bg-background border-0" value={element.gradientSteps || 2}
+                                            onChange={(e) => handleGradientStepsChange(parseInt(e.target.value))} min={2} max={10} />
                                     </div>
-                                    <div className="flex-1 space-y-2">
-                                        <Button variant="outline" size="sm" className="w-full text-xs h-9" onClick={() => setIsAssetLibraryOpen(true)}>
-                                            <Library className="mr-2 h-4 w-4" /> Browse Library
+                                </div>
+                                <div className="space-y-1.5 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">
+                                    {(element.gradientStops || []).map((stop, i) => (
+                                        <div key={stop.id} className="flex items-center gap-2 p-2 bg-background/60 rounded-lg border border-border/40">
+                                            <ColorPicker label={`Step ${i + 1}`} color={stop.color} onChange={(c) => handleSteppedStopChange(i, { color: c })} containerClassName="flex-1 space-y-0" />
+                                            <div className="w-12 space-y-0.5">
+                                                <Label className="text-[9px] uppercase text-muted-foreground/60">Ratio</Label>
+                                                <Input type="number" className="h-6 text-[10px] font-mono bg-muted/40 border-0" value={stop.weight ?? 1}
+                                                    onChange={(e) => handleSteppedStopChange(i, { weight: parseInt(e.target.value, 10) || 1 })} min={1} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => handleGradientStepsChange((element.gradientSteps || 2) + 1)}>+ Add Step</Button>
+                            </div>
+                        )}
+                        {currentFill === 'image' && (
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-10 h-10 bg-muted rounded-md shrink-0 flex items-center justify-center overflow-hidden border border-border/50">
+                                        {element.fillImageSrc ? <Image src={resolveImagePath(element.fillImageSrc)} alt="" width={40} height={40} className="object-cover" /> : <ImageIcon size={14} className="text-muted-foreground" />}
+                                    </div>
+                                    <div className="flex-1 space-y-1">
+                                        <Input type="text" value={element.fillImageSrc || ''} onChange={(e) => handleUpdate({ fillImageSrc: e.target.value })} placeholder="Image URL..." className="h-7 text-xs bg-muted/40 border-0" />
+                                        <Button variant="outline" size="sm" className="h-6 text-[10px] w-full" onClick={() => setIsAssetLibraryOpen(true)}>
+                                            <Library size={9} className="mr-1" /> Browse Library
                                         </Button>
-                                        {element.fillImageSrc && (
-                                            <Button variant="ghost" size="sm" className="w-full h-7 text-[10px] text-destructive hover:text-destructive" onClick={() => handleUpdate({ fillImageSrc: '' })}>
-                                                <X className="mr-1 h-3 w-3" /> Remove Texture
-                                            </Button>
-                                        )}
                                     </div>
                                 </div>
-                                
-                                <div className="space-y-4 pt-2">
-                                    <div className="space-y-2 px-1">
-                                        <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
-                                            <Label>Texture Zoom</Label>
-                                            <span>{Math.round((element.fillImageScale || 1) * 100)}%</span>
-                                        </div>
-                                        <Slider 
-                                            value={[element.fillImageScale || 1]} 
-                                            onValueChange={v => handleUpdate({ fillImageScale: v[0]})} 
-                                            min={0.1} 
-                                            max={5} 
-                                            step={0.01} 
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2 px-1">
-                                            <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
-                                                <Label>Offset X</Label>
-                                                <span>{Math.round(element.fillImageOffsetX || 0)}px</span>
-                                            </div>
-                                            <Slider 
-                                                value={[element.fillImageOffsetX || 0]} 
-                                                onValueChange={v => handleUpdate({ fillImageOffsetX: v[0]})} 
-                                                min={-element.width} 
-                                                max={element.width} 
-                                                step={1} 
-                                            />
-                                        </div>
-                                        <div className="space-y-2 px-1">
-                                            <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
-                                                <Label>Offset Y</Label>
-                                                <span>{Math.round(element.fillImageOffsetY || 0)}px</span>
-                                            </div>
-                                            <Slider 
-                                                value={[element.fillImageOffsetY || 0]} 
-                                                onValueChange={v => handleUpdate({ fillImageOffsetY: v[0]})} 
-                                                min={-element.height} 
-                                                max={element.height} 
-                                                step={1} 
-                                            />
-                                        </div>
+                                <div className="space-y-2 pt-2 border-t border-border/40">
+                                    <PropSlider label="Zoom" value={element.fillImageScale || 1} display={`${Math.round((element.fillImageScale || 1) * 100)}%`} min={0.1} max={5} step={0.01} onChange={(v: number) => handleUpdate({ fillImageScale: v })} />
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <PropSlider label="Offset X" value={element.fillImageOffsetX || 0} display={`${Math.round(element.fillImageOffsetX || 0)}px`} min={-element.width} max={element.width} step={1} onChange={(v: number) => handleUpdate({ fillImageOffsetX: v })} />
+                                        <PropSlider label="Offset Y" value={element.fillImageOffsetY || 0} display={`${Math.round(element.fillImageOffsetY || 0)}px`} min={-element.height} max={element.height} step={1} onChange={(v: number) => handleUpdate({ fillImageOffsetY: v })} />
                                     </div>
                                 </div>
-
-                                <div className="pt-4 border-t border-border/40 space-y-4">
-                                    <ColorPicker
-                                        label="Texture Tint"
-                                        color={element.color || '#000000'}
-                                        onChange={color => handleUpdate({ color })}
-                                    />
-                                    <div className="space-y-2 px-1">
-                                        <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
-                                            <Label>Tint Opacity</Label>
-                                            <span>{Math.round((element.tintOpacity || 0) * 100)}%</span>
-                                        </div>
-                                        <Slider value={[element.tintOpacity || 0]} onValueChange={v => handleUpdate({ tintOpacity: v[0]})} max={1} step={0.01} />
-                                    </div>
-                                </div>
+                                <Dialog open={isAssetLibraryOpen} onOpenChange={setIsAssetLibraryOpen}>
+                                    <DialogContent className="max-w-4xl h-[80vh]">
+                                        <DialogHeader><DialogTitle>Image Library</DialogTitle><DialogDescription>Select an image to use as a fill texture.</DialogDescription></DialogHeader>
+                                        <AssetLibrary onImageSelect={(url) => { handleUpdate({ fillImageSrc: url }); setIsAssetLibraryOpen(false); }} isAdmin={isAdmin} />
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                        )}
+                        {currentFill === 'none' && (
+                            <div className="flex items-center gap-2 text-muted-foreground py-2">
+                                <X size={12} />
+                                <span className="text-xs">No fill applied</span>
                             </div>
                         )}
                     </div>
-                </SectionCard>
-            </div>
-            <div className="bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm space-y-4">
-                <SectionCard title="Stroke" icon={<Edit3 size={14}/>}>
-                    <ColorPicker
-                        label="Stroke Color"
-                        color={element.borderColor || '#000000'}
-                        onChange={(color) => handleUpdate({ borderColor: color })}
-                    />
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-bold uppercase text-muted-foreground">Weight</Label>
-                            <div className="relative group">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-muted-foreground/50">px</span>
-                                <Input
-                                    type="number"
-                                    className="pl-8 h-9 text-xs font-mono bg-background/50 border-border/50"
-                                    value={element.borderWidth || 0}
-                                    onChange={(e) => handleUpdate({ borderWidth: parseInt(e.target.value, 10) || 0 })}
-                                />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-bold uppercase text-muted-foreground">Style</Label>
+                    {!shapeSupportsGradient && (
+                        <button onClick={() => handleFillTypeChange(currentFill === 'none' ? 'solid' : 'none')}
+                            className={cn("w-full text-xs py-1.5 rounded-lg border transition-all flex items-center justify-center gap-1",
+                                currentFill === 'none' ? "border-primary/50 bg-primary/10 text-primary" : "border-border/50 bg-muted/20 text-muted-foreground hover:bg-muted/40")}>
+                            <X size={11} /> {currentFill === 'none' ? 'Fill is Off' : 'Remove Fill'}
+                        </button>
+                    )}
+                </TabsContent>
+
+                <TabsContent value="stroke" className="mt-0 space-y-2">
+                    <div className="rounded-xl bg-muted/20 border border-border/40 p-2.5 space-y-3">
+                        <ColorPicker label="Stroke Color" color={element.borderColor || '#000000'} onChange={(c) => handleUpdate({ borderColor: c })} />
+                        <div className="space-y-1">
+                            <Label className="text-[9px] uppercase text-muted-foreground/60">Style</Label>
                             <Select value={element.borderStyle || 'solid'} onValueChange={(v) => handleUpdate({ borderStyle: v as any })}>
-                                <SelectTrigger className="h-9 text-xs bg-background/50 border-border/50 shadow-none">
-                                    <SelectValue />
-                                </SelectTrigger>
+                                <SelectTrigger className="h-7 text-xs bg-muted/40 border-0"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="solid">Solid</SelectItem>
                                     <SelectItem value="dashed">Dashed</SelectItem>
@@ -386,25 +219,10 @@ export function ShapePropertiesPanel({ element, onUpdate, isAdmin }: ShapeProper
                                 </SelectContent>
                             </Select>
                         </div>
+                        <PropSlider label="Width" value={element.borderWidth || 0} display={`${element.borderWidth || 0}px`} min={0} max={20} step={0.5} onChange={(v: number) => handleUpdate({ borderWidth: v })} />
                     </div>
-                </SectionCard>
-            </div>
-
-            <Dialog open={isAssetLibraryOpen} onOpenChange={setIsAssetLibraryOpen}>
-                <DialogContent className="max-w-4xl h-[80vh]">
-                    <DialogHeader>
-                        <DialogTitle>Fill Texture Library</DialogTitle>
-                        <DialogDescription>Select an image to use as the fill for this shape.</DialogDescription>
-                    </DialogHeader>
-                    <AssetLibrary 
-                        onImageSelect={(url) => {
-                            handleUpdate({ fillImageSrc: url });
-                            setIsAssetLibraryOpen(false);
-                        }}
-                        isAdmin={isAdmin} 
-                    />
-                </DialogContent>
-            </Dialog>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

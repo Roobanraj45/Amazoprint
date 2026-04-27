@@ -171,68 +171,49 @@ export function TextCanvasElement({
     const fontSize = element.fontSize || 16;
     const effectiveRadius = reverse ? radius - fontSize * 0.8 : radius;
 
-    const polarToCartesian = (centerX: number, centerY: number, r: number, angleInDegrees: number) => {
-      const angleInRadians = (angleInDegrees - 90) * Math.PI / 180;
-      return {
-        x: centerX + (r * Math.cos(angleInRadians)),
-        y: centerY + (r * Math.sin(angleInRadians)),
-      };
-    };
-
     const centerX = element.width / 2;
     const pathCenterY = element.height / 2;
-
-    const startAngle = rotation;
-    const endAngle = rotation + 359.99;
-
-    const start = polarToCartesian(centerX, pathCenterY, effectiveRadius, startAngle);
-    const end = polarToCartesian(centerX, pathCenterY, effectiveRadius, endAngle);
-
-    const largeArcFlag = 1;
-    const sweepFlag = 1;
-
-    const d = `M ${start.x} ${start.y} A ${effectiveRadius} ${effectiveRadius} 0 ${largeArcFlag} ${sweepFlag} ${end.x} ${end.y}`;
 
     let contentToWrap = element.content || '';
     if (element.textTransform === 'uppercase') contentToWrap = contentToWrap.toUpperCase();
     else if (element.textTransform === 'lowercase') contentToWrap = contentToWrap.toLowerCase();
     else if (element.textTransform === 'capitalize') contentToWrap = contentToWrap.replace(/\b\w/g, char => char.toUpperCase());
 
-    const charArray = Array.from(contentToWrap);
-    const gradientStops = (element.gradientStops || []).length > 0 ? element.gradientStops! : [{ id: '1', color: '#000', weight: 1, position: 0 }];
-    const totalWeight = gradientStops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
-
-    const getCharFill = (charIndex: number) => {
-        if (isSpotUv) return 'black';
-        if (element.fillType !== 'stepped-gradient') return undefined; // Let it fallback to parent
+    const charData = React.useMemo(() => {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) return [];
+        context.font = `${element.fontStyle || 'normal'} ${element.fontWeight || 'normal'} ${element.fontSize || 16}px "${element.fontFamily || 'sans-serif'}"`;
         
-        const charProgress = charArray.length > 1 ? charIndex / (charArray.length - 1) : 0;
-        if (!totalWeight) return element.color || '#000000';
-
-        let accumulatedWeight = 0;
-        for (const stop of gradientStops) {
-            const stopEnd = (accumulatedWeight + (stop.weight ?? 1)) / totalWeight;
-            if (charProgress <= stopEnd) return stop.color;
-            accumulatedWeight += (stop.weight ?? 1);
-        }
-        return gradientStops[gradientStops.length - 1]?.color || '#000000';
-    };
-
-    // For the stroke layer, we do NOT want tspan fill overrides! We just use simple text.
-    const strokeContent = (
-      <textPath href={`#path-${element.id}`} startOffset="50%" textAnchor="middle" {...({ side: reverse ? "right" : "left" } as any)}>
-        {contentToWrap}
-      </textPath>
-    );
-
-    // For the fill layer, if it is a stepped gradient, we colorize letter by letter.
-    const fillContent = (
-      <textPath href={`#path-${element.id}`} startOffset="50%" textAnchor="middle" {...({ side: reverse ? "right" : "left" } as any)}>
-        {element.fillType === 'stepped-gradient' 
-            ? charArray.map((char, i) => <tspan key={i} fill={getCharFill(i)}>{char}</tspan>)
-            : contentToWrap}
-      </textPath>
-    );
+        const chars = Array.from(contentToWrap);
+        const spacing = element.letterSpacing || 0;
+        
+        const widths = chars.map(char => context.measureText(char).width);
+        const totalWidth = widths.reduce((a, b) => a + b, 0) + (chars.length - 1) * spacing;
+        
+        const totalArcDegrees = (totalWidth / (2 * Math.PI * effectiveRadius)) * 360;
+        let currentAngle = rotation - (totalArcDegrees / 2);
+        
+        return chars.map((char, i) => {
+            const charWidth = widths[i];
+            const charAngleWidth = (charWidth / (2 * Math.PI * effectiveRadius)) * 360;
+            const midAngle = currentAngle + (charAngleWidth / 2);
+            
+            // Advance for next char
+            currentAngle += charAngleWidth + (spacing / (2 * Math.PI * effectiveRadius)) * 360;
+            
+            const angleInRadians = (midAngle - 90) * Math.PI / 180;
+            const x = centerX + (effectiveRadius * Math.cos(angleInRadians));
+            const y = pathCenterY + (effectiveRadius * Math.sin(angleInRadians));
+            
+            return {
+                char,
+                x,
+                y,
+                rotation: midAngle + (reverse ? 180 : 0)
+            };
+        });
+    }, [contentToWrap, element.fontStyle, element.fontWeight, element.fontSize, element.fontFamily, element.letterSpacing, effectiveRadius, rotation, reverse, centerX, pathCenterY]);
 
     return (
       <svg 
@@ -243,127 +224,174 @@ export function TextCanvasElement({
       >
         <defs>
             {!isSpotUv && <SvgGradientDefs element={element} product={product} />}
-            <path id={`path-${element.id}`} d={d} fill="none" />
             {shadowFilterDef}
         </defs>
         
         <g filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}>
-          <text style={textStyle} dominantBaseline={reverse ? "hanging" : "auto"}>
-            {element.textStrokeWidth && element.textStrokeWidth > 0 && !isSpotUv ? (
-                React.cloneElement(strokeContent, {
-                    stroke: element.textStrokeColor || '#000000',
-                    strokeWidth: element.textStrokeWidth,
-                    strokeLinejoin: 'round',
-                    fill: 'none',
-                })
-            ) : null}
-          </text>
-           <text style={textStyle} dominantBaseline={reverse ? "hanging" : "auto"} fill={getSvgFill()}>
-              {fillContent}
-          </text>
+          {charData.map((data, i) => (
+            <React.Fragment key={i}>
+                <text 
+                    style={textStyle} 
+                    textAnchor="middle" 
+                    dominantBaseline="middle"
+                    transform={`translate(${data.x}, ${data.y}) rotate(${data.rotation})`}
+                >
+                    {element.textStrokeWidth && element.textStrokeWidth > 0 && !isSpotUv && (
+                        <tspan 
+                            stroke={element.textStrokeColor || '#000000'} 
+                            strokeWidth={element.textStrokeWidth} 
+                            strokeLinejoin="round" 
+                            fill="none"
+                        >
+                            {data.char}
+                        </tspan>
+                    )}
+                    <tspan fill={getSvgFill()}>
+                        {data.char}
+                    </tspan>
+                </text>
+            </React.Fragment>
+          ))}
         </g>
       </svg>
     );
   }
 
   // -- Normal Flat Text --
-  const wrappedLines: string[] = [];
-  if (element.content) {
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      if (context) {
-          context.font = `${element.fontStyle || 'normal'} ${element.fontWeight || 'normal'} ${element.fontSize || 16}px "${element.fontFamily || 'sans-serif'}"`;
-          context.letterSpacing = `${element.letterSpacing || 0}px`;
-          
-          let contentToWrap = element.content;
-          if (element.textTransform === 'uppercase') {
-            contentToWrap = contentToWrap.toUpperCase();
-          } else if (element.textTransform === 'lowercase') {
-            contentToWrap = contentToWrap.toLowerCase();
-          } else if (element.textTransform === 'capitalize') {
-            contentToWrap = contentToWrap.replace(/\b\w/g, char => char.toUpperCase());
-          }
+  const charData = React.useMemo(() => {
+    if (!element.content) return [];
+    
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) return [];
+    context.font = `${element.fontStyle || 'normal'} ${element.fontWeight || 'normal'} ${element.fontSize || 16}px "${element.fontFamily || 'sans-serif'}"`;
+    context.letterSpacing = `${element.letterSpacing || 0}px`;
 
-          const allLines = contentToWrap.split('\n');
-          allLines.forEach(lineContent => {
-              const words = lineContent.split(' ');
-              let currentLine = '';
-              for (let i = 0; i < words.length; i++) {
-                  const testLine = currentLine ? `${currentLine} ${words[i]}` : words[i];
-                  const metrics = context.measureText(testLine);
-                  if (metrics.width > element.width && i > 0) {
-                      wrappedLines.push(currentLine);
-                      currentLine = words[i];
-                  } else {
-                      currentLine = testLine;
-                  }
-              }
-              wrappedLines.push(currentLine);
-          });
-      } else {
-          wrappedLines.push(...(element.content.split('\n')));
-      }
-  }
+    let contentToWrap = element.content;
+    if (element.textTransform === 'uppercase') contentToWrap = contentToWrap.toUpperCase();
+    else if (element.textTransform === 'lowercase') contentToWrap = contentToWrap.toLowerCase();
+    else if (element.textTransform === 'capitalize') contentToWrap = contentToWrap.replace(/\b\w/g, char => char.toUpperCase());
 
-  const lineHeightPx = (element.lineHeight || 1.2) * (element.fontSize || 16);
-  const totalTextHeight = wrappedLines.length * lineHeightPx;
-  let startY = 0;
+    const allLines = contentToWrap.split('\n');
+    const lines: { char: string; x: number; y: number; width: number }[][] = [];
+    const lineHeightPx = (element.lineHeight || 1.2) * (element.fontSize || 16);
+    const spacing = element.letterSpacing || 0;
 
-  switch (element.verticalAlign) {
-      case 'top':
-          startY = lineHeightPx * 0.8;
-          break;
-      case 'bottom':
-          startY = element.height - totalTextHeight + (lineHeightPx * 0.8);
-          break;
-      case 'middle':
-      default:
-          startY = (element.height - totalTextHeight) / 2 + (lineHeightPx * 0.8);
-          break;
-  }
-  
+    allLines.forEach((lineContent, lineIdx) => {
+        const words = lineContent.split(' ');
+        let currentLineChars: { char: string; x: number; width: number }[] = [];
+        let currentLineWidth = 0;
+
+        words.forEach((word, wordIdx) => {
+            const wordWithSpace = wordIdx > 0 ? ' ' + word : word;
+            const wordChars = Array.from(wordWithSpace);
+            const wordWidth = context.measureText(wordWithSpace).width;
+
+            if (currentLineWidth + wordWidth > element.width && currentLineChars.length > 0) {
+                // Push current line and reset
+                lines.push(currentLineChars.map(c => ({ ...c, y: 0, width: 0 }))); // Y will be set later
+                currentLineChars = [];
+                currentLineWidth = 0;
+                
+                // Process word again without leading space
+                const cleanWord = word;
+                const cleanChars = Array.from(cleanWord);
+                let xOffset = 0;
+                cleanChars.forEach(char => {
+                    const w = context.measureText(char).width;
+                    currentLineChars.push({ char, x: xOffset, width: w });
+                    xOffset += w + spacing;
+                });
+                currentLineWidth = xOffset - spacing;
+            } else {
+                let xOffset = currentLineWidth > 0 ? currentLineWidth + spacing : 0;
+                wordChars.forEach(char => {
+                    const w = context.measureText(char).width;
+                    currentLineChars.push({ char, x: xOffset, width: w });
+                    xOffset += w + spacing;
+                });
+                currentLineWidth = xOffset - spacing;
+            }
+        });
+        if (currentLineChars.length > 0) lines.push(currentLineChars.map(c => ({ ...c, y: 0, width: 0 })));
+    });
+
+    const totalTextHeight = lines.length * lineHeightPx;
+    let startY = 0;
+    switch (element.verticalAlign) {
+        case 'top': startY = lineHeightPx * 0.8; break;
+        case 'bottom': startY = element.height - totalTextHeight + (lineHeightPx * 0.8); break;
+        default: startY = (element.height - totalTextHeight) / 2 + (lineHeightPx * 0.8); break;
+    }
+
+    return lines.map((line, i) => {
+        const lineTotalWidth = line.length > 0 ? (line[line.length - 1].x + line[line.length - 1].width) : 0;
+        let lineXOffset = 0;
+        if (element.textAlign === 'center') lineXOffset = (element.width - lineTotalWidth) / 2;
+        else if (element.textAlign === 'right') lineXOffset = element.width - lineTotalWidth;
+
+        const yPos = startY + i * lineHeightPx;
+        return line.map(c => ({
+            char: c.char,
+            x: c.x + lineXOffset,
+            y: yPos
+        }));
+    });
+  }, [element, element.content, element.width, element.height, element.textAlign, element.verticalAlign]);
+
   return (
     <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
         <defs>
             {!isSpotUv && <SvgGradientDefs element={element} product={product} />}
-            {!isSpotUv && element.fillType === 'image' && element.fillImageSrc && (
-                <pattern id={`img-fill-${element.id}`} patternUnits="userSpaceOnUse" width={element.width} height={element.height}>
-                    <image 
-                        href={element.fillImageSrc} 
-                        width={element.width} 
-                        height={element.height} 
-                        preserveAspectRatio="xMidYMid slice"
-                        transform={`translate(${element.fillImageOffsetX || 0}, ${element.fillImageOffsetY || 0}) scale(${element.fillImageScale || 1})`}
-                        style={{ transformOrigin: 'center' }}
-                    />
-                </pattern>
-            )}
+            {!isSpotUv && element.fillType === 'image' && element.fillImageSrc && (() => {
+                const scale = element.fillImageScale || 1;
+                const offsetX = element.fillImageOffsetX || 0;
+                const offsetY = element.fillImageOffsetY || 0;
+                const cx = element.width / 2;
+                const cy = element.height / 2;
+                const transformStr = `translate(${cx + offsetX}, ${cy + offsetY}) scale(${scale}) translate(${-cx}, ${-cy})`;
+                
+                return (
+                    <pattern id={`img-fill-${element.id}`} patternUnits="userSpaceOnUse" width={element.width} height={element.height}>
+                        <image 
+                            href={element.fillImageSrc} 
+                            width={element.width} 
+                            height={element.height} 
+                            preserveAspectRatio="xMidYMid slice"
+                            transform={transformStr}
+                        />
+                    </pattern>
+                );
+            })()}
             {shadowFilterDef}
         </defs>
 
       <g filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}>
-            <text style={textStyle} textAnchor={element.textAlign === 'center' ? 'middle' : element.textAlign === 'right' ? 'end' : 'start'}>
-                {wrappedLines.map((line, i) => {
-                    const xPos = element.textAlign === 'center' ? element.width / 2 :
-                                element.textAlign === 'right' ? element.width :
-                                0;
-                    const yPos = startY + i * lineHeightPx;
-                    
-                    // Render stroke first, then fill
-                    return (
-                        <React.Fragment key={`line-${i}`}>
-                            {element.textStrokeWidth && element.textStrokeWidth > 0 && !isSpotUv && (
-                                <tspan x={xPos} y={yPos} stroke={element.textStrokeColor || '#000000'} strokeWidth={element.textStrokeWidth} strokeLinejoin="round" fill="none">
-                                    {line}
-                                </tspan>
-                            )}
-                            <tspan x={xPos} y={yPos} fill={getSvgFill()}>
-                                {line}
+          {charData.map((line, lineIdx) => (
+              <React.Fragment key={lineIdx}>
+                  {line.map((c, charIdx) => (
+                      <text 
+                        key={charIdx} 
+                        style={textStyle} 
+                        transform={`translate(${c.x}, ${c.y})`}
+                      >
+                         {element.textStrokeWidth && element.textStrokeWidth > 0 && !isSpotUv && (
+                            <tspan 
+                                stroke={element.textStrokeColor || '#000000'} 
+                                strokeWidth={element.textStrokeWidth} 
+                                strokeLinejoin="round" 
+                                fill="none"
+                            >
+                                {c.char}
                             </tspan>
-                        </React.Fragment>
-                    )
-                })}
-            </text>
+                        )}
+                        <tspan fill={getSvgFill()}>
+                            {c.char}
+                        </tspan>
+                      </text>
+                  ))}
+              </React.Fragment>
+          ))}
       </g>
     </svg>
   );

@@ -230,6 +230,8 @@ type DesignCanvasProps = {
   } | null;
   croppingElementId?: string | null;
   setCroppingElementId?: (id: string | null) => void;
+  /** When set, shows an interactive node-editing overlay for this finalized path element */
+  pathEditingElement?: DesignElement | null;
 };
 
 
@@ -264,6 +266,7 @@ export function DesignCanvas({
   livePencilPath,
   croppingElementId,
   setCroppingElementId,
+  pathEditingElement,
 }: DesignCanvasProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const liveBrushCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -524,6 +527,7 @@ export function DesignCanvas({
                 element={element}
                 product={product}
                 isSelected={selectedElementIds.includes(element.id)}
+                isEditingPath={pathEditingElement?.id === element.id}
                 onSelect={onSelectElement ? (isShift) => onSelectElement(element.id, isShift) : undefined}
                 onUpdate={onUpdateElement}
                 canvasWidth={product.width}
@@ -543,6 +547,28 @@ export function DesignCanvas({
           </div>
           
           <PenToolCanvas livePath={livePath || null} mousePos={mousePos || null} zoom={zoom} safetyMargin={safetyMargin} />
+
+          {/* Node editing overlay for an already-finalized path element */}
+          {pathEditingElement?.pathPoints && pathEditingElement.pathPoints.length > 0 && (() => {
+            const ox = pathEditingElement.x;
+            const oy = pathEditingElement.y;
+            // Translate element-local PathPoints back into canvas space for PenToolCanvas
+            const canvasPoints = pathEditingElement.pathPoints.map(p => ({
+              x: p.x + ox, y: p.y + oy,
+              cp1x: p.cp1x + ox, cp1y: p.cp1y + oy,
+              cp2x: p.cp2x + ox, cp2y: p.cp2y + oy,
+            }));
+            return (
+              <PenToolCanvas
+                livePath={canvasPoints}
+                mousePos={null}
+                zoom={zoom}
+                safetyMargin={safetyMargin}
+                isEditMode
+                isClosed={pathEditingElement.isPathClosed}
+              />
+            );
+          })()}
 
           {/* Live Brush Canvas Overlay */}
           <canvas

@@ -20,7 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import type { DesignElement } from '@/lib/types';
-import { resolveImagePath } from '@/lib/utils';
+import { resolveImagePath, cn } from '@/lib/utils';
 import {
   Crop as CropIcon,
   Square,
@@ -494,7 +494,10 @@ export function CropDialog({ element, onClose, onApply }: CropDialogProps) {
                     variant={aspect === val ? 'secondary' : 'outline'}
                     size="sm"
                     className="gap-1 text-xs"
-                    onClick={() => setAspect(val as number | undefined)}
+                    onClick={() => {
+                      setAspect(val as number | undefined);
+                      setIsPickingColor(false);
+                    }}
                   >
                     {icon}{label}
                   </Button>
@@ -507,102 +510,103 @@ export function CropDialog({ element, onClose, onApply }: CropDialogProps) {
                 <Eraser size={12} /> Manual Background Remover
               </p>
 
-              <Button
-                variant={isPickingColor ? 'destructive' : 'outline'}
-                className="w-full gap-2 h-10"
-                onClick={() => setIsPickingColor((v) => !v)}
-              >
-                <Pipette size={14} />
-                {isPickingColor ? 'Cancel — click image' : 'Pick Color from Image'}
-              </Button>
+            <Button
+              variant={isPickingColor ? 'destructive' : 'outline'}
+              className="w-full gap-2 h-10"
+              onClick={() => setIsPickingColor((v) => !v)}
+            >
+              <Pipette size={14} />
+              {isPickingColor ? 'Cancel — click image' : 'Pick Color from Image'}
+            </Button>
 
-              {removeColor && (
-                <div className="space-y-3 p-3 rounded-lg border bg-muted/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-5 h-5 rounded border shadow-sm flex-shrink-0"
-                        style={{ backgroundColor: removeColor }}
-                      />
-                      <span className="text-xs font-mono">{removeColor.toUpperCase()}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 flex-shrink-0"
-                      title="Clear colour"
-                      onClick={() => { setRemoveColor(null); invalidatePreview(); }}
-                    >
-                      <RotateCcw size={12} />
-                    </Button>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-[10px] text-muted-foreground uppercase font-semibold">
-                      <span>Tolerance</span>
-                      <span>{threshold}</span>
-                    </div>
-                    <Slider
-                      value={[threshold]}
-                      onValueChange={([v]) => { setThreshold(v); invalidatePreview(); }}
-                      min={0}
-                      max={150}
-                      step={1}
+            {removeColor && (
+              <div className="space-y-3 p-3 rounded-lg border bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-5 h-5 rounded border shadow-sm flex-shrink-0"
+                      style={{ backgroundColor: removeColor }}
                     />
-                    <p className="text-[10px] text-muted-foreground leading-tight">
-                      Higher = remove more similar shades
-                    </p>
+                    <span className="text-xs font-mono">{removeColor.toUpperCase()}</span>
                   </div>
-
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2"
-                    onClick={handlePreview}
-                    disabled={isProcessing}
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 flex-shrink-0"
+                    title="Clear colour"
+                    onClick={() => { setRemoveColor(null); invalidatePreview(); }}
                   >
-                    {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
-                    {isPreviewing ? 'Refresh Preview' : 'Preview Result'}
+                    <RotateCcw size={12} />
                   </Button>
                 </div>
-              )}
-            </div>
 
-            <div className="space-y-4 pt-4 border-t">
-               <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
-                AI Tools
-              </p>
-              <Button
-                variant="outline"
-                className="w-full gap-2 h-10"
-                onClick={handleAIRemoveBackground}
-                disabled={isRemovingBg}
-              >
-                {isRemovingBg ? <Loader2 size={14} className="animate-spin" /> : <Eraser size={14} />}
-                {isRemovingBg ? "Processing..." : "Remove Background"}
-              </Button>
-            </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-[10px] text-muted-foreground uppercase font-semibold">
+                    <span>Tolerance</span>
+                    <span>{threshold}</span>
+                  </div>
+                  <Slider
+                    value={[threshold]}
+                    onValueChange={([v]) => { setThreshold(v); invalidatePreview(); }}
+                    min={0}
+                    max={150}
+                    step={1}
+                  />
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    Higher = remove more similar shades
+                  </p>
+                </div>
 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2"
+                  onClick={handlePreview}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
+                  {isPreviewing ? 'Refresh Preview' : 'Preview Result'}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4 pt-4 border-t">
+             <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
+              AI Tools
+            </p>
             <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-muted-foreground hover:text-foreground"
-              onClick={handleReset}
+              variant="outline"
+              className="w-full gap-2 h-10"
+              onClick={handleAIRemoveBackground}
+              disabled={isRemovingBg}
             >
-              <RotateCcw size={14} className="mr-2" /> Reset All
+              {isRemovingBg ? <Loader2 size={14} className="animate-spin" /> : <Eraser size={14} />}
+              {isRemovingBg ? "Processing..." : "Remove Background"}
             </Button>
           </div>
 
-          {/* ── Workspace ───────────────────────────────────────────────── */}
-          <div
-            className="flex-1 relative flex items-center justify-center p-6 overflow-auto"
-            style={{
-              backgroundImage: 'repeating-conic-gradient(#3f3f46 0% 25%, #27272a 0% 50%)',
-              backgroundSize: '20px 20px',
-            }}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground hover:text-foreground"
+            onClick={handleReset}
           >
-            {isPreviewing && previewUrl ? (
-              <div className="flex flex-col items-center gap-3">
+            <RotateCcw size={14} className="mr-2" /> Reset All
+          </Button>
+        </div>
+
+        {/* ── Workspace ───────────────────────────────────────────────── */}
+        <div
+          className="flex-1 relative flex items-center justify-center p-6 overflow-auto"
+          style={{
+            backgroundImage: 'repeating-conic-gradient(#3f3f46 0% 25%, #27272a 0% 50%)',
+            backgroundSize: '20px 20px',
+          }}
+        >
+          <div className={cn("flex flex-col items-center gap-3", !isPreviewing && "hidden")}>
+            {previewUrl && (
+              <>
                 <span className="text-xs text-zinc-300 bg-zinc-800/80 px-3 py-1 rounded-full">
                   Preview — exactly what will be saved
                 </span>
@@ -616,43 +620,53 @@ export function CropDialog({ element, onClose, onApply }: CropDialogProps) {
                 <Button size="sm" variant="secondary" onClick={() => setIsPreviewing(false)}>
                   ← Back to Editor
                 </Button>
-              </div>
-            ) : (
-              <ReactCrop
-                crop={crop}
-                onChange={(c) => { setCrop(c); invalidatePreview(); }}
-                onComplete={(c) => setCompletedCrop(c)}
-                aspect={aspect}
-                keepSelection
-                className="max-h-full"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  ref={imgRef}
-                  alt="Edit target"
-                  src={currentSrc}
-                  key={currentSrc}
-                  crossOrigin="anonymous"
-                  onLoad={onImageLoad}
-                  onClick={handleImageClick}
-                  draggable={false}
-                  style={{
-                    maxHeight: 'calc(90vh - 140px)',
-                    cursor: isPickingColor ? 'crosshair' : 'default',
-                    userSelect: 'none',
-                    WebkitUserSelect: 'none',
-                    display: 'block',
-                  }}
-                  className="w-auto object-contain"
-                />
-              </ReactCrop>
+              </>
             )}
+          </div>
 
-            {isPickingColor && !isPreviewing && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-medium animate-pulse pointer-events-none select-none">
-                Click on the background colour to remove
+          <div className={cn("w-full h-full flex items-center justify-center", isPreviewing && "hidden")}>
+            <ReactCrop
+              crop={isPickingColor ? undefined : crop}
+              onChange={(c) => { if (!isPickingColor) setCrop(c); invalidatePreview(); }}
+              onComplete={(c) => { if (!isPickingColor) setCompletedCrop(c); }}
+              aspect={aspect}
+              disabled={isPickingColor}
+              keepSelection
+              className="max-h-full"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                ref={imgRef}
+                alt="Edit target"
+                src={currentSrc}
+                key={currentSrc}
+                crossOrigin="anonymous"
+                onLoad={onImageLoad}
+                onClick={handleImageClick}
+                draggable={false}
+                style={{
+                  maxHeight: 'calc(90vh - 140px)',
+                  cursor: isPickingColor ? 'crosshair' : 'default',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  display: 'block',
+                }}
+                className="w-auto object-contain"
+              />
+            </ReactCrop>
+          </div>
+
+          {isPickingColor && !isPreviewing && (
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2 pointer-events-none select-none">
+              <div className="bg-primary text-primary-foreground px-6 py-2 rounded-full text-sm font-bold shadow-2xl animate-pulse flex items-center gap-2">
+                <Pipette size={16} />
+                Click on the image to select background colour
               </div>
-            )}
+              <div className="bg-zinc-800/90 text-zinc-300 px-3 py-1 rounded-md text-[10px] uppercase tracking-widest font-semibold border border-zinc-700">
+                Crop tool temporarily paused
+              </div>
+            </div>
+          )}
           </div>
         </div>
 

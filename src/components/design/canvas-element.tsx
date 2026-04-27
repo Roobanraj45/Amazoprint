@@ -98,6 +98,11 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
     const scale = element.fillImageScale || 1;
     const offsetX = element.fillImageOffsetX || 0;
     const offsetY = element.fillImageOffsetY || 0;
+    const cx = element.width / 2;
+    const cy = element.height / 2;
+    
+    // Scale around the center of the element, then apply pan offsets
+    const transformStr = `translate(${cx + offsetX}, ${cy + offsetY}) scale(${scale}) translate(${-cx}, ${-cy})`;
     
     defs.push(
       <pattern 
@@ -113,8 +118,7 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
           width={element.width} 
           height={element.height} 
           preserveAspectRatio="xMidYMid slice" 
-          transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}
-          style={{ transformOrigin: 'center' }}
+          transform={transformStr}
         />
       </pattern>
     );
@@ -287,9 +291,10 @@ type CanvasElementProps = {
   onInteractionStart?: () => void;
   onInteractionEnd?: () => void;
   renderMode?: 'default' | 'cmyk' | 'spotuv' | 'foil';
-  activeTool?: 'select' | 'pen' | 'brush' | 'spray';
+  activeTool?: 'select' | 'pan' | 'pen' | 'brush';
   croppingElementId?: string | null;
   setCroppingElementId?: (id: string | null) => void;
+  isEditingPath?: boolean;
 };
 
 type ResizeHandle = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top' | 'bottom' | 'left' | 'right';
@@ -587,15 +592,35 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
         switch (element.shapeType) {
           case 'oval':
             return (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  background: getBackgroundForDiv(),
-                  borderRadius: '50%',
-                  ...divStrokeProps
-                }}
-              />
+              <div style={{ width: '100%', height: '100%' }}>
+                <svg
+                  width="100%"
+                  height="100%"
+                  viewBox={`0 0 ${element.width} ${element.height}`}
+                  preserveAspectRatio="none"
+                  style={{ overflow: 'visible' }}
+                >
+                  {!isSpotUv && <SvgFillDefs element={element} />}
+                  <ellipse
+                    cx={element.width / 2}
+                    cy={element.height / 2}
+                    rx={element.width / 2}
+                    ry={element.height / 2}
+                    fill={getFillForSvg()}
+                    {...svgStrokeProps}
+                  />
+                  {showTint && (
+                    <ellipse
+                      cx={element.width / 2}
+                      cy={element.height / 2}
+                      rx={element.width / 2}
+                      ry={element.height / 2}
+                      fill={element.color}
+                      fillOpacity={element.tintOpacity}
+                    />
+                  )}
+                </svg>
+              </div>
             );
           case 'line':
              return (
@@ -615,6 +640,7 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
                   height="100%"
                   viewBox="0 0 100 100"
                   preserveAspectRatio="none"
+                  style={{ overflow: 'visible' }}
                 >
                   {!isSpotUv && <SvgFillDefs element={element} />}
                   <polygon points="50,0 100,100 0,100" fill={getFillForSvg()} {...svgStrokeProps} />
@@ -632,6 +658,7 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
                   height="100%"
                   viewBox="0 0 100 100"
                   preserveAspectRatio="none"
+                  style={{ overflow: 'visible' }}
                 >
                   {!isSpotUv && <SvgFillDefs element={element} />}
                   <polygon
@@ -656,6 +683,8 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
                         width="100%"
                         height="100%"
                         viewBox="0 0 24 24"
+                        preserveAspectRatio="none"
+                        style={{ overflow: 'visible' }}
                     >
                         {!isSpotUv && <SvgFillDefs element={element} />}
                         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" fill={getFillForSvg()} {...svgStrokeProps} />
@@ -667,15 +696,39 @@ const NonInteractiveContent = memo(({ element, product, renderMode }: { element:
             );
           case 'rectangle':
              return (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  background: getBackgroundForDiv(),
-                  borderRadius: element.borderRadius || 0,
-                  ...divStrokeProps
-                }}
-              />
+              <div style={{ width: '100%', height: '100%' }}>
+                <svg
+                  width="100%"
+                  height="100%"
+                  viewBox={`0 0 ${element.width} ${element.height}`}
+                  preserveAspectRatio="none"
+                  style={{ overflow: 'visible' }}
+                >
+                  {!isSpotUv && <SvgFillDefs element={element} />}
+                  <rect
+                    x={0}
+                    y={0}
+                    width={element.width}
+                    height={element.height}
+                    rx={element.borderRadius || 0}
+                    ry={element.borderRadius || 0}
+                    fill={getFillForSvg()}
+                    {...svgStrokeProps}
+                  />
+                  {showTint && (
+                    <rect
+                      x={0}
+                      y={0}
+                      width={element.width}
+                      height={element.height}
+                      rx={element.borderRadius || 0}
+                      ry={element.borderRadius || 0}
+                      fill={element.color}
+                      fillOpacity={element.tintOpacity}
+                    />
+                  )}
+                </svg>
+              </div>
             );
           default: {
             // Fallback for all other shapes to render from lucide-react
@@ -803,6 +856,7 @@ const _CanvasElement = ({
   activeTool = 'select',
   croppingElementId,
   setCroppingElementId,
+  isEditingPath = false,
 }: CanvasElementProps) => {
   const elementRef = useRef<HTMLDivElement>(null);
   
@@ -1079,8 +1133,8 @@ const _CanvasElement = ({
     width: element.width,
     height: element.height,
     transform: `rotate(${element.rotation}deg) skewX(${element.skewX || 0}deg) skewY(${element.skewY || 0}deg)`,
-    pointerEvents: isInteractive ? 'auto' : 'none',
-    outline: isSelected && !element.locked && !isCroppingThisElement ? `${2 / zoom}px solid hsl(var(--primary))` : 'none',
+    pointerEvents: isInteractive && !isEditingPath ? 'auto' : 'none',
+    outline: isSelected && !element.locked && !isCroppingThisElement && !isEditingPath ? `${2 / zoom}px solid hsl(var(--primary))` : 'none',
     outlineOffset: `${2 / zoom}px`,
     userSelect: 'none',
     opacity: (renderMode === 'spotuv' || renderMode === 'foil') ? 1 : element.opacity,

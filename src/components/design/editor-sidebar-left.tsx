@@ -133,33 +133,31 @@ export function EditorSidebarLeft({
                             "group-data-[collapsible=icon]:hidden flex-1 min-h-0 flex flex-col bg-background/50 border-l",
                             activeTool === 'pen' && "hidden"
                         )}>
-                            <ScrollArea className="flex-1">
-                                <Suspense fallback={<div className="flex-1 flex items-center justify-center pt-20"><Loader2 className="animate-spin h-6 w-6 text-muted-foreground" /></div>}>
-                                    <TabsContent value="upload" className="flex-1 m-0 focus-visible:outline-none">
-                                        <UploadPanel onImageSelect={onAddImage} isAdmin={isAdmin} />
-                                    </TabsContent>
-                                    <TabsContent value="media" className="flex-1 m-0 focus-visible:outline-none">
-                                        <MediaPanel
-                                            onImageSelect={onAddImage}
-                                            onAddShape={onAddShape}
-                                            onEmojiSelect={onAddEmoji}
-                                            isAdmin={isAdmin}
-                                        />
-                                    </TabsContent>
-                                    <TabsContent value="elements" className="flex-1 m-0 focus-visible:outline-none">
-                                        <TextAddPanel onAddText={onAddText} onAddGroupedElements={onAddGroupedElements} />
-                                    </TabsContent>
-                                    <TabsContent value="brush" className="flex-1 m-0 focus-visible:outline-none">
-                                        <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} onClear={onClearBrush} />
-                                    </TabsContent>
-                                    <TabsContent value="ai" className="flex-1 m-0 focus-visible:outline-none">
-                                        <AiPanel onImageProcessed={onAddImage} />
-                                    </TabsContent>
-                                    <TabsContent value="qrcode" className="flex-1 m-0 focus-visible:outline-none">
-                                        <QrCodePanel onAddQrCode={onAddQrCode} />
-                                    </TabsContent>
-                                </Suspense>
-                            </ScrollArea>
+                            <Suspense fallback={<div className="flex-1 flex items-center justify-center pt-20"><Loader2 className="animate-spin h-6 w-6 text-muted-foreground" /></div>}>
+                                <TabsContent value="upload" className="flex-1 m-0 focus-visible:outline-none overflow-hidden h-full">
+                                    <UploadPanel onImageSelect={onAddImage} isAdmin={isAdmin} />
+                                </TabsContent>
+                                <TabsContent value="media" className="flex-1 m-0 focus-visible:outline-none overflow-hidden h-full">
+                                    <MediaPanel
+                                        onImageSelect={onAddImage}
+                                        onAddShape={onAddShape}
+                                        onEmojiSelect={onAddEmoji}
+                                        isAdmin={isAdmin}
+                                    />
+                                </TabsContent>
+                                <TabsContent value="elements" className="flex-1 m-0 focus-visible:outline-none overflow-auto h-full">
+                                    <TextAddPanel onAddText={onAddText} onAddGroupedElements={onAddGroupedElements} />
+                                </TabsContent>
+                                <TabsContent value="brush" className="flex-1 m-0 focus-visible:outline-none overflow-auto h-full">
+                                    <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} onClear={onClearBrush} />
+                                </TabsContent>
+                                <TabsContent value="ai" className="flex-1 m-0 focus-visible:outline-none overflow-auto h-full">
+                                    <AiPanel onImageProcessed={onAddImage} />
+                                </TabsContent>
+                                <TabsContent value="qrcode" className="flex-1 m-0 focus-visible:outline-none overflow-auto h-full">
+                                    <QrCodePanel onAddQrCode={onAddQrCode} />
+                                </TabsContent>
+                            </Suspense>
                         </div>
                     </Tabs>
                 </TooltipProvider>

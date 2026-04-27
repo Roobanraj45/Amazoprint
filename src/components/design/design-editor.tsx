@@ -178,7 +178,12 @@ function DesignEditorInternal({
   
   // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
+  const livePathRef = useRef<PathPoint[] | null>(null); // always mirrors livePath for stale-closure-safe reads
   const [draggingPoint, setDraggingPoint] = useState<{ index: number; type: 'anchor' | 'cp1' | 'cp2' } | null>(null);
+  // Tracks whether the user clicked the start point and is dragging to curve the closing segment
+  const isPenClosingDragRef = useRef(false);
+  // ID of an already-finalized path element currently being node-edited
+  const [pathEditingElementId, setPathEditingElementId] = useState<string | null>(null);
 
   const isMobile = useIsMobile();
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
@@ -292,7 +297,11 @@ function DesignEditorInternal({
 
     updatePage(currentPage, { elements: [...currentElements, newPathElement] });
     setLivePath(null);
+    livePathRef.current = null;
     setDraggingPoint(null);
+    // Stay in path-edit mode so the user can immediately tweak nodes
+    setSelectedElementIds([newPathElement.id]);
+    setPathEditingElementId(newPathElement.id);
     setActiveTool('select');
   }, [livePath, viewState.zoom, currentPage, currentElements, updatePage]);
 
@@ -365,18 +374,45 @@ function DesignEditorInternal({
           setCroppingElementId(null);
         } else if (activeTool === 'pen') {
           finalizePath();
+        } else if (pathEditingElementId) {
+          setPathEditingElementId(null);
+          setDraggingPoint(null);
         } else {
           setSelectedElementIds([]);
           setActiveTool('select');
         }
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key === 'x' && activeTool === 'pen' && !isInput) {
-          e.preventDefault();
-          setLivePath(prev => {
-              if (!prev || prev.length <= 1) return null;
-              return prev.slice(0, -1);
-          });
+      if ((e.ctrlKey || e.metaKey) && e.key === 'x' && !isInput) {
+          // Remove last point from live path (while drawing)
+          if (activeTool === 'pen' && livePath) {
+              e.preventDefault();
+              setLivePath(prev => {
+                  if (!prev || prev.length <= 1) return null;
+                  const next = prev.slice(0, -1);
+                  livePathRef.current = next;
+                  return next;
+              });
+          }
+          // Remove last point from a finalized path element being edited
+          if (pathEditingElementId) {
+              e.preventDefault();
+              const editingEl = findElementRecursive(currentElements, pathEditingElementId);
+              if (editingEl?.pathPoints) {
+                  if (editingEl.pathPoints.length <= 2) {
+                      // Too few points — delete the element entirely
+                      updatePage(currentPage, {
+                          elements: currentElements.filter(el => el.id !== pathEditingElementId)
+                      });
+                      setPathEditingElementId(null);
+                      setSelectedElementIds([]);
+                  } else {
+                      const newPoints = editingEl.pathPoints.slice(0, -1);
+                      // Open the path so it no longer auto-joins to the first point
+                      updateElement(pathEditingElementId, { pathPoints: newPoints, isPathClosed: false });
+                  }
+              }
+          }
       }
 
       if (e.key === ' ' && !e.repeat && !isInput) {
@@ -494,8 +530,26 @@ function DesignEditorInternal({
             const firstPoint = livePath[0];
             const hitRadius = 25 / viewState.zoom;
             if (Math.hypot(x - firstPoint.x, y - firstPoint.y) < hitRadius) {
-                // Clicking start point: Complete the shape.
-                finalizePath(livePath, true);
+                // Clicking (or click-dragging) the start point:
+                // First reset the closing-segment handles to straight-line defaults
+                // so a plain click produces a clean straight closing segment.
+                // If the user drags, the drag handler will pull cp1[0] and cp2[last]
+                // out to form a curve.
+                setLivePath(prev => {
+                    if (!prev) return null;
+                    const newPath = prev.map(p => ({...p}));
+                    // Straight incoming handle at first point
+                    newPath[0].cp1x = newPath[0].x;
+                    newPath[0].cp1y = newPath[0].y;
+                    // Straight outgoing handle at last point
+                    const last = newPath[newPath.length - 1];
+                    last.cp2x = last.x;
+                    last.cp2y = last.y;
+                    livePathRef.current = newPath;
+                    return newPath;
+                });
+                isPenClosingDragRef.current = true;
+                setDraggingPoint({ index: 0, type: 'cp1' });
                 return;
             }
             
@@ -516,15 +570,93 @@ function DesignEditorInternal({
 
         const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
         updatedPath.push(newPoint);
+        livePathRef.current = updatedPath;
         setLivePath(updatedPath);
         setDraggingPoint({ index: updatedPath.length - 1, type: 'cp2' });
         return;
+    }
+
+    // --- Path Node Editing (for already-finalized path elements) ---
+    if (pathEditingElementId && activeTool === 'select') {
+        const editingEl = findElementRecursive(currentElements, pathEditingElementId);
+        if (editingEl?.pathPoints && editingEl.pathPoints.length > 0) {
+            e.stopPropagation();
+            const [x, y] = getPointInCanvas(e);
+            const hitRadius = 14 / viewState.zoom;
+            const ox = editingEl.x; // element origin offset
+            const oy = editingEl.y;
+
+            // 1. Check if clicking start point to close the path
+            if (!editingEl.isPathClosed && editingEl.pathPoints.length > 2) {
+                const p = editingEl.pathPoints[0];
+                if (Math.hypot(x - (p.x + ox), y - (p.y + oy)) < hitRadius) {
+                    beginTransaction();
+                    const newPoints = editingEl.pathPoints.map(pt => ({...pt}));
+                    newPoints[0].cp1x = newPoints[0].x;
+                    newPoints[0].cp1y = newPoints[0].y;
+                    const last = newPoints[newPoints.length - 1];
+                    last.cp2x = last.x;
+                    last.cp2y = last.y;
+                    updateElement(pathEditingElementId, { pathPoints: newPoints, isPathClosed: true, fillType: 'solid' });
+                    isPenClosingDragRef.current = true;
+                    setDraggingPoint({ index: 0, type: 'cp1' });
+                    return;
+                }
+            }
+
+            // 2. Check existing nodes
+            for (let i = 0; i < editingEl.pathPoints.length; i++) {
+                const p = editingEl.pathPoints[i];
+                // Check anchor
+                if (Math.hypot(x - (p.x + ox), y - (p.y + oy)) < hitRadius) {
+                    beginTransaction();
+                    setDraggingPoint({ index: i, type: 'anchor' });
+                    return;
+                }
+                // Check cp1
+                if (Math.hypot(x - (p.cp1x + ox), y - (p.cp1y + oy)) < hitRadius) {
+                    beginTransaction();
+                    setDraggingPoint({ index: i, type: 'cp1' });
+                    return;
+                }
+                // Check cp2
+                if (Math.hypot(x - (p.cp2x + ox), y - (p.cp2y + oy)) < hitRadius) {
+                    beginTransaction();
+                    setDraggingPoint({ index: i, type: 'cp2' });
+                    return;
+                }
+            }
+
+            // 3. Missed all nodes: append a new point if the path is open
+            if (!editingEl.isPathClosed) {
+                beginTransaction();
+                const newPoints = editingEl.pathPoints.map(p => ({...p}));
+                const localX = x - ox;
+                const localY = y - oy;
+                
+                if (newPoints.length > 0) {
+                    const lastIdx = newPoints.length - 1;
+                    newPoints[lastIdx] = { ...newPoints[lastIdx], cp2x: newPoints[lastIdx].x, cp2y: newPoints[lastIdx].y };
+                }
+                
+                const newPoint: PathPoint = { x: localX, y: localY, cp1x: localX, cp1y: localY, cp2x: localX, cp2y: localY };
+                newPoints.push(newPoint);
+                updateElement(pathEditingElementId, { pathPoints: newPoints });
+                setDraggingPoint({ index: newPoints.length - 1, type: 'cp2' });
+                return;
+            }
+        }
     }
 
     const target = e.target as HTMLElement;
     const isCanvasBackground = target.classList.contains('print-area');
     
     if (isCanvasBackground) {
+        // Clicking canvas background while in path-edit mode exits edit mode
+        if (pathEditingElementId) {
+            setPathEditingElementId(null);
+            setDraggingPoint(null);
+        }
         handleSelectElement(null, e.shiftKey);
     }
     
@@ -583,11 +715,59 @@ function DesignEditorInternal({
             } else if (draggingPoint.type === 'cp1') {
                 point.cp1x = x;
                 point.cp1y = y;
-                point.cp2x = point.x - (x - point.x);
-                point.cp2y = point.y - (y - point.y);
+                if (isPenClosingDragRef.current && newPath.length > 1) {
+                    // Closing drag: only touch cp2 of the LAST point (outgoing handle
+                    // for the closing segment). Do NOT mirror cp2 of point[0] — that
+                    // would bend the 1→2 segment which should stay untouched.
+                    const last = newPath[newPath.length - 1];
+                    last.cp2x = last.x + (x - point.x);
+                    last.cp2y = last.y + (y - point.y);
+                } else {
+                    // Normal handle edit: mirror cp2 symmetrically.
+                    point.cp2x = point.x - (x - point.x);
+                    point.cp2y = point.y - (y - point.y);
+                }
             }
+            livePathRef.current = newPath; // keep ref in sync
             return newPath;
         });
+        return;
+    }
+
+    // --- Path Node Editing drag (finalized path elements) ---
+    if (pathEditingElementId && draggingPoint && activeTool === 'select') {
+        const editingEl = findElementRecursive(currentElements, pathEditingElementId);
+        if (!editingEl?.pathPoints) return;
+        const ox = editingEl.x;
+        const oy = editingEl.y;
+        const newPoints = editingEl.pathPoints.map(p => ({...p}));
+        const pt = newPoints[draggingPoint.index];
+        if (!pt) return;
+
+        if (draggingPoint.type === 'anchor') {
+            const dx = (x - ox) - pt.x;
+            const dy = (y - oy) - pt.y;
+            pt.x += dx; pt.y += dy;
+            pt.cp1x += dx; pt.cp1y += dy;
+            pt.cp2x += dx; pt.cp2y += dy;
+        } else if (draggingPoint.type === 'cp2') {
+            pt.cp2x = x - ox;
+            pt.cp2y = y - oy;
+            pt.cp1x = pt.x - (pt.cp2x - pt.x);
+            pt.cp1y = pt.y - (pt.cp2y - pt.y);
+        } else if (draggingPoint.type === 'cp1') {
+            pt.cp1x = x - ox;
+            pt.cp1y = y - oy;
+            if (isPenClosingDragRef.current && newPoints.length > 1) {
+                const last = newPoints[newPoints.length - 1];
+                last.cp2x = last.x + ((x - ox) - pt.x);
+                last.cp2y = last.y + ((y - oy) - pt.y);
+            } else {
+                pt.cp2x = pt.x - (pt.cp1x - pt.x);
+                pt.cp2y = pt.y - (pt.cp1y - pt.y);
+            }
+        }
+        updateElement(pathEditingElementId, { pathPoints: newPoints });
         return;
     }
 
@@ -662,6 +842,22 @@ function DesignEditorInternal({
     }
 
     if (activeTool === 'pen') {
+        if (isPenClosingDragRef.current) {
+            // User released after clicking (or dragging from) the start point → close the path
+            isPenClosingDragRef.current = false;
+            setDraggingPoint(null);
+            endTransaction();
+            // livePathRef is always current (synced in mousedown & mousemove), safe to read here
+            finalizePath(livePathRef.current ?? undefined, true);
+            return;
+        }
+        setDraggingPoint(null);
+        endTransaction();
+    }
+
+    // Commit path node edit on any path element
+    if (pathEditingElementId && draggingPoint) {
+        isPenClosingDragRef.current = false;
         setDraggingPoint(null);
         endTransaction();
     }
@@ -670,7 +866,7 @@ function DesignEditorInternal({
       isPanning.current = false;
       let newCursor = 'default';
       if (isSpacePressed) newCursor = 'grab';
-      else if (activeTool === 'pen') newCursor = PEN_CURSOR;
+      else if (activeTool === 'pen' || pathEditingElementId) newCursor = PEN_CURSOR;
       else if (activeTool === 'brush') newCursor = 'none';
       e.currentTarget.style.cursor = newCursor;
     }
@@ -863,14 +1059,25 @@ function DesignEditorInternal({
 
   const handleSelectElement = (id: string | null, isShift?: boolean) => {
     if (croppingElementId) return;
-    if (activeTool === 'brush' || activeTool === 'pen') return;
+    // While drawing a new live path, don't allow selection
+    if (activeTool === 'brush') return;
+    if (activeTool === 'pen' && livePath) return;
+
+    // If we're in path-edit mode and user clicks a DIFFERENT element, exit edit mode first
+    if (pathEditingElementId && id !== pathEditingElementId) {
+      setPathEditingElementId(null);
+      setDraggingPoint(null);
+    }
 
     if (id) {
         const element = findElementRecursive(currentElements, id);
         if (element?.locked) {
-            if (!isShift) {
-                setSelectedElementIds([]);
-            }
+            if (!isShift) setSelectedElementIds([]);
+            return;
+        }
+        // Re-entering path edit mode when clicking a path element that is already selected
+        if (element?.type === 'path' && selectedElementIds.includes(id) && !isShift) {
+            setPathEditingElementId(id);
             return;
         }
     }
@@ -1393,7 +1600,7 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : activeTool === 'pen' ? PEN_CURSOR : (activeTool === 'brush' ? 'crosshair' : 'default'), backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'pen' || pathEditingElementId) ? PEN_CURSOR : (activeTool === 'brush' ? 'crosshair' : 'default'), backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
 
@@ -1407,6 +1614,8 @@ function DesignEditorInternal({
                     spotUvAllowed={spotUvAllowed}
                     availableFoils={availableFoils}
                     onSetSpecialFinish={handleSetSpecialFinish}
+                    showRulers={showRulers}
+                    safetyMargin={safetyMargin}
                 />}
               <DesignCanvas
                 product={product} elements={currentElements} selectedElementIds={selectedElementIds} onSelectElement={handleSelectElement} onUpdateElement={updateElement} background={currentBackground}
@@ -1420,6 +1629,7 @@ function DesignEditorInternal({
                 activeTool={activeTool}
                 croppingElementId={croppingElementId}
                 setCroppingElementId={setCroppingElementId}
+                pathEditingElement={pathEditingElementId ? findElementRecursive(currentElements, pathEditingElementId) ?? null : null}
               />
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-end justify-center gap-2">
                 <div className="hidden lg:flex items-center gap-1 rounded-lg bg-card p-1.5 shadow-md border">

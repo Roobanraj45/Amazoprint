@@ -135,23 +135,23 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, isAdmin }
           )}
         </ScrollArea>
       ) : (
-        <Tabs defaultValue="photos" className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="photos">Photos</TabsTrigger>
-            <TabsTrigger value="shapes">Shapes</TabsTrigger>
-            <TabsTrigger value="emojis">Emojis</TabsTrigger>
-            <TabsTrigger value="assets">Assets</TabsTrigger>
+        <Tabs defaultValue="photos" className="flex-1 flex flex-col min-h-0">
+          <TabsList className="grid w-full grid-cols-4 px-2 bg-transparent gap-1">
+            <TabsTrigger value="photos" className="text-[11px] font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-white">Photos</TabsTrigger>
+            <TabsTrigger value="shapes" className="text-[11px] font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-white">Shapes</TabsTrigger>
+            <TabsTrigger value="emojis" className="text-[11px] font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-white">Emojis</TabsTrigger>
+            <TabsTrigger value="assets" className="text-[11px] font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-white">Assets</TabsTrigger>
           </TabsList>
-          <TabsContent value="photos" className="flex-1 overflow-auto mt-0">
+          <TabsContent value="photos" className="flex-1 overflow-hidden mt-0 min-h-0">
             <ImageLibrary onImageSelect={onImageSelect} />
           </TabsContent>
-          <TabsContent value="shapes" className="flex-1 overflow-auto mt-0">
+          <TabsContent value="shapes" className="flex-1 overflow-hidden mt-0 min-h-0">
             <ShapeLibrary onAddShape={onAddShape} onAddImage={onImageSelect} />
           </TabsContent>
-          <TabsContent value="emojis" className="flex-1 overflow-auto mt-0">
+          <TabsContent value="emojis" className="flex-1 overflow-hidden mt-0 min-h-0">
             <EmojiLibrary onEmojiSelect={onEmojiSelect} />
           </TabsContent>
-          <TabsContent value="assets" className="flex-1 overflow-auto mt-0">
+          <TabsContent value="assets" className="flex-1 overflow-hidden mt-0 min-h-0">
             <AssetLibrary onImageSelect={onImageSelect} isAdmin={isAdmin} />
           </TabsContent>
         </Tabs>

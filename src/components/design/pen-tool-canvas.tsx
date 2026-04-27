@@ -9,16 +9,21 @@ type PenToolCanvasProps = {
   mousePos: { x: number, y: number } | null;
   zoom: number;
   safetyMargin: number;
+  /** When true, renders the overlay for an already-finalized path element (no rubber-band) */
+  isEditMode?: boolean;
+  /** Whether the path should be rendered as a closed loop */
+  isClosed?: boolean;
 };
 
 /**
  * An overlay component that renders the active pen tool path,
  * including anchor points, Bezier control handles, and a rubber-band preview.
+ * Also used in isEditMode to show node handles for a finalized path element.
  */
-export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToolCanvasProps) {
+export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin, isEditMode = false, isClosed = false }: PenToolCanvasProps) {
   if (!livePath || livePath.length === 0) return null;
 
-  const pathData = generatePathD(livePath, false, safetyMargin, safetyMargin);
+  const pathData = generatePathD(livePath, isClosed, safetyMargin, safetyMargin);
   const handleSize = 10 / zoom;
   const pointSize = 12 / zoom;
   const strokeWidth = 2 / zoom;
@@ -27,24 +32,23 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
   const lastPoint = livePath[livePath.length - 1];
   const firstPoint = livePath[0];
   
-  // Render rubber-band line from last point to mouse
+  // Rubber-band line (only shown when actively drawing, not in edit mode)
   let previewLineD = '';
   let isClosingNear = false;
 
-  if (mousePos && lastPoint) {
+  if (!isEditMode && mousePos && lastPoint) {
       const distToStart = Math.hypot(mousePos.x - firstPoint.x, mousePos.y - firstPoint.y);
-      const snapRadius = 25 / zoom; // Increased snap radius for better feel
+      const snapRadius = 25 / zoom;
       
-      // If near start point and path is long enough, snap the joining line
       if (livePath.length > 2 && distToStart < snapRadius) {
           isClosingNear = true;
-          // Solid line to join first and last point
           previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} L ${firstPoint.x + safetyMargin} ${firstPoint.y + safetyMargin}`;
       } else {
-          // Standard rubber-band line to mouse cursor
           previewLineD = `M ${lastPoint.x + safetyMargin} ${lastPoint.y + safetyMargin} L ${mousePos.x + safetyMargin} ${mousePos.y + safetyMargin}`;
       }
   }
+
+  const pathColor = isEditMode ? '#10b981' : '#2563eb';
 
   return (
     <svg 
@@ -59,7 +63,7 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
             zIndex: 999 
         }}
     >
-      {/* Rubber-band preview line (Solid green when closing, dashed blue otherwise) */}
+      {/* Rubber-band preview line (drawing mode only) */}
       {previewLineD && (
           <path
             d={previewLineD}
@@ -71,11 +75,11 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
           />
       )}
 
-      {/* The main path being drawn (placed segments) */}
+      {/* The main path being drawn / edited */}
       <path 
         d={pathData} 
-        fill="rgba(37, 99, 235, 0.05)" 
-        stroke="#2563eb" 
+        fill={isEditMode ? 'rgba(16, 185, 129, 0.05)' : 'rgba(37, 99, 235, 0.05)'} 
+        stroke={pathColor} 
         strokeWidth={strokeWidth} 
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -87,22 +91,22 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
           <line 
             x1={p.cp1x + safetyMargin} y1={p.cp1y + safetyMargin} 
             x2={p.x + safetyMargin} y2={p.y + safetyMargin} 
-            stroke="#2563eb" strokeWidth={handleLineStroke} opacity={0.5}
+            stroke={pathColor} strokeWidth={handleLineStroke} opacity={0.5}
           />
           <line 
             x1={p.x + safetyMargin} y1={p.y + safetyMargin} 
             x2={p.cp2x + safetyMargin} y2={p.cp2y + safetyMargin} 
-            stroke="#2563eb" strokeWidth={handleLineStroke} opacity={0.5}
+            stroke={pathColor} strokeWidth={handleLineStroke} opacity={0.5}
           />
           
-          {/* Anchor Point (The main point on the curve) */}
+          {/* Anchor Point */}
           <rect 
             x={p.x + safetyMargin - pointSize / 2} 
             y={p.y + safetyMargin - pointSize / 2} 
             width={pointSize} 
             height={pointSize} 
-            fill={i === 0 && isClosingNear ? "#10b981" : (i === 0 ? "#2563eb" : "white")} 
-            stroke="#2563eb" 
+            fill={isEditMode ? '#10b981' : (i === 0 && isClosingNear ? "#10b981" : (i === 0 ? "#2563eb" : "white"))} 
+            stroke={pathColor} 
             strokeWidth={strokeWidth} 
             style={{ cursor: 'move', pointerEvents: 'auto' }}
           />
@@ -112,7 +116,7 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
             cx={p.cp1x + safetyMargin} 
             cy={p.cp1y + safetyMargin} 
             r={handleSize / 2.5} 
-            fill="#2563eb" 
+            fill={pathColor} 
             stroke="white" 
             strokeWidth={handleLineStroke} 
             style={{ cursor: 'pointer', pointerEvents: 'auto' }}
@@ -123,7 +127,7 @@ export function PenToolCanvas({ livePath, mousePos, zoom, safetyMargin }: PenToo
             cx={p.cp2x + safetyMargin} 
             cy={p.cp2y + safetyMargin} 
             r={handleSize / 2.5} 
-            fill="#2563eb" 
+            fill={pathColor} 
             stroke="white" 
             strokeWidth={handleLineStroke} 
             style={{ cursor: 'pointer', pointerEvents: 'auto' }} 

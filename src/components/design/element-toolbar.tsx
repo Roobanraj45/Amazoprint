@@ -15,9 +15,12 @@ type ElementToolbarProps = {
   spotUvAllowed: boolean;
   availableFoils: FoilType[];
   onSetSpecialFinish: (active: boolean, foil?: FoilType | null) => void;
+  showRulers: boolean;
+  safetyMargin: number;
 };
 
 const TOOLBAR_OFFSET_Y = 15;
+const RULER_SIZE = 60;
 
 export function ElementToolbar({
   selectedElements,
@@ -27,6 +30,8 @@ export function ElementToolbar({
   spotUvAllowed,
   availableFoils,
   onSetSpecialFinish,
+  showRulers,
+  safetyMargin,
 }: ElementToolbarProps) {
   if (selectedElements.length === 0) {
     return null;
@@ -39,15 +44,16 @@ export function ElementToolbar({
   const minY = Math.min(...selectedElements.map(el => el.y));
   const midX = minX + (Math.max(...selectedElements.map(el => el.x + el.width)) - minX) / 2;
 
-  const top = (minY * zoom) + pan.y - TOOLBAR_OFFSET_Y;
-  const left = (midX * zoom) + pan.x;
+  const rulerOffset = showRulers ? RULER_SIZE : 0;
+  const top = ((minY + safetyMargin + rulerOffset) * zoom) + pan.y - TOOLBAR_OFFSET_Y;
+  const left = ((midX + safetyMargin + rulerOffset) * zoom) + pan.x;
 
   const style: React.CSSProperties = {
     position: 'absolute',
     top: `${top}px`,
     left: `${left}px`,
     transform: 'translate(-50%, -100%)',
-    zIndex: 51,
+    zIndex: 30,
   };
   
   const element = selectedElements[0];
