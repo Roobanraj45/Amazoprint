@@ -24,10 +24,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { AssetLibrary } from "./asset-library";
 import { cn } from "@/lib/utils";
 
-const fontFamilies = [
-    'Inter', 'Oswald', 'Bebas Neue', 'Poppins', 'Montserrat', 'Raleway', 'Nunito', 'Roboto', 'Open Sans', 'Lato', 'Playfair Display', 'Merriweather', 'Lora', 'Ubuntu', 'PT Sans', 'Pacifico', 'Dancing Script', 'Lobster', 'Caveat', 'Bevan', 'Bree Serif', 'Coda', 'Fugaz One', 'Jura'
-];
-
 type TextPropertiesPanelProps = {
     element: DesignElement;
     onUpdate: (id: string, newProps: Partial<DesignElement>) => void;
@@ -144,22 +140,6 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
             <div className="space-y-2 bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm mx-3">
                 <SectionCard title="Typography" icon={<Type size={14} />}>
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="col-span-2 space-y-1.5">
-                            <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Font Family</Label>
-                            <Select value={element.fontFamily} onValueChange={(v) => handleUpdate({ fontFamily: v })}>
-                                <SelectTrigger className="h-10 bg-background border-border/50 shadow-sm text-sm" style={{ fontFamily: element.fontFamily }}>
-                                    <SelectValue placeholder="Font Family" />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[300px]">
-                                    {fontFamilies.map(font => (
-                                        <SelectItem key={font} value={font} className="py-2.5">
-                                            <span style={{ fontFamily: font, fontSize: '1.1rem' }}>{font}</span>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        
                         <div className="space-y-1.5">
                             <Label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Size</Label>
                             <Input
@@ -290,7 +270,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         )}
                         {element.fillType === 'stepped-gradient' && (
                            <div className="space-y-6">
-                                <div className="flex items-center gap-4 bg-muted/40 p-3 rounded-xl border border-border/40">
+                                <div className="flex items-center gap-4 bg-muted/40 p-3 rounded-xl border border-border/50 shadow-sm mx-3">
                                     <div className="flex-1 space-y-2">
                                         <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
                                             <Label>Angle</Label>
@@ -536,7 +516,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                               <div className="flex justify-between items-center text-xs"><Label>Radius</Label><span>{warp.radius || 100}px</span></div>
                               <Slider value={[warp.radius || 100]} onValueChange={v => handleWarpChange({ radius: v[0] })} min={10} max={500} step={1} />
                             </div>
-                             <div className="space-y-2">
+                            <div className="space-y-2">
                                 <div className="flex justify-between items-center text-xs"><Label>Rotation</Label><span>{warp.value || 0}°</span></div>
                                 <Slider value={[warp.value || 0]} onValueChange={v => handleWarpChange({ value: v[0] })} min={0} max={360} step={1} />
                             </div>
