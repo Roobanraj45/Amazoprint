@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   SidebarProvider,
   SidebarInset,
-  SidebarTrigger,
-  SidebarRail,
   useSidebar,
   Sidebar,
   SidebarContent,
@@ -37,16 +35,8 @@ import {
   Library,
   Undo,
   CirclePlay,
-  AlignCenter,
-  AlignHorizontalJustifyStart,
-  AlignHorizontalJustifyCenter,
-  AlignHorizontalJustifyEnd,
-  AlignVerticalJustifyStart,
-  AlignVerticalJustifyCenter,
-  AlignVerticalJustifyEnd,
   Copy,
   Trash2,
-  Blend
 } from 'lucide-react';
 import { PropertiesPanel } from '@/components/design/properties-panel';
 import { DesignCanvas } from '@/components/design/design-canvas';
@@ -60,10 +50,9 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
-import { ElementToolbar } from '@/components/design/element-toolbar';
 import { LayersPanel } from '@/components/design/layers-panel';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { getDesign, saveDesign, updateDesign } from '@/app/actions/design-actions';
+import { saveDesign, updateDesign } from '@/app/actions/design-actions';
 import { submitContestEntry } from '@/app/actions/contest-actions';
 import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from '@/components/design/load-design-dialog';
@@ -74,7 +63,6 @@ import { CropDialog } from '@/components/design/crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
-import { Slider } from '@/components/ui/slider';
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -108,7 +96,6 @@ function DesignEditorInternal({
   initialDesignId,
   initialDesignName,
   isAdmin,
-  allFoils = [],
   availableFoils = [],
   spotUvAllowed = false,
   verificationId,
@@ -155,7 +142,7 @@ function DesignEditorInternal({
   const bristleTipRef = useRef<any[]>([]);
   const brushCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [brushOptions, setBrushOptions] = useState({
-      tip: 'chisel' as const,
+      tip: 'chisel' as 'chisel' | 'dry_bristle' | 'rake' | 'charcoal' | 'ink',
       size: 60,
       flow: 0.25,
       color: '#222222'
@@ -166,8 +153,6 @@ function DesignEditorInternal({
   const [draggingPoint, setDraggingPoint] = useState<{ index: number; type: 'anchor' | 'cp1' | 'cp2' } | null>(null);
 
   const isMobile = useIsMobile();
-  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
-  const [activeMobilePanel, setActiveMobilePanel] = useState<string | null>(null);
 
   type DesignState = {
     pages: Page[];
@@ -332,6 +317,15 @@ function DesignEditorInternal({
     setActiveTool('select');
   }, [livePath, viewState.zoom, currentPage, currentElements, updatePage]);
 
+  const getPointInCanvas = (e: React.MouseEvent | MouseEvent): [number, number] => {
+      if (!mainCanvasRef.current) return [0, 0];
+      const rect = mainCanvasRef.current.getBoundingClientRect();
+      const rulerOffset = showRulers ? RULER_SIZE : 0;
+      const x = (e.clientX - rect.left - viewState.pan.x) / viewState.zoom - rulerOffset - safetyMargin;
+      const y = (e.clientY - rect.top - viewState.pan.y) / viewState.zoom - rulerOffset - safetyMargin;
+      return [x, y];
+  };
+
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     const [x, y] = getPointInCanvas(e);
     
@@ -388,7 +382,6 @@ function DesignEditorInternal({
         if (ctx) {
             drawBrushStroke(ctx, lastDrawingPos.current.x, lastDrawingPos.current.y, x, y);
             lastDrawingPos.current = { x, y };
-            // Trigger a redraw by updating a dummy state if needed, but here we can just rely on the canvas element in DesignCanvas
         }
         return;
     }
@@ -429,7 +422,6 @@ function DesignEditorInternal({
             content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
         };
         updatePage(currentPage, { elements: [...currentElements, newElement] });
-        // Clear temp canvas
         const ctx = brushCanvasRef.current.getContext('2d');
         ctx?.clearRect(0, 0, brushCanvasRef.current.width, brushCanvasRef.current.height);
         endTransaction();
@@ -628,6 +620,18 @@ function DesignEditorInternal({
     setIsLoadDialogOpen(false); setIsDirty(false);
   };
 
+  const handleDuplicateElement = () => {
+    if (selectedElements.length === 0) return;
+    const newElements = selectedElements.map(el => ({ ...el, id: crypto.randomUUID(), x: el.x + 20, y: el.y + 20 }));
+    updatePage(currentPage, { elements: [...currentElements, ...newElements] });
+    setSelectedElementIds(newElements.map(el => el.id));
+  };
+
+  const handleDeleteElement = () => {
+    updatePage(currentPage, { elements: currentElements.filter(el => !selectedElementIds.includes(el.id)) });
+    setSelectedElementIds([]);
+  };
+
   const selectedElements = selectedElementIds.map(id => findElementRecursive(currentElements, id)).filter((el): el is DesignElement => !!el);
   const selectedElement = selectedElements[0];
 
@@ -675,11 +679,11 @@ function DesignEditorInternal({
 
             <div className={cn("flex items-center gap-0.5 transition-all duration-300 ml-1 shrink-0", selectedElements.length > 0 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none")}>
                 <Separator orientation="vertical" className="h-8 mx-2 opacity-30" />
-                <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-zinc-100" onClick={() => { selectedElements.forEach(el => { const newEl = { ...el, id: crypto.randomUUID(), x: el.x + 20, y: el.y + 20 }; updatePage(currentPage, { elements: [...currentElements, newEl] }); }); }}>
+                <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-zinc-100" onClick={handleDuplicateElement}>
                     <Copy size={16} className="text-zinc-500" />
                     <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Duplicate</span>
                 </Button>
-                <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-red-50 text-red-500 hover:text-red-600" onClick={() => updatePage(currentPage, { elements: currentElements.filter(el => !selectedElementIds.includes(el.id)) })}>
+                <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-red-50 text-red-500 hover:text-red-600" onClick={handleDeleteElement}>
                     <Trash2 size={16} />
                     <span className="text-[11px] font-bold uppercase tracking-wider">Delete</span>
                 </Button>
@@ -738,3 +742,39 @@ export function DesignEditor(props: DesignEditorProps) {
     </SidebarProvider>
   );
 }
+
+// Add these missing helper components for Sidebar integration
+function TextAddPanel({ onAddText, onAddGroupedElements }: any) {
+  return (
+    <div className="p-4 space-y-4">
+      <Button variant="outline" className="w-full justify-start h-12 text-lg font-bold" onClick={() => onAddText({ content: 'Add a heading', fontSize: 48, fontWeight: 'bold' })}>Add Heading</Button>
+      <Button variant="outline" className="w-full justify-start h-10 font-semibold" onClick={() => onAddText({ content: 'Add a subheading', fontSize: 32 })}>Add Subheading</Button>
+      <Button variant="outline" className="w-full justify-start h-8 text-sm" onClick={() => onAddText({ content: 'Add body text', fontSize: 16 })}>Add Body Text</Button>
+    </div>
+  );
+}
+
+function MediaPanel({ onImageSelect, onAddShape, onEmojiSelect, isAdmin }: any) {
+  return (
+    <div className="p-4 space-y-4">
+        <AssetLibrary onImageSelect={onImageSelect} isAdmin={isAdmin} />
+    </div>
+  );
+}
+
+function QrCodePanel({ onAddQrCode }: any) {
+    const [val, setVal] = useState('https://amazoprint.com');
+    return (
+        <div className="p-4 space-y-4">
+            <Label>QR Destination</Label>
+            <Textarea value={val} onChange={e => setVal(e.target.value)} />
+            <Button className="w-full" onClick={() => onAddQrCode(val, 'default')}>Add QR Code</Button>
+        </div>
+    );
+}
+
+import { AssetLibrary } from '@/components/design/asset-library';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { BrushToolPanel } from '@/components/design/brush-tool-panel';
+import { PenToolPanel } from '@/components/design/pen-tool-panel';

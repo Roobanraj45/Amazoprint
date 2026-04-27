@@ -5,14 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { CMYKColorPicker as ColorPicker } from './cmyk-color-picker';
 import { 
-    Cloud, 
-    Square, 
-    Wind, 
-    Zap, 
     Activity, 
+    Wind, 
     Trash2 
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '../ui/button';
 
@@ -100,7 +96,7 @@ export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelP
 
                 <div className="space-y-4">
                     <ColorPicker
-                        label="Stroke Pigment"
+                        label="Stroke Color"
                         color={options.color}
                         onChange={(color) => updateOption('color', color)}
                     />
@@ -113,15 +109,9 @@ export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelP
                         onClick={onClear}
                     >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Clear Drawing Layer
+                        Clear Canvas
                     </Button>
                 </div>
-            </div>
-            
-            <div className="mt-auto p-5 text-center">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-                    Strokes are committed as image layers upon release.
-                </p>
             </div>
         </div>
     );
