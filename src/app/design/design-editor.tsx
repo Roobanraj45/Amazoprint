@@ -51,7 +51,7 @@ const PX_TO_MM = MM_PER_INCH / DPI;
 const MM_TO_PX = DPI / MM_PER_INCH;
 const RULER_SIZE = 60;
 
-const PEN_CURSOR = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><line x1="16" y1="8" x2="16" y2="24" stroke="white" stroke-width="3" stroke-linecap="round"/><line x1="8" y1="16" x2="24" y2="16" stroke="white" stroke-width="3" stroke-linecap="round"/><line x1="16" y1="8" x2="16" y2="24" stroke="black" stroke-width="1" stroke-linecap="round"/><line x1="8" y1="16" x2="24" y2="16" stroke="black" stroke-width="1" stroke-linecap="round"/></svg>') 16 16, crosshair`;
+const PEN_CURSOR = 'crosshair';
 
 type DesignEditorProps = {
   product: Product;
@@ -164,7 +164,7 @@ function DesignEditorInternal({
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
-  // Brush Tip Builder (The "Profile" of the brush head)
+  // Brush Tip Builder (The "Profile" of the brush head from HTML example)
   const buildBrushTip = useCallback(() => {
     const tip = [];
     const density = 80;
