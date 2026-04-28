@@ -39,7 +39,9 @@ import { LoadDesignDialog } from '@/components/design/load-design-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
+import { EditorHeader } from '@/components/design/editor-header';
 import { cn } from '@/lib/utils';
+import { useCustomFonts } from '@/hooks/use-custom-fonts';
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -76,6 +78,7 @@ function DesignEditorInternal({
 }: DesignEditorProps) {
   const router = useRouter();
   const { setLeftOpen } = useSidebar();
+  useCustomFonts(); // Load custom fonts globally for the editor
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const { toast } = useToast();
@@ -607,85 +610,29 @@ function DesignEditorInternal({
   return (
     <>
       <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden overflow-hidden">
-        <header className="relative z-50 flex h-16 items-center gap-2 border-b bg-white px-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-all group" onClick={(e) => { if(!confirmNavigation(e as any)) e.preventDefault(); }}>
-              <AmazoprintLogo isSimple className="w-12 h-12" />
-              <div className="flex flex-col -space-y-0.5">
-                <span className="font-bold text-sm text-zinc-900 leading-tight uppercase tracking-tight">{product.name}</span>
-                <span className="text-[10px] font-black text-primary uppercase leading-none tracking-widest">ws</span>
-              </div>
-            </Link>
-          </div>
-
-          <Separator orientation="vertical" className="h-8 mx-4 opacity-30" />
-
-          <div className="flex flex-1 items-center gap-0.5 overflow-hidden">
-            <div className="flex items-center gap-0.5 shrink-0">
-              <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} className="h-9 gap-1.5 px-3 hover:bg-zinc-100" title="Undo (Ctrl+Z)">
-                <Undo size={16} className="text-zinc-500" />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Undo</span>
-              </Button>
-              <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo} className="h-9 gap-1.5 px-3 hover:bg-zinc-100" title="Redo (Ctrl+Y)">
-                <Redo size={16} className="text-zinc-500" />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Redo</span>
-              </Button>
-            </div>
-
-            <Separator orientation="vertical" className="h-8 mx-2 opacity-30" />
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-zinc-100 shrink-0">
-                  <Layers size={16} className="text-zinc-500" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Layers</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" side="bottom" align="start" sideOffset={10}>
-                <LayersPanel elements={currentElements} selectedElementIds={selectedElementIds} onSelectElement={handleSelectElement} onToggleVisibility={id => updateElement(id, { visible: !findElementRecursive(currentElements, id)?.visible })} onToggleLock={id => updateElement(id, { locked: !findElementRecursive(currentElements, id)?.locked })} onDuplicate={id => { const el = findElementRecursive(currentElements, id); if (el) updatePage(currentPage, { elements: [...currentElements, { ...el, id: crypto.randomUUID(), x: el.x + 20, y: el.y + 20 }] }); }} onDelete={id => updatePage(currentPage, { elements: currentElements.filter(el => el.id !== id) })} onDeleteAll={() => updatePage(currentPage, { elements: [] })} />
-              </PopoverContent>
-            </Popover>
-
-            <div className={cn("flex items-center gap-0.5 transition-all duration-300 ml-1 shrink-0", selectedElements.length > 0 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none")}>
-                <Separator orientation="vertical" className="h-8 mx-2 opacity-30" />
-                <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-zinc-100" onClick={handleDuplicateElement}>
-                    <Copy size={16} className="text-zinc-500" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Duplicate</span>
-                </Button>
-                <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-3 hover:bg-red-50 text-red-500 hover:text-red-600" onClick={handleDeleteElement}>
-                    <Trash2 size={16} />
-                    <span className="text-[11px] font-bold uppercase tracking-wider">Delete</span>
-                </Button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 h-full shrink-0">
-            <Button variant="ghost" size="sm" className="text-zinc-900 font-bold hover:bg-zinc-100 gap-2 h-9 px-4 rounded-lg hidden xl:flex">
-                <CirclePlay className="h-5 w-5 text-red-600 fill-white" />
-                <span className="text-[12px] font-bold">Video Tutorials</span>
-            </Button>
-            <div className="flex items-center gap-1.5 ml-2">
-                <Button variant="outline" size="sm" onClick={() => setIsLoadDialogOpen(true)} className="bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100 h-9 px-4 rounded-lg gap-2 font-bold hidden md:flex">
-                    <Library size={16} />
-                    <span className="text-[11px] uppercase tracking-wider">Load</span>
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleSave} className="bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100 h-9 px-4 rounded-lg gap-2 font-bold">
-                    <Save size={16} />
-                    <span className="text-[11px] uppercase tracking-wider">{currentDesignId ? 'Update' : 'Save'}</span>
-                </Button>
-                <Button variant="outline" size="sm" onClick={handlePreview} className="bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100 h-9 px-4 rounded-lg gap-2 font-bold hidden md:flex">
-                    <Eye size={16} />
-                    <span className="text-[11px] uppercase tracking-wider">Preview</span>
-                </Button>
-            </div>
-            {!isAdmin && (
-                <Button onClick={handleOrder} size="sm" disabled={isOrdering} className="h-10 px-6 bg-primary text-white rounded-full hover:bg-primary/90 shadow-lg shadow-primary/20 gap-2 ml-4">
-                    {isOrdering ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart size={18} />}
-                    <span className="text-[12px] font-black uppercase tracking-wider">Order Now</span>
-                </Button>
-            )}
-          </div>
-        </header>
+        <EditorHeader 
+          product={product}
+          currentDesignName={currentDesignName}
+          currentDesignId={currentDesignId}
+          verificationId={verificationId}
+          undo={undo}
+          redo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          currentElements={currentElements}
+          selectedElementIds={selectedElementIds}
+          selectedElement={selectedElement}
+          selectedElements={selectedElements}
+          handleSelectElement={handleSelectElement}
+          handleDuplicateElement={handleDuplicateElement}
+          handleDeleteElement={handleDeleteElement}
+          handleSave={handleSave}
+          handlePreview={handlePreview}
+          handleOrder={handleOrder}
+          isAdmin={isAdmin}
+          isOrdering={isOrdering}
+          confirmNavigation={confirmNavigation}
+        />
 
         <div className="flex overflow-hidden relative h-full">
           <EditorSidebarLeft activeTool={activeTool} setActiveTool={setActiveTool} isAdmin={isAdmin} onAddImage={handleAddImageFromLibrary} onAddShape={handleAddShape} onAddEmoji={handleAddEmoji} onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} onAddQrCode={(val, style) => {}} brushOptions={brushOptions} setBrushOptions={setBrushOptions} onClearBrush={() => { const liveCanvas = document.getElementById('live-brush-canvas') as HTMLCanvasElement; const ctx = liveCanvas?.getContext('2d'); ctx?.clearRect(0,0,liveCanvas.width,liveCanvas.height); }} finalizePath={finalizePath} />

@@ -185,7 +185,15 @@ export function ShapePropertiesPanel({ element, onUpdate, isAdmin }: ShapeProper
                                 <Dialog open={isAssetLibraryOpen} onOpenChange={setIsAssetLibraryOpen}>
                                     <DialogContent className="max-w-4xl h-[80vh]">
                                         <DialogHeader><DialogTitle>Image Library</DialogTitle><DialogDescription>Select an image to use as a fill texture.</DialogDescription></DialogHeader>
-                                        <AssetLibrary onImageSelect={(url) => { handleUpdate({ fillImageSrc: url }); setIsAssetLibraryOpen(false); }} isAdmin={isAdmin} />
+                                        <AssetLibrary onImageSelect={(url) => { 
+                                            handleUpdate({ 
+                                                fillImageSrc: url,
+                                                fillImageScale: 1,
+                                                fillImageOffsetX: 0,
+                                                fillImageOffsetY: 0
+                                            }); 
+                                            setIsAssetLibraryOpen(false); 
+                                        }} isAdmin={isAdmin} />
                                     </DialogContent>
                                 </Dialog>
                                 <ImageMaskEditor 

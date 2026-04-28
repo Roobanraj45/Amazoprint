@@ -201,22 +201,20 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                     <div className="space-y-1.5">
                         <div className="flex justify-between items-end">
                             <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 ml-1">Font Family</Label>
-                            {isAdmin && (
-                                <div className="flex gap-1">
-                                    <input type="file" ref={fontInputRef} className="hidden" accept=".ttf,.otf,.woff,.woff2" onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleFontUpload(file);
-                                    }} />
-                                    <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[9px] text-primary hover:text-primary/80 hover:bg-primary/10" onClick={() => fontInputRef.current?.click()} disabled={isUploadingFont}>
-                                        {isUploadingFont ? <Loader2 size={10} className="animate-spin mr-1" /> : <UploadCloud size={10} className="mr-1" />}
-                                        Upload
-                                    </Button>
-                                    <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[9px] text-muted-foreground hover:text-foreground hover:bg-muted" onClick={() => setIsManageFontsOpen(true)}>
-                                        <Settings2 size={10} className="mr-1" />
-                                        Manage
-                                    </Button>
-                                </div>
-                            )}
+                            <div className="flex gap-1">
+                                <input type="file" ref={fontInputRef} className="hidden" accept=".ttf,.otf,.woff,.woff2" onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleFontUpload(file);
+                                }} />
+                                <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[9px] text-primary hover:text-primary/80 hover:bg-primary/10" onClick={() => fontInputRef.current?.click()} disabled={isUploadingFont}>
+                                    {isUploadingFont ? <Loader2 size={10} className="animate-spin mr-1" /> : <UploadCloud size={10} className="mr-1" />}
+                                    Upload
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[9px] text-muted-foreground hover:text-foreground hover:bg-muted" onClick={() => setIsManageFontsOpen(true)}>
+                                    <Settings2 size={10} className="mr-1" />
+                                    {isAdmin ? "Manage" : "View List"}
+                                </Button>
+                            </div>
                         </div>
                         <Select value={element.fontFamily || 'Inter'} onValueChange={(f) => handleUpdate({ fontFamily: f })}>
                             <SelectTrigger className="w-full bg-background border-border/60 h-10 text-sm shadow-sm hover:border-primary/40 transition-colors" style={{ fontFamily: element.fontFamily || 'Inter' }}>
@@ -487,6 +485,41 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                 <DialogContent className="max-w-4xl h-[80vh]">
                     <DialogHeader><DialogTitle>Image Library</DialogTitle><DialogDescription>Select an image to use as a fill mask.</DialogDescription></DialogHeader>
                     <AssetLibrary onImageSelect={(url) => { handleUpdate({ fillImageSrc: url }); setIsAssetLibraryOpen(false); }} isAdmin={isAdmin} />
+                </DialogContent>
+            </Dialog>
+
+            {/* Manage Fonts Dialog */}
+            <Dialog open={isManageFontsOpen} onOpenChange={setIsManageFontsOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Custom Font Library</DialogTitle>
+                        <DialogDescription>View all custom fonts available for your designs.</DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="space-y-2">
+                            {customFonts.map(font => (
+                                <div key={font.name} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/10 group">
+                                    <span style={{ fontFamily: font.name }} className="text-sm font-medium">{font.name}</span>
+                                    {isAdmin && (
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => handleDeleteFont(font.url)}
+                                            disabled={isDeletingFont === font.url}
+                                        >
+                                            {isDeletingFont === font.url ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                        </Button>
+                                    )}
+                                </div>
+                            ))}
+                            {customFonts.length === 0 && (
+                                <div className="text-center py-12 bg-muted/10 rounded-2xl border border-dashed border-border/60">
+                                    <p className="text-muted-foreground text-sm">No custom fonts uploaded yet.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

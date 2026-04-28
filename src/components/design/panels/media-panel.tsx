@@ -17,10 +17,11 @@ type MediaPanelProps = {
     onImageSelect: (src: string) => void;
     onAddShape: (shapeType: string) => void;
     onEmojiSelect: (emoji: string) => void;
+    onAddSvgShape?: (src: string) => void;
     isAdmin?: boolean;
 }
 
-export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, isAdmin }: MediaPanelProps) => {
+export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, onAddSvgShape, isAdmin }: MediaPanelProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [localAssets, setLocalAssets] = useState<string[]>([]);
 
@@ -146,7 +147,7 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, isAdmin }
             <ImageLibrary onImageSelect={onImageSelect} />
           </TabsContent>
           <TabsContent value="shapes" className="flex-1 overflow-hidden mt-0 min-h-0">
-            <ShapeLibrary onAddShape={onAddShape} onAddImage={onImageSelect} />
+            <ShapeLibrary onAddShape={onAddShape} onAddImage={onImageSelect} onAddSvgShape={onAddSvgShape} />
           </TabsContent>
           <TabsContent value="emojis" className="flex-1 overflow-hidden mt-0 min-h-0">
             <EmojiLibrary onEmojiSelect={onEmojiSelect} />

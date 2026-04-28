@@ -73,14 +73,15 @@ const PropSlider = ({ label, value, display, min, max, step, onChange }: any) =>
 );
 
 // Compact XY / WH input pair
-const CoordInput = ({ label, value, onChange, step = 0.1 }: any) => (
+const CoordInput = ({ label, value, onChange, step = 0.1, disabled = false }: any) => (
   <div className="relative">
     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground/60 pointer-events-none z-10">{label}</span>
     <Input
-      className="pl-6 h-9 bg-muted/40 text-sm font-mono border-0 focus-visible:ring-1 focus-visible:ring-primary/40"
+      className="pl-6 h-9 bg-muted/40 text-sm font-mono border-0 focus-visible:ring-1 focus-visible:ring-primary/40 disabled:opacity-50 disabled:cursor-not-allowed"
       type="number" step={step}
       value={typeof value === 'number' ? parseFloat(value.toFixed(1)) : value}
       onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+      disabled={disabled}
     />
   </div>
 );
@@ -136,7 +137,7 @@ export function PropertiesPanel({
       : [{ id: crypto.randomUUID(), color: background.color || '#000000', position: 0 }, { id: crypto.randomUUID(), color: '#ffffff', position: 1 }];
 
     return (
-      <div className="h-full bg-background border-l flex flex-col overflow-hidden">
+      <div className="h-full flex flex-col overflow-hidden">
         <div className="px-3 py-3 border-b bg-muted/20 flex items-center gap-2 shrink-0">
           <Settings2 size={16} className="text-muted-foreground" />
           <span className="text-sm font-bold text-foreground">Canvas Settings</span>
@@ -153,8 +154,8 @@ export function PropertiesPanel({
             <div className="space-y-3">
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Dimensions</p>
               <div className="grid grid-cols-2 gap-2">
-                <CoordInput label="W" value={Math.round(product?.width * PX_TO_MM)} onChange={(v: number) => onProductUpdate({ width: Math.round(v * MM_TO_PX) })} step={1} />
-                <CoordInput label="H" value={Math.round(product?.height * PX_TO_MM)} onChange={(v: number) => onProductUpdate({ height: Math.round(v * MM_TO_PX) })} step={1} />
+                <CoordInput label="W" value={Math.round(product?.width * PX_TO_MM)} onChange={(v: number) => onProductUpdate({ width: Math.round(v * MM_TO_PX) })} step={1} disabled={!isAdmin} />
+                <CoordInput label="H" value={Math.round(product?.height * PX_TO_MM)} onChange={(v: number) => onProductUpdate({ height: Math.round(v * MM_TO_PX) })} step={1} disabled={!isAdmin} />
               </div>
               <p className="text-[9px] text-muted-foreground/50 text-center">in millimeters</p>
             </div>
@@ -187,11 +188,11 @@ export function PropertiesPanel({
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label className="text-[9px] uppercase text-muted-foreground/70">Bleed (mm)</Label>
-                  <Input className="h-8 text-xs font-mono bg-muted/40 border-0" type="number" value={canvasSettings.bleed} onChange={(e) => canvasSettings.setBleed(parseFloat(e.target.value) || 0)} />
+                  <Input className="h-8 text-xs font-mono bg-muted/40 border-0 disabled:opacity-50 disabled:cursor-not-allowed" type="number" value={canvasSettings.bleed} onChange={(e) => canvasSettings.setBleed(parseFloat(e.target.value) || 0)} disabled={!isAdmin} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[9px] uppercase text-muted-foreground/70">Safety (mm)</Label>
-                  <Input className="h-8 text-xs font-mono bg-muted/40 border-0" type="number" value={canvasSettings.safetyMargin} onChange={(e) => canvasSettings.setSafetyMargin(parseFloat(e.target.value) || 0)} />
+                  <Input className="h-8 text-xs font-mono bg-muted/40 border-0 disabled:opacity-50 disabled:cursor-not-allowed" type="number" value={canvasSettings.safetyMargin} onChange={(e) => canvasSettings.setSafetyMargin(parseFloat(e.target.value) || 0)} disabled={!isAdmin} />
                 </div>
               </div>
             </div>
@@ -250,8 +251,8 @@ export function PropertiesPanel({
           <TabsContent value="production" className="flex-1 overflow-y-auto custom-scrollbar px-3 pt-3 pb-4 mt-0">
             <div className="p-3 rounded-xl bg-primary/5 border border-primary/15 space-y-2">
               <Label className="text-xs font-bold text-primary">Order Quantity</Label>
-              <Input className="bg-background border-primary/20 font-mono" type="number" value={quantity || 0} min="1"
-                onChange={(e) => onQuantityChange(parseInt(e.target.value, 10) || 1)} />
+              <Input className="bg-background border-primary/20 font-mono disabled:opacity-50 disabled:cursor-not-allowed" type="number" value={quantity || 0} min="1"
+                onChange={(e) => onQuantityChange(parseInt(e.target.value, 10) || 1)} disabled={!isAdmin} />
             </div>
           </TabsContent>
         </Tabs>
@@ -273,7 +274,7 @@ export function PropertiesPanel({
   };
 
   return (
-    <div className="h-full bg-background border-l flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-3 py-3 border-b bg-muted/20 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">

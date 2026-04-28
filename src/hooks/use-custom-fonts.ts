@@ -84,6 +84,26 @@ export function useCustomFonts() {
   };
   
   useEffect(() => {
+    // Load Google Fonts
+    const GOOGLE_FONTS = [
+      "Inter", "Roboto", "Open Sans", "Lato", "Montserrat", "Poppins", "Oswald", "Source Sans 3",
+      "Raleway", "Ubuntu", "Playfair Display", "Merriweather", "PT Serif", "Lora", "Nunito",
+      "Roboto Mono", "Fira Code", "Outfit", "Dancing Script", "Pacifico", "Caveat", "Righteous",
+      "Lobster", "Bebas Neue", "Anton", "Josefin Sans", "Titillium Web", "Quicksand", "Rubik",
+      "Inconsolata", "Cinzel", "Amatic SC", "Comfortaa", "Comic Neue", "Permanent Marker",
+      "Bungee", "Rakkas", "Kalam", "Indie Flower", "Satisfy"
+    ];
+    
+    const linkId = 'google-fonts-editor-link';
+    if (!document.getElementById(linkId)) {
+      const link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      const families = GOOGLE_FONTS.map(f => `${f.replace(/ /g, '+')}:400,700`).join('|');
+      link.href = `https://fonts.googleapis.com/css?family=${families}&display=swap`;
+      document.head.appendChild(link);
+    }
+
     loadFonts();
   }, []);
 

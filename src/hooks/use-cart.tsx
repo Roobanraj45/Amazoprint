@@ -84,7 +84,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       const storedCart = localStorage.getItem('amazoprint_cart');
       if (storedCart) {
-        dispatch({ type: 'SET_STATE', payload: JSON.parse(storedCart) });
+        const parsed = JSON.parse(storedCart);
+        if (Array.isArray(parsed)) {
+            dispatch({ type: 'SET_STATE', payload: { items: parsed } });
+        } else if (parsed && parsed.items) {
+            dispatch({ type: 'SET_STATE', payload: parsed });
+        } else {
+            dispatch({ type: 'SET_STATE', payload: { items: [] } });
+        }
       }
     } catch (error) {
       console.error("Failed to parse cart from localStorage", error);

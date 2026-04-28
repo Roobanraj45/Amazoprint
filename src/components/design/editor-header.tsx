@@ -107,23 +107,26 @@ export function EditorHeader(props: any) {
         confirmNavigation,
     } = props;
 
+    const iconClass = "h-5 w-5";
+    const labelClass = "text-[9px] uppercase font-bold tracking-tighter opacity-70 group-hover:opacity-100 transition-opacity";
+
     return (
-        <header className="relative z-20 flex h-12 items-center justify-between border-b bg-card px-2 lg:px-3 whitespace-nowrap overflow-hidden">
+        <header className="relative z-20 flex h-16 items-center justify-between border-b bg-card px-2 lg:px-4 whitespace-nowrap overflow-hidden">
 
             {/* LEFT */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
 
                 {/* Back FIRST */}
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="hidden lg:flex items-center gap-1 h-8 px-2 text-xs text-blue-500"
+                    className="hidden lg:flex flex-col items-center gap-1 h-12 px-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50/50 group"
                     asChild
                     onClick={confirmNavigation}
                 >
                     <Link href="/">
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                        <span className="ml-1">Back</span>
+                        <ChevronLeft className="w-5 h-5" />
+                        <span className={labelClass}>Go Back</span>
                     </Link>
                 </Button>
 
@@ -131,23 +134,23 @@ export function EditorHeader(props: any) {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="lg:hidden h-8 w-8"
+                    className="lg:hidden h-10 w-10"
                     onClick={(e) => {
                         if (confirmNavigation(e as any)) router.back();
                     }}
                 >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-5 h-5" />
                 </Button>
 
                 {/* Logo + Text */}
-                <div className="flex items-center gap-1">
-                    <AmazoprintLogo  />
+                <div className="flex items-center gap-2">
+                    <img src="/uploads/amazoIcon.png" alt="Icon" className="w-10 h-10 object-contain drop-shadow-sm" />
 
                     <div className="hidden md:flex flex-col leading-tight">
-                        <span className="text-[11px] font-medium">
+                        <span className="text-xs font-black uppercase tracking-tight text-primary">
                             Design Editor
                         </span>
-                        <span className="text-[9px] text-muted-foreground truncate max-w-[100px]">
+                        <span className="text-[10px] text-muted-foreground truncate max-w-[120px] font-medium">
                             {product.name}
                         </span>
                     </div>
@@ -156,20 +159,23 @@ export function EditorHeader(props: any) {
             </div>
 
             {/* CENTER */}
-            <div className="hidden lg:flex flex-1 justify-center items-center gap-0.5 overflow-x-auto">
+            <div className="hidden lg:flex flex-1 justify-center items-center gap-1.5 overflow-x-auto">
 
-                <Button onClick={undo} disabled={!canUndo} variant="ghost" className="h-8 px-2 text-xs">
-                    <Undo className="h-3.5 w-3.5" />
+                <Button onClick={undo} disabled={!canUndo} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                    <Undo className={iconClass} />
+                    <span className={labelClass}>Undo</span>
                 </Button>
 
-                <Button onClick={redo} disabled={!canRedo} variant="ghost" className="h-8 px-2 text-xs">
-                    <Redo className="h-3.5 w-3.5" />
+                <Button onClick={redo} disabled={!canRedo} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                    <Redo className={iconClass} />
+                    <span className={labelClass}>Redo</span>
                 </Button>
 
                 <Popover>
                     <PopoverTrigger asChild>
-                        <Button variant="ghost" className="h-8 px-2 text-xs">
-                            <Layers className="h-3.5 w-3.5" />
+                        <Button variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                            <Layers className={iconClass} />
+                            <span className={labelClass}>Layers</span>
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-72 p-0">
@@ -186,12 +192,13 @@ export function EditorHeader(props: any) {
                     </PopoverContent>
                 </Popover>
 
-                <Separator orientation="vertical" className="h-4 mx-1" />
+                <Separator orientation="vertical" className="h-6 mx-1" />
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-8 px-2 text-xs">
-                            <AlignLeft className="h-3.5 w-3.5" />
+                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                            <AlignLeft className={iconClass} />
+                            <span className={labelClass}>Align</span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
@@ -203,17 +210,18 @@ export function EditorHeader(props: any) {
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-8 px-2 text-xs">
-                            <LayoutDashboard className="h-3.5 w-3.5" />
+                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                            <LayoutDashboard className={iconClass} />
+                            <span className={labelClass}>Move</span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                         <DropdownMenuItem onClick={() => moveLayer('front')}>
-                            <BringToFront className="mr-2 h-3.5 w-3.5" />
+                            <BringToFront className="mr-2 h-4 w-4" />
                             Front
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => moveLayer('back')}>
-                            <SendToBack className="mr-2 h-3.5 w-3.5" />
+                            <SendToBack className="mr-2 h-4 w-4" />
                             Back
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -221,8 +229,9 @@ export function EditorHeader(props: any) {
 
                 <Popover>
                     <PopoverTrigger asChild>
-                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-8 px-2 text-xs">
-                            <Blend className="h-3.5 w-3.5" />
+                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                            <Blend className={iconClass} />
+                            <span className={labelClass}>Opacity</span>
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-56 p-3">
@@ -243,48 +252,55 @@ export function EditorHeader(props: any) {
                     </PopoverContent>
                 </Popover>
 
-                <Button onClick={handleDuplicateElement} disabled={!selectedElements.length} variant="ghost" className="h-8 px-2">
-                    <Copy className="h-3.5 w-3.5" />
+                <Button onClick={handleDuplicateElement} disabled={!selectedElements.length} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                    <Copy className={iconClass} />
+                    <span className={labelClass}>Copy</span>
                 </Button>
 
-                <Button onClick={handleDeleteElement} disabled={!selectedElements.length} variant="ghost" className="h-8 px-2">
-                    <Trash2 className="h-3.5 w-3.5" />
+                <Button onClick={handleDeleteElement} disabled={!selectedElements.length} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group text-red-500 hover:text-red-600 hover:bg-red-50/50">
+                    <Trash2 className={iconClass} />
+                    <span className={labelClass}>Delete</span>
                 </Button>
 
-                <Separator orientation="vertical" className="h-4 mx-1" />
+                <Separator orientation="vertical" className="h-6 mx-1" />
 
-                <Button onClick={handleGroup} disabled={selectedElements.length < 2} variant="ghost" className="h-8 px-2" title="Group Elements">
-                    <Group className="h-3.5 w-3.5" />
+                <Button onClick={handleGroup} disabled={selectedElements.length < 2} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                    <Group className={iconClass} />
+                    <span className={labelClass}>Group</span>
                 </Button>
 
-                <Button onClick={handleUngroup} disabled={!(isSingleElementSelected && selectedElement?.type === 'group')} variant="ghost" className="h-8 px-2" title="Ungroup Elements">
-                    <Ungroup className="h-3.5 w-3.5" />
+                <Button onClick={handleUngroup} disabled={!(isSingleElementSelected && selectedElement?.type === 'group')} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                    <Ungroup className={iconClass} />
+                    <span className={labelClass}>Ungroup</span>
                 </Button>
 
-                <Separator orientation="vertical" className="h-4 mx-1" />
+                <Separator orientation="vertical" className="h-6 mx-1" />
 
-                <Button variant="ghost" className="h-8 px-2 text-xs text-red-500">
-                    <PlayCircle className="h-3.5 w-3.5" />
+                <Button variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group text-red-500 hover:text-red-600 hover:bg-red-50/50">
+                    <PlayCircle className={iconClass} />
+                    <span className={labelClass}>Simulation</span>
                 </Button>
             </div>
 
             {/* RIGHT */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
 
-                <div className="hidden lg:flex items-center gap-1">
-                    <Button variant="outline" className="h-8 px-2 text-xs" onClick={handleSave}>
-                        <Save className="h-3.5 w-3.5" />
+                <div className="hidden lg:flex items-center gap-2">
+                    <Button variant="outline" className="h-12 w-14 flex flex-col items-center gap-1 group" onClick={handleSave}>
+                        <Save className={iconClass} />
+                        <span className={labelClass}>Save</span>
                     </Button>
 
-                    <Button variant="outline" className="h-8 px-2 text-xs" onClick={handlePreview}>
-                        <Eye className="h-3.5 w-3.5" />
+                    <Button variant="outline" className="h-12 w-14 flex flex-col items-center gap-1 group" onClick={handlePreview}>
+                        <Eye className={iconClass} />
+                        <span className={labelClass}>Preview</span>
                     </Button>
                 </div>
 
                 <div className="lg:hidden">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8">
+                            <Button variant="ghost" className="h-10 w-10">
                                 <MoreVertical />
                             </Button>
                         </DropdownMenuTrigger>
@@ -296,16 +312,20 @@ export function EditorHeader(props: any) {
                 </div>
 
                 {isAdmin ? (
-                    <Button onClick={handleDownload} className="h-8 px-2 text-xs">
+                    <Button onClick={handleDownload} className="h-12 w-16 flex flex-col items-center justify-center gap-1 group bg-primary hover:bg-primary/90 text-primary-foreground">
                         {isDownloadingPdf ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
-                            <Download className="h-3.5 w-3.5" />
+                            <>
+                                <Download className="h-5 w-5" />
+                                <span className="text-[9px] uppercase font-black">Export</span>
+                            </>
                         )}
                     </Button>
                 ) : (
-                    <Button onClick={handleOrder} className="h-8 px-2 text-xs">
-                        <ShoppingCart className="h-3.5 w-3.5" />
+                    <Button onClick={handleOrder} className="h-12 w-16 flex flex-col items-center justify-center gap-1 group bg-primary hover:bg-primary/90 text-primary-foreground">
+                        <ShoppingCart className="h-5 w-5" />
+                        <span className="text-[9px] uppercase font-black">Order</span>
                     </Button>
                 )}
             </div>

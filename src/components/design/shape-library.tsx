@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 type ShapeLibraryProps = {
   onAddShape: (shapeType: string) => void;
   onAddImage: (src: string) => void;
+  onAddSvgShape?: (src: string) => void;
 };
 
 const USER_SHAPES_STORAGE_KEY = 'user_uploaded_shapes';
@@ -635,7 +636,7 @@ export const allShapes = allDefinedShapes.filter(el => {
   return !duplicate;
 });
 
-export function ShapeLibrary({ onAddShape, onAddImage }: ShapeLibraryProps) {
+export function ShapeLibrary({ onAddShape, onAddImage, onAddSvgShape }: ShapeLibraryProps) {
   const [userShapes, setUserShapes] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -708,7 +709,7 @@ export function ShapeLibrary({ onAddShape, onAddImage }: ShapeLibraryProps) {
               key={`user-shape-${index}`}
               title={`User Shape ${index + 1}`}
               className="cursor-pointer aspect-square relative flex items-center justify-center overflow-hidden rounded-md group bg-muted hover:bg-accent"
-              onClick={() => onAddImage(src)}
+              onClick={() => onAddSvgShape ? onAddSvgShape(src) : onAddImage(src)}
             >
               <Image
                 src={src}

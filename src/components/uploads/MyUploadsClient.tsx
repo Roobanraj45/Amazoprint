@@ -146,18 +146,15 @@ export function MyUploadsClient({ initialUploads }: { initialUploads: Upload[] }
     }
 
     return (
-        <>
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle>My Uploaded Files</CardTitle>
-                        <Dialog open={isUploadDialogOpen} onOpenChange={(open) => {
-                            if (!open) reset();
-                            setIsUploadDialogOpen(open);
-                        }}>
-                            <DialogTrigger asChild>
-                                <Button><UploadCloud className="mr-2 h-4 w-4" /> Upload New Design</Button>
-                            </DialogTrigger>
+        <div className="space-y-6">
+            <div className="flex justify-end">
+                <Dialog open={isUploadDialogOpen} onOpenChange={(open) => {
+                    if (!open) reset();
+                    setIsUploadDialogOpen(open);
+                }}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-primary text-primary-foreground hover:brightness-110 font-bold uppercase tracking-widest text-xs px-6 py-5 rounded-xl shadow-lg shadow-primary/20"><UploadCloud className="mr-2 h-4 w-4" /> Upload New File</Button>
+                    </DialogTrigger>
                             <DialogContent>
                                 <DialogHeader>
                                     <DialogTitle>Upload Your Design File</DialogTitle>
@@ -243,11 +240,10 @@ export function MyUploadsClient({ initialUploads }: { initialUploads: Upload[] }
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    {uploads.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            </div>
+
+            {uploads.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {uploads.map(upload => {
                                 const imageSrc = upload.thumbnailPath || (upload.mimeType?.startsWith('image/') ? upload.filePath : null);
 
@@ -255,56 +251,58 @@ export function MyUploadsClient({ initialUploads }: { initialUploads: Upload[] }
                                     <TooltipProvider key={upload.id}>
                                     <Tooltip>
                                     <TooltipTrigger asChild>
-                                    <Card className="group relative">
-                                        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Card className="group relative border border-border/40 bg-card/40 backdrop-blur-sm shadow-xl shadow-black/5 hover:border-primary/30 hover:shadow-2xl transition-all duration-300 overflow-hidden">
+                                        <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="destructive" size="icon" className="h-7 w-7">
+                                                    <Button variant="destructive" size="icon" className="h-8 w-8 rounded-full shadow-lg">
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </AlertDialogTrigger>
-                                                <AlertDialogContent>
+                                                <AlertDialogContent className="rounded-3xl border-border/40 bg-card/80 backdrop-blur-xl">
                                                     <AlertDialogHeader>
-                                                        <AlertDialogTitle>Delete this file?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            This action cannot be undone. '{upload.originalFilename}' will be permanently deleted.
+                                                        <AlertDialogTitle className="font-black">Delete this file?</AlertDialogTitle>
+                                                        <AlertDialogDescription className="font-medium">
+                                                            This action cannot be undone. <span className="font-bold text-foreground">'{upload.originalFilename}'</span> will be permanently deleted.
                                                         </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDelete(upload.id)}>Delete</AlertDialogAction>
+                                                        <AlertDialogCancel className="rounded-xl border-border/50 font-bold">Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDelete(upload.id)} className="rounded-xl font-bold bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
                                         </div>
 
                                         {upload.isPublic ? (
-                                            <Badge className="absolute top-2 left-2 z-10 bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700">
+                                            <Badge className="absolute top-3 left-3 z-20 bg-emerald-500/90 text-white border-emerald-500/20 backdrop-blur-md shadow-lg text-[9px] font-black uppercase tracking-widest px-2.5 py-1">
                                                 <Globe className="mr-1.5 h-3 w-3" /> Public
                                             </Badge>
                                         ) : (
-                                            <Badge variant="secondary" className="absolute top-2 left-2 z-10">
+                                            <Badge variant="secondary" className="absolute top-3 left-3 z-20 bg-black/50 text-white backdrop-blur-md border-white/10 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 shadow-lg">
                                                 <Lock className="mr-1.5 h-3 w-3" /> Private
                                             </Badge>
                                         )}
 
-                                        <a href={resolveImagePath(upload.filePath)} target="_blank" rel="noopener noreferrer">
-                                            <div className="aspect-square bg-muted flex items-center justify-center rounded-t-lg relative">
-                                                {imageSrc ? (
-                                                    <Image src={resolveImagePath(imageSrc)} alt={upload.originalFilename} fill className="object-contain" />
-                                                ) : (
-                                                    <File className="h-16 w-16 text-muted-foreground" />
-                                                )}
-                                            </div>
-                                            <CardFooter className="p-3 text-sm flex flex-col items-start">
-                                                <p className="font-semibold truncate w-full" title={upload.originalFilename}>{upload.originalFilename}</p>
-                                                {upload.product && (
-                                                    <p className="text-xs text-muted-foreground">{upload.product.name}{upload.subProduct ? ` - ${upload.subProduct.name}` : ''}</p>
-                                                )}
-                                                <p className="text-xs text-muted-foreground">{formatBytes(upload.fileSize)}</p>
-                                                <p className="text-xs text-muted-foreground">Uploaded: {format(new Date(upload.createdAt), 'PPP')}</p>
-                                            </CardFooter>
+                                        <a href={resolveImagePath(upload.filePath)} target="_blank" rel="noopener noreferrer" className="block relative aspect-[4/3] bg-muted/20 border-b border-border/40 overflow-hidden">
+                                            {imageSrc ? (
+                                                <Image src={resolveImagePath(imageSrc)} alt={upload.originalFilename} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <File className="h-16 w-16 text-muted-foreground/30 group-hover:scale-110 transition-transform duration-500" />
+                                                </div>
+                                            )}
                                         </a>
+                                        <CardFooter className="p-5 flex flex-col items-start gap-2 bg-card">
+                                            <p className="font-black text-sm truncate w-full group-hover:text-primary transition-colors tracking-tight" title={upload.originalFilename}>{upload.originalFilename}</p>
+                                            <div className="flex justify-between items-center w-full">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md border border-border/50">{formatBytes(upload.fileSize)}</p>
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{format(new Date(upload.createdAt), 'MMM d, yyyy')}</p>
+                                            </div>
+                                            {upload.product && (
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-primary/80 mt-1">{upload.product.name}{upload.subProduct ? ` - ${upload.subProduct.name}` : ''}</p>
+                                            )}
+                                        </CardFooter>
                                     </Card>
                                     </TooltipTrigger>
                                     {(upload as any).metadata?.description && (
@@ -317,13 +315,15 @@ export function MyUploadsClient({ initialUploads }: { initialUploads: Upload[] }
                                 );
                             })}
                         </div>
-                    ) : (
-                        <div className="text-center py-12 text-muted-foreground">
-                            You have not uploaded any designs yet.
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </>
+            ) : (
+                <div className="text-center py-20 border border-dashed border-border/60 rounded-3xl bg-muted/10">
+                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+                        <File className="h-10 w-10 text-primary" />
+                    </div>
+                    <h3 className="text-2xl font-black font-headline mb-2">No Files Uploaded</h3>
+                    <p className="text-muted-foreground font-medium max-w-sm mx-auto mb-6">Upload your print-ready assets here for easy access across all your projects.</p>
+                </div>
+            )}
+        </div>
     );
 }

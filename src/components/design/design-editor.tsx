@@ -116,7 +116,7 @@ function DesignEditorInternal({
   verificationId,
 }: DesignEditorProps) {
   const router = useRouter();
-  const { setLeftOpen } = useSidebar();
+  const { setLeftOpen, rightOpen, setRightOpen } = useSidebar();
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const { toast } = useToast();
@@ -997,6 +997,20 @@ function DesignEditorInternal({
     if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
+  const handleAddSvgShape = (src: string) => {
+    const size = 300;
+    const { x, y } = getCenterPosition(size, size);
+    const newElement: DesignElement = {
+      id: crypto.randomUUID(), type: 'shape', shapeType: 'custom-svg', src, x, y, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
+      backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+      color: '#cccccc', fillType: 'solid',
+      content: '', fontSize: 0, fontFamily: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', objectFit: 'contain', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+    };
+    updatePage(currentPage, { elements: [...currentElements, newElement] });
+    setSelectedElementIds([newElement.id]);
+    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
+  };
+
   const handleAddEmoji = (emoji: string) => {
     const size = 250;
     const { x, y } = getCenterPosition(size, size);
@@ -1499,7 +1513,7 @@ function DesignEditorInternal({
   const renderMobilePanelContent = () => {
     switch (activeMobilePanel) {
         case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />;
-        case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
+        case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddSvgShape={handleAddSvgShape} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
         case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
         case 'brush': return <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} onClear={handleClearBrushStrokes} />;
         case 'pen': return <PenToolPanel onFinish={() => finalizePath()} />;
@@ -1584,6 +1598,7 @@ function DesignEditorInternal({
               setActiveTool={setActiveTool}
               isAdmin={isAdmin}
               onAddImage={handleAddImageFromLibrary}
+              onAddSvgShape={handleAddSvgShape}
               onAddShape={handleAddShape}
               onAddEmoji={handleAddEmoji}
               onAddText={addTextElement}
@@ -1641,24 +1656,45 @@ function DesignEditorInternal({
             </div>
           </SidebarInset>
 
-          <SidebarRail side="right" />
-          <Sidebar side="right" collapsible="icon" className="hidden lg:block">
-            <SidebarContent className="p-0">
-              <ScrollArea className="h-full">
-                <div className="p-4">
-                  <PropertiesPanel
-                    element={selectedElement} onUpdate={updateElement} product={product} onProductUpdate={handleProductUpdate}
-                    quantity={quantity} onQuantityChange={onQuantityChange} background={currentBackground} onBackgroundChange={onBackgroundChange}
-                    canvasSettings={{ showRulers, setShowRulers, showGrid, setShowGrid, snapToGrid, setSnapToGrid, gridSize, setGridSize, showPrintGuidelines, setShowPrintGuidelines, bleed, setBleed, safetyMargin, setSafetyMargin }}
-                    croppingElementId={croppingElementId}
-                    setCroppingElementId={setCroppingElementId}
-                    isAdmin={isAdmin}
-                    onMoveLayer={moveLayer}
-                  />
-                </div>
-              </ScrollArea>
-            </SidebarContent>
-          </Sidebar>
+          {/* Right Floating Properties Panel */}
+          <div className={cn(
+              "absolute right-4 top-4 bottom-4 w-[320px] z-40 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) hidden lg:block",
+              rightOpen ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+32px)] opacity-0 pointer-events-none"
+          )}>
+              <div className="h-full bg-background/80 backdrop-blur-2xl border border-border/50 rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col">
+                  <ScrollArea className="flex-1">
+                      <div className="p-1">
+                          <PropertiesPanel
+                              element={selectedElement} onUpdate={updateElement} product={product} onProductUpdate={handleProductUpdate}
+                              quantity={quantity} onQuantityChange={onQuantityChange} background={currentBackground} onBackgroundChange={onBackgroundChange}
+                              canvasSettings={{ showRulers, setShowRulers, showGrid, setShowGrid, snapToGrid, setSnapToGrid, gridSize, setGridSize, showPrintGuidelines, setShowPrintGuidelines, bleed, setBleed, safetyMargin, setSafetyMargin }}
+                              croppingElementId={croppingElementId}
+                              setCroppingElementId={setCroppingElementId}
+                              isAdmin={isAdmin}
+                              onMoveLayer={moveLayer}
+                          />
+                      </div>
+                  </ScrollArea>
+              </div>
+          </div>
+
+          {/* Sidebar Toggle Button (Floating) */}
+          <div className={cn(
+              "absolute top-1/2 -translate-y-1/2 z-50 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) hidden lg:block",
+              rightOpen ? "right-[336px]" : "right-4"
+          )}>
+              <Button 
+                  variant="secondary" 
+                  size="icon" 
+                  className={cn(
+                      "h-10 w-10 rounded-full shadow-2xl border border-white/10 bg-zinc-950/90 text-white backdrop-blur-md hover:bg-black transition-all group",
+                      !rightOpen && "animate-pulse shadow-primary/20"
+                  )}
+                  onClick={() => setRightOpen(!rightOpen)}
+              >
+                  {rightOpen ? <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" /> : <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />}
+              </Button>
+          </div>
           
            {isMobile && (
             <div className="lg:hidden">
@@ -1683,8 +1719,8 @@ function DesignEditorInternal({
                             disabled={!selectedElement}
                             onClick={() => handleMobilePanelOpen('properties')}
                            >
-                            <SlidersHorizontal/>
-                            <span className="text-[10px]">Properties</span>
+                            <SlidersHorizontal className="h-6 w-6" />
+                            <span className="text-[10px] font-bold uppercase tracking-tight">Properties</span>
                            </Button> 
                     </div>
                 </ScrollArea>

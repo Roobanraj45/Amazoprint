@@ -730,6 +730,50 @@ export const NonInteractiveContent = memo(({ element, product, renderMode }: { e
                 </svg>
               </div>
             );
+          case 'custom-svg':
+            return (
+              <div style={{ width: '100%', height: '100%' }}>
+                <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                  {!isSpotUv && <SvgFillDefs element={element} />}
+                  <defs>
+                    {element.borderWidth && element.borderWidth > 0 && (
+                      <filter id={`dilate-${element.id}`} x="-50%" y="-50%" width="200%" height="200%">
+                        <feMorphology in="SourceAlpha" operator="dilate" radius={element.borderWidth} result="dilated" />
+                        <feFlood floodColor={isSpotUv ? 'black' : element.borderColor} />
+                        <feComposite in2="dilated" operator="in" />
+                      </filter>
+                    )}
+                    <mask id={`mask-${element.id}`}>
+                      <image href={element.src} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" />
+                    </mask>
+                  </defs>
+                  {/* Stroke Layer */}
+                  {element.borderWidth && element.borderWidth > 0 && (
+                    <image 
+                      href={element.src} 
+                      width="100%" height="100%" 
+                      preserveAspectRatio="xMidYMid meet" 
+                      filter={`url(#dilate-${element.id})`} 
+                    />
+                  )}
+                  {/* Fill Layer */}
+                  <rect 
+                    width="100%" height="100%" 
+                    fill={getFillForSvg()} 
+                    mask={`url(#mask-${element.id})`} 
+                  />
+                  {/* Tint Overlay */}
+                  {showTint && (
+                    <rect 
+                      width="100%" height="100%" 
+                      fill={element.color} 
+                      fillOpacity={element.tintOpacity}
+                      mask={`url(#mask-${element.id})`} 
+                    />
+                  )}
+                </svg>
+              </div>
+            );
           default: {
             // Fallback for all other shapes to render from lucide-react
             const shapeNamePascal = element.shapeType

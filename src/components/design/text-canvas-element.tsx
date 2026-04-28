@@ -119,6 +119,18 @@ export function TextCanvasElement({
   product: Product; 
   renderMode?: string 
 }) {
+  const [fontsLoaded, setFontsLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    // Initial check
+    document.fonts.ready.then(() => setFontsLoaded(true));
+
+    // Listen for new fonts (like after an upload)
+    const handleFontLoad = () => setFontsLoaded(true);
+    document.fonts.addEventListener('loadingdone', handleFontLoad);
+    return () => document.fonts.removeEventListener('loadingdone', handleFontLoad);
+  }, []);
+
   const isSpotUv = renderMode === 'spotuv' || renderMode === 'foil';
   const warp = element.textWarp;
   const warpStyle = warp?.style;
@@ -213,7 +225,7 @@ export function TextCanvasElement({
                 rotation: midAngle + (reverse ? 180 : 0)
             };
         });
-    }, [contentToWrap, element.fontStyle, element.fontWeight, element.fontSize, element.fontFamily, element.letterSpacing, effectiveRadius, rotation, reverse, centerX, pathCenterY]);
+    }, [contentToWrap, element.fontStyle, element.fontWeight, element.fontSize, element.fontFamily, element.letterSpacing, effectiveRadius, rotation, reverse, centerX, pathCenterY, fontsLoaded]);
 
     return (
       <svg 
@@ -333,7 +345,7 @@ export function TextCanvasElement({
             y: yPos
         }));
     });
-  }, [element, element.content, element.width, element.height, element.textAlign, element.verticalAlign]);
+  }, [element, element.content, element.width, element.height, element.textAlign, element.verticalAlign, fontsLoaded]);
 
   return (
     <svg width="100%" height="100%" style={{ overflow: 'visible' }}>

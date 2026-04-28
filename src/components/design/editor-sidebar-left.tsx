@@ -45,6 +45,7 @@ type EditorSidebarLeftProps = {
     setActiveTool: (tool: 'select' | 'pen' | 'brush') => void;
     isAdmin?: boolean;
     onAddImage: (src: string) => void;
+    onAddSvgShape: (src: string) => void;
     onAddShape: (shapeType: string) => void;
     onAddEmoji: (emoji: string) => void;
     onAddText: (options: any) => void;
@@ -61,6 +62,7 @@ export function EditorSidebarLeft({
     setActiveTool,
     isAdmin,
     onAddImage,
+    onAddSvgShape,
     onAddShape,
     onAddEmoji,
     onAddText,
@@ -71,16 +73,17 @@ export function EditorSidebarLeft({
     onClearBrush,
     finalizePath,
 }: EditorSidebarLeftProps) {
-    const { setLeftOpen } = useSidebar();
+    const [activePanel, setActivePanel] = React.useState('upload');
+    const { setLeftOpen, leftOpen } = useSidebar();
 
     const panels = [
-        { id: 'upload', label: 'Upload Design', icon: <UploadCloud size={24} />, color: 'text-lime-600 bg-lime-500/10 data-[state=active]:bg-lime-500 data-[state=active]:text-white' },
-        { id: 'media', label: 'Media', icon: <LayoutGrid size={24} />, color: 'text-purple-600 bg-purple-500/10 data-[state=active]:bg-purple-600 data-[state=active]:text-white' },
-        { id: 'pen', label: 'Pen', icon: <PenTool size={24} />, color: 'text-indigo-600 bg-indigo-500/10 data-[state=active]:bg-indigo-600 data-[state=active]:text-white' },
-        { id: 'elements', label: 'Text', icon: <Type size={24} />, color: 'text-blue-600 bg-blue-500/10 data-[state=active]:bg-blue-600 data-[state=active]:text-white' },
-        { id: 'brush', label: 'Draw', icon: <Paintbrush size={24} />, color: 'text-orange-600 bg-orange-500/10 data-[state=active]:bg-orange-600 data-[state=active]:text-white' },
-        { id: 'ai', label: 'AI', icon: <Sparkles size={24} />, color: 'text-pink-600 bg-pink-500/10 data-[state=active]:bg-pink-600 data-[state=active]:text-white' },
-        { id: 'qrcode', label: 'QR Code', icon: <QrCode size={24} />, color: 'text-emerald-600 bg-emerald-500/10 data-[state=active]:bg-emerald-600 data-[state=active]:text-white' },
+        { id: 'upload', label: 'Upload', icon: <UploadCloud />, color: 'text-blue-600' },
+        { id: 'media', label: 'Elements', icon: <LayoutGrid />, color: 'text-indigo-600' },
+        { id: 'pen', label: 'Pen Tool', icon: <PenTool />, color: 'text-orange-600' },
+        { id: 'elements', label: 'Text', icon: <Type />, color: 'text-blue-600' },
+        { id: 'brush', label: 'Draw', icon: <Paintbrush />, color: 'text-pink-600' },
+        { id: 'ai', label: 'AI Magic', icon: <Sparkles />, color: 'text-purple-600' },
+        { id: 'qrcode', label: 'QR Code', icon: <QrCode />, color: 'text-emerald-600' },
     ];
 
     return (
@@ -88,10 +91,11 @@ export function EditorSidebarLeft({
             <SidebarContent className="p-0 overflow-y-hidden">
                 <TooltipProvider>
                     <Tabs
-                        defaultValue="upload"
+                        value={activePanel}
                         orientation="vertical"
                         className="w-full h-full flex"
                         onValueChange={(val) => {
+                            setActivePanel(val);
                             if (val === 'pen' || val === 'brush') {
                                 setActiveTool(val as any);
                             } else {
@@ -99,32 +103,49 @@ export function EditorSidebarLeft({
                             }
                         }}
                     >
-                        <TabsList className="flex flex-col h-full p-3 gap-3 bg-transparent shrink-0">
+                        <TabsList className="flex flex-col h-full w-[80px] py-4 gap-2 bg-white border-r border-zinc-100 shrink-0">
                             {panels.map((panel) => (
                                 <Tooltip key={panel.id}>
                                     <TooltipTrigger asChild>
                                         <TabsTrigger
                                             value={panel.id}
                                             className={cn(
-                                                "h-16 w-16 p-0 flex flex-col gap-1 items-center justify-center rounded-2xl transition-all duration-200",
-                                                "data-[state=active]:scale-110 data-[state=active]:shadow-lg",
-                                                panel.color
+                                                "h-[68px] w-full p-0 flex flex-col gap-1 items-center justify-center transition-all duration-200 relative group bg-transparent",
+                                                "text-zinc-500 data-[state=active]:text-black hover:text-black"
                                             )}
                                             onClick={() => {
                                                 if (panel.id === 'pen') {
-                                                    setLeftOpen(false);
+                                                    // Don't toggle for pen tool
+                                                    return;
+                                                }
+
+                                                if (activePanel === panel.id) {
+                                                    setLeftOpen(!leftOpen);
                                                 } else {
                                                     setLeftOpen(true);
                                                 }
                                             }}
                                         >
-                                            {React.cloneElement(panel.icon as React.ReactElement, { size: 20 })}
-                                            <span className="text-[9px] font-black uppercase text-center tracking-tight leading-tight px-1">
+                                            {/* Selection Highlight Detailing */}
+                                            <div className="absolute left-0 top-2 bottom-2 w-[4px] rounded-r-md bg-primary opacity-0 scale-y-50 transition-all duration-300 group-data-[state=active]:opacity-100 group-data-[state=active]:scale-y-100" />
+                                            
+                                            <div className={cn(
+                                                "p-1.5 rounded-lg transition-all duration-200",
+                                                "group-data-[state=active]:scale-110",
+                                                panel.color,
+                                                "opacity-70 group-data-[state=active]:opacity-100 group-hover:opacity-100"
+                                            )}>
+                                                {React.cloneElement(panel.icon as React.ReactElement, { size: 24, strokeWidth: 2.5 })}
+                                            </div>
+                                            
+                                            <span className="text-[10px] font-bold uppercase text-center tracking-wider leading-none px-1 transition-colors">
                                                 {panel.label.split(' ')[0]}
                                             </span>
                                         </TabsTrigger>
                                     </TooltipTrigger>
-                                    <TooltipContent side="right"><p>{panel.label}</p></TooltipContent>
+                                    <TooltipContent side="right" className="font-bold text-[10px] uppercase tracking-widest bg-black text-white border-0 py-2 px-4 rounded-md shadow-2xl">
+                                        <p>{panel.label}</p>
+                                    </TooltipContent>
                                 </Tooltip>
                             ))}
                         </TabsList>
@@ -140,6 +161,7 @@ export function EditorSidebarLeft({
                                 <TabsContent value="media" className="flex-1 m-0 focus-visible:outline-none overflow-hidden h-full">
                                     <MediaPanel
                                         onImageSelect={onAddImage}
+                                        onAddSvgShape={onAddSvgShape}
                                         onAddShape={onAddShape}
                                         onEmojiSelect={onAddEmoji}
                                         isAdmin={isAdmin}
