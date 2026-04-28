@@ -65,8 +65,8 @@ type PropertiesPanelProps = {
 const PropSlider = ({ label, value, display, min, max, step, onChange }: any) => (
   <div className="space-y-2 py-1">
     <div className="flex justify-between items-center">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
-      <span className="text-[11px] font-mono bg-muted px-2 py-0.5 rounded text-foreground/80 min-w-[36px] text-center">{display}</span>
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-foreground/80 min-w-[40px] text-center">{display}</span>
     </div>
     <Slider value={[value]} min={min} max={max} step={step} onValueChange={(v) => onChange(v[0])} />
   </div>
@@ -75,9 +75,9 @@ const PropSlider = ({ label, value, display, min, max, step, onChange }: any) =>
 // Compact XY / WH input pair
 const CoordInput = ({ label, value, onChange, step = 0.1 }: any) => (
   <div className="relative">
-    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground/60 pointer-events-none z-10">{label}</span>
+    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground/60 pointer-events-none z-10">{label}</span>
     <Input
-      className="pl-5 h-8 bg-muted/40 text-xs font-mono border-0 focus-visible:ring-1 focus-visible:ring-primary/40"
+      className="pl-6 h-9 bg-muted/40 text-sm font-mono border-0 focus-visible:ring-1 focus-visible:ring-primary/40"
       type="number" step={step}
       value={typeof value === 'number' ? parseFloat(value.toFixed(1)) : value}
       onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
@@ -91,11 +91,11 @@ const IconToggle = ({ icon: Icon, active, onClick, title }: any) => (
     title={title}
     onClick={onClick}
     className={cn(
-      "flex items-center justify-center h-8 w-full rounded-md transition-all text-muted-foreground hover:text-foreground hover:bg-muted/60",
+      "flex items-center justify-center h-9 w-full rounded-md transition-all text-muted-foreground hover:text-foreground hover:bg-muted/60",
       active && "bg-primary/15 text-primary ring-1 ring-primary/30"
     )}
   >
-    <Icon size={13} />
+    <Icon size={16} />
   </button>
 );
 
@@ -137,23 +137,21 @@ export function PropertiesPanel({
 
     return (
       <div className="h-full bg-background border-l flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="px-3 py-2.5 border-b bg-muted/20 flex items-center gap-2 shrink-0">
-          <Settings2 size={13} className="text-muted-foreground" />
-          <span className="text-xs font-bold text-foreground">Canvas Settings</span>
+        <div className="px-3 py-3 border-b bg-muted/20 flex items-center gap-2 shrink-0">
+          <Settings2 size={16} className="text-muted-foreground" />
+          <span className="text-sm font-bold text-foreground">Canvas Settings</span>
         </div>
 
         <Tabs key="canvas-settings" defaultValue="canvas" className="flex flex-col flex-1 overflow-hidden">
-          <TabsList className="shrink-0 mx-4 mt-3 h-9 grid grid-cols-3 bg-muted/60 rounded-lg p-1">
-            <TabsTrigger value="canvas" className="text-[11px] font-semibold h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Canvas</TabsTrigger>
-            <TabsTrigger value="background" className="text-[11px] font-semibold h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Background</TabsTrigger>
-            <TabsTrigger value="production" className="text-[11px] font-semibold h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Production</TabsTrigger>
+          <TabsList className="shrink-0 mx-4 mt-3 h-10 grid grid-cols-3 bg-muted/60 rounded-lg p-1">
+            <TabsTrigger value="canvas" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Canvas</TabsTrigger>
+            <TabsTrigger value="background" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Background</TabsTrigger>
+            <TabsTrigger value="production" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Production</TabsTrigger>
           </TabsList>
 
-          {/* CANVAS TAB */}
           <TabsContent value="canvas" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 space-y-5 mt-0">
-            <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dimensions</p>
+            <div className="space-y-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Dimensions</p>
               <div className="grid grid-cols-2 gap-2">
                 <CoordInput label="W" value={Math.round(product?.width * PX_TO_MM)} onChange={(v: number) => onProductUpdate({ width: Math.round(v * MM_TO_PX) })} step={1} />
                 <CoordInput label="H" value={Math.round(product?.height * PX_TO_MM)} onChange={(v: number) => onProductUpdate({ height: Math.round(v * MM_TO_PX) })} step={1} />
@@ -163,8 +161,8 @@ export function PropertiesPanel({
 
             <div className="h-px bg-border/40" />
 
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">View Options</p>
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">View Options</p>
               {[
                 { label: "Rulers", checked: canvasSettings.showRulers, fn: canvasSettings.setShowRulers },
                 { label: "Grid Lines", checked: canvasSettings.showGrid, fn: canvasSettings.setShowGrid },
@@ -184,8 +182,8 @@ export function PropertiesPanel({
 
             <div className="h-px bg-border/40" />
 
-            <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Print Setup</p>
+            <div className="space-y-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Print Setup</p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label className="text-[9px] uppercase text-muted-foreground/70">Bleed (mm)</Label>
@@ -208,10 +206,10 @@ export function PropertiesPanel({
                   { value: 'solid', preview: <div className="w-5 h-5 rounded-sm bg-gray-400 border" />, label: 'Solid' },
                   { value: 'gradient', preview: <div className="w-5 h-5 rounded-sm bg-gradient-to-br from-blue-400 to-purple-500 border" />, label: 'Gradient' },
                   { value: 'stepped-gradient', preview: <div className="w-5 h-5 rounded-sm bg-gradient-to-r from-red-500 via-yellow-400 to-green-400 border" />, label: 'Stepped' },
-                  { value: 'image', preview: <ImageIcon size={16} />, label: 'Image' },
+                  { value: 'image', preview: <ImageIcon size={18} />, label: 'Image' },
                 ].map(({ value, preview, label }) => (
                   <button key={value} onClick={() => handleBgFill(value as any)}
-                    className={cn("flex flex-col items-center gap-1.5 p-2 rounded-lg border text-[10px] font-semibold transition-all hover:shadow-sm", background.type === value ? "bg-primary/10 border-primary text-primary shadow-sm" : "bg-muted/30 border-border/50 text-muted-foreground hover:bg-muted/60")}>
+                    className={cn("flex flex-col items-center gap-2 p-2.5 rounded-lg border text-xs font-semibold transition-all hover:shadow-sm", background.type === value ? "bg-primary/10 border-primary text-primary shadow-sm" : "bg-muted/30 border-border/50 text-muted-foreground hover:bg-muted/60")}>
                     {preview}{label}
                   </button>
                 ))}
@@ -267,36 +265,36 @@ export function PropertiesPanel({
   };
 
   const typeIcon: Record<string, React.ReactNode> = {
-    text: <Type size={12} />,
-    image: <ImageIcon size={12} />,
-    shape: <Square size={12} />,
-    path: <Palette size={12} />,
-    qrcode: <Grid3X3 size={12} />,
+    text: <Type size={16} />,
+    image: <ImageIcon size={16} />,
+    shape: <Square size={16} />,
+    path: <Palette size={16} />,
+    qrcode: <Grid3X3 size={16} />,
   };
 
   return (
     <div className="h-full bg-background border-l flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-3 py-2.5 border-b bg-muted/20 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-1.5">
+      <div className="px-3 py-3 border-b bg-muted/20 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2">
           <span className="text-muted-foreground">{typeIcon[element.type]}</span>
-          <span className="text-xs font-bold text-foreground">{elementTypeLabel[element.type] || element.type} Properties</span>
+          <span className="text-sm font-bold text-foreground">{elementTypeLabel[element.type] || element.type} Properties</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
         </div>
       </div>
 
       <Tabs key={element.id} defaultValue="design" className="flex flex-col flex-1 overflow-hidden">
-        <TabsList className="shrink-0 mx-4 mt-3 h-9 grid grid-cols-3 bg-muted/60 rounded-lg p-1">
-          <TabsTrigger value="design" className="text-[11px] font-semibold h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <Palette size={12} className="mr-1.5" />Design
+        <TabsList className="shrink-0 mx-4 mt-3 h-10 grid grid-cols-3 bg-muted/60 rounded-lg p-1">
+          <TabsTrigger value="design" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <Palette size={14} className="mr-1.5" />Design
           </TabsTrigger>
-          <TabsTrigger value="layout" className="text-[11px] font-semibold h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <LayoutTemplate size={12} className="mr-1.5" />Layout
+          <TabsTrigger value="layout" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <LayoutTemplate size={14} className="mr-1.5" />Layout
           </TabsTrigger>
-          <TabsTrigger value="effects" className="text-[11px] font-semibold h-7 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <Wand2 size={12} className="mr-1.5" />Effects
+          <TabsTrigger value="effects" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <Wand2 size={14} className="mr-1.5" />Effects
           </TabsTrigger>
         </TabsList>
 
@@ -322,9 +320,9 @@ export function PropertiesPanel({
         {/* ===== LAYOUT TAB ===== */}
         <TabsContent value="layout" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 space-y-6 mt-0">
           {/* Transform */}
-          <div className="space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Transform</p>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Transform</p>
+            <div className="grid grid-cols-2 gap-3">
               <CoordInput label="X" value={element.x} onChange={(v: number) => onUpdate(element.id, { x: v })} />
               <CoordInput label="Y" value={element.y} onChange={(v: number) => onUpdate(element.id, { y: v })} />
               <CoordInput label="W" value={element.width} onChange={(v: number) => onUpdate(element.id, { width: v })} />
@@ -337,9 +335,9 @@ export function PropertiesPanel({
           <div className="h-px bg-border/40" />
 
           {/* Align to Page */}
-          <div className="space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Align to Page</p>
-            <div className="grid grid-cols-3 gap-2">
+          <div className="space-y-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Align to Page</p>
+            <div className="grid grid-cols-3 gap-3">
               <IconToggle icon={AlignHorizontalJustifyStart} title="Left" onClick={() => onUpdate(element.id, { x: 0 })} />
               <IconToggle icon={AlignHorizontalJustifyCenter} title="Center H" onClick={() => onUpdate(element.id, { x: (product.width - element.width) / 2 })} />
               <IconToggle icon={AlignHorizontalJustifyEnd} title="Right" onClick={() => onUpdate(element.id, { x: product.width - element.width })} />
@@ -352,9 +350,9 @@ export function PropertiesPanel({
           <div className="h-px bg-border/40" />
 
           {/* Layering */}
-          <div className="space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Layer Order</p>
-            <div className="grid grid-cols-4 gap-2">
+          <div className="space-y-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Layer Order</p>
+            <div className="grid grid-cols-4 gap-3">
               <IconToggle icon={BringToFront} title="Bring to Front" onClick={() => onMoveLayer('front')} />
               <IconToggle icon={ChevronsUp} title="Bring Forward" onClick={() => onMoveLayer('forward')} />
               <IconToggle icon={ChevronsDown} title="Send Backward" onClick={() => onMoveLayer('backward')} />
@@ -373,9 +371,9 @@ export function PropertiesPanel({
           {['text', 'group'].includes(element.type) && (
             <>
               <div className="h-px bg-border/40" />
-              <div className="space-y-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Container</p>
-                <div className="rounded-xl bg-muted/20 border border-border/40 p-2.5">
+              <div className="space-y-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Container</p>
+                <div className="rounded-xl bg-muted/20 border border-border/40 p-3">
                   <ColorPicker label="Background" color={element.backgroundColor}
                     onChange={(color) => onUpdate(element.id, { backgroundColor: color })} />
                 </div>

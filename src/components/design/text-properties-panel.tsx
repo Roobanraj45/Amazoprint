@@ -43,8 +43,8 @@ const GOOGLE_FONTS = [
 const PropSlider = ({ label, value, display, min, max, step, onChange }: any) => (
   <div className="space-y-2 py-1">
     <div className="flex justify-between items-center">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
-      <span className="text-[11px] font-mono bg-muted px-2 py-0.5 rounded text-foreground/80 min-w-[36px] text-center">{display}</span>
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-foreground/80 min-w-[40px] text-center">{display}</span>
     </div>
     <Slider value={[value]} min={min} max={max} step={step} onValueChange={(v) => onChange(v[0])} />
   </div>
@@ -52,9 +52,13 @@ const PropSlider = ({ label, value, display, min, max, step, onChange }: any) =>
 
 const IconBtn = ({ icon: Icon, active, onClick, title }: any) => (
   <button title={title} onClick={onClick}
-    className={cn("flex-1 flex items-center justify-center h-7 rounded-md transition-all text-muted-foreground hover:text-foreground hover:bg-muted/60",
-      active && "bg-primary/15 text-primary ring-1 ring-primary/30 ring-inset")}>
-    <Icon size={13} />
+    className={cn(
+      "flex-1 flex items-center justify-center h-full rounded-md transition-all",
+      active 
+        ? "bg-primary text-primary-foreground shadow-md" 
+        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+    )}>
+    <Icon size={16} strokeWidth={active ? 3 : 2} />
   </button>
 );
 
@@ -119,111 +123,145 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                 onChange={(e) => handleUpdate({ content: e.target.value })} placeholder="Type something..." />
 
             {/* Typography Block */}
-            <div className="space-y-2">
-                <div className="flex items-center gap-1.5">
-                    <Type size={11} className="text-muted-foreground" />
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Typography</p>
-                </div>
-                <Select value={element.fontFamily || 'Inter'} onValueChange={(f) => handleUpdate({ fontFamily: f })}>
-                    <SelectTrigger className="w-full bg-muted/40 border-0 h-8 text-xs" style={{ fontFamily: element.fontFamily || 'Inter' }}>
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[260px]">
-                        {GOOGLE_FONTS.map(font => (
-                            <SelectItem key={font} value={font} style={{ fontFamily: font, fontSize: '13px' }}>{font}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-
-                <div className="grid grid-cols-[1fr_auto] gap-2">
-                    <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground/60 pointer-events-none">px</span>
-                        <Input type="number" className="pl-7 h-8 bg-muted/40 border-0 text-xs font-mono"
-                            value={element.fontSize} onChange={(e) => handleUpdate({ fontSize: parseInt(e.target.value, 10) })} />
+            <div className="space-y-4 p-3.5 rounded-2xl bg-gradient-to-b from-muted/30 to-muted/10 border border-border/50 shadow-sm">
+                <div className="flex items-center gap-2.5 pb-2.5 border-b border-border/40 mb-1">
+                    <div className="p-2 rounded-xl bg-blue-500/15 text-blue-600 shadow-inner">
+                        <Type size={18} strokeWidth={2.5} />
                     </div>
-                    {/* Bold / Italic / Underline */}
-                    <div className="flex bg-muted/40 rounded-md p-0.5 gap-0.5">
-                        <IconBtn icon={Bold} active={element.fontWeight === 'bold'} title="Bold"
-                            onClick={() => handleUpdate({ fontWeight: element.fontWeight === 'bold' ? 'normal' : 'bold' })} />
-                        <IconBtn icon={Italic} active={element.fontStyle === 'italic'} title="Italic"
-                            onClick={() => handleUpdate({ fontStyle: element.fontStyle === 'italic' ? 'normal' : 'italic' })} />
-                        <IconBtn icon={Underline} active={element.textDecoration === 'underline'} title="Underline"
-                            onClick={() => handleUpdate({ textDecoration: element.textDecoration === 'underline' ? 'none' : 'underline' })} />
+                    <div>
+                        <p className="text-sm font-black uppercase tracking-widest text-foreground">Typography</p>
+                        <p className="text-[9px] font-medium text-muted-foreground/60 leading-none">Font & Style Settings</p>
                     </div>
                 </div>
+                
+                <div className="space-y-4">
+                    {/* Font Family Selection */}
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold uppercase text-muted-foreground/60 ml-1">Font Family</Label>
+                        <Select value={element.fontFamily || 'Inter'} onValueChange={(f) => handleUpdate({ fontFamily: f })}>
+                            <SelectTrigger className="w-full bg-background border-border/60 h-10 text-sm shadow-sm hover:border-primary/40 transition-colors" style={{ fontFamily: element.fontFamily || 'Inter' }}>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[300px]">
+                                {GOOGLE_FONTS.map(font => (
+                                    <SelectItem key={font} value={font} style={{ fontFamily: font, fontSize: '15px' }}>{font}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                {/* Alignment Row */}
-                <div className="flex gap-1">
-                    <div className="flex flex-1 bg-muted/40 rounded-md p-0.5 gap-0.5">
-                        <IconBtn icon={AlignLeft} active={element.textAlign === 'left'} title="Left" onClick={() => handleUpdate({ textAlign: 'left' })} />
-                        <IconBtn icon={AlignCenter} active={element.textAlign === 'center'} title="Center" onClick={() => handleUpdate({ textAlign: 'center' })} />
-                        <IconBtn icon={AlignRight} active={element.textAlign === 'right'} title="Right" onClick={() => handleUpdate({ textAlign: 'right' })} />
-                        <IconBtn icon={AlignJustify} active={element.textAlign === 'justify'} title="Justify" onClick={() => handleUpdate({ textAlign: 'justify' })} />
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold uppercase text-muted-foreground/60 ml-1">Size</Label>
+                            <div className="relative group">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-foreground/40 pointer-events-none group-focus-within:text-primary transition-colors">PX</span>
+                                <Input type="number" className="pl-8 h-10 bg-background border-border/60 text-sm font-mono shadow-sm focus-visible:ring-primary/20"
+                                    value={element.fontSize} onChange={(e) => handleUpdate({ fontSize: parseInt(e.target.value, 10) })} />
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold uppercase text-muted-foreground/60 ml-1">Format</Label>
+                            <div className="flex bg-background border border-border/60 rounded-xl p-1 gap-1 shadow-sm h-10">
+                                <IconBtn icon={Bold} active={element.fontWeight === 'bold'} title="Bold"
+                                    onClick={() => handleUpdate({ fontWeight: element.fontWeight === 'bold' ? 'normal' : 'bold' })} />
+                                <IconBtn icon={Italic} active={element.fontStyle === 'italic'} title="Italic"
+                                    onClick={() => handleUpdate({ fontStyle: element.fontStyle === 'italic' ? 'normal' : 'italic' })} />
+                                <IconBtn icon={Underline} active={element.textDecoration === 'underline'} title="Underline"
+                                    onClick={() => handleUpdate({ textDecoration: element.textDecoration === 'underline' ? 'none' : 'underline' })} />
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex bg-muted/40 rounded-md p-0.5 gap-0.5">
-                        <IconBtn icon={AlignVerticalJustifyStart} active={element.verticalAlign === 'top'} title="Align Top" onClick={() => handleUpdate({ verticalAlign: 'top' })} />
-                        <IconBtn icon={AlignVerticalJustifyCenter} active={!element.verticalAlign || element.verticalAlign === 'middle'} title="Align Middle" onClick={() => handleUpdate({ verticalAlign: 'middle' })} />
-                        <IconBtn icon={AlignVerticalJustifyEnd} active={element.verticalAlign === 'bottom'} title="Align Bottom" onClick={() => handleUpdate({ verticalAlign: 'bottom' })} />
-                    </div>
-                </div>
 
-                {/* Spacing */}
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-0.5">
-                        <Label className="text-[9px] uppercase text-muted-foreground/60">Letter Spacing</Label>
-                        <Input type="number" className="h-7 bg-muted/40 border-0 text-xs font-mono"
-                            value={element.letterSpacing} onChange={(e) => handleUpdate({ letterSpacing: parseFloat(e.target.value) })} />
+                    {/* Alignment */}
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold uppercase text-muted-foreground/60 ml-1">Alignment</Label>
+                        <div className="flex gap-2">
+                            <div className="flex flex-[1.4] bg-background border border-border/60 rounded-xl p-1 gap-1 shadow-sm h-10">
+                                <IconBtn icon={AlignLeft} active={element.textAlign === 'left'} title="Left" onClick={() => handleUpdate({ textAlign: 'left' })} />
+                                <IconBtn icon={AlignCenter} active={element.textAlign === 'center'} title="Center" onClick={() => handleUpdate({ textAlign: 'center' })} />
+                                <IconBtn icon={AlignRight} active={element.textAlign === 'right'} title="Right" onClick={() => handleUpdate({ textAlign: 'right' })} />
+                                <IconBtn icon={AlignJustify} active={element.textAlign === 'justify'} title="Justify" onClick={() => handleUpdate({ textAlign: 'justify' })} />
+                            </div>
+                            <div className="flex flex-1 bg-background border border-border/60 rounded-xl p-1 gap-1 shadow-sm h-10">
+                                <IconBtn icon={AlignVerticalJustifyStart} active={element.verticalAlign === 'top'} title="Align Top" onClick={() => handleUpdate({ verticalAlign: 'top' })} />
+                                <IconBtn icon={AlignVerticalJustifyCenter} active={!element.verticalAlign || element.verticalAlign === 'middle'} title="Align Middle" onClick={() => handleUpdate({ verticalAlign: 'middle' })} />
+                                <IconBtn icon={AlignVerticalJustifyEnd} active={element.verticalAlign === 'bottom'} title="Align Bottom" onClick={() => handleUpdate({ verticalAlign: 'bottom' })} />
+                            </div>
+                        </div>
                     </div>
-                    <div className="space-y-0.5">
-                        <Label className="text-[9px] uppercase text-muted-foreground/60">Line Height</Label>
-                        <Input type="number" step={0.1} className="h-7 bg-muted/40 border-0 text-xs font-mono"
-                            value={element.lineHeight} onChange={(e) => handleUpdate({ lineHeight: parseFloat(e.target.value) })} />
-                    </div>
-                </div>
 
-                {/* Transform */}
-                <div className="flex bg-muted/40 rounded-md p-0.5 gap-0.5">
-                    {[
-                        { icon: CaseUpper, value: 'uppercase', title: 'Uppercase' },
-                        { icon: CaseLower, value: 'lowercase', title: 'Lowercase' },
-                        { label: 'Aa', value: 'capitalize', title: 'Capitalize' },
-                        { icon: X, value: 'none', title: 'None' },
-                    ].map(({ icon: Icon, label, value, title }) => (
-                        <button key={value} title={title} onClick={() => handleUpdate({ textTransform: value as any })}
-                            className={cn("flex-1 flex items-center justify-center h-7 rounded-md text-[10px] font-bold transition-all text-muted-foreground hover:bg-muted/60",
-                                (!element.textTransform && value === 'none' || element.textTransform === value) && "bg-primary/15 text-primary ring-1 ring-primary/30 ring-inset")}>
-                            {Icon ? <Icon size={12} /> : label}
-                        </button>
-                    ))}
+                    {/* Spacing */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold uppercase text-muted-foreground/60 ml-1">Letter Spacing</Label>
+                            <Input type="number" className="h-10 bg-background border-border/60 text-sm font-mono shadow-sm"
+                                value={element.letterSpacing} onChange={(e) => handleUpdate({ letterSpacing: parseFloat(e.target.value) })} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold uppercase text-muted-foreground/60 ml-1">Line Height</Label>
+                            <Input type="number" step={0.1} className="h-10 bg-background border-border/60 text-sm font-mono shadow-sm"
+                                value={element.lineHeight} onChange={(e) => handleUpdate({ lineHeight: parseFloat(e.target.value) })} />
+                        </div>
+                    </div>
+
+                    {/* Case Transform */}
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold uppercase text-muted-foreground/60 ml-1">Text Case</Label>
+                        <div className="flex bg-background border border-border/60 rounded-xl p-1 gap-1 shadow-sm h-10">
+                            {[
+                                { icon: CaseUpper, value: 'uppercase', title: 'Uppercase', bg: 'hover:bg-orange-500/10 hover:text-orange-600', activeBg: 'bg-orange-500 text-white shadow-orange-200' },
+                                { icon: CaseLower, value: 'lowercase', title: 'Lowercase', bg: 'hover:bg-green-500/10 hover:text-green-600', activeBg: 'bg-green-500 text-white shadow-green-200' },
+                                { label: 'Aa', value: 'capitalize', title: 'Capitalize', bg: 'hover:bg-blue-500/10 hover:text-blue-600', activeBg: 'bg-blue-500 text-white shadow-blue-200' },
+                                { icon: X, value: 'none', title: 'None', bg: 'hover:bg-red-500/10 hover:text-red-600', activeBg: 'bg-red-500 text-white shadow-red-200' },
+                            ].map(({ icon: Icon, label, value, title, bg, activeBg }) => (
+                                <button key={value} title={title} onClick={() => handleUpdate({ textTransform: value as any })}
+                                    className={cn("flex-1 flex items-center justify-center rounded-lg transition-all text-sm font-black",
+                                        (!element.textTransform && value === 'none' || element.textTransform === value) 
+                                            ? cn("shadow-md", activeBg)
+                                            : cn("text-muted-foreground", bg))}>
+                                    {Icon ? <Icon size={16} strokeWidth={3} /> : label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div className="h-px bg-border/40" />
 
             {/* Fill & Stroke Tabs */}
-            <Tabs defaultValue="fill" className="w-full">
-                <div className="flex items-center gap-1.5 mb-2">
-                    <Palette size={11} className="text-muted-foreground" />
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Color</p>
+            <div className="space-y-4 p-3.5 rounded-2xl bg-gradient-to-b from-muted/30 to-muted/10 border border-border/50 shadow-sm">
+                <div className="flex items-center gap-2.5 pb-2.5 border-b border-border/40 mb-1">
+                    <div className="p-2 rounded-xl bg-purple-500/15 text-purple-600 shadow-inner">
+                        <Palette size={18} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-black uppercase tracking-widest text-foreground">Color & Fill</p>
+                        <p className="text-[9px] font-medium text-muted-foreground/60 leading-none">Gradient & Pattern Styles</p>
+                    </div>
                 </div>
-                <TabsList className="h-7 grid grid-cols-2 bg-muted/60 rounded-lg w-full mb-2">
-                    <TabsTrigger value="fill" className="text-[10px] font-semibold h-5 rounded-md data-[state=active]:bg-background">Fill</TabsTrigger>
-                    <TabsTrigger value="stroke" className="text-[10px] font-semibold h-5 rounded-md data-[state=active]:bg-background">Stroke</TabsTrigger>
-                </TabsList>
 
-                <TabsContent value="fill" className="mt-0 space-y-2">
+                <Tabs defaultValue="fill" className="w-full">
+                    <TabsList className="h-10 grid grid-cols-2 bg-background/50 border border-border/40 rounded-xl p-1 w-full mb-4 shadow-inner">
+                        <TabsTrigger value="fill" className="text-xs font-bold h-8 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">Fill</TabsTrigger>
+                        <TabsTrigger value="stroke" className="text-xs font-bold h-8 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">Stroke</TabsTrigger>
+                    </TabsList>
+
+                <TabsContent value="fill" className="mt-0 space-y-3">
                     {/* Fill type pills */}
-                    <div className="flex gap-1">
+                    <div className="flex gap-1.5 pt-1">
                         {[
-                            { value: 'solid', label: 'Solid', preview: <div className="w-3 h-3 rounded-sm bg-gray-400 border" /> },
-                            { value: 'gradient', label: 'Gradient', preview: <div className="w-3 h-3 rounded-sm bg-gradient-to-br from-blue-400 to-purple-500" /> },
-                            { value: 'stepped-gradient', label: 'Stepped', preview: <div className="w-3 h-3 rounded-sm bg-gradient-to-r from-red-500 via-yellow-400 to-green-400" /> },
-                            { value: 'image', label: 'Image', preview: <ImageIcon size={9} /> },
-                            { value: 'none', label: 'None', preview: <X size={9} /> },
-                        ].map(({ value, label, preview }) => (
+                            { value: 'solid', label: 'Solid', preview: <div className="w-4 h-4 rounded-full bg-gray-400 border border-white/20 shadow-sm" />, activeBg: 'bg-gray-500/10 border-gray-500/40 text-gray-700' },
+                            { value: 'gradient', label: 'Gradient', preview: <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 shadow-sm" />, activeBg: 'bg-blue-500/10 border-blue-500/40 text-blue-700' },
+                            { value: 'stepped-gradient', label: 'Stepped', preview: <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-green-400 shadow-sm" />, activeBg: 'bg-orange-500/10 border-orange-500/40 text-orange-700' },
+                            { value: 'image', label: 'Image', preview: <ImageIcon size={14} className="text-indigo-500" />, activeBg: 'bg-indigo-500/10 border-indigo-500/40 text-indigo-700' },
+                            { value: 'none', label: 'None', preview: <X size={14} className="text-red-500" />, activeBg: 'bg-red-500/10 border-red-500/40 text-red-700' },
+                        ].map(({ value, label, preview, activeBg }) => (
                             <button key={value} onClick={() => handleFillTypeChange(value as any)}
-                                className={cn("flex-1 flex flex-col items-center gap-0.5 py-1 rounded-lg border text-[9px] font-semibold transition-all",
-                                    currentFill === value ? "bg-primary/10 border-primary/60 text-primary" : "bg-muted/30 border-border/50 text-muted-foreground hover:bg-muted/60")}>
+                                className={cn("flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl border text-[10px] font-black transition-all shadow-sm",
+                                    currentFill === value 
+                                        ? cn("ring-1 ring-inset", activeBg) 
+                                        : "bg-background border-border/50 text-muted-foreground hover:bg-muted/30")}>
                                 {preview}{label}
                             </button>
                         ))}
@@ -239,60 +277,66 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                                 onStopsChange={(s) => handleUpdate({ gradientStops: s })} />
                         )}
                         {currentFill === 'stepped-gradient' && (
-                            <div className="space-y-3">
-                                <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+                            <div className="space-y-4 pt-2">
+                                <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
                                     <PropSlider label="Angle" value={element.gradientDirection || 0} display={`${element.gradientDirection || 0}°`} min={0} max={360} step={1} onChange={(v: number) => handleUpdate({ gradientDirection: v })} />
-                                    <div className="space-y-1 w-14">
-                                        <Label className="text-[9px] uppercase text-muted-foreground/60">Steps</Label>
-                                        <Input type="number" className="h-7 text-xs font-mono bg-background border-0" value={element.gradientSteps || 2}
+                                    <div className="space-y-1 w-16">
+                                        <Label className="text-[10px] uppercase text-muted-foreground/60">Steps</Label>
+                                        <Input type="number" className="h-8 text-sm font-mono bg-background border-0" value={element.gradientSteps || 2}
                                             onChange={(e) => handleGradientStepsChange(parseInt(e.target.value))} min={2} max={10} />
                                     </div>
                                 </div>
-                                <div className="space-y-1.5 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
+                                <div className="space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">
                                     {(element.gradientStops || []).map((stop, i) => (
-                                        <div key={stop.id} className="flex items-center gap-2 p-2 bg-background/60 rounded-lg border border-border/40">
+                                        <div key={stop.id} className="flex items-center gap-3 p-2.5 bg-background/60 rounded-lg border border-border/40">
                                             <ColorPicker label={`#${i + 1}`} color={stop.color} onChange={(c) => handleSteppedStopChange(i, { color: c })} containerClassName="flex-1 space-y-0" />
-                                            <Input type="number" className="h-6 w-12 text-[10px] font-mono bg-muted/40 border-0" value={stop.weight ?? 1}
+                                            <Input type="number" className="h-7 w-14 text-xs font-mono bg-muted/40 border-0" value={stop.weight ?? 1}
                                                 onChange={(e) => handleSteppedStopChange(i, { weight: parseInt(e.target.value, 10) || 1 })} min={1} />
                                         </div>
                                     ))}
                                 </div>
-                                <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => handleGradientStepsChange((element.gradientSteps || 2) + 1)}>+ Add Step</Button>
+                                <Button variant="outline" size="sm" className="w-full h-8 text-sm" onClick={() => handleGradientStepsChange((element.gradientSteps || 2) + 1)}>+ Add Step</Button>
                             </div>
                         )}
                         {currentFill === 'image' && (
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-9 h-9 bg-muted rounded-md shrink-0 flex items-center justify-center overflow-hidden border border-border/50">
-                                        {element.fillImageSrc ? <Image src={element.fillImageSrc} alt="" width={36} height={36} className="object-cover" /> : <ImageIcon size={12} className="text-muted-foreground" />}
+                            <div className="space-y-3 pt-2">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-muted rounded-md shrink-0 flex items-center justify-center overflow-hidden border border-border/50">
+                                        {element.fillImageSrc ? <Image src={element.fillImageSrc} alt="" width={48} height={48} className="object-cover" /> : <ImageIcon size={16} className="text-muted-foreground" />}
                                     </div>
-                                    <div className="flex-1 space-y-1">
-                                        <Input type="text" value={element.fillImageSrc || ''} onChange={(e) => handleUpdate({ fillImageSrc: e.target.value })} placeholder="Image URL..." className="h-7 text-xs bg-muted/40 border-0" />
-                                        <Button variant="outline" size="sm" className="h-6 text-[10px] w-full" onClick={() => setIsAssetLibraryOpen(true)}><Library size={9} className="mr-1" /> Browse</Button>
+                                    <div className="flex-1 space-y-2">
+                                        <Input type="text" value={element.fillImageSrc || ''} onChange={(e) => handleUpdate({ fillImageSrc: e.target.value })} placeholder="Image URL..." className="h-8 text-sm bg-muted/40 border-0" />
+                                        <Button variant="outline" size="sm" className="h-7 text-xs w-full" onClick={() => setIsAssetLibraryOpen(true)}><Library size={12} className="mr-1.5" /> Browse</Button>
                                     </div>
                                 </div>
                                 <PropSlider label="Zoom" value={element.fillImageScale || 1} display={`${Math.round((element.fillImageScale || 1) * 100)}%`} min={0.1} max={5} step={0.01} onChange={(v: number) => handleUpdate({ fillImageScale: v })} />
                             </div>
                         )}
-                        {currentFill === 'none' && <p className="text-xs text-muted-foreground py-2 text-center">No fill</p>}
+                        {currentFill === 'none' && <p className="text-sm text-muted-foreground py-3 text-center">No fill</p>}
                     </div>
                 </TabsContent>
 
                 <TabsContent value="stroke" className="mt-0 space-y-2">
-                    <div className="rounded-xl bg-muted/20 border border-border/40 p-2.5 space-y-3">
+                    <div className="rounded-xl bg-muted/20 border border-border/40 p-3 space-y-4">
                         <ColorPicker label="Stroke Color" color={element.textStrokeColor || '#000000'} onChange={(c) => handleUpdate({ textStrokeColor: c })} />
                         <PropSlider label="Width" value={element.textStrokeWidth || 0} display={`${element.textStrokeWidth || 0}px`} min={0} max={20} step={0.5} onChange={(v: number) => handleUpdate({ textStrokeWidth: v })} />
                     </div>
                 </TabsContent>
             </Tabs>
+        </div>
 
             <div className="h-px bg-border/40" />
 
-            {/* Effects */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-1.5">
-                    <WandSparkles size={11} className="text-muted-foreground" />
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Effects</p>
+            {/* Effects Block */}
+            <div className="space-y-4 p-3.5 rounded-2xl bg-gradient-to-b from-muted/30 to-muted/10 border border-border/50 shadow-sm">
+                <div className="flex items-center gap-2.5 pb-2.5 border-b border-border/40 mb-1">
+                    <div className="p-2 rounded-xl bg-amber-500/15 text-amber-600 shadow-inner">
+                        <WandSparkles size={18} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-black uppercase tracking-widest text-foreground">Effects</p>
+                        <p className="text-[9px] font-medium text-muted-foreground/60 leading-none">Shadows & Warp Transformations</p>
+                    </div>
                 </div>
 
                 {/* Shadow */}
@@ -314,11 +358,11 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                 </div>
 
                 {/* Text Warp */}
-                <div className="rounded-xl bg-muted/20 border border-border/40 p-2.5 space-y-3">
+                <div className="rounded-xl bg-muted/20 border border-border/40 p-3 space-y-3">
                     <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold">Warp</Label>
+                        <Label className="text-sm font-semibold text-foreground">Warp / Curve</Label>
                         <Select value={warp.style} onValueChange={(v) => handleWarpChange({ style: v as any })}>
-                            <SelectTrigger className="h-7 w-24 text-xs bg-background border-0"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-8 w-28 text-xs bg-background border-border/60 shadow-sm"><SelectValue /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="none">None</SelectItem>
                                 <SelectItem value="circle">Circle</SelectItem>
@@ -329,8 +373,8 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         <div className="space-y-2 pt-2 border-t border-border/40">
                             <PropSlider label="Radius" value={warp.radius || 100} display={`${warp.radius || 100}px`} min={10} max={500} step={1} onChange={(v: number) => handleWarpChange({ radius: v })} />
                             <PropSlider label="Rotation" value={warp.value || 0} display={`${warp.value || 0}°`} min={0} max={360} step={1} onChange={(v: number) => handleWarpChange({ value: v })} />
-                            <div className="flex items-center justify-between">
-                                <Label className="text-xs">Inside Circle</Label>
+                            <div className="flex items-center justify-between px-1">
+                                <Label className="text-xs text-muted-foreground">Reverse Direction</Label>
                                 <Switch checked={warp.reverse || false} onCheckedChange={(c) => handleWarpChange({ reverse: c })} className="scale-75 origin-right" />
                             </div>
                         </div>
