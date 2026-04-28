@@ -339,7 +339,7 @@ const CanvasBrushRenderer = ({ element, isSpotUv }: { element: DesignElement, is
     );
 };
 
-const NonInteractiveContent = memo(({ element, product, renderMode }: { element: DesignElement, product: Product, renderMode?: 'default' | 'cmyk' | 'spotuv' | 'foil' }) => {
+export const NonInteractiveContent = memo(({ element, product, renderMode }: { element: DesignElement, product: Product, renderMode?: 'default' | 'cmyk' | 'spotuv' | 'foil' }) => {
   const isSpotUv = renderMode === 'spotuv' || renderMode === 'foil';
 
     switch (element.type) {
@@ -870,6 +870,10 @@ const _CanvasElement = ({
     y: 0,
     width: 0,
     height: 0,
+    visualLeft: 0,
+    visualTop: 0,
+    visualWidth: 0,
+    visualHeight: 0,
     fontSize: 0,
     children: [] as DesignElement[]
   });
@@ -890,6 +894,22 @@ const _CanvasElement = ({
 
   const isCroppingThisElement = croppingElementId === element.id;
   const isInteractive = !!onUpdate && activeTool === 'select' && !element.locked;
+
+  const visualBounds = React.useMemo(() => {
+      if (element.type === 'text' && element.textWarp && element.textWarp.style === 'circle') {
+          const radius = element.textWarp.radius || 100;
+          const fontSize = element.fontSize || 16;
+          const effectiveRadius = element.textWarp.reverse ? radius - fontSize * 0.8 : radius;
+          const r = effectiveRadius + fontSize / 2 + 10;
+          return {
+              left: (element.width / 2) - r,
+              top: (element.height / 2) - r,
+              width: r * 2,
+              height: r * 2
+          };
+      }
+      return { left: 0, top: 0, width: element.width, height: element.height };
+  }, [element.type, element.width, element.height, element.textWarp, element.fontSize]);
 
   const handleMouseUp = () => {
     dragRef.current = false;
@@ -920,6 +940,10 @@ const _CanvasElement = ({
       y: element.y,
       width: element.width,
       height: element.height,
+      visualLeft: visualBounds.left,
+      visualTop: visualBounds.top,
+      visualWidth: visualBounds.width,
+      visualHeight: visualBounds.height,
       fontSize: element.fontSize || 0,
       children: element.children || []
     };
@@ -937,10 +961,14 @@ const _CanvasElement = ({
     const snapThreshold = SNAP_THRESHOLD / zoom;
     const activeSmartGuides: Guide[] = [];
 
+    const { visualLeft, visualTop, visualWidth, visualHeight } = startRef.current;
+    let visualX = newX + visualLeft;
+    let visualY = newY + visualTop;
+
     // --- Smart Guides Logic ---
     const elementSnapPoints = {
-        v: [newX, newX + element.width / 2, newX + element.width],
-        h: [newY, newY + element.height / 2, newY + element.height]
+        v: [visualX, visualX + visualWidth / 2, visualX + visualWidth],
+        h: [visualY, visualY + visualHeight / 2, visualY + visualHeight]
     };
 
     const targetSnapPoints = {
@@ -992,11 +1020,13 @@ const _CanvasElement = ({
     });
 
     if (bestSnapX.dist < Infinity) {
-        newX = bestSnapX.newPos;
+        visualX = bestSnapX.newPos;
+        newX = visualX - visualLeft;
         activeSmartGuides.push({ id: `smart-guide-v-${bestSnapX.guidePos}`, orientation: 'vertical', position: bestSnapX.guidePos });
     }
     if (bestSnapY.dist < Infinity) {
-        newY = bestSnapY.newPos;
+        visualY = bestSnapY.newPos;
+        newY = visualY - visualTop;
         activeSmartGuides.push({ id: `smart-guide-h-${bestSnapY.guidePos}`, orientation: 'horizontal', position: bestSnapY.guidePos });
     }
     
@@ -1019,6 +1049,10 @@ const _CanvasElement = ({
       y: element.y,
       width: element.width,
       height: element.height,
+      visualLeft: visualBounds.left,
+      visualTop: visualBounds.top,
+      visualWidth: visualBounds.width,
+      visualHeight: visualBounds.height,
       fontSize: element.fontSize || 0,
       children: element.children || []
     };
@@ -1031,64 +1065,84 @@ const _CanvasElement = ({
     if (!resizeRef.current) return;
 
     const handle = resizeRef.current;
-    const { x, y, width, height, mouseX, mouseY, fontSize, children } = startRef.current;
+    const { x, y, width, height, visualLeft, visualTop, visualWidth, visualHeight, mouseX, mouseY, fontSize, children } = startRef.current;
     
     const dx = (e.clientX - mouseX) / zoom;
     const dy = (e.clientY - mouseY) / zoom;
 
-    let newWidth = width;
-    let newHeight = height;
-    let newX = x;
-    let newY = y;
+    let newVisualWidth = visualWidth;
+    let newVisualHeight = visualHeight;
+    let newVisualX = x + visualLeft;
+    let newVisualY = y + visualTop;
     
-    if (handle.includes('right')) newWidth = Math.max(MIN_SIZE, width + dx);
+    if (handle.includes('right')) newVisualWidth = Math.max(MIN_SIZE, visualWidth + dx);
     if (handle.includes('left')) {
-      newWidth = Math.max(MIN_SIZE, width - dx);
-      newX = x + width - newWidth;
+      newVisualWidth = Math.max(MIN_SIZE, visualWidth - dx);
+      newVisualX = (x + visualLeft) + visualWidth - newVisualWidth;
     }
-    if (handle.includes('bottom')) newHeight = Math.max(MIN_SIZE, height + dy);
+    if (handle.includes('bottom')) newVisualHeight = Math.max(MIN_SIZE, visualHeight + dy);
     if (handle.includes('top')) {
-      newHeight = Math.max(MIN_SIZE, height - dy);
-      newY = y + height - newHeight;
+      newVisualHeight = Math.max(MIN_SIZE, visualHeight - dy);
+      newVisualY = (y + visualTop) + visualHeight - newVisualHeight;
     }
 
-    const newProps: Partial<DesignElement> = {
-      x: newX,
-      y: newY,
-      width: newWidth,
-      height: newHeight,
-    };
+    const scaleX = newVisualWidth / visualWidth;
+    const scaleY = newVisualHeight / visualHeight;
     
     const isCornerResize = handle.includes('-');
     const isHorizontalResize = handle === 'left' || handle === 'right';
 
+    let newProps: Partial<DesignElement> = {};
+
     if (element.type === 'text') {
-        const widthChanged = newWidth !== width;
-        if ((isCornerResize || isHorizontalResize) && widthChanged && width > 0) {
-            const scale = newWidth / width;
-            if (isFinite(scale) && scale > 0) {
-                newProps.fontSize = Math.max(8, fontSize * scale);
+        const scale = isHorizontalResize ? scaleX : (handle === 'top' || handle === 'bottom' ? scaleY : Math.max(scaleX, scaleY));
+        const newWidth = width * scale;
+        const newHeight = height * scale;
+        
+        const newX = newVisualX - (visualLeft * scale);
+        const newY = newVisualY - (visualTop * scale);
+
+        newProps = {
+            x: newX,
+            y: newY,
+            width: newWidth,
+            height: newHeight,
+        };
+
+        if (scale !== 1 && width > 0) {
+            newProps.fontSize = Math.max(8, fontSize * scale);
+            if (element.textWarp && element.textWarp.style === 'circle') {
+                newProps.textWarp = {
+                    ...element.textWarp,
+                    radius: (element.textWarp.radius || 100) * scale
+                };
             }
         }
-    } else if (isCornerResize) { // Proportional resize for other elements on corner drag
-        const aspectRatio = width / height;
+    } else if (isCornerResize) { 
+        const aspectRatio = visualWidth / visualHeight;
         if (Math.abs(dx) > Math.abs(dy)) {
-            newHeight = newWidth / aspectRatio;
+            newVisualHeight = newVisualWidth / aspectRatio;
         } else {
-            newWidth = newHeight * aspectRatio;
+            newVisualWidth = newVisualHeight * aspectRatio;
         }
-        if (handle.includes('top')) newY = y + height - newHeight;
-        if (handle.includes('left')) newX = x + width - newWidth;
+        if (handle.includes('top')) newVisualY = (y + visualTop) + visualHeight - newVisualHeight;
+        if (handle.includes('left')) newVisualX = (x + visualLeft) + visualWidth - newVisualWidth;
 
-        newProps.x = newX;
-        newProps.y = newY;
-        newProps.width = newWidth;
-        newProps.height = newHeight;
+        const scale = newVisualWidth / visualWidth;
+        newProps.x = newVisualX - (visualLeft * scale);
+        newProps.y = newVisualY - (visualTop * scale);
+        newProps.width = width * scale;
+        newProps.height = height * scale;
+    } else {
+        newProps.x = newVisualX - (visualLeft * scaleX);
+        newProps.y = newVisualY - (visualTop * scaleY);
+        newProps.width = width * scaleX;
+        newProps.height = height * scaleY;
     }
     
     if (element.type === 'group' || element.type === 'path') {
-      const scaleX = newWidth / width;
-      const scaleY = newHeight / height;
+      const scaleX = newProps.width! / width;
+      const scaleY = newProps.height! / height;
 
       if(isFinite(scaleX) && isFinite(scaleY) && scaleX > 0 && scaleY > 0) {
         if(element.type === 'group' && children) {
@@ -1128,14 +1182,12 @@ const _CanvasElement = ({
 
   const elementStyle: React.CSSProperties = {
     position: 'absolute',
-    left: element.x,
-    top: element.y,
-    width: element.width,
-    height: element.height,
+    left: element.x + visualBounds.left,
+    top: element.y + visualBounds.top,
+    width: visualBounds.width,
+    height: visualBounds.height,
     transform: `rotate(${element.rotation}deg) skewX(${element.skewX || 0}deg) skewY(${element.skewY || 0}deg)`,
     pointerEvents: isInteractive && !isEditingPath ? 'auto' : 'none',
-    outline: isSelected && !element.locked && !isCroppingThisElement && !isEditingPath ? `${2 / zoom}px solid hsl(var(--primary))` : 'none',
-    outlineOffset: `${2 / zoom}px`,
     userSelect: 'none',
     opacity: (renderMode === 'spotuv' || renderMode === 'foil') ? 1 : element.opacity,
     boxShadow: (renderMode === 'spotuv' || renderMode === 'foil') ? 'none' : (element.spotUv ? `0 0 8px 2px hsla(var(--accent), 0.8), ${existingShadow}` : existingShadow),
@@ -1150,14 +1202,15 @@ const _CanvasElement = ({
   const resizeHandles: ResizeHandle[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top', 'bottom', 'left', 'right'];
 
   const getHandleStyle = (handle: ResizeHandle): React.CSSProperties => {
-      const handleSize = 8 / zoom;
+      const handleSize = 14 / zoom; // Increased for better adjustability
       const style: React.CSSProperties = {
           position: 'absolute',
           width: `${handleSize}px`,
           height: `${handleSize}px`,
           backgroundColor: 'hsl(var(--primary))',
-          border: `${1 / zoom}px solid white`,
+          border: `${2 / zoom}px solid white`, // Thicker white border for contrast
           borderRadius: '50%',
+          boxShadow: `0 ${1.5 / zoom}px ${4 / zoom}px rgba(0,0,0,0.4)`, // Drop shadow for premium feel
           zIndex: 1
       };
       const offset = `-${handleSize / 2}px`;
@@ -1221,10 +1274,33 @@ const _CanvasElement = ({
       style={elementStyle}
       onMouseDown={isInteractive && !isCroppingThisElement ? handleMouseDown : undefined}
     >
-      {renderContent()}
-      {isSelected && isInteractive && !isCroppingThisElement && renderMode !== 'spotuv' && renderMode !== 'foil' && resizeHandles.map(handle => (
-          <div key={handle} style={getHandleStyle(handle)} onMouseDown={(e) => handleResizeMouseDown(e, handle)}/>
-      ))}
+      <div style={{
+          position: 'absolute',
+          left: -visualBounds.left,
+          top: -visualBounds.top,
+          width: element.width,
+          height: element.height,
+          pointerEvents: 'none' // Let wrapper handle the mouse events
+      }}>
+        {renderContent()}
+      </div>
+
+      {isSelected && isInteractive && !isCroppingThisElement && !isEditingPath && renderMode !== 'spotuv' && renderMode !== 'foil' && (
+         <div style={{
+             position: 'absolute',
+             inset: 0,
+             outline: `${4 / zoom}px solid hsl(var(--primary))`,
+             pointerEvents: 'none'
+         }}>
+             {resizeHandles.map(handle => (
+                 <div 
+                     key={handle} 
+                     style={{ ...getHandleStyle(handle), pointerEvents: 'auto' }} 
+                     onMouseDown={(e) => handleResizeMouseDown(e, handle)}
+                 />
+             ))}
+         </div>
+      )}
       {isCroppingThisElement && (
         <div className="absolute inset-0 border-2 border-dashed border-primary pointer-events-none">
           <div className="absolute inset-0 bg-black/50" />

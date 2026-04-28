@@ -39,10 +39,27 @@ export function ElementToolbar({
 
   const { zoom, pan } = viewState;
 
-  // Bounding box calculation
-  const minX = Math.min(...selectedElements.map(el => el.x));
-  const minY = Math.min(...selectedElements.map(el => el.y));
-  const midX = minX + (Math.max(...selectedElements.map(el => el.x + el.width)) - minX) / 2;
+  // Bounding box calculation accounting for visual bounds of warped text
+  const getVisualBounds = (el: DesignElement) => {
+      if (el.type === 'text' && el.textWarp && el.textWarp.style === 'circle') {
+          const radius = el.textWarp.radius || 100;
+          const fontSize = el.fontSize || 16;
+          const effectiveRadius = el.textWarp.reverse ? radius - fontSize * 0.8 : radius;
+          const r = effectiveRadius + fontSize / 2 + 10;
+          return {
+              x: el.x + (el.width / 2) - r,
+              y: el.y + (el.height / 2) - r,
+              width: r * 2,
+              height: r * 2
+          };
+      }
+      return { x: el.x, y: el.y, width: el.width, height: el.height };
+  };
+
+  const bounds = selectedElements.map(getVisualBounds);
+  const minX = Math.min(...bounds.map(b => b.x));
+  const minY = Math.min(...bounds.map(b => b.y));
+  const midX = minX + (Math.max(...bounds.map(b => b.x + b.width)) - minX) / 2;
 
   const rulerOffset = showRulers ? RULER_SIZE : 0;
   const top = ((minY + safetyMargin + rulerOffset) * zoom) + pan.y - TOOLBAR_OFFSET_Y;

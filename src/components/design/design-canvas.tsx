@@ -6,6 +6,7 @@ import { CanvasElement } from './canvas-element';
 import { Scissors } from 'lucide-react';
 import { PenToolCanvas } from './pen-tool-canvas';
 import { renderBristleSegment, BristleProfile, BrushEngineTip } from '@/lib/brush-engine';
+import { useCustomFonts } from '@/hooks/use-custom-fonts';
 
 const RULER_SIZE = 60; 
 
@@ -271,6 +272,8 @@ export function DesignCanvas({
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const liveBrushCanvasRef = useRef<HTMLCanvasElement>(null);
   const { zoom, pan } = viewState;
+  
+  useCustomFonts(); // Load custom fonts globally
 
   // Draw live brush preview onto overlay canvas
   useEffect(() => {

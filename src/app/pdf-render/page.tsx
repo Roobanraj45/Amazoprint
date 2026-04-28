@@ -190,6 +190,10 @@ export default function PdfRenderPage() {
     const isMask = activeLayer?.renderMode === 'spotuv' || activeLayer?.renderMode === 'foil';
 
     try {
+      await document.fonts.ready;
+      // Also wait a tiny bit for any font swaps
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const canvas = await html2canvas(element, {
         useCORS: true,
         scale: 3, 

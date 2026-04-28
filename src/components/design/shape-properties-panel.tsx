@@ -15,6 +15,7 @@ import { cn, resolveImagePath } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 import { AssetLibrary } from "./asset-library";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { ImageMaskEditor } from "./image-mask-editor";
 
 type ShapePropertiesPanelProps = {
     element: DesignElement;
@@ -34,6 +35,7 @@ const PropSlider = ({ label, value, display, min, max, step, onChange }: any) =>
 
 export function ShapePropertiesPanel({ element, onUpdate, isAdmin }: ShapePropertiesPanelProps) {
     const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
+    const [isImageMaskEditorOpen, setIsImageMaskEditorOpen] = useState(false);
 
     const handleUpdate = (props: Partial<DesignElement>) => onUpdate(element.id, props);
 
@@ -168,16 +170,16 @@ export function ShapePropertiesPanel({ element, onUpdate, isAdmin }: ShapeProper
                                     </div>
                                     <div className="flex-1 space-y-2">
                                         <Input type="text" value={element.fillImageSrc || ''} onChange={(e) => handleUpdate({ fillImageSrc: e.target.value })} placeholder="Image URL..." className="h-8 text-sm bg-muted/40 border-0" />
-                                        <Button variant="outline" size="sm" className="h-7 text-xs w-full" onClick={() => setIsAssetLibraryOpen(true)}>
-                                            <Library size={12} className="mr-1.5" /> Browse Library
-                                        </Button>
-                                    </div>
-                                </div>
-                                <div className="space-y-2 pt-2 border-t border-border/40">
-                                    <PropSlider label="Zoom" value={element.fillImageScale || 1} display={`${Math.round((element.fillImageScale || 1) * 100)}%`} min={0.1} max={5} step={0.01} onChange={(v: number) => handleUpdate({ fillImageScale: v })} />
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <PropSlider label="Offset X" value={element.fillImageOffsetX || 0} display={`${Math.round(element.fillImageOffsetX || 0)}px`} min={-element.width} max={element.width} step={1} onChange={(v: number) => handleUpdate({ fillImageOffsetX: v })} />
-                                        <PropSlider label="Offset Y" value={element.fillImageOffsetY || 0} display={`${Math.round(element.fillImageOffsetY || 0)}px`} min={-element.height} max={element.height} step={1} onChange={(v: number) => handleUpdate({ fillImageOffsetY: v })} />
+                                        <div className="flex gap-2">
+                                            <Button variant="outline" size="sm" className="h-7 text-xs flex-1" onClick={() => setIsAssetLibraryOpen(true)}>
+                                                <Library size={12} className="mr-1.5" /> Browse
+                                            </Button>
+                                            {element.fillImageSrc && (
+                                                <Button variant="secondary" size="sm" className="h-7 text-xs flex-1" onClick={() => setIsImageMaskEditorOpen(true)}>
+                                                    <Edit3 size={12} className="mr-1.5" /> Adjust
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <Dialog open={isAssetLibraryOpen} onOpenChange={setIsAssetLibraryOpen}>
@@ -186,6 +188,12 @@ export function ShapePropertiesPanel({ element, onUpdate, isAdmin }: ShapeProper
                                         <AssetLibrary onImageSelect={(url) => { handleUpdate({ fillImageSrc: url }); setIsAssetLibraryOpen(false); }} isAdmin={isAdmin} />
                                     </DialogContent>
                                 </Dialog>
+                                <ImageMaskEditor 
+                                    isOpen={isImageMaskEditorOpen} 
+                                    onClose={() => setIsImageMaskEditorOpen(false)} 
+                                    element={element} 
+                                    onUpdate={onUpdate} 
+                                />
                             </div>
                         )}
                         {currentFill === 'none' && (

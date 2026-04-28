@@ -231,24 +231,20 @@ export function TextCanvasElement({
           {charData.map((data, i) => (
             <React.Fragment key={i}>
                 <text 
-                    style={textStyle} 
+                    style={{
+                        ...textStyle,
+                        paintOrder: 'stroke fill',
+                    }} 
                     textAnchor="middle" 
                     dominantBaseline="middle"
                     transform={`translate(${data.x}, ${data.y}) rotate(${data.rotation})`}
+                    stroke={!isSpotUv && element.textStrokeWidth ? (element.textStrokeColor || '#000000') : 'none'}
+                    strokeWidth={!isSpotUv ? (element.textStrokeWidth || 0) : 0}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    fill={getSvgFill()}
                 >
-                    {element.textStrokeWidth && element.textStrokeWidth > 0 && !isSpotUv && (
-                        <tspan 
-                            stroke={element.textStrokeColor || '#000000'} 
-                            strokeWidth={element.textStrokeWidth} 
-                            strokeLinejoin="round" 
-                            fill="none"
-                        >
-                            {data.char}
-                        </tspan>
-                    )}
-                    <tspan fill={getSvgFill()}>
-                        {data.char}
-                    </tspan>
+                    {data.char}
                 </text>
             </React.Fragment>
           ))}
@@ -372,22 +368,18 @@ export function TextCanvasElement({
                   {line.map((c, charIdx) => (
                       <text 
                         key={charIdx} 
-                        style={textStyle} 
+                        style={{
+                            ...textStyle,
+                            paintOrder: 'stroke fill',
+                        }} 
                         transform={`translate(${c.x}, ${c.y})`}
+                        stroke={!isSpotUv && element.textStrokeWidth ? (element.textStrokeColor || '#000000') : 'none'}
+                        strokeWidth={!isSpotUv ? (element.textStrokeWidth || 0) : 0}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        fill={getSvgFill()}
                       >
-                         {element.textStrokeWidth && element.textStrokeWidth > 0 && !isSpotUv && (
-                            <tspan 
-                                stroke={element.textStrokeColor || '#000000'} 
-                                strokeWidth={element.textStrokeWidth} 
-                                strokeLinejoin="round" 
-                                fill="none"
-                            >
-                                {c.char}
-                            </tspan>
-                        )}
-                        <tspan fill={getSvgFill()}>
-                            {c.char}
-                        </tspan>
+                        {c.char}
                       </text>
                   ))}
               </React.Fragment>
