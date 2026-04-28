@@ -878,19 +878,10 @@ const _CanvasElement = ({
     children: [] as DesignElement[]
   });
   
-  if (element.visible === false) {
-      return null;
-  }
-
-  if (renderMode === 'cmyk' && element.spotUv) {
-    return null;
-  }
-  if (renderMode === 'spotuv' && (!element.spotUv || element.foilId !== undefined)) {
-    return null;
-  }
-  if (renderMode === 'foil' && (!element.spotUv || element.foilId === undefined)) {
-    return null;
-  }
+  const isHidden = element.visible === false ||
+      (renderMode === 'cmyk' && element.spotUv) ||
+      (renderMode === 'spotuv' && (!element.spotUv || element.foilId !== undefined)) ||
+      (renderMode === 'foil' && (!element.spotUv || element.foilId === undefined));
 
   const isCroppingThisElement = croppingElementId === element.id;
   const isInteractive = !!onUpdate && activeTool === 'select' && !element.locked;
@@ -1267,6 +1258,8 @@ const _CanvasElement = ({
     }
     return <NonInteractiveContent element={element} product={product} renderMode={renderMode} />
   };
+
+  if (isHidden) return null;
 
   return (
     <div

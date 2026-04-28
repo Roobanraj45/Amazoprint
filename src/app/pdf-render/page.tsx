@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import html2canvas from 'html2canvas';
+import { toPng, toJpeg } from 'html-to-image';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -23,6 +24,7 @@ export default function PdfRenderPage() {
   const [layers, setLayers] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('');
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [scale, setScale] = useState(0.85);
   
   const mainPreviewRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -125,6 +127,21 @@ export default function PdfRenderPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!data) return;
+    const updateScale = () => {
+      const pw = data.product.width + (data.bleed * 2);
+      const ph = data.product.height + (data.bleed * 2);
+      const vh = window.innerHeight;
+      const vw = window.innerWidth;
+      // Calculate scale to fit within 75% of viewport height and 60% of viewport width
+      setScale(Math.min(0.85, (vh * 0.75) / ph, (vw * 0.6) / pw));
+    };
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [data]);
+
   const handlePrint = () => {
     if (!data) return;
 
@@ -150,7 +167,7 @@ export default function PdfRenderPage() {
         }
 
         #printable-area {
-          position: absolute !important;
+          position: fixed !important;
           left: 0 !important;
           top: 0 !important;
           width: ${printWidth}px !important;
@@ -189,30 +206,81 @@ export default function PdfRenderPage() {
     const activeLayer = layers.find(l => l.id === activeTab);
     const isMask = activeLayer?.renderMode === 'spotuv' || activeLayer?.renderMode === 'foil';
 
+    // Collect all custom @font-face CSS (already base64 encoded)
+    const customFontStyleEl = document.getElementById('custom-fonts-style') as HTMLStyleElement | null;
+    const customFontCss = customFontStyleEl?.innerHTML || '';
+
+    // Collect all unique font families used in the current design
+    const fontFamiliesUsed = new Set<string>();
+    data.pages.forEach((page) => {
+      page.elements.forEach((el) => {
+        if (el.fontFamily) fontFamiliesUsed.add(el.fontFamily);
+      });
+    });
+
+    // Determine which custom font names are already embedded via base64
+    const customFontNames = new Set(
+      [...(customFontStyleEl?.innerHTML.matchAll(/font-family:\s*'([^']+)'/g) ?? [])].map(m => m[1])
+    );
+
+    // Fetch base64-embedded CSS for all Google Fonts via the server-side proxy
+    const googleFontsNeeded = [...fontFamiliesUsed].filter(f => !customFontNames.has(f));
+    let googleFontCss = '';
+    if (googleFontsNeeded.length > 0) {
+      try {
+        const res = await fetch(`/api/fonts/embed?families=${encodeURIComponent(googleFontsNeeded.join(','))}`);
+        googleFontCss = await res.text();
+      } catch (e) {
+        console.warn('Could not fetch Google Fonts for export:', e);
+      }
+    }
+
+    const combinedFontCss = customFontCss + '\n' + googleFontCss;
+
+    const maskTransparentStyle = (isMask && format === 'png') ? {
+      background: 'transparent',
+      backgroundColor: 'transparent',
+      backgroundImage: 'none',
+      boxShadow: 'none',
+    } : {};
+
+    const options = {
+      width,
+      height,
+      pixelRatio: 3,
+      // undefined = transparent for mask PNGs; white for everything else
+      backgroundColor: (isMask && format === 'png') ? undefined : '#ffffff',
+      style: {
+        transform: 'none',
+        transformOrigin: 'top left',
+        ...maskTransparentStyle,
+      },
+      fontEmbedCSS: combinedFontCss,
+      filter: (node: HTMLElement) => {
+        return !node.classList?.contains('no-print');
+      },
+    };
+
     try {
       await document.fonts.ready;
-      // Also wait a tiny bit for any font swaps
-      await new Promise(resolve => setTimeout(resolve, 500));
 
-      const canvas = await html2canvas(element, {
-        useCORS: true,
-        scale: 3, 
-        backgroundColor: isMask && format === 'png' ? null : '#ffffff',
-        width: width,
-        height: height,
-        onclone: (clonedDoc) => {
-          const el = clonedDoc.getElementById('printable-area');
-          if (el) {
-            el.style.transform = 'none';
-            if (isMask) el.style.background = 'transparent';
-          }
-        }
-      });
-      
+      let dataUrl: string;
+      if (format === 'png') {
+        // Run twice — first pass forces resource loading, second is the real capture
+        await toPng(element, options).catch(() => {});
+        dataUrl = await toPng(element, options);
+      } else {
+        await toJpeg(element, options).catch(() => {});
+        dataUrl = await toJpeg(element, options);
+      }
+
       const link = document.createElement('a');
-      link.href = canvas.toDataURL(`image/${format}`, 1.0);
+      link.href = dataUrl;
       link.download = `${data.product.name.replace(/\s+/g, '_')}-${activeTab}.${format}`;
       link.click();
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({ variant: 'destructive', title: 'Export Failed', description: 'Could not generate the image. Please try again.' });
     } finally {
       setIsExporting(false);
     }
@@ -309,7 +377,7 @@ export default function PdfRenderPage() {
         </aside>
 
         <main className="flex-1 overflow-auto flex items-center justify-center p-12 bg-slate-100">
-          <div className="relative">
+          <div className="relative" style={{ width: printWidth * scale, height: printHeight * scale }}>
             <div
                 id="printable-area"
                 ref={mainPreviewRef}
@@ -320,10 +388,10 @@ export default function PdfRenderPage() {
                       : "bg-white"
                 )}
                 style={{
-                width: printWidth,
-                height: printHeight,
-                transform: `scale(min(0.85, calc(75vh / ${printHeight}px), calc(60vw / ${printWidth}px)))`,
-                transformOrigin: 'center center',
+                  width: printWidth,
+                  height: printHeight,
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'top left',
                 } as React.CSSProperties}
             >
                 <DesignCanvas
