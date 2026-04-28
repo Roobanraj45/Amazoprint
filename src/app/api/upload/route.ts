@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Error saving file:', error);
     return NextResponse.json({ success: false, error: 'Failed to save file' }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest) {
@@ -72,4 +73,3 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Failed to delete file' }, { status: 500 });
   }
 }
-
