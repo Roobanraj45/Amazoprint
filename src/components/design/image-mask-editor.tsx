@@ -203,7 +203,7 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
                                 <NonInteractiveContent element={previewElement as any} product={product!} />
                             </div>
 
-                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/60 backdrop-blur-xl rounded-full text-[9px] font-bold uppercase tracking-widest text-white/60 border border-white/10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/60 backdrop-blur-xl rounded-full text-[9px] font-bold text-white/60 border border-white/10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                                 Pan & Zoom
                             </div>
                         </div>
@@ -214,7 +214,7 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
                                 <div className="flex justify-between items-center">
                                     <div className="flex items-center gap-2 text-white/40">
                                         <ZoomIn className="w-3.5 h-3.5" />
-                                        <Label className="text-[9px] font-bold uppercase tracking-widest">Zoom</Label>
+                                        <Label className="text-[10px] font-bold">Zoom</Label>
                                     </div>
                                     <span className="text-[10px] font-mono bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20 font-bold min-w-[50px] text-center">
                                         {Math.round(scaleRef.current * 100)}%
@@ -266,14 +266,14 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
                                         updateRender();
                                         onUpdate(element.id, { fillImageOffsetX: 0, fillImageOffsetY: 0, fillImageScale: 1 });
                                     }}
-                                    className="h-8 px-3 text-[9px] font-bold uppercase tracking-widest text-white/30 hover:text-blue-400 hover:bg-blue-400/5 gap-1.5"
+                                    className="h-8 px-3 text-[9px] font-bold text-white/30 hover:text-blue-400 hover:bg-blue-400/5 gap-1.5"
                                 >
                                     <RotateCcw className="w-3 h-3" />
                                     Reset
                                 </Button>
                                 <Button 
                                     onClick={onClose}
-                                    className="px-6 h-8 bg-blue-600 hover:bg-blue-500 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
+                                    className="px-6 h-8 bg-blue-600 hover:bg-blue-500 text-white text-[9px] font-bold rounded-lg shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
                                 >
                                     Done
                                 </Button>

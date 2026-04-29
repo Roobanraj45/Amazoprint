@@ -65,7 +65,7 @@ export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelP
                     
                     <TabsContent value="brush" className="space-y-4 mt-0 border-b border-border/40 pb-4">
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Brush Tip</Label>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Brush tip</Label>
                             <Select value={options.brushTip} onValueChange={(v) => update('brushTip', v)}>
                                 <SelectTrigger className="w-full bg-background border-none shadow-sm h-10 text-xs text-left">
                                     <SelectValue />
@@ -81,7 +81,7 @@ export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelP
 
                     <TabsContent value="spray" className="mt-0 space-y-4 border-b border-border/40 pb-4">
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Spray Mode</Label>
+                            <Label className="text-[10px] font-bold text-muted-foreground">Spray mode</Label>
                             <Select value={options.brushTip} onValueChange={(v) => update('brushTip', v)}>
                                 <SelectTrigger className="w-full bg-background border-none shadow-sm h-10 text-xs text-left">
                                     <SelectValue />
@@ -96,7 +96,7 @@ export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelP
                         
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Softness</Label>
+                                <Label className="text-[10px] font-bold text-muted-foreground">Softness</Label>
                                 <span className="text-[10px] font-mono font-bold bg-muted px-2 py-0.5 rounded">{Math.round(options.softness * 100)}%</span>
                             </div>
                             <Slider value={[options.softness * 100]} onValueChange={v => update('softness', v[0] / 100)} min={20} max={100} step={5} />
@@ -107,7 +107,7 @@ export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelP
                 {/* Size */}
                 <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Size</Label>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Size</Label>
                         <span className="text-[10px] font-mono font-bold bg-muted px-2 py-0.5 rounded">{options.size}px</span>
                     </div>
                     <Slider value={[options.size]} onValueChange={v => update('size', v[0])} min={5} max={500} step={1} />
@@ -116,7 +116,7 @@ export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelP
                 {/* Flow */}
                 <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Hardness / Flow</Label>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Hardness / flow</Label>
                         <span className="text-[10px] font-mono font-bold bg-muted px-2 py-0.5 rounded">{Math.round(options.flow * 100)}%</span>
                     </div>
                     <Slider value={[options.flow * 100]} onValueChange={v => update('flow', v[0] / 100)} min={5} max={200} step={5} />

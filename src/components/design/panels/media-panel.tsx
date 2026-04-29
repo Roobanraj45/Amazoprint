@@ -84,7 +84,7 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, onAddSvgS
             <div className="p-4 space-y-6">
               {searchResults.photos.length > 0 && (
                 <div>
-                  <Label className="text-xs font-bold uppercase text-muted-foreground px-1 mb-2 block">Photos</Label>
+                  <Label className="text-xs font-bold text-muted-foreground px-1 mb-2 block">Photos</Label>
                   <div className="grid grid-cols-3 gap-2">
                     {searchResults.photos.map(img => (
                       <div key={img.id} className="cursor-pointer aspect-square relative overflow-hidden rounded-md group" onClick={() => onImageSelect(img.imageUrl)}>
@@ -96,7 +96,7 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, onAddSvgS
               )}
               {searchResults.shapes.length > 0 && (
                 <div>
-                  <Label className="text-xs font-bold uppercase text-muted-foreground px-1 mb-2 block">Shapes</Label>
+                  <Label className="text-xs font-bold text-muted-foreground px-1 mb-2 block">Shapes</Label>
                   <div className="grid grid-cols-4 gap-2">
                     {searchResults.shapes.map(shape => (
                       <div key={shape.name} title={shape.name} className="cursor-pointer aspect-square relative flex items-center justify-center overflow-hidden rounded-md group bg-muted hover:bg-accent text-foreground" onClick={() => onAddShape(shape.name)}>
@@ -108,7 +108,7 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, onAddSvgS
               )}
               {searchResults.emojis.length > 0 && (
                 <div>
-                  <Label className="text-xs font-bold uppercase text-muted-foreground px-1 mb-2 block">Emojis</Label>
+                  <Label className="text-xs font-bold text-muted-foreground px-1 mb-2 block">Emojis</Label>
                   <div className="grid grid-cols-8 gap-1">
                     {searchResults.emojis.map(emoji => (
                       <div key={emoji.char} className="cursor-pointer text-2xl flex items-center justify-center aspect-square rounded-md hover:bg-accent" onClick={() => onEmojiSelect(emoji.char)} title={emoji.name}>
@@ -120,7 +120,7 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, onAddSvgS
               )}
               {searchResults.assets.length > 0 && (
                 <div>
-                  <Label className="text-xs font-bold uppercase text-muted-foreground px-1 mb-2 block">My Uploads</Label>
+                  <Label className="text-xs font-bold text-muted-foreground px-1 mb-2 block">My uploads</Label>
                   <div className="grid grid-cols-3 gap-2">
                     {searchResults.assets.map((asset, index) => (
                       <div key={`search-asset-${index}`} className="cursor-pointer aspect-square relative overflow-hidden rounded-md group bg-muted hover:bg-accent" onClick={() => onImageSelect(asset)}>

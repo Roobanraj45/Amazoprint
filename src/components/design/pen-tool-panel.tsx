@@ -10,16 +10,16 @@ export function PenToolPanel({ onFinish }: { onFinish: () => void }) {
                 <PenTool className="h-8 w-8"/>
             </div>
             <div className="space-y-1">
-                <h3 className="font-bold text-sm">Pen Tool Active</h3>
+                <h3 className="font-bold text-sm">Pen tool active</h3>
                 <p className="text-xs text-muted-foreground max-w-[200px]">
                     Click to add points. Click and drag to create curves. Click the first point to close the path.
                 </p>
             </div>
             <Button onClick={onFinish} className="w-full mt-4" variant="default">
                 <CheckSquare className="mr-2 h-4 w-4" />
-                Finish Path
+                Finish path
             </Button>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-4">
+            <p className="text-[10px] text-muted-foreground font-bold mt-4">
                 Esc to cancel path
             </p>
         </div>

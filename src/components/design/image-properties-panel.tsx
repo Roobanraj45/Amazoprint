@@ -37,7 +37,7 @@ type Props = {
 
 const SectionCard = ({ title, icon, children, ...props }: any) => (
   <div {...props}>
-    <div className="flex items-center gap-2 mb-3 text-[11px] font-bold uppercase tracking-wider text-foreground">
+    <div className="flex items-center gap-2 mb-3 text-[11px] font-bold text-foreground">
       <div className="p-1.5 rounded-md bg-primary/10 border border-primary/20">
         {icon}
       </div>
@@ -141,7 +141,7 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
   }: any) => (
     <div className="group space-y-1">
       <div className="flex justify-between items-center px-0.5">
-        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+        <Label className="text-[10px] font-bold text-muted-foreground">
           {label}
         </Label>
         <span className="text-[11px] font-mono tabular-nums bg-secondary/80 px-1.5 py-0.5 rounded text-foreground/80 border border-border/50">
@@ -279,7 +279,7 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                         <div className="space-y-6">
                             <div className="flex items-center gap-4 bg-muted/40 p-3 rounded-xl border border-border/40">
                                 <div className="flex-1 space-y-2">
-                                    <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
+                                    <div className="flex justify-between text-[10px] font-bold text-muted-foreground">
                                         <Label>Angle</Label>
                                         <span>{element.gradientDirection || 0}°</span>
                                     </div>
@@ -287,7 +287,7 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                                 </div>
                                 <div className="w-px h-10 bg-border/60" />
                                 <div className="w-16 space-y-1">
-                                    <Label className="text-[10px] font-bold uppercase text-muted-foreground">Steps</Label>
+                                    <Label className="text-[10px] font-bold text-muted-foreground">Steps</Label>
                                     <Input
                                         type="number"
                                         className="h-8 text-xs font-mono bg-background border-none"
@@ -299,7 +299,7 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                             </div>
 
                             <div className="space-y-3 pt-2">
-                                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground/60 mb-2">
                                     <ListFilter size={12} />
                                     Color Steps
                                 </div>
@@ -314,7 +314,7 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                                                     containerClassName="space-y-0 flex-1"
                                                 />
                                                 <div className="w-20 space-y-1">
-                                                    <Label className="text-[10px] font-bold uppercase text-muted-foreground text-center">Ratio</Label>
+                                                    <Label className="text-[10px] font-bold text-muted-foreground text-center">Ratio</Label>
                                                     <Input
                                                         type="number"
                                                         className="h-8 text-xs font-mono bg-background border-border/50 focus-visible:ring-1 ring-primary/30"

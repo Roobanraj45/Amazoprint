@@ -28,7 +28,7 @@ export const AiPanel = ({ onImageProcessed }: AiPanelProps) => {
                 const result = await removeBackground({ imageUrl: dataUrl });
                 if (result.imageUrl) {
                     onImageProcessed(result.imageUrl);
-                    toast({ title: 'Background Removed!' });
+                    toast({ title: 'Background removed!' });
                 }
                 setIsRemoving(false);
             };
@@ -45,7 +45,7 @@ export const AiPanel = ({ onImageProcessed }: AiPanelProps) => {
                 <Sparkles className="h-10 w-10"/>
             </div>
             <div className="space-y-1">
-                <h3 className="font-bold text-sm">Neural Pre-Press Tools</h3>
+                <h3 className="font-bold text-sm">Neural pre-press tools</h3>
                 <p className="text-xs text-muted-foreground max-w-[200px] mx-auto">
                     Enhance your assets with industrial-grade AI models.
                 </p>
@@ -59,8 +59,8 @@ export const AiPanel = ({ onImageProcessed }: AiPanelProps) => {
                         ) : (
                             <>
                                 <Eraser className="h-8 w-8 text-pink-500/50 group-hover:text-pink-500 mb-2" />
-                                <span className="text-xs font-bold text-zinc-500 group-hover:text-pink-600">AI Background Removal</span>
-                                <span className="text-[10px] text-zinc-400">Upload to extract subject</span>
+                                <span className="text-xs font-bold text-zinc-500 group-hover:text-pink-600">AI background removal</span>
+                                <span className="text-[10px] font-bold text-zinc-400">Upload to extract subject</span>
                             </>
                         )}
                     </div>
@@ -69,7 +69,7 @@ export const AiPanel = ({ onImageProcessed }: AiPanelProps) => {
             </div>
 
             <div className="mt-auto pb-4">
-                <p className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.2em]">More Tools Coming Soon</p>
+                <p className="text-[10px] font-bold text-zinc-400">More tools coming soon</p>
             </div>
         </div>
     );

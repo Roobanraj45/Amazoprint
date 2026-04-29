@@ -78,7 +78,7 @@ const PropSlider = ({ label, value, display, min, max, step, onChange }: any) =>
 const CoordInput = ({ label, value, onChange, step = 0.1, disabled = false }: any) => (
   <div className="relative group">
     <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4 rounded bg-primary/10 border border-primary/20 pointer-events-none z-10">
-        <span className="text-[9px] font-black text-primary leading-none uppercase">{label}</span>
+        <span className="text-[10px] font-bold text-primary leading-none">{label}</span>
     </div>
     <Input
       className="pl-8 h-10 bg-muted/30 text-xs font-bold border-0 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all rounded-xl disabled:opacity-50"
@@ -163,7 +163,7 @@ export function PropertiesPanel({
 
           <TabsContent value="canvas" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 space-y-5 mt-0">
             <div className="space-y-3">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Dimensions</p>
+              <p className="text-[11px] font-bold text-muted-foreground">Dimensions</p>
               <div className="grid grid-cols-2 gap-2">
                 {(() => {
                   const DPI = 300;
@@ -208,14 +208,14 @@ export function PropertiesPanel({
                 })()}
               </div>
               <div className="flex items-center justify-between pt-1">
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Canvas Unit</p>
+                <p className="text-[10px] text-muted-foreground font-bold">Canvas unit</p>
                 <div className="flex bg-muted/40 p-0.5 rounded-md w-32">
                     {['mm', 'inch', 'ft'].map((u) => (
                         <button
                             key={u}
                             onClick={() => canvasSettings.setUnit(u as any)}
                             className={cn(
-                                "flex-1 h-6 text-[9px] font-bold rounded transition-all uppercase",
+                                "flex-1 h-6 text-[10px] font-bold rounded transition-all",
                                 canvasSettings.unit === u 
                                     ? "bg-background shadow-sm text-primary" 
                                     : "text-muted-foreground hover:text-foreground"
@@ -231,7 +231,7 @@ export function PropertiesPanel({
             <div className="h-px bg-border/40" />
 
             <div className="space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">View Options</p>
+              <p className="text-[11px] font-bold text-muted-foreground">View options</p>
               {[
                 { label: "Rulers", checked: canvasSettings.showRulers, fn: canvasSettings.setShowRulers },
                 { label: "Grid Lines", checked: canvasSettings.showGrid, fn: canvasSettings.setShowGrid },
@@ -252,14 +252,14 @@ export function PropertiesPanel({
             <div className="h-px bg-border/40" />
 
             <div className="space-y-3">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Print Setup</p>
+              <p className="text-[11px] font-bold text-muted-foreground">Print setup</p>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-[9px] uppercase text-muted-foreground/70">Bleed (mm)</Label>
+                  <Label className="text-[10px] font-bold text-muted-foreground/70">Bleed (mm)</Label>
                   <Input className="h-8 text-xs font-mono bg-muted/40 border-0 disabled:opacity-50 disabled:cursor-not-allowed" type="number" value={canvasSettings.bleed} onChange={(e) => canvasSettings.setBleed(parseFloat(e.target.value) || 0)} disabled={!isAdmin} />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[9px] uppercase text-muted-foreground/70">Safety (mm)</Label>
+                  <Label className="text-[10px] font-bold text-muted-foreground/70">Safety (mm)</Label>
                   <Input className="h-8 text-xs font-mono bg-muted/40 border-0 disabled:opacity-50 disabled:cursor-not-allowed" type="number" value={canvasSettings.safetyMargin} onChange={(e) => canvasSettings.setSafetyMargin(parseFloat(e.target.value) || 0)} disabled={!isAdmin} />
                 </div>
               </div>
@@ -269,7 +269,7 @@ export function PropertiesPanel({
           {/* BACKGROUND TAB */}
           <TabsContent value="background" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 space-y-5 mt-0">
             <div className="space-y-3">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Fill Type</p>
+              <p className="text-[11px] font-bold text-muted-foreground">Fill type</p>
               <div className="grid grid-cols-4 gap-2">
                 {[
                   { value: 'solid', preview: <div className="w-5 h-5 rounded-sm bg-gray-400 border" />, label: 'Solid' },
@@ -350,13 +350,13 @@ export function PropertiesPanel({
             {typeIcon[element.type]}
           </div>
           <div>
-            <h2 className="text-[13px] font-black tracking-tight text-foreground leading-none">{elementTypeLabel[element.type] || element.type} properties</h2>
-            <p className="text-[10px] text-muted-foreground font-bold mt-1.5 tracking-tight">Edit element appearance</p>
+            <h2 className="text-[13px] font-bold tracking-tight text-foreground leading-none">{elementTypeLabel[element.type] || element.type} properties</h2>
+            <p className="text-[10px] text-muted-foreground font-semibold mt-1.5 tracking-tight">Edit element appearance</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 bg-primary/5 px-2.5 py-1.5 rounded-full border border-primary/10">
+          <div className="flex items-center gap-1.5 bg-primary/5 px-2.5 py-1.5 rounded-full border border-primary/10">
           <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
-          <span className="text-[10px] font-black text-primary tracking-tight">Active</span>
+          <span className="text-[10px] font-bold text-primary tracking-tight">Active</span>
         </div>
       </div>
 
@@ -396,7 +396,7 @@ export function PropertiesPanel({
         <TabsContent value="layout" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 space-y-6 mt-0">
           {/* Transform */}
           <div className="space-y-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Transform</p>
+            <p className="text-xs font-bold text-muted-foreground">Transform</p>
             <div className="grid grid-cols-2 gap-3">
               <CoordInput label="X" value={element.x} onChange={(v: number) => onUpdate(element.id, { x: v })} />
               <CoordInput label="Y" value={element.y} onChange={(v: number) => onUpdate(element.id, { y: v })} />
@@ -411,7 +411,7 @@ export function PropertiesPanel({
 
           {/* Align to Page */}
           <div className="space-y-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Align to Page</p>
+            <p className="text-xs font-bold text-muted-foreground">Align to page</p>
             <div className="grid grid-cols-3 gap-3">
               <IconToggle icon={AlignHorizontalJustifyStart} title="Left" onClick={() => onUpdate(element.id, { x: 0 })} />
               <IconToggle icon={AlignHorizontalJustifyCenter} title="Center H" onClick={() => onUpdate(element.id, { x: (product.width - element.width) / 2 })} />
@@ -426,7 +426,7 @@ export function PropertiesPanel({
 
           {/* Layering */}
           <div className="space-y-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Layer Order</p>
+            <p className="text-xs font-bold text-muted-foreground">Layer order</p>
             <div className="grid grid-cols-4 gap-3">
               <IconToggle icon={BringToFront} title="Bring to Front" onClick={() => onMoveLayer('front')} />
               <IconToggle icon={ChevronsUp} title="Bring Forward" onClick={() => onMoveLayer('forward')} />
@@ -447,7 +447,7 @@ export function PropertiesPanel({
             <>
               <div className="h-px bg-border/40" />
               <div className="space-y-4">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Container</p>
+                <p className="text-[11px] font-bold text-muted-foreground">Container</p>
                 <div className="rounded-xl bg-muted/20 border border-border/40 p-3">
                   <ColorPicker label="Background" color={element.backgroundColor}
                     onChange={(color) => onUpdate(element.id, { backgroundColor: color })} />
@@ -455,16 +455,16 @@ export function PropertiesPanel({
 
                 {/* Border */}
                 <div className="space-y-2">
-                  <p className="text-[10px] font-semibold uppercase text-muted-foreground/70">Border</p>
+                  <p className="text-[10px] font-bold text-muted-foreground/70">Border</p>
                   <div className="grid grid-cols-[1fr_2fr_auto] gap-1.5 items-end">
                     <div className="space-y-1">
-                      <Label className="text-[9px] uppercase text-muted-foreground/60">Width</Label>
+                      <Label className="text-[9px] font-bold text-muted-foreground/60">Width</Label>
                       <Input type="number" value={element.borderWidth || 0}
                         onChange={(e) => onUpdate(element.id, { borderWidth: parseInt(e.target.value, 10) || 0 })}
                         className="h-7 text-xs bg-muted/40 border-0" />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[9px] uppercase text-muted-foreground/60">Style</Label>
+                      <Label className="text-[9px] font-bold text-muted-foreground/60">Style</Label>
                       <Select value={element.borderStyle || 'solid'} onValueChange={(v) => onUpdate(element.id, { borderStyle: v as any })}>
                         <SelectTrigger className="h-7 text-xs bg-muted/40 border-0"><SelectValue /></SelectTrigger>
                         <SelectContent>

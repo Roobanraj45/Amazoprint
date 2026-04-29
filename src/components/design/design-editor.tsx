@@ -1738,7 +1738,7 @@ function DesignEditorInternal({
                       onClick={() => handleMobilePanelOpen('properties')}
                     >
                       <SlidersHorizontal className="h-6 w-6" />
-                      <span className="text-[10px] font-bold uppercase tracking-tight">Properties</span>
+                      <span className="text-[10px] font-bold tracking-tight">Properties</span>
                     </Button>
                   </div>
                 </ScrollArea>

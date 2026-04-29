@@ -22,7 +22,7 @@ export function BrushPropertiesPanel({ element, onUpdate }: BrushPropertiesPanel
         <div className="space-y-3">
             <div className="bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm space-y-4">
                 <div className="space-y-2">
-                    <Label className="text-[10px] font-bold uppercase text-muted-foreground">Brush Tip</Label>
+                    <Label className="text-[10px] font-bold text-muted-foreground">Brush tip</Label>
                     <Select value={element.brushTip || 'round'} onValueChange={(v) => handleUpdate({ brushTip: v as any })}>
                         <SelectTrigger className="h-10">
                             <SelectValue />
@@ -39,7 +39,7 @@ export function BrushPropertiesPanel({ element, onUpdate }: BrushPropertiesPanel
 
                 <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                        <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Size</Label>
+                        <Label className="font-bold text-muted-foreground/70">Size</Label>
                         <span className="font-mono">{element.strokeWidth || 5}px</span>
                     </div>
                     <Slider value={[element.strokeWidth || 5]} onValueChange={(v) => handleUpdate({ strokeWidth: v[0] })} min={1} max={300} step={1} />
@@ -47,7 +47,7 @@ export function BrushPropertiesPanel({ element, onUpdate }: BrushPropertiesPanel
 
                 <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                        <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Opacity</Label>
+                        <Label className="font-bold text-muted-foreground/70">Opacity</Label>
                         <span className="font-mono">{Math.round((element.opacity || 1) * 100)}%</span>
                     </div>
                     <Slider value={[(element.opacity || 1) * 100]} onValueChange={(v) => handleUpdate({ opacity: v[0] / 100 })} min={1} max={100} step={1} />
@@ -55,7 +55,7 @@ export function BrushPropertiesPanel({ element, onUpdate }: BrushPropertiesPanel
 
                 <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                        <Label className="font-bold uppercase tracking-widest text-muted-foreground/70">Hardness</Label>
+                        <Label className="font-bold text-muted-foreground/70">Hardness</Label>
                         <span className="font-mono">{Math.round((element.brushHardness || 0.5) * 100)}%</span>
                     </div>
                     <Slider value={[(element.brushHardness || 0.5) * 100]} onValueChange={(v) => handleUpdate({ brushHardness: v[0] / 100 })} min={0} max={100} step={1} />

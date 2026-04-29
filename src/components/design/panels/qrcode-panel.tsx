@@ -53,7 +53,7 @@ export const QrCodePanel = ({ onAddQrCode }: QrCodePanelProps) => {
     return (
         <div className="p-5 space-y-6">
             <div className="space-y-3">
-                <Label htmlFor="qr-value-input" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">QR Value (URL or Text)</Label>
+                <Label htmlFor="qr-value-input" className="text-[10px] font-bold text-muted-foreground ml-1">QR value (URL or text)</Label>
                 <Textarea
                     id="qr-value-input"
                     value={qrValue}
@@ -64,7 +64,7 @@ export const QrCodePanel = ({ onAddQrCode }: QrCodePanelProps) => {
             </div>
             
             <div className="space-y-3">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Visual Style</Label>
+                <Label className="text-[10px] font-bold text-muted-foreground ml-1">Visual style</Label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {styles.map(style => (
                         <button
@@ -79,7 +79,7 @@ export const QrCodePanel = ({ onAddQrCode }: QrCodePanelProps) => {
                         >
                             <QrStylePreview options={style.options} size={48} />
                             <span className={cn(
-                                "text-[9px] font-black uppercase tracking-tight",
+                                "text-[10px] font-bold",
                                 selectedStyle === style.name ? "text-primary" : "text-muted-foreground"
                             )}>{style.label}</span>
                         </button>
@@ -87,7 +87,7 @@ export const QrCodePanel = ({ onAddQrCode }: QrCodePanelProps) => {
                 </div>
             </div>
 
-            <Button onClick={() => onAddQrCode(qrValue, selectedStyle)} className="w-full h-12 font-black uppercase tracking-[0.1em] text-xs shadow-lg shadow-primary/20">
+            <Button onClick={() => onAddQrCode(qrValue, selectedStyle)} className="w-full h-12 font-bold text-xs shadow-lg shadow-primary/20">
                 <QrCode className="mr-2 h-4 w-4"/> Generate & Add
             </Button>
         </div>

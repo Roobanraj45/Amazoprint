@@ -64,7 +64,7 @@ const cmykToRgb = (c: number, m: number, y: number, k: number) => {
 function CleanNumberInput({ label, value, max, onChange }: any) {
     return (
         <div className="flex flex-col gap-1">
-            <Label className="text-[10px] text-muted-foreground uppercase font-bold">{label}</Label>
+            <Label className="text-[10px] text-muted-foreground font-bold">{label}</Label>
             <Input
                 type="text"
                 inputMode="numeric"
@@ -98,7 +98,7 @@ export function CMYKColorPicker({ label, color, onChange, containerClassName }: 
 
     return (
         <div className={cn("space-y-1", containerClassName)}>
-            {label && <Label className="text-[10px] font-bold uppercase text-muted-foreground px-1">{label}</Label>}
+            {label && <Label className="text-[10px] font-bold text-muted-foreground px-1">{label}</Label>}
             <Popover>
                 <PopoverTrigger asChild>
                     <Button variant="outline" className="h-9 w-full px-2 justify-start shadow-sm">
@@ -110,7 +110,7 @@ export function CMYKColorPicker({ label, color, onChange, containerClassName }: 
                                 backgroundSize: '6px 6px'
                             }}
                         />
-                        <span className="ml-2 text-xs font-mono uppercase">{isTransparent ? 'Transparent' : color}</span>
+                        <span className="ml-2 text-xs font-mono">{isTransparent ? 'Transparent' : color}</span>
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent
@@ -156,7 +156,7 @@ export function CMYKColorPicker({ label, color, onChange, containerClassName }: 
                                 <TabsTrigger value="cmyk" className="text-[10px]">CMYK</TabsTrigger>
                             </TabsList>
                             <TabsContent value="hex" className="pt-3">
-                                <Input value={workingColor} onChange={(e) => onChange(e.target.value)} className="h-9 text-xs font-mono uppercase text-center" />
+                                <Input value={workingColor} onChange={(e) => onChange(e.target.value)} className="h-9 text-xs font-mono text-center" />
                             </TabsContent>
                             <TabsContent value="rgb" className="pt-3 grid grid-cols-3 gap-2">
                                 <CleanNumberInput label="R" value={rgb.r} max={255} onChange={(v: any) => onChange(rgbToHex(v, rgb.g, rgb.b))} />

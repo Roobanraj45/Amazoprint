@@ -120,7 +120,7 @@ export function EditorHeader(props: any) {
     } = props;
 
     const iconClass = "h-4.5 w-4.5";
-    const labelClass = "text-[8px] uppercase font-bold tracking-tighter opacity-70 group-hover:opacity-100 transition-opacity";
+    const labelClass = "text-[10px] font-bold opacity-70 group-hover:opacity-100 transition-opacity";
 
     return (
         <header className="relative z-20 flex h-16 items-center justify-between border-b bg-card px-2 lg:px-4 whitespace-nowrap overflow-hidden">
@@ -138,7 +138,7 @@ export function EditorHeader(props: any) {
                 >
                     <Link href="/">
                         <ChevronLeft className="w-5 h-5" />
-                        <span className={labelClass}>Go Back</span>
+                        <span className={labelClass}>Go back</span>
                     </Link>
                 </Button>
 
@@ -159,8 +159,8 @@ export function EditorHeader(props: any) {
                     <img src="/uploads/amazoIcon.png" alt="Icon" className="w-10 h-10 object-contain drop-shadow-sm" />
 
                     <div className="hidden md:flex flex-col leading-tight">
-                        <span className="text-xs font-black uppercase tracking-tight text-primary">
-                            Design Editor
+                        <span className="text-xs font-bold text-primary">
+                            Design editor
                         </span>
                         <span className="text-[10px] text-muted-foreground truncate max-w-[120px] font-medium">
                             {product.name}
@@ -181,7 +181,7 @@ export function EditorHeader(props: any) {
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
                         <div className="flex flex-col items-center justify-center min-w-[70px] leading-none">
-                            <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">Page</span>
+                            <span className="text-[10px] font-bold text-muted-foreground">Page</span>
                             <span className="text-xs font-bold text-primary">{currentPage + 1} / {totalPages}</span>
                         </div>
                         <Button
@@ -199,8 +199,8 @@ export function EditorHeader(props: any) {
             </div>
 
             {/* CENTER - Scrollable Toolbar */}
-            <div className="hidden lg:flex flex-1 items-center justify-center min-w-0 px-2 overflow-hidden">
-                <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar py-1">
+            <div className="hidden lg:flex flex-1 items-center justify-center px-2">
+                <div className="flex items-center gap-0.5 py-1">
 
                 <Button onClick={undo} disabled={!canUndo} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                     <Undo className={iconClass} />
@@ -382,14 +382,14 @@ export function EditorHeader(props: any) {
                         ) : (
                             <>
                                 <Download className="h-5 w-5" />
-                                <span className="text-[9px] uppercase font-black">Export</span>
+                                <span className="text-[10px] font-bold">Export</span>
                             </>
                         )}
                     </Button>
                 ) : (
                     <Button onClick={handleOrder} className="h-12 w-16 flex flex-col items-center justify-center gap-1 group bg-primary hover:bg-primary/90 text-primary-foreground">
                         <ShoppingCart className="h-5 w-5" />
-                        <span className="text-[9px] uppercase font-black">Order</span>
+                        <span className="text-[10px] font-bold">Order</span>
                     </Button>
                 )}
             </div>

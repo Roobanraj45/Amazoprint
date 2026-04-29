@@ -30,7 +30,7 @@ type QrCodePropertiesPanelProps = {
 
 const SectionCard = ({ title, icon, children, ...props }: any) => (
   <div {...props}>
-    <div className="flex items-center gap-2 mb-3 text-[11px] font-bold uppercase tracking-wider text-foreground">
+    <div className="flex items-center gap-2 mb-3 text-[11px] font-bold text-foreground">
       <div className="p-1.5 rounded-md bg-primary/10 border border-primary/20">
         {icon}
       </div>

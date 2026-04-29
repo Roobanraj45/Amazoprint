@@ -77,7 +77,7 @@ export function Header() {
               key={link.href} 
               href={link.href} 
               className={cn(
-                "text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 relative group",
+                "text-[13px] font-semibold transition-all duration-200 relative group",
                 pathname === link.href 
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"
@@ -85,7 +85,7 @@ export function Header() {
             >
               {link.label}
               <span className={cn(
-                "absolute -bottom-1 left-0 h-[2px] bg-primary transition-all duration-300",
+                "absolute -bottom-1.5 left-0 h-[2px] bg-primary transition-all duration-300 rounded-full",
                 pathname === link.href ? "w-full" : "w-0 group-hover:w-full"
               )} />
             </Link>
@@ -98,7 +98,7 @@ export function Header() {
             <>
               {session ? (
                 <div className="flex items-center gap-4">
-                   <Link href={dashboardUrl} className="hidden sm:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground/70 hover:text-primary transition-colors">
+                   <Link href={dashboardUrl} className="hidden sm:flex items-center gap-2 text-[12px] font-semibold text-foreground/70 hover:text-primary transition-colors">
                       <LayoutGrid className="w-4 h-4" />
                       Workspace
                    </Link>
@@ -107,11 +107,11 @@ export function Header() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                    <Button asChild variant="ghost" className="rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-10 hover:bg-slate-100 transition-all">
-                        <Link href="/login">Log In</Link>
+                    <Button asChild variant="ghost" className="rounded-full text-[12px] font-semibold px-6 h-10 hover:bg-slate-100 transition-all">
+                        <Link href="/login">Log in</Link>
                     </Button>
-                    <Button asChild className="rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-10 shadow-lg shadow-primary/20 transition-all active:scale-95">
-                        <Link href="/register">Join Us</Link>
+                    <Button asChild className="rounded-full text-[12px] font-semibold px-6 h-10 shadow-lg shadow-primary/20 transition-all active:scale-95">
+                        <Link href="/register">Join us</Link>
                     </Button>
                 </div>
               )}

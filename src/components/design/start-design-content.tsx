@@ -265,9 +265,9 @@ export function StartDesignContent() {
                         <h1 className="text-xl font-bold leading-tight text-slate-900 dark:text-white">{product.name}</h1>
                         <p className="text-sm text-muted-foreground">{subProduct.name}</p>
                       </div>
-                      <div className="rounded-md border bg-muted/30 p-2.5 dark:border-slate-800">
-                          <p className="text-[10px] uppercase font-semibold text-muted-foreground">Dimensions</p>
-                          <p className="text-sm font-medium">{subProduct.width} x {subProduct.height} {subProduct.unitType || 'mm'}</p>
+                      <div className="rounded-xl border bg-muted/30 p-3.5 dark:border-slate-800">
+                          <p className="text-[11px] font-bold text-muted-foreground">Dimensions</p>
+                          <p className="text-sm font-semibold">{subProduct.width} x {subProduct.height} {subProduct.unitType || 'mm'}</p>
                         </div>
                     </div>
                   </div>
@@ -299,10 +299,10 @@ export function StartDesignContent() {
                                                     ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm" 
                                                     : "bg-muted/30 border-slate-100 dark:border-slate-800"
                                             )}>
-                                                <p className="font-bold text-[10px] text-muted-foreground uppercase tracking-tighter">
-                                                    {rule.minQuantity || 1}{rule.maxQuantity ? ` - ${rule.maxQuantity}` : '+'} Qty
+                                                <p className="font-semibold text-[11px] text-muted-foreground">
+                                                    {rule.minQuantity || 1}{rule.maxQuantity ? ` - ${rule.maxQuantity}` : '+'} qty
                                                 </p>
-                                                <p className={cn("font-black text-xs", isActive ? "text-primary" : "text-foreground")}>{discountText}</p>
+                                                <p className={cn("font-bold text-xs", isActive ? "text-primary" : "text-foreground")}>{discountText}</p>
                                             </div>
                                         )
                                     })}
@@ -315,9 +315,9 @@ export function StartDesignContent() {
                     <Card className="border shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
                       <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x dark:divide-slate-800">
                         <div className="p-4 space-y-3">
-                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Select Quantity</Label>
+                          <Label className="text-[11px] font-bold text-muted-foreground">Select quantity</Label>
                           <Select value={quantity} onValueChange={setQuantity}>
-                            <SelectTrigger className="w-full h-10 font-bold"><SelectValue/></SelectTrigger>
+                            <SelectTrigger className="w-full h-10 font-semibold"><SelectValue/></SelectTrigger>
                             <SelectContent>
                               {[100, 250, 500, 1000, 2500, 5000].map(q => (
                                 <SelectItem key={q} value={String(q)}>{q} pieces</SelectItem>
@@ -328,22 +328,22 @@ export function StartDesignContent() {
 
                         {subProduct.maxPages > 1 && (
                           <div className="p-4 space-y-3">
-                            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Print Configuration</Label>
+                            <Label className="text-[11px] font-bold text-muted-foreground">Print configuration</Label>
                             <div className="flex gap-2">
                               <button 
                                   onClick={() => setPages('1')}
                                   className={cn(
-                                      "flex-1 py-2 px-3 rounded-lg border text-xs font-bold transition-all",
+                                      "flex-1 py-2 px-3 rounded-lg border text-xs font-semibold transition-all",
                                       pages === '1' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
                                   )}
-                              >Front Only</button>
+                              >Front only</button>
                               <button 
                                   onClick={() => setPages('2')}
                                   className={cn(
-                                      "flex-1 py-2 px-3 rounded-lg border text-xs font-bold transition-all",
+                                      "flex-1 py-2 px-3 rounded-lg border text-xs font-semibold transition-all",
                                       pages === '2' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
                                   )}
-                              >Front & Back</button>
+                              >Front & back</button>
                             </div>
                           </div>
                         )}
@@ -356,8 +356,8 @@ export function StartDesignContent() {
                                     <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                                 </div>
                                 <div>
-                                    <p className="text-xs font-bold">Premium Spot UV</p>
-                                    <p className="text-[10px] text-muted-foreground font-medium">Add glossy raised texture</p>
+                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100">Premium spot UV</p>
+                                    <p className="text-[10px] text-muted-foreground font-semibold">Add glossy raised texture</p>
                                 </div>
                             </div>
                             <Switch checked={spotUv} onCheckedChange={setSpotUv} className="data-[state=checked]:bg-amber-500" />
@@ -368,7 +368,7 @@ export function StartDesignContent() {
                     {addonRules.length > 0 && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between px-1">
-                                <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <h3 className="text-[12px] font-bold text-muted-foreground flex items-center gap-2">
                                     <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
                                     Enhancements
                                 </h3>
@@ -396,8 +396,8 @@ export function StartDesignContent() {
                                                 {isCurved ? <Square className="w-3.5 h-3.5 rounded-sm" /> : <PlusCircle className="w-3.5 h-3.5" />}
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black leading-none mb-0.5">{rule.addonName}</p>
-                                                <p className="text-[9px] text-muted-foreground font-bold">₹{Number(rule.addonPriceAmount)}</p>
+                                                <p className="text-[11px] font-bold leading-none mb-1 text-slate-800 dark:text-slate-100">{rule.addonName}</p>
+                                                <p className="text-[10px] text-muted-foreground font-semibold">₹{Number(rule.addonPriceAmount)}</p>
                                             </div>
                                         </div>
                                     )
@@ -408,8 +408,8 @@ export function StartDesignContent() {
 
                     <Card className="border-2 border-primary/20 shadow-xl bg-primary/[0.02] dark:bg-slate-900 overflow-hidden">
                         <CardHeader className="py-4 border-b bg-white dark:bg-slate-900/50">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center justify-between">
-                                Final Summary
+                            <CardTitle className="text-xs font-bold text-primary flex items-center justify-between">
+                                Final summary
                                 <IndianRupee className="w-4 h-4 opacity-50" />
                             </CardTitle>
                         </CardHeader>
@@ -422,8 +422,8 @@ export function StartDesignContent() {
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-sm font-medium">
-                                            <span className="text-muted-foreground">Standard Printing</span>
-                                            <span className="font-bold">₹{calculatedPrice.original.toFixed(2)}</span>
+                                            <span className="text-muted-foreground">Standard printing</span>
+                                            <span className="font-semibold text-slate-800 dark:text-slate-100">₹{calculatedPrice.original.toFixed(2)}</span>
                                         </div>
 
                                         {calculatedPrice.addons.length > 0 && (
@@ -432,7 +432,7 @@ export function StartDesignContent() {
                                                     <div key={idx} className="flex justify-between text-xs items-center">
                                                         <div className="flex items-center gap-2">
                                                             <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
-                                                            <span className="text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tighter">{addon.name}</span>
+                                                            <span className="text-slate-600 dark:text-slate-400 font-semibold">{addon.name}</span>
                                                         </div>
                                                         <span className="font-bold text-primary/80">+ ₹{addon.totalAmount.toFixed(2)}</span>
                                                     </div>
@@ -441,8 +441,8 @@ export function StartDesignContent() {
                                         )}
                                         
                                         {calculatedPrice.discount > 0 && calculatedPrice.description && (
-                                            <div className="flex justify-between text-xs font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5 rounded-md border border-emerald-100 dark:border-emerald-900/30">
-                                                <span className="uppercase tracking-widest">Saved with {calculatedPrice.description}</span>
+                                            <div className="flex justify-between text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+                                                <span>Saved with {calculatedPrice.description}</span>
                                                 <span>- ₹{calculatedPrice.discount.toFixed(2)}</span>
                                             </div>
                                         )}
@@ -451,12 +451,12 @@ export function StartDesignContent() {
                                     <div className="pt-4 border-t-2 border-dashed border-primary/10">
                                         <div className="flex justify-between items-end">
                                             <div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">Total Amount</p>
-                                                <p className="text-[9px] text-muted-foreground/60 font-bold">Inclusive of all taxes</p>
+                                                <p className="text-[11px] font-bold text-muted-foreground leading-none mb-1.5">Total amount</p>
+                                                <p className="text-[10px] text-muted-foreground/60 font-semibold">Inclusive of all taxes</p>
                                             </div>
                                             <div className="flex flex-col items-end">
-                                                <span className="text-3xl font-black text-primary flex items-center tracking-tighter">
-                                                    <IndianRupee size={24} className="mr-1 stroke-[3]"/>
+                                                <span className="text-3xl font-bold text-primary flex items-center tracking-tight">
+                                                    <IndianRupee size={24} className="mr-1 stroke-[2.5]"/>
                                                     {calculatedPrice.final.toFixed(2)}
                                                 </span>
                                             </div>
@@ -489,9 +489,9 @@ export function StartDesignContent() {
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-1">
-                                  <CardTitle className="text-lg group-hover:text-primary transition-colors">{option.title}</CardTitle>
+                                  <CardTitle className="text-lg group-hover:text-primary transition-colors text-slate-800 dark:text-slate-100">{option.title}</CardTitle>
                                   {option.badge && (
-                                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary rounded-full">
+                                    <span className="px-3 py-1 text-[11px] font-bold bg-primary/10 text-primary rounded-full">
                                       {option.badge}
                                     </span>
                                   )}
@@ -533,8 +533,8 @@ export function StartDesignContent() {
                 {/* 1. Feature Arsenal - Formal Grid */}
                 <div className="space-y-12">
                     <div className="flex flex-col items-center text-center space-y-4 max-w-3xl mx-auto">
-                        <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-6 py-1.5 text-[10px] font-black uppercase tracking-[0.3em] rounded-full">Capability Matrix</Badge>
-                        <h2 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">Industrial Feature Arsenal</h2>
+                        <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-6 py-2 text-[11px] font-bold rounded-full">Capability matrix</Badge>
+                        <h2 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">Industrial feature arsenal</h2>
                         <p className="text-sm text-slate-500 font-medium leading-relaxed">
                             Explore the technical capabilities and premium finishes engineered into every unit of {product.name}.
                         </p>
@@ -562,12 +562,12 @@ export function StartDesignContent() {
                                 <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-primary mb-8 shadow-sm group-hover:scale-110 transition-transform">
                                     <group.icon size={24} />
                                 </div>
-                                <h3 className="text-lg font-black uppercase tracking-tighter mb-6">{group.title}</h3>
+                                <h3 className="text-lg font-bold mb-6 text-slate-800 dark:text-slate-100">{group.title}</h3>
                                 <ul className="space-y-4">
                                     {group.features.map((feature, j) => (
                                         <li key={j} className="flex items-center gap-3">
                                             <CheckCircle2 size={14} className="text-primary/60 shrink-0" />
-                                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">{feature}</span>
+                                            <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-400">{feature}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -581,9 +581,9 @@ export function StartDesignContent() {
                     {/* Left: Deep Specs */}
                     <div className="lg:col-span-7 space-y-10">
                         <div className="space-y-4">
-                            <h3 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-4">
+                            <h3 className="text-2xl font-bold flex items-center gap-4 text-slate-800 dark:text-slate-100">
                                 <div className="w-2 h-8 bg-primary rounded-full" />
-                                Technical Blueprint
+                                Technical blueprint
                             </h3>
                             <p className="text-sm text-slate-500 font-medium">Standard industrial parameters for {subProduct.width}x{subProduct.height} {subProduct.unitType} production.</p>
                         </div>
@@ -598,8 +598,8 @@ export function StartDesignContent() {
                                 { label: 'Resolution', value: '300 DPI Min' },
                             ].map((spec, i) => (
                                 <div key={i} className="flex flex-col gap-2 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:shadow-md transition-all">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{spec.label}</span>
-                                    <span className="text-sm font-bold text-slate-900 dark:text-white">{spec.value}</span>
+                                    <span className="text-[11px] font-bold text-slate-400">{spec.label}</span>
+                                    <span className="text-sm font-semibold text-slate-900 dark:text-white">{spec.value}</span>
                                 </div>
                             ))}
                         </div>
@@ -608,7 +608,7 @@ export function StartDesignContent() {
                     {/* Right: Interactive Variant Selector */}
                     <div className="lg:col-span-5 space-y-8">
                         <div className="space-y-4">
-                            <h3 className="text-2xl font-black uppercase tracking-tighter">Variant Matrix</h3>
+                            <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Variant matrix</h3>
                             <p className="text-sm text-slate-500 font-medium text-center lg:text-left">Switch between available dimensions.</p>
                         </div>
                         <div className="grid gap-3">
@@ -636,11 +636,11 @@ export function StartDesignContent() {
                                             <Square size={18} />
                                         </div>
                                         <div>
-                                            <p className={cn("text-xs font-black uppercase tracking-widest", subProduct.id === sp.id ? "text-white" : "text-slate-900 dark:text-white")}>
+                                            <p className={cn("text-sm font-bold", subProduct.id === sp.id ? "text-white" : "text-slate-900 dark:text-white")}>
                                                 {sp.width}x{sp.height} {sp.unitType}
                                             </p>
-                                            <p className={cn("text-[10px] font-bold uppercase", subProduct.id === sp.id ? "text-white/70" : "text-slate-400")}>
-                                                Standard Format
+                                            <p className={cn("text-[11px] font-semibold", subProduct.id === sp.id ? "text-white/70" : "text-slate-400")}>
+                                                Standard format
                                             </p>
                                         </div>
                                     </div>
@@ -662,8 +662,8 @@ export function StartDesignContent() {
                     </div>
                     <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                         <div className="space-y-8">
-                            <Badge className="bg-primary text-white font-black px-6 py-1.5 text-[10px] uppercase tracking-[0.3em] rounded-full">Industrial Application</Badge>
-                            <h3 className="text-5xl font-black uppercase tracking-tighter leading-none">Designed for <br/><span className="text-primary">Excellence.</span></h3>
+                            <Badge className="bg-primary text-white font-bold px-6 py-2 text-[11px] rounded-full">Industrial application</Badge>
+                            <h3 className="text-5xl font-bold tracking-tight leading-none">Designed for <br/><span className="text-primary">excellence.</span></h3>
                             <p className="text-slate-400 font-medium leading-relaxed text-lg max-w-md">
                                 From high-stakes corporate summits to luxury retail packaging, our {product.name.toLowerCase()} production line is built to deliver unmatched visual consistency.
                             </p>
@@ -676,7 +676,7 @@ export function StartDesignContent() {
                                         <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary">
                                             <item.icon size={20} />
                                         </div>
-                                        <span className="text-xs font-black uppercase tracking-widest">{item.label}</span>
+                                        <span className="text-[13px] font-bold">{item.label}</span>
                                     </div>
                                 ))}
                             </div>
@@ -689,8 +689,8 @@ export function StartDesignContent() {
                                 { title: 'Finish', val: 'HD' },
                             ].map((stat, i) => (
                                 <div key={i} className="p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl flex flex-col items-center justify-center text-center space-y-2">
-                                    <span className="text-4xl font-black text-primary">{stat.val}</span>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{stat.title}</span>
+                                    <span className="text-4xl font-bold text-primary">{stat.val}</span>
+                                    <span className="text-[11px] font-bold text-slate-500">{stat.title}</span>
                                 </div>
                             ))}
                         </div>

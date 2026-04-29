@@ -26,7 +26,7 @@ type ShapePropertiesPanelProps = {
 const PropSlider = ({ label, value, display, min, max, step, onChange }: any) => (
   <div className="space-y-2 py-1">
     <div className="flex justify-between items-center">
-      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="text-xs font-semibold text-muted-foreground">{label}</span>
       <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-foreground/80 min-w-[40px] text-center">{display}</span>
     </div>
     <Slider value={[value]} min={min} max={max} step={step} onValueChange={(v) => onChange(v[0])} />
@@ -96,7 +96,7 @@ export function ShapePropertiesPanel({ element, onUpdate, isAdmin }: ShapeProper
             <Tabs defaultValue="fill" className="w-full">
                 <div className="flex items-center gap-2 mb-3">
                     <PaintBucket size={14} className="text-muted-foreground" />
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Color</p>
+                    <p className="text-xs font-bold text-muted-foreground">Color</p>
                 </div>
                 <TabsList className="h-8 grid grid-cols-2 bg-muted/60 rounded-lg w-full mb-3">
                     <TabsTrigger value="fill" className="text-xs font-semibold h-6 rounded-md data-[state=active]:bg-background">Fill</TabsTrigger>
@@ -142,7 +142,7 @@ export function ShapePropertiesPanel({ element, onUpdate, isAdmin }: ShapeProper
                                 <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
                                     <PropSlider label="Angle" value={element.gradientDirection || 0} display={`${element.gradientDirection || 0}°`} min={0} max={360} step={1} onChange={(v: number) => handleUpdate({ gradientDirection: v })} />
                                     <div className="space-y-1 w-16">
-                                        <Label className="text-[10px] uppercase text-muted-foreground/60">Steps</Label>
+                                        <Label className="text-[10px] font-bold text-muted-foreground/60">Steps</Label>
                                         <Input type="number" className="h-8 text-sm font-mono bg-background border-0" value={element.gradientSteps || 2}
                                             onChange={(e) => handleGradientStepsChange(parseInt(e.target.value))} min={2} max={10} />
                                     </div>

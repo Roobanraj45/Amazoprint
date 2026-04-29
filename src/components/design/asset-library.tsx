@@ -172,7 +172,7 @@ export function AssetLibrary({ onImageSelect, isAdmin = false }: AssetLibraryPro
       <div className="p-4 border-b flex items-center justify-between bg-muted/20">
         <div>
           <h3 className="font-bold text-sm tracking-tight">{isAdmin ? 'Asset Library' : 'Local Uploads'}</h3>
-          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-0.5">
+          <p className="text-[11px] text-muted-foreground font-bold mt-1">
             {folders.reduce((acc, f) => acc + f.files.length, 0)} Total Assets
           </p>
         </div>
@@ -227,7 +227,7 @@ export function AssetLibrary({ onImageSelect, isAdmin = false }: AssetLibraryPro
                 
                 <div className="space-y-3">
                     <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold uppercase text-muted-foreground">Target Folder</Label>
+                        <Label className="text-[10px] font-bold text-muted-foreground">Target folder</Label>
                         <Select 
                             value={isCreatingNewFolder ? 'new' : folderName} 
                             onValueChange={(val) => {
@@ -248,7 +248,7 @@ export function AssetLibrary({ onImageSelect, isAdmin = false }: AssetLibraryPro
                                     <SelectItem key={f.name} value={f.name}>{f.name}</SelectItem>
                                 ))}
                                 <SelectItem value="new" className="text-primary font-bold">
-                                    <span className="flex items-center gap-2"><FolderPlus size={14}/> Create New Folder</span>
+                                    <span className="flex items-center gap-2"><FolderPlus size={14}/> Create new folder</span>
                                 </SelectItem>
                             </SelectContent>
                         </Select>
@@ -256,7 +256,7 @@ export function AssetLibrary({ onImageSelect, isAdmin = false }: AssetLibraryPro
 
                     {isCreatingNewFolder && (
                         <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
-                            <Label className="text-[10px] font-bold uppercase text-muted-foreground">New Folder Name</Label>
+                            <Label className="text-[10px] font-bold text-muted-foreground">New folder name</Label>
                             <Input 
                                 placeholder="Enter folder name..." 
                                 value={folderName} 
@@ -287,7 +287,7 @@ export function AssetLibrary({ onImageSelect, isAdmin = false }: AssetLibraryPro
 
           {/* Folder List */}
           <div className="space-y-3">
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 flex items-center gap-2">
+            <h4 className="text-[11px] font-bold text-muted-foreground px-1 flex items-center gap-2">
                 <Library size={12}/> Existing Assets
             </h4>
             
