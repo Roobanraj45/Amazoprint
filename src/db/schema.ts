@@ -158,6 +158,7 @@ export const subProducts = pgTable('sub_products', {
   allowedFoils: integer('allowed_foils').array(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  unitType: varchar('unit_type', { length: 10 }).default('mm').notNull(),
 }, (table) => {
   return {
     productIdx: index('idx_sub_products_product').on(table.productId),

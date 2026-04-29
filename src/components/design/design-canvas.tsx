@@ -77,17 +77,27 @@ const GuideLine = ({
     return <div ref={guideRef} style={style} onMouseDown={handleMouseDown} />;
 };
 
-const Ruler = ({ orientation, size, offset, safetyMargin, onMouseDown }: { 
+const Ruler = ({ orientation, size, offset, safetyMargin, unit, onMouseDown }: { 
     orientation: 'horizontal' | 'vertical', 
     size: number, 
     offset: number, 
     safetyMargin: number,
+    unit?: 'mm' | 'inch' | 'ft',
     onMouseDown?: (e: React.MouseEvent) => void 
 }) => {
-    const PX_PER_MM = 300 / 25.4;
-    const sizeInMm = size / PX_PER_MM;
+    const UNITS = {
+        mm: { ratio: 300 / 25.4, major: 10, medium: 5, small: 1 },
+        inch: { ratio: 300, major: 1, medium: 0.5, small: 0.125 },
+        ft: { ratio: 300 * 12, major: 1, medium: 0.5, small: 0.0833 } // 0.0833ft = 1 inch approx
+    };
+
+    const currentUnit = UNITS[unit || 'mm'];
+    const PX_PER_UNIT = currentUnit.ratio;
+    const sizeInUnits = size / PX_PER_UNIT;
+    
     const ticks = [];
-    for (let i = 0; i <= sizeInMm; i++) {
+    const step = currentUnit.small;
+    for (let i = 0; i <= sizeInUnits; i += step) {
         ticks.push(i);
     }
     
@@ -120,20 +130,21 @@ const Ruler = ({ orientation, size, offset, safetyMargin, onMouseDown }: {
     return (
         <div style={rulerStyle} onMouseDown={onMouseDown}>
             {ticks.map(t => {
-                const t_px = t * PX_PER_MM;
-                const isMajor = t % 10 === 0;
-                const isMedium = t % 5 === 0;
+                const t_px = t * PX_PER_UNIT;
+                const isMajor = Math.abs(t % currentUnit.major) < 0.001;
+                const isMedium = !isMajor && Math.abs(t % currentUnit.medium) < 0.001;
                 
                 let tickHeight;
-                if (isMajor) tickHeight = offset * 0.35; 
-                else if (isMedium) tickHeight = offset * 0.2;
-                else tickHeight = offset * 0.1;
+                if (isMajor) tickHeight = offset * 0.45; 
+                else if (isMedium) tickHeight = offset * 0.25;
+                else tickHeight = offset * 0.15;
 
                 return (
                     <React.Fragment key={t_px}>
                         <div style={{
                             position: 'absolute',
                             backgroundColor: 'hsl(var(--muted-foreground))',
+                            opacity: isMajor ? 1 : isMedium ? 0.6 : 0.3,
                             ...(orientation === 'horizontal' ? {
                                 left: t_px,
                                 bottom: 0,
@@ -146,19 +157,23 @@ const Ruler = ({ orientation, size, offset, safetyMargin, onMouseDown }: {
                                 height: 1,
                             })
                         }}/>
-                        {isMajor && t > 0 && (
+                        {isMajor && (
                             <div style={{
                                 position: 'absolute',
+                                fontSize: '14px',
+                                fontWeight: '700',
+                                opacity: 1,
                                 ...(orientation === 'horizontal' ? {
-                                    left: t_px + 4,
-                                    top: 4
+                                    left: t_px + 5,
+                                    top: 8
                                 } : {
-                                    top: t_px + 4,
-                                    left: 4,
+                                    top: t_px + 5,
+                                    left: 8,
                                     writingMode: 'vertical-rl'
                                 })
                             }}>
-                                {t}
+                                {Math.round(t * 100) / 100}
+                                {unit !== 'mm' && t === 0 && <span className="ml-0.5 opacity-50">{unit}</span>}
                             </div>
                         )}
                     </React.Fragment>
@@ -214,6 +229,7 @@ type DesignCanvasProps = {
   bleed: number;
   safetyMargin: number;
   viewState: ViewState;
+  unit?: 'mm' | 'inch' | 'ft';
   onInteractionStart?: () => void;
   onInteractionEnd?: () => void;
   renderMode?: 'default' | 'cmyk' | 'spotuv' | 'foil';
@@ -257,6 +273,7 @@ export function DesignCanvas({
   bleed,
   safetyMargin,
   viewState,
+  unit = 'mm',
   onInteractionStart,
   onInteractionEnd,
   renderMode = 'default',
@@ -436,6 +453,7 @@ export function DesignCanvas({
                 size={product.width} 
                 offset={rulerOffset} 
                 safetyMargin={safetyMargin} 
+                unit={unit}
                 onMouseDown={onAddGuide ? (e) => handleRulerMouseDown(e, 'horizontal') : undefined}
             />
             <Ruler 
@@ -443,6 +461,7 @@ export function DesignCanvas({
                 size={product.height} 
                 offset={rulerOffset} 
                 safetyMargin={safetyMargin} 
+                unit={unit}
                 onMouseDown={onAddGuide ? (e) => handleRulerMouseDown(e, 'vertical') : undefined}
             />
           </>

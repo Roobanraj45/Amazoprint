@@ -141,41 +141,42 @@ function DesignEditorInternal({
   const [showPrintGuidelines, setShowPrintGuidelines] = useState(true);
   const [bleed, setBleed] = useState(18);
   const [safetyMargin, setSafetyMargin] = useState(18);
+  const [canvasUnit, setCanvasUnit] = useState<'mm' | 'inch' | 'ft'>('mm');
 
   const mainCanvasRef = useRef<HTMLDivElement>(null);
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0 });
   const [activeSmartGuides, setActiveSmartGuides] = useState<Guide[]>([]);
-  
+
   const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
-  
+
   const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
   const [isDrawing, setIsDrawing] = useState(false);
   const drawingPointsRef = useRef<[number, number][]>([]);
   const bristleTipRef = useRef<BristleProfile>([]);
-  const [livePencilPath, setLivePencilPath] = useState<{ 
-      path: [number, number][]; 
-      strokeColor: string; 
-      flow: number;
-      softness: number;
-      brushTip: BrushEngineTip;
-      bristleTipData: BristleProfile;
+  const [livePencilPath, setLivePencilPath] = useState<{
+    path: [number, number][];
+    strokeColor: string;
+    flow: number;
+    softness: number;
+    brushTip: BrushEngineTip;
+    bristleTipData: BristleProfile;
   } | null>(null);
 
   const [brushOptions, setBrushOptions] = useState<{
-      brushTip: BrushEngineTip;
-      size: number;
-      flow: number;
-      color: string;
-      softness: number;
+    brushTip: BrushEngineTip;
+    size: number;
+    flow: number;
+    color: string;
+    softness: number;
   }>({
-      brushTip: 'chisel' as BrushEngineTip,
-      size: 60,
-      flow: 0.25,
-      color: '#222222',
-      softness: 0.8,
+    brushTip: 'chisel' as BrushEngineTip,
+    size: 60,
+    flow: 0.25,
+    color: '#222222',
+    softness: 0.8,
   });
-  
+
   // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
   const livePathRef = useRef<PathPoint[] | null>(null); // always mirrors livePath for stale-closure-safe reads
@@ -208,18 +209,18 @@ function DesignEditorInternal({
     endTransaction,
   } = useUndoRedo<DesignState>({
     pages: Array.from({ length: totalPages }, () => ({
-        elements: [],
-        background: { type: 'solid', color: '#ffffff' }
+      elements: [],
+      background: { type: 'solid', color: '#ffffff' }
     })),
     guides: [],
     product: initialProduct,
     quantity: initialQuantity,
   });
-  
+
   const { pages, guides, product, quantity } = currentState;
   const currentElements = pages[currentPage]?.elements || [];
   const currentBackground = pages[currentPage]?.background || { type: 'solid', color: '#ffffff' };
-  
+
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
@@ -228,7 +229,7 @@ function DesignEditorInternal({
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
         e.preventDefault();
-        e.returnValue = ''; 
+        e.returnValue = '';
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -248,24 +249,24 @@ function DesignEditorInternal({
   const updatePage = useCallback((pageIndex: number, newPageData: Partial<Page>) => {
     setIsDirty(true);
     setState(prev => {
-        if (!prev) return prev;
-        const newPages = [...prev.pages];
-        newPages[pageIndex] = { ...newPages[pageIndex], ...newPageData };
-        return { ...prev, pages: newPages };
+      if (!prev) return prev;
+      const newPages = [...prev.pages];
+      newPages[pageIndex] = { ...newPages[pageIndex], ...newPageData };
+      return { ...prev, pages: newPages };
     })
   }, [setState]);
 
   const finalizePath = useCallback((pathOverride?: PathPoint[], forceClosed?: boolean) => {
     const pathToFinalize = pathOverride || livePath;
     if (!pathToFinalize || pathToFinalize.length < 2) {
-        setLivePath(null);
-        setDraggingPoint(null);
-        setActiveTool('select');
-        return;
+      setLivePath(null);
+      setDraggingPoint(null);
+      setActiveTool('select');
+      return;
     }
 
     const finalPath = [...pathToFinalize];
-    
+
     const firstPoint = finalPath[0];
     const lastPoint = finalPath[finalPath.length - 1];
     const isClosed = forceClosed || (finalPath.length > 2 && Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y) < 25 / viewState.zoom);
@@ -273,26 +274,26 @@ function DesignEditorInternal({
     // Bounding box calculation for the new element
     const allX = finalPath.flatMap(p => [p.x, p.cp1x, p.cp2x]);
     const allY = finalPath.flatMap(p => [p.y, p.cp1y, p.cp2y]);
-    
+
     const minX = Math.min(...allX) - 2;
     const minY = Math.min(...allY) - 2;
     const maxX = Math.max(...allX) + 2;
     const maxY = Math.max(...allY) + 2;
 
     const newPathElement: DesignElement = {
-        id: crypto.randomUUID(),
-        type: 'path',
-        fillType: isClosed ? 'solid' : 'none', 
-        x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY),
-        rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 2, borderStyle: 'solid',
-        isPathClosed: isClosed,
-        pathPoints: finalPath.map(p => ({
-            ...p,
-            x: p.x - minX, y: p.y - minY,
-            cp1x: p.cp1x - minX, cp1y: p.cp1y - minY,
-            cp2x: p.cp2x - minX, cp2y: p.cp2y - minY,
-        })),
-        content: '', fontSize: 0, fontFamily: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none',
+      id: crypto.randomUUID(),
+      type: 'path',
+      fillType: isClosed ? 'solid' : 'none',
+      x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY),
+      rotation: 0, opacity: 1, color: '#cccccc', borderColor: '#000000', borderWidth: 2, borderStyle: 'solid',
+      isPathClosed: isClosed,
+      pathPoints: finalPath.map(p => ({
+        ...p,
+        x: p.x - minX, y: p.y - minY,
+        cp1x: p.cp1x - minX, cp1y: p.cp1y - minY,
+        cp2x: p.cp2x - minX, cp2y: p.cp2y - minY,
+      })),
+      content: '', fontSize: 0, fontFamily: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', src: '', objectFit: 'cover', filterBrightness: 1, filterContrast: 1, filterSaturate: 1, shapeType: 'rectangle', backgroundColor: 'transparent', boxShadow: 'none',
     };
 
     updatePage(currentPage, { elements: [...currentElements, newPathElement] });
@@ -314,36 +315,36 @@ function DesignEditorInternal({
     const isMultiPageBackground = initialBackground && Array.isArray(initialBackground);
 
     for (let i = 0; i < pagesToCreate; i++) {
-        const pageElements = isMultiPageElements ? (initialElements as DesignElement[][])[i] : (i === 0 ? initialElements as DesignElement[] : []);
-        const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? initialBackground as Background : { type: 'solid', color: '#ffffff' });
+      const pageElements = isMultiPageElements ? (initialElements as DesignElement[][])[i] : (i === 0 ? initialElements as DesignElement[] : []);
+      const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? initialBackground as Background : { type: 'solid', color: '#ffffff' });
 
-        newPages.push({
-            elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],
-            background: (pageBackground || { type: 'solid', color: '#ffffff' }) as Background
-        });
+      newPages.push({
+        elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],
+        background: (pageBackground || { type: 'solid', color: '#ffffff' }) as Background
+      });
     }
 
     resetHistory({
-        pages: newPages,
-        guides: [],
-        product: initialProduct,
-        quantity: initialQuantity,
+      pages: newPages,
+      guides: [],
+      product: initialProduct,
+      quantity: initialQuantity,
     });
-    
+
     setCurrentDesignId(initialDesignId || null);
     setCurrentDesignName(initialDesignName || null);
     setCurrentPage(0);
     setSelectedElementIds([]);
     setIsDirty(false);
   }, [initialProduct, initialQuantity, initialElements, initialBackground, initialDesignId, initialDesignName, totalPages, resetHistory]);
-  
+
   const editorCanvasWidth = product.width + (safetyMargin * 2);
   const editorCanvasHeight = product.height + (safetyMargin * 2);
 
   const resetView = useCallback(() => {
     if (!mainCanvasRef.current) return;
     const { width: containerWidth, height: containerHeight } = mainCanvasRef.current.getBoundingClientRect();
-    
+
     const rulerSize = showRulers ? RULER_SIZE : 0;
     const canvasWidthWithRulers = editorCanvasWidth + rulerSize;
     const canvasHeightWithRulers = editorCanvasHeight + rulerSize;
@@ -384,35 +385,35 @@ function DesignEditorInternal({
       }
 
       if ((e.ctrlKey || e.metaKey) && e.key === 'x' && !isInput) {
-          // Remove last point from live path (while drawing)
-          if (activeTool === 'pen' && livePath) {
-              e.preventDefault();
-              setLivePath(prev => {
-                  if (!prev || prev.length <= 1) return null;
-                  const next = prev.slice(0, -1);
-                  livePathRef.current = next;
-                  return next;
+        // Remove last point from live path (while drawing)
+        if (activeTool === 'pen' && livePath) {
+          e.preventDefault();
+          setLivePath(prev => {
+            if (!prev || prev.length <= 1) return null;
+            const next = prev.slice(0, -1);
+            livePathRef.current = next;
+            return next;
+          });
+        }
+        // Remove last point from a finalized path element being edited
+        if (pathEditingElementId) {
+          e.preventDefault();
+          const editingEl = findElementRecursive(currentElements, pathEditingElementId);
+          if (editingEl?.pathPoints) {
+            if (editingEl.pathPoints.length <= 2) {
+              // Too few points — delete the element entirely
+              updatePage(currentPage, {
+                elements: currentElements.filter(el => el.id !== pathEditingElementId)
               });
+              setPathEditingElementId(null);
+              setSelectedElementIds([]);
+            } else {
+              const newPoints = editingEl.pathPoints.slice(0, -1);
+              // Open the path so it no longer auto-joins to the first point
+              updateElement(pathEditingElementId, { pathPoints: newPoints, isPathClosed: false });
+            }
           }
-          // Remove last point from a finalized path element being edited
-          if (pathEditingElementId) {
-              e.preventDefault();
-              const editingEl = findElementRecursive(currentElements, pathEditingElementId);
-              if (editingEl?.pathPoints) {
-                  if (editingEl.pathPoints.length <= 2) {
-                      // Too few points — delete the element entirely
-                      updatePage(currentPage, {
-                          elements: currentElements.filter(el => el.id !== pathEditingElementId)
-                      });
-                      setPathEditingElementId(null);
-                      setSelectedElementIds([]);
-                  } else {
-                      const newPoints = editingEl.pathPoints.slice(0, -1);
-                      // Open the path so it no longer auto-joins to the first point
-                      updateElement(pathEditingElementId, { pathPoints: newPoints, isPathClosed: false });
-                  }
-              }
-          }
+        }
       }
 
       if (e.key === ' ' && !e.repeat && !isInput) {
@@ -426,25 +427,25 @@ function DesignEditorInternal({
       if (e.key.toLowerCase() === 'p' && !isInput) {
         e.preventDefault();
         if (activeTool === 'pen') {
-            finalizePath();
+          finalizePath();
         } else {
-            setActiveTool('pen');
-            setLeftOpen(false);
+          setActiveTool('pen');
+          setLeftOpen(false);
         }
       }
 
       if (e.key === 'Enter' && activeTool === 'pen' && !isInput) {
-          e.preventDefault();
-          finalizePath();
+        e.preventDefault();
+        finalizePath();
       }
-      
+
       if ((e.ctrlKey || e.metaKey) && !isInput) {
         if (e.key === 'z' && !e.shiftKey) {
-            e.preventDefault();
-            undo();
+          e.preventDefault();
+          undo();
         } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
-            e.preventDefault();
-            redo();
+          e.preventDefault();
+          redo();
         }
       }
     };
@@ -486,180 +487,180 @@ function DesignEditorInternal({
 
     setViewState({ zoom: clampedZoom, pan: { x: newPanX, y: newPanY } });
   };
-  
+
   const getPointInCanvas = (e: React.MouseEvent | MouseEvent): [number, number] => {
-      if (!mainCanvasRef.current) return [0, 0];
-      const parent = mainCanvasRef.current;
-      if (!parent) return [0, 0];
-      
-      const rect = parent.getBoundingClientRect();
-      const rulerOffset = showRulers ? RULER_SIZE : 0;
-      
-      const x = (e.clientX - rect.left - viewState.pan.x) / viewState.zoom - rulerOffset - safetyMargin;
-      const y = (e.clientY - rect.top - viewState.pan.y) / viewState.zoom - rulerOffset - safetyMargin;
-      return [x, y];
+    if (!mainCanvasRef.current) return [0, 0];
+    const parent = mainCanvasRef.current;
+    if (!parent) return [0, 0];
+
+    const rect = parent.getBoundingClientRect();
+    const rulerOffset = showRulers ? RULER_SIZE : 0;
+
+    const x = (e.clientX - rect.left - viewState.pan.x) / viewState.zoom - rulerOffset - safetyMargin;
+    const y = (e.clientY - rect.top - viewState.pan.y) / viewState.zoom - rulerOffset - safetyMargin;
+    return [x, y];
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (activeTool === 'brush') {
-        e.stopPropagation();
-        beginTransaction();
-        setIsDrawing(true);
-        const [x, y] = getPointInCanvas(e);
-        drawingPointsRef.current = [[x, y]];
-        
-        // Generate the bristle profile for this stroke
-        bristleTipRef.current = buildBrushTip(brushOptions.brushTip as BrushEngineTip, brushOptions.size);
+      e.stopPropagation();
+      beginTransaction();
+      setIsDrawing(true);
+      const [x, y] = getPointInCanvas(e);
+      drawingPointsRef.current = [[x, y]];
 
-        setLivePencilPath({
-            path: [[x, y], [x, y]],
-            strokeColor: brushOptions.color,
-            flow: brushOptions.flow,
-            softness: brushOptions.softness,
-            brushTip: brushOptions.brushTip as BrushEngineTip,
-            bristleTipData: bristleTipRef.current
-        });
-        return;
+      // Generate the bristle profile for this stroke
+      bristleTipRef.current = buildBrushTip(brushOptions.brushTip as BrushEngineTip, brushOptions.size);
+
+      setLivePencilPath({
+        path: [[x, y], [x, y]],
+        strokeColor: brushOptions.color,
+        flow: brushOptions.flow,
+        softness: brushOptions.softness,
+        brushTip: brushOptions.brushTip as BrushEngineTip,
+        bristleTipData: bristleTipRef.current
+      });
+      return;
     }
-     if (activeTool === 'pen') {
-        e.stopPropagation();
-        beginTransaction();
-        const [x, y] = getPointInCanvas(e);
+    if (activeTool === 'pen') {
+      e.stopPropagation();
+      beginTransaction();
+      const [x, y] = getPointInCanvas(e);
 
-        if (livePath && livePath.length > 2) {
-            const firstPoint = livePath[0];
-            const hitRadius = 25 / viewState.zoom;
-            if (Math.hypot(x - firstPoint.x, y - firstPoint.y) < hitRadius) {
-                // Clicking (or click-dragging) the start point:
-                // First reset the closing-segment handles to straight-line defaults
-                // so a plain click produces a clean straight closing segment.
-                // If the user drags, the drag handler will pull cp1[0] and cp2[last]
-                // out to form a curve.
-                setLivePath(prev => {
-                    if (!prev) return null;
-                    const newPath = prev.map(p => ({...p}));
-                    // Straight incoming handle at first point
-                    newPath[0].cp1x = newPath[0].x;
-                    newPath[0].cp1y = newPath[0].y;
-                    // Straight outgoing handle at last point
-                    const last = newPath[newPath.length - 1];
-                    last.cp2x = last.x;
-                    last.cp2y = last.y;
-                    livePathRef.current = newPath;
-                    return newPath;
-                });
-                isPenClosingDragRef.current = true;
-                setDraggingPoint({ index: 0, type: 'cp1' });
-                return;
-            }
-            
-            for (let i = 1; i < livePath.length; i++) {
-                const p = livePath[i];
-                if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
-                    setDraggingPoint({ index: i, type: 'anchor' });
-                    return;
-                }
-            }
+      if (livePath && livePath.length > 2) {
+        const firstPoint = livePath[0];
+        const hitRadius = 25 / viewState.zoom;
+        if (Math.hypot(x - firstPoint.x, y - firstPoint.y) < hitRadius) {
+          // Clicking (or click-dragging) the start point:
+          // First reset the closing-segment handles to straight-line defaults
+          // so a plain click produces a clean straight closing segment.
+          // If the user drags, the drag handler will pull cp1[0] and cp2[last]
+          // out to form a curve.
+          setLivePath(prev => {
+            if (!prev) return null;
+            const newPath = prev.map(p => ({ ...p }));
+            // Straight incoming handle at first point
+            newPath[0].cp1x = newPath[0].x;
+            newPath[0].cp1y = newPath[0].y;
+            // Straight outgoing handle at last point
+            const last = newPath[newPath.length - 1];
+            last.cp2x = last.x;
+            last.cp2y = last.y;
+            livePathRef.current = newPath;
+            return newPath;
+          });
+          isPenClosingDragRef.current = true;
+          setDraggingPoint({ index: 0, type: 'cp1' });
+          return;
         }
 
-        let updatedPath = livePath ? [...livePath] : [];
-        if (updatedPath.length > 0) {
-            const lastIdx = updatedPath.length - 1;
-            updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
+        for (let i = 1; i < livePath.length; i++) {
+          const p = livePath[i];
+          if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
+            setDraggingPoint({ index: i, type: 'anchor' });
+            return;
+          }
         }
+      }
 
-        const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
-        updatedPath.push(newPoint);
-        livePathRef.current = updatedPath;
-        setLivePath(updatedPath);
-        setDraggingPoint({ index: updatedPath.length - 1, type: 'cp2' });
-        return;
+      let updatedPath = livePath ? [...livePath] : [];
+      if (updatedPath.length > 0) {
+        const lastIdx = updatedPath.length - 1;
+        updatedPath[lastIdx] = { ...updatedPath[lastIdx], cp2x: updatedPath[lastIdx].x, cp2y: updatedPath[lastIdx].y };
+      }
+
+      const newPoint: PathPoint = { x, y, cp1x: x, cp1y: y, cp2x: x, cp2y: y };
+      updatedPath.push(newPoint);
+      livePathRef.current = updatedPath;
+      setLivePath(updatedPath);
+      setDraggingPoint({ index: updatedPath.length - 1, type: 'cp2' });
+      return;
     }
 
     // --- Path Node Editing (for already-finalized path elements) ---
     if (pathEditingElementId && activeTool === 'select') {
-        const editingEl = findElementRecursive(currentElements, pathEditingElementId);
-        if (editingEl?.pathPoints && editingEl.pathPoints.length > 0) {
-            e.stopPropagation();
-            const [x, y] = getPointInCanvas(e);
-            const hitRadius = 14 / viewState.zoom;
-            const ox = editingEl.x; // element origin offset
-            const oy = editingEl.y;
+      const editingEl = findElementRecursive(currentElements, pathEditingElementId);
+      if (editingEl?.pathPoints && editingEl.pathPoints.length > 0) {
+        e.stopPropagation();
+        const [x, y] = getPointInCanvas(e);
+        const hitRadius = 14 / viewState.zoom;
+        const ox = editingEl.x; // element origin offset
+        const oy = editingEl.y;
 
-            // 1. Check if clicking start point to close the path
-            if (!editingEl.isPathClosed && editingEl.pathPoints.length > 2) {
-                const p = editingEl.pathPoints[0];
-                if (Math.hypot(x - (p.x + ox), y - (p.y + oy)) < hitRadius) {
-                    beginTransaction();
-                    const newPoints = editingEl.pathPoints.map(pt => ({...pt}));
-                    newPoints[0].cp1x = newPoints[0].x;
-                    newPoints[0].cp1y = newPoints[0].y;
-                    const last = newPoints[newPoints.length - 1];
-                    last.cp2x = last.x;
-                    last.cp2y = last.y;
-                    updateElement(pathEditingElementId, { pathPoints: newPoints, isPathClosed: true, fillType: 'solid' });
-                    isPenClosingDragRef.current = true;
-                    setDraggingPoint({ index: 0, type: 'cp1' });
-                    return;
-                }
-            }
-
-            // 2. Check existing nodes
-            for (let i = 0; i < editingEl.pathPoints.length; i++) {
-                const p = editingEl.pathPoints[i];
-                // Check anchor
-                if (Math.hypot(x - (p.x + ox), y - (p.y + oy)) < hitRadius) {
-                    beginTransaction();
-                    setDraggingPoint({ index: i, type: 'anchor' });
-                    return;
-                }
-                // Check cp1
-                if (Math.hypot(x - (p.cp1x + ox), y - (p.cp1y + oy)) < hitRadius) {
-                    beginTransaction();
-                    setDraggingPoint({ index: i, type: 'cp1' });
-                    return;
-                }
-                // Check cp2
-                if (Math.hypot(x - (p.cp2x + ox), y - (p.cp2y + oy)) < hitRadius) {
-                    beginTransaction();
-                    setDraggingPoint({ index: i, type: 'cp2' });
-                    return;
-                }
-            }
-
-            // 3. Missed all nodes: append a new point if the path is open
-            if (!editingEl.isPathClosed) {
-                beginTransaction();
-                const newPoints = editingEl.pathPoints.map(p => ({...p}));
-                const localX = x - ox;
-                const localY = y - oy;
-                
-                if (newPoints.length > 0) {
-                    const lastIdx = newPoints.length - 1;
-                    newPoints[lastIdx] = { ...newPoints[lastIdx], cp2x: newPoints[lastIdx].x, cp2y: newPoints[lastIdx].y };
-                }
-                
-                const newPoint: PathPoint = { x: localX, y: localY, cp1x: localX, cp1y: localY, cp2x: localX, cp2y: localY };
-                newPoints.push(newPoint);
-                updateElement(pathEditingElementId, { pathPoints: newPoints });
-                setDraggingPoint({ index: newPoints.length - 1, type: 'cp2' });
-                return;
-            }
+        // 1. Check if clicking start point to close the path
+        if (!editingEl.isPathClosed && editingEl.pathPoints.length > 2) {
+          const p = editingEl.pathPoints[0];
+          if (Math.hypot(x - (p.x + ox), y - (p.y + oy)) < hitRadius) {
+            beginTransaction();
+            const newPoints = editingEl.pathPoints.map(pt => ({ ...pt }));
+            newPoints[0].cp1x = newPoints[0].x;
+            newPoints[0].cp1y = newPoints[0].y;
+            const last = newPoints[newPoints.length - 1];
+            last.cp2x = last.x;
+            last.cp2y = last.y;
+            updateElement(pathEditingElementId, { pathPoints: newPoints, isPathClosed: true, fillType: 'solid' });
+            isPenClosingDragRef.current = true;
+            setDraggingPoint({ index: 0, type: 'cp1' });
+            return;
+          }
         }
+
+        // 2. Check existing nodes
+        for (let i = 0; i < editingEl.pathPoints.length; i++) {
+          const p = editingEl.pathPoints[i];
+          // Check anchor
+          if (Math.hypot(x - (p.x + ox), y - (p.y + oy)) < hitRadius) {
+            beginTransaction();
+            setDraggingPoint({ index: i, type: 'anchor' });
+            return;
+          }
+          // Check cp1
+          if (Math.hypot(x - (p.cp1x + ox), y - (p.cp1y + oy)) < hitRadius) {
+            beginTransaction();
+            setDraggingPoint({ index: i, type: 'cp1' });
+            return;
+          }
+          // Check cp2
+          if (Math.hypot(x - (p.cp2x + ox), y - (p.cp2y + oy)) < hitRadius) {
+            beginTransaction();
+            setDraggingPoint({ index: i, type: 'cp2' });
+            return;
+          }
+        }
+
+        // 3. Missed all nodes: append a new point if the path is open
+        if (!editingEl.isPathClosed) {
+          beginTransaction();
+          const newPoints = editingEl.pathPoints.map(p => ({ ...p }));
+          const localX = x - ox;
+          const localY = y - oy;
+
+          if (newPoints.length > 0) {
+            const lastIdx = newPoints.length - 1;
+            newPoints[lastIdx] = { ...newPoints[lastIdx], cp2x: newPoints[lastIdx].x, cp2y: newPoints[lastIdx].y };
+          }
+
+          const newPoint: PathPoint = { x: localX, y: localY, cp1x: localX, cp1y: localY, cp2x: localX, cp2y: localY };
+          newPoints.push(newPoint);
+          updateElement(pathEditingElementId, { pathPoints: newPoints });
+          setDraggingPoint({ index: newPoints.length - 1, type: 'cp2' });
+          return;
+        }
+      }
     }
 
     const target = e.target as HTMLElement;
     const isCanvasBackground = target.classList.contains('print-area');
-    
+
     if (isCanvasBackground) {
-        // Clicking canvas background while in path-edit mode exits edit mode
-        if (pathEditingElementId) {
-            setPathEditingElementId(null);
-            setDraggingPoint(null);
-        }
-        handleSelectElement(null, e.shiftKey);
+      // Clicking canvas background while in path-edit mode exits edit mode
+      if (pathEditingElementId) {
+        setPathEditingElementId(null);
+        setDraggingPoint(null);
+      }
+      handleSelectElement(null, e.shiftKey);
     }
-    
+
     if ((e.button === 0 && isCanvasBackground) || isSpacePressed || e.button === 1) {
       isPanning.current = true;
       panStart.current = { x: e.clientX - viewState.pan.x, y: e.clientY - viewState.pan.y };
@@ -672,103 +673,103 @@ function DesignEditorInternal({
     setMousePos({ x, y, screenX: e.clientX, screenY: e.clientY });
 
     if (isDrawing && activeTool === 'brush') {
-        const points = drawingPointsRef.current;
-        const lastPoint = points[points.length - 1];
-        if (!lastPoint) return;
+      const points = drawingPointsRef.current;
+      const lastPoint = points[points.length - 1];
+      if (!lastPoint) return;
 
-        // Add point if we moved
-        const dist = Math.hypot(x - lastPoint[0], y - lastPoint[1]);
-        if (dist > 1) {
-            points.push([x, y]);
-            
-            // Limit memory usage
-            if (points.length > 2000) {
-                points.splice(0, points.length - 2000);
-            }
+      // Add point if we moved
+      const dist = Math.hypot(x - lastPoint[0], y - lastPoint[1]);
+      if (dist > 1) {
+        points.push([x, y]);
 
-            setLivePencilPath(prev => prev ? { 
-                ...prev, 
-                path: [...points]
-            } : null);
+        // Limit memory usage
+        if (points.length > 2000) {
+          points.splice(0, points.length - 2000);
         }
-        return;
+
+        setLivePencilPath(prev => prev ? {
+          ...prev,
+          path: [...points]
+        } : null);
+      }
+      return;
     }
 
     if (activeTool === 'pen' && draggingPoint) {
-        setLivePath(prev => {
-            if (!prev) return null;
-            const newPath = prev.map(p => ({...p}));
-            const point = newPath[draggingPoint.index];
-            if (!point) return prev;
+      setLivePath(prev => {
+        if (!prev) return null;
+        const newPath = prev.map(p => ({ ...p }));
+        const point = newPath[draggingPoint.index];
+        if (!point) return prev;
 
-            if (draggingPoint.type === 'anchor') {
-                const dx = x - point.x;
-                const dy = y - point.y;
-                point.x = x; point.y = y;
-                point.cp1x += dx; point.cp1y += dy;
-                point.cp2x += dx; point.cp2y += dy;
-            } else if (draggingPoint.type === 'cp2') {
-                point.cp2x = x;
-                point.cp2y = y;
-                point.cp1x = point.x - (x - point.x);
-                point.cp1y = point.y - (y - point.y);
-            } else if (draggingPoint.type === 'cp1') {
-                point.cp1x = x;
-                point.cp1y = y;
-                if (isPenClosingDragRef.current && newPath.length > 1) {
-                    // Closing drag: only touch cp2 of the LAST point (outgoing handle
-                    // for the closing segment). Do NOT mirror cp2 of point[0] — that
-                    // would bend the 1→2 segment which should stay untouched.
-                    const last = newPath[newPath.length - 1];
-                    last.cp2x = last.x + (x - point.x);
-                    last.cp2y = last.y + (y - point.y);
-                } else {
-                    // Normal handle edit: mirror cp2 symmetrically.
-                    point.cp2x = point.x - (x - point.x);
-                    point.cp2y = point.y - (y - point.y);
-                }
-            }
-            livePathRef.current = newPath; // keep ref in sync
-            return newPath;
-        });
-        return;
+        if (draggingPoint.type === 'anchor') {
+          const dx = x - point.x;
+          const dy = y - point.y;
+          point.x = x; point.y = y;
+          point.cp1x += dx; point.cp1y += dy;
+          point.cp2x += dx; point.cp2y += dy;
+        } else if (draggingPoint.type === 'cp2') {
+          point.cp2x = x;
+          point.cp2y = y;
+          point.cp1x = point.x - (x - point.x);
+          point.cp1y = point.y - (y - point.y);
+        } else if (draggingPoint.type === 'cp1') {
+          point.cp1x = x;
+          point.cp1y = y;
+          if (isPenClosingDragRef.current && newPath.length > 1) {
+            // Closing drag: only touch cp2 of the LAST point (outgoing handle
+            // for the closing segment). Do NOT mirror cp2 of point[0] — that
+            // would bend the 1→2 segment which should stay untouched.
+            const last = newPath[newPath.length - 1];
+            last.cp2x = last.x + (x - point.x);
+            last.cp2y = last.y + (y - point.y);
+          } else {
+            // Normal handle edit: mirror cp2 symmetrically.
+            point.cp2x = point.x - (x - point.x);
+            point.cp2y = point.y - (y - point.y);
+          }
+        }
+        livePathRef.current = newPath; // keep ref in sync
+        return newPath;
+      });
+      return;
     }
 
     // --- Path Node Editing drag (finalized path elements) ---
     if (pathEditingElementId && draggingPoint && activeTool === 'select') {
-        const editingEl = findElementRecursive(currentElements, pathEditingElementId);
-        if (!editingEl?.pathPoints) return;
-        const ox = editingEl.x;
-        const oy = editingEl.y;
-        const newPoints = editingEl.pathPoints.map(p => ({...p}));
-        const pt = newPoints[draggingPoint.index];
-        if (!pt) return;
+      const editingEl = findElementRecursive(currentElements, pathEditingElementId);
+      if (!editingEl?.pathPoints) return;
+      const ox = editingEl.x;
+      const oy = editingEl.y;
+      const newPoints = editingEl.pathPoints.map(p => ({ ...p }));
+      const pt = newPoints[draggingPoint.index];
+      if (!pt) return;
 
-        if (draggingPoint.type === 'anchor') {
-            const dx = (x - ox) - pt.x;
-            const dy = (y - oy) - pt.y;
-            pt.x += dx; pt.y += dy;
-            pt.cp1x += dx; pt.cp1y += dy;
-            pt.cp2x += dx; pt.cp2y += dy;
-        } else if (draggingPoint.type === 'cp2') {
-            pt.cp2x = x - ox;
-            pt.cp2y = y - oy;
-            pt.cp1x = pt.x - (pt.cp2x - pt.x);
-            pt.cp1y = pt.y - (pt.cp2y - pt.y);
-        } else if (draggingPoint.type === 'cp1') {
-            pt.cp1x = x - ox;
-            pt.cp1y = y - oy;
-            if (isPenClosingDragRef.current && newPoints.length > 1) {
-                const last = newPoints[newPoints.length - 1];
-                last.cp2x = last.x + ((x - ox) - pt.x);
-                last.cp2y = last.y + ((y - oy) - pt.y);
-            } else {
-                pt.cp2x = pt.x - (pt.cp1x - pt.x);
-                pt.cp2y = pt.y - (pt.cp1y - pt.y);
-            }
+      if (draggingPoint.type === 'anchor') {
+        const dx = (x - ox) - pt.x;
+        const dy = (y - oy) - pt.y;
+        pt.x += dx; pt.y += dy;
+        pt.cp1x += dx; pt.cp1y += dy;
+        pt.cp2x += dx; pt.cp2y += dy;
+      } else if (draggingPoint.type === 'cp2') {
+        pt.cp2x = x - ox;
+        pt.cp2y = y - oy;
+        pt.cp1x = pt.x - (pt.cp2x - pt.x);
+        pt.cp1y = pt.y - (pt.cp2y - pt.y);
+      } else if (draggingPoint.type === 'cp1') {
+        pt.cp1x = x - ox;
+        pt.cp1y = y - oy;
+        if (isPenClosingDragRef.current && newPoints.length > 1) {
+          const last = newPoints[newPoints.length - 1];
+          last.cp2x = last.x + ((x - ox) - pt.x);
+          last.cp2y = last.y + ((y - oy) - pt.y);
+        } else {
+          pt.cp2x = pt.x - (pt.cp1x - pt.x);
+          pt.cp2y = pt.y - (pt.cp1y - pt.y);
         }
-        updateElement(pathEditingElementId, { pathPoints: newPoints });
-        return;
+      }
+      updateElement(pathEditingElementId, { pathPoints: newPoints });
+      return;
     }
 
     if (isPanning.current) {
@@ -779,87 +780,87 @@ function DesignEditorInternal({
 
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isDrawing && activeTool === 'brush') {
-        setIsDrawing(false);
-        setLivePencilPath(null);
-        endTransaction();
+      setIsDrawing(false);
+      setLivePencilPath(null);
+      endTransaction();
 
-        const points = drawingPointsRef.current;
-        const bristleTipData = bristleTipRef.current;
+      const points = drawingPointsRef.current;
+      const bristleTipData = bristleTipRef.current;
 
-        if (points.length >= 2) {
-            const allX = points.map(p => p[0]);
-            const allY = points.map(p => p[1]);
-            
-            // Add padding for the stroke thickness and bristle spread
-            const padding = brushOptions.size * 1.5;
-            const minX = Math.min(...allX) - padding;
-            const minY = Math.min(...allY) - padding;
-            const maxX = Math.max(...allX) + padding;
-            const maxY = Math.max(...allY) + padding;
-            
-            const width = Math.max(1, maxX - minX);
-            const height = Math.max(1, maxY - minY);
+      if (points.length >= 2) {
+        const allX = points.map(p => p[0]);
+        const allY = points.map(p => p[1]);
 
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d', { alpha: true });
-            
-            if (ctx) {
-                // Adjust points relative to the new cropped canvas
-                const localPoints = points.map(([px, py]) => [px - minX, py - minY]);
-                
-                // Render the finalized stroke using the same engine
-                for (let i = 1; i < localPoints.length; i++) {
-                    const [x1, y1] = localPoints[i - 1];
-                    const [x2, y2] = localPoints[i];
-                    
-                    renderBristleSegment(
-                        ctx, 
-                        x1, y1, x2, y2, 
-                        bristleTipData, 
-                        brushOptions.brushTip as BrushEngineTip, 
-                        brushOptions.color, 
-                        brushOptions.flow,
-                        brushOptions.softness
-                    );
-                }
-                
-                const dataUrl = canvas.toDataURL();
-                // We save it as an image layer to lock in the rendering. Fast and deterministic!
-                const newElement: DesignElement = {
-                    id: crypto.randomUUID(), type: 'image', x: minX, y: minY, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
-                    src: dataUrl, objectFit: 'contain', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-                    content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
-                };
-                updatePage(currentPage, { elements: [...currentElements, newElement] });
-                setSelectedElementIds([newElement.id]);
-            }
+        // Add padding for the stroke thickness and bristle spread
+        const padding = brushOptions.size * 1.5;
+        const minX = Math.min(...allX) - padding;
+        const minY = Math.min(...allY) - padding;
+        const maxX = Math.max(...allX) + padding;
+        const maxY = Math.max(...allY) + padding;
+
+        const width = Math.max(1, maxX - minX);
+        const height = Math.max(1, maxY - minY);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d', { alpha: true });
+
+        if (ctx) {
+          // Adjust points relative to the new cropped canvas
+          const localPoints = points.map(([px, py]) => [px - minX, py - minY]);
+
+          // Render the finalized stroke using the same engine
+          for (let i = 1; i < localPoints.length; i++) {
+            const [x1, y1] = localPoints[i - 1];
+            const [x2, y2] = localPoints[i];
+
+            renderBristleSegment(
+              ctx,
+              x1, y1, x2, y2,
+              bristleTipData,
+              brushOptions.brushTip as BrushEngineTip,
+              brushOptions.color,
+              brushOptions.flow,
+              brushOptions.softness
+            );
+          }
+
+          const dataUrl = canvas.toDataURL();
+          // We save it as an image layer to lock in the rendering. Fast and deterministic!
+          const newElement: DesignElement = {
+            id: crypto.randomUUID(), type: 'image', x: minX, y: minY, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
+            src: dataUrl, objectFit: 'contain', backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+            content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+          };
+          updatePage(currentPage, { elements: [...currentElements, newElement] });
+          setSelectedElementIds([newElement.id]);
         }
-        drawingPointsRef.current = [];
-        bristleTipRef.current = [];
-        return;
+      }
+      drawingPointsRef.current = [];
+      bristleTipRef.current = [];
+      return;
     }
 
     if (activeTool === 'pen') {
-        if (isPenClosingDragRef.current) {
-            // User released after clicking (or dragging from) the start point → close the path
-            isPenClosingDragRef.current = false;
-            setDraggingPoint(null);
-            endTransaction();
-            // livePathRef is always current (synced in mousedown & mousemove), safe to read here
-            finalizePath(livePathRef.current ?? undefined, true);
-            return;
-        }
+      if (isPenClosingDragRef.current) {
+        // User released after clicking (or dragging from) the start point → close the path
+        isPenClosingDragRef.current = false;
         setDraggingPoint(null);
         endTransaction();
+        // livePathRef is always current (synced in mousedown & mousemove), safe to read here
+        finalizePath(livePathRef.current ?? undefined, true);
+        return;
+      }
+      setDraggingPoint(null);
+      endTransaction();
     }
 
     // Commit path node edit on any path element
     if (pathEditingElementId && draggingPoint) {
-        isPenClosingDragRef.current = false;
-        setDraggingPoint(null);
-        endTransaction();
+      isPenClosingDragRef.current = false;
+      setDraggingPoint(null);
+      endTransaction();
     }
 
     if (isPanning.current) {
@@ -872,17 +873,17 @@ function DesignEditorInternal({
     }
   };
 
-  const handleZoomIn = () => setViewState(vs => ({...vs, zoom: Math.min(vs.zoom * 1.2, 5) }));
-  const handleZoomOut = () => setViewState(vs => ({...vs, zoom: Math.max(vs.zoom / 1.2, 0.1) }));
-  
+  const handleZoomIn = () => setViewState(vs => ({ ...vs, zoom: Math.min(vs.zoom * 1.2, 5) }));
+  const handleZoomOut = () => setViewState(vs => ({ ...vs, zoom: Math.max(vs.zoom / 1.2, 0.1) }));
+
   const handlePreview = () => {
     try {
       const designData = {
-        elements: currentElements,
+        pages: pages,
         product: currentState.product,
-        background: currentBackground,
         bleed: bleed,
         safetyMargin: safetyMargin,
+        currentPage: currentPage, // Default to the page the user was looking at
       };
       localStorage.setItem('design_preview', JSON.stringify(designData));
       window.open('/design/preview', '_blank');
@@ -896,21 +897,21 @@ function DesignEditorInternal({
     setIsDownloadingPdf(true);
     toast({ title: 'Opening Print Preview...' });
     try {
-        const designData: RenderData = {
-            pages: pages,
-            product: product,
-            guides: guides,
-            bleed: bleed,
-            safetyMargin: safetyMargin,
-        };
-        localStorage.setItem('pdf_render_data', JSON.stringify(designData));
-        const renderUrl = '/pdf-render';
-        const pdfWindow = window.open(renderUrl, '_blank');
-        if (!pdfWindow) throw new Error("Could not open new window. Please disable your pop-up blocker.");
+      const designData: RenderData = {
+        pages: pages,
+        product: product,
+        guides: guides,
+        bleed: bleed,
+        safetyMargin: safetyMargin,
+      };
+      localStorage.setItem('pdf_render_data', JSON.stringify(designData));
+      const renderUrl = '/pdf-render';
+      const pdfWindow = window.open(renderUrl, '_blank');
+      if (!pdfWindow) throw new Error("Could not open new window. Please disable your pop-up blocker.");
     } catch (error) {
-        toast({ variant: 'destructive', title: 'Could not prepare PDF' });
+      toast({ variant: 'destructive', title: 'Could not prepare PDF' });
     } finally {
-        setTimeout(() => setIsDownloadingPdf(false), 3000);
+      setTimeout(() => setIsDownloadingPdf(false), 3000);
     }
   };
 
@@ -938,7 +939,7 @@ function DesignEditorInternal({
     setSelectedElementIds([newElement.id]);
     if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
-  
+
   const addTextElement = (options: Partial<DesignElement>) => {
     const defaultTextElement: DesignElement = {
       id: crypto.randomUUID(), type: 'text', x: 0, y: 0, width: 250, height: 50, rotation: 0, opacity: 1, visible: true, locked: false,
@@ -951,10 +952,10 @@ function DesignEditorInternal({
     };
 
     const newElement = { ...defaultTextElement, ...options };
-    
+
     if (newElement.fontSize && !options.width && !options.height) {
-        newElement.width = (newElement.content?.length || 10) * (newElement.fontSize / 1.8) + newElement.fontSize;
-        newElement.height = newElement.fontSize * 1.5;
+      newElement.width = (newElement.content?.length || 10) * (newElement.fontSize / 1.8) + newElement.fontSize;
+      newElement.height = newElement.fontSize * 1.5;
     }
 
 
@@ -966,7 +967,7 @@ function DesignEditorInternal({
     setSelectedElementIds([newElement.id]);
     if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
-  
+
   const handleAddImageFromLibrary = (src: string) => {
     const size = 400;
     const { x, y } = getCenterPosition(size, size);
@@ -1034,27 +1035,27 @@ function DesignEditorInternal({
       ...el,
       id: crypto.randomUUID(),
     })) as DesignElement[];
-    
+
     const minX = Math.min(...newElements.map(el => el.x));
     const minY = Math.min(...newElements.map(el => el.y));
     const maxX = Math.max(...newElements.map(el => el.x + el.width));
     const maxY = Math.max(...newElements.map(el => el.y + el.height));
-    
+
     const groupWidth = maxX - minX;
     const groupHeight = maxY - minY;
 
     const { x: groupX, y: groupY } = getCenterPosition(groupWidth, groupHeight);
 
     const newGroup: DesignElement = {
-        id: crypto.randomUUID(), type: 'group', x: groupX, y: groupY, width: groupWidth, height: groupHeight, rotation: 0, opacity: 1, visible: true, locked: false,
-        children: newElements.map(el => ({ ...el, x: el.x - minX, y: el.y - minY })),
-        backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-        borderRadius: 0, content: '', fontSize: 1, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal',
-        textDecoration: 'none', letterSpacing: 0, lineHeight: 1, textAlign: 'left', src: '', objectFit: 'cover',
-        filterBrightness: 1, filterContrast: 1, filterSaturate: 1, filterGrayscale: 0, filterSepia: 0, filterInvert: 0,
-        filterHueRotate: 0, filterBlur: 0, flipHorizontal: false, flipVertical: false, shapeType: 'rectangle', textTransform: 'none', verticalAlign: 'top',
+      id: crypto.randomUUID(), type: 'group', x: groupX, y: groupY, width: groupWidth, height: groupHeight, rotation: 0, opacity: 1, visible: true, locked: false,
+      children: newElements.map(el => ({ ...el, x: el.x - minX, y: el.y - minY })),
+      backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+      borderRadius: 0, content: '', fontSize: 1, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal',
+      textDecoration: 'none', letterSpacing: 0, lineHeight: 1, textAlign: 'left', src: '', objectFit: 'cover',
+      filterBrightness: 1, filterContrast: 1, filterSaturate: 1, filterGrayscale: 0, filterSepia: 0, filterInvert: 0,
+      filterHueRotate: 0, filterBlur: 0, flipHorizontal: false, flipVertical: false, shapeType: 'rectangle', textTransform: 'none', verticalAlign: 'top',
     };
-    
+
     updatePage(currentPage, { elements: [...currentElements, newGroup] });
     setSelectedElementIds([newGroup.id]);
     if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
@@ -1084,16 +1085,16 @@ function DesignEditorInternal({
     }
 
     if (id) {
-        const element = findElementRecursive(currentElements, id);
-        if (element?.locked) {
-            if (!isShift) setSelectedElementIds([]);
-            return;
-        }
-        // Re-entering path edit mode when clicking a path element that is already selected
-        if (element?.type === 'path' && selectedElementIds.includes(id) && !isShift) {
-            setPathEditingElementId(id);
-            return;
-        }
+      const element = findElementRecursive(currentElements, id);
+      if (element?.locked) {
+        if (!isShift) setSelectedElementIds([]);
+        return;
+      }
+      // Re-entering path edit mode when clicking a path element that is already selected
+      if (element?.type === 'path' && selectedElementIds.includes(id) && !isShift) {
+        setPathEditingElementId(id);
+        return;
+      }
     }
 
     setActiveTool('select');
@@ -1123,11 +1124,11 @@ function DesignEditorInternal({
       if (propsToUpdate.width) propsToUpdate.width = Math.round(propsToUpdate.width / gridSize) * gridSize;
       if (propsToUpdate.height) propsToUpdate.height = Math.round(propsToUpdate.height / gridSize) * gridSize;
     }
-    
+
     const newPageElements = recursiveUpdate(currentElements, id, propsToUpdate);
     updatePage(currentPage, { elements: newPageElements });
   };
-  
+
   const addGuide = (orientation: 'horizontal' | 'vertical', position: number) => {
     const newGuide = { id: crypto.randomUUID(), orientation, position };
     setIsDirty(true);
@@ -1137,38 +1138,50 @@ function DesignEditorInternal({
 
   const updateGuide = (id: string, position: number) => {
     setIsDirty(true);
-    setState((prev) => ({...prev, guides: prev.guides.map((g) => (g.id === id ? { ...g, position } : g))}));
+    setState((prev) => ({ ...prev, guides: prev.guides.map((g) => (g.id === id ? { ...g, position } : g)) }));
   };
 
   const removeGuide = (id: string) => {
     setIsDirty(true);
     setState((prev) => ({ ...prev, guides: prev.guides.filter((g) => g.id !== id) }));
   };
-  
+
   const selectedElements = selectedElementIds.map(id => findElementRecursive(currentElements, id)).filter((el): el is DesignElement => !!el);
   const selectedElement = selectedElements[0];
 
   const handleProductUpdate = (newProps: Partial<Product>) => {
     setIsDirty(true);
-    setState(s => ({ ...s, product: { ...s.product, ...newProps }}));
+    setState(s => ({ ...s, product: { ...s.product, ...newProps } }));
+  };
+
+  const handleRotateCanvas = () => {
+    if (!window.confirm("Rotating the canvas orientation may cause your elements to be misplaced or misaligned relative to the new boundaries. Do you want to proceed?")) {
+      return;
+    }
+    beginTransaction();
+    handleProductUpdate({
+      width: product.height,
+      height: product.width
+    });
+    endTransaction();
   };
 
   const onQuantityChange = (newQuantity: number) => {
     setIsDirty(true);
-    setState(s => ({...s, quantity: newQuantity}));
+    setState(s => ({ ...s, quantity: newQuantity }));
   };
 
   const onBackgroundChange = (newBackground: Background) => updatePage(currentPage, { background: newBackground });
 
   const handleSave = async () => {
     const saveData = {
-        productSlug: product.id,
-        elements: pages.map(p => p.elements),
-        background: pages.map(p => p.background),
-        guides,
-        quantity,
-        width: Math.round(product.width * PX_TO_MM),
-        height: Math.round(product.height * PX_TO_MM),
+      productSlug: product.id,
+      elements: pages.map(p => p.elements),
+      background: pages.map(p => p.background),
+      guides,
+      quantity,
+      width: Math.round(product.width * PX_TO_MM),
+      height: Math.round(product.height * PX_TO_MM),
     };
 
     if (currentDesignId && currentDesignName) {
@@ -1234,11 +1247,11 @@ function DesignEditorInternal({
         return;
       }
     }
-    
+
     if (designId) {
       router.push(`/checkout?designId=${designId}&quantity=${quantity}`);
     } else {
-        setIsOrdering(false);
+      setIsOrdering(false);
     }
   };
 
@@ -1249,14 +1262,14 @@ function DesignEditorInternal({
     const newTotalPages = isMultiPageElements ? (design.elements as DesignElement[][]).length : 1;
 
     let newPages: Page[] = [];
-    for(let i = 0; i < newTotalPages; i++) {
-        const pageElements = isMultiPageElements ? (design.elements as DesignElement[][])[i] : (i === 0 ? design.elements as DesignElement[] : []);
-        const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? design.background as Background : { type: 'solid', color: '#ffffff' });
-        
-        newPages.push({
-            elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],
-            background: (pageBackground || { type: 'solid', color: '#ffffff' }) as Background
-        })
+    for (let i = 0; i < newTotalPages; i++) {
+      const pageElements = isMultiPageElements ? (design.elements as DesignElement[][])[i] : (i === 0 ? design.elements as DesignElement[] : []);
+      const pageBackground = isMultiPageBackground ? (initialBackground as Background[])[i] : (i === 0 ? design.background as Background : { type: 'solid', color: '#ffffff' });
+
+      newPages.push({
+        elements: pageElements?.map(el => ({ ...el, visible: el.visible ?? true, locked: el.locked ?? false })) || [],
+        background: (pageBackground || { type: 'solid', color: '#ffffff' }) as Background
+      })
     }
 
     const loadedProduct: Product = {
@@ -1291,20 +1304,20 @@ function DesignEditorInternal({
     if (!contestId) return;
     setIsSubmitting(true);
     try {
-        const designData = {
-          productSlug: product.id,
-          elements: currentElements,
-          guides, quantity: quantity,
-          width: Math.round(product.width * PX_TO_MM),
-          height: Math.round(product.height * PX_TO_MM),
-          background: currentBackground,
-        };
-        await submitContestEntry(Number(contestId), designData);
-        toast({ title: 'Submission Successful!'});
+      const designData = {
+        productSlug: product.id,
+        elements: currentElements,
+        guides, quantity: quantity,
+        width: Math.round(product.width * PX_TO_MM),
+        height: Math.round(product.height * PX_TO_MM),
+        background: currentBackground,
+      };
+      await submitContestEntry(Number(contestId), designData);
+      toast({ title: 'Submission Successful!' });
     } catch (error) {
-        toast({ variant: 'destructive', title: 'Submission Failed' });
+      toast({ variant: 'destructive', title: 'Submission Failed' });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   }
 
@@ -1343,7 +1356,7 @@ function DesignEditorInternal({
     updatePage(currentPage, { elements: [...currentElements, ...newElementsToPush] });
     setSelectedElementIds(newElementsToPush.map(el => el.id));
   };
-  
+
   const handleDuplicateLayer = (id: string) => {
     const elementToDuplicate = findElementRecursive(currentElements, id);
     if (!elementToDuplicate) return;
@@ -1355,16 +1368,16 @@ function DesignEditorInternal({
       }
       return newEl;
     }
-    
+
     const newElement = duplicateRecursive(elementToDuplicate);
-    
+
     const topLevelIndex = currentElements.findIndex(el => el.id === id || (el.children && findElementRecursive(el.children, id)));
-    
+
     const newElements = [...currentElements];
-    if(topLevelIndex !== -1) {
-        newElements.splice(topLevelIndex + 1, 0, newElement);
+    if (topLevelIndex !== -1) {
+      newElements.splice(topLevelIndex + 1, 0, newElement);
     } else {
-        newElements.push(newElement);
+      newElements.push(newElement);
     }
 
     updatePage(currentPage, { elements: newElements });
@@ -1380,15 +1393,15 @@ function DesignEditorInternal({
     const recursiveDelete = (els: DesignElement[], idToRemove: string): DesignElement[] => {
       const filtered = els.filter(el => el.id !== idToRemove);
       return filtered.map(el => {
-          if (el.type === 'group' && el.children) {
-              return { ...el, children: recursiveDelete(el.children, idToRemove) };
-          }
-          return el;
+        if (el.type === 'group' && el.children) {
+          return { ...el, children: recursiveDelete(el.children, idToRemove) };
+        }
+        return el;
       });
     };
     updatePage(currentPage, { elements: recursiveDelete(currentElements, id) });
     if (selectedElementIds.includes(id)) {
-        setSelectedElementIds(ids => ids.filter(selectedId => selectedId !== id));
+      setSelectedElementIds(ids => ids.filter(selectedId => selectedId !== id));
     }
   };
 
@@ -1431,15 +1444,15 @@ function DesignEditorInternal({
     const minY = Math.min(...selectedElements.map(el => el.y));
     const maxX = Math.max(...selectedElements.map(el => el.x + el.width));
     const maxY = Math.max(...selectedElements.map(el => el.y + el.height));
-    
+
     const newGroup: DesignElement = {
-        id: crypto.randomUUID(), type: 'group', x: minX, y: minY, width: maxX - minX, height: maxY - minY, rotation: 0, opacity: 1, visible: true, locked: false,
-        children: selectedElements.map(el => ({ ...el, x: el.x - minX, y: el.y - minY })),
-        backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-        borderRadius: 0, content: '', fontSize: 1, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal',
-        textDecoration: 'none', letterSpacing: 0, lineHeight: 1, textAlign: 'left', src: '', objectFit: 'cover',
-        filterBrightness: 1, filterContrast: 1, filterSaturate: 1, filterGrayscale: 0, filterSepia: 0, filterInvert: 0,
-        filterHueRotate: 0, filterBlur: 0, flipHorizontal: false, flipVertical: false, shapeType: 'rectangle', textTransform: 'none', verticalAlign: 'top',
+      id: crypto.randomUUID(), type: 'group', x: minX, y: minY, width: maxX - minX, height: maxY - minY, rotation: 0, opacity: 1, visible: true, locked: false,
+      children: selectedElements.map(el => ({ ...el, x: el.x - minX, y: el.y - minY })),
+      backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+      borderRadius: 0, content: '', fontSize: 1, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal',
+      textDecoration: 'none', letterSpacing: 0, lineHeight: 1, textAlign: 'left', src: '', objectFit: 'cover',
+      filterBrightness: 1, filterContrast: 1, filterSaturate: 1, filterGrayscale: 0, filterSepia: 0, filterInvert: 0,
+      filterHueRotate: 0, filterBlur: 0, flipHorizontal: false, flipVertical: false, shapeType: 'rectangle', textTransform: 'none', verticalAlign: 'top',
     };
     const elementsWithoutGrouped = currentElements.filter(el => !selectedElementIds.includes(el.id));
     updatePage(currentPage, { elements: [...elementsWithoutGrouped, newGroup] });
@@ -1447,43 +1460,43 @@ function DesignEditorInternal({
   };
 
   const handleUngroup = () => {
-      if (!selectedElement || selectedElement.type !== 'group' || !selectedElement.children) return;
-      const ungroupedChildren = selectedElement.children.map(child => ({ ...child, x: selectedElement.x + child.x, y: selectedElement.y + child.y, rotation: selectedElement.rotation + child.rotation }));
-      const elementsWithoutGroup = currentElements.filter(el => el.id !== selectedElement.id);
-      updatePage(currentPage, { elements: [...elementsWithoutGroup, ...ungroupedChildren] });
-      setSelectedElementIds(ungroupedChildren.map(c => c.id));
+    if (!selectedElement || selectedElement.type !== 'group' || !selectedElement.children) return;
+    const ungroupedChildren = selectedElement.children.map(child => ({ ...child, x: selectedElement.x + child.x, y: selectedElement.y + child.y, rotation: selectedElement.rotation + child.rotation }));
+    const elementsWithoutGroup = currentElements.filter(el => el.id !== selectedElement.id);
+    updatePage(currentPage, { elements: [...elementsWithoutGroup, ...ungroupedChildren] });
+    setSelectedElementIds(ungroupedChildren.map(c => c.id));
   };
-  
+
   const handleToggleLayerVisibility = (id: string) => {
     const recursiveToggle = (els: DesignElement[]): DesignElement[] => {
-        return els.map(el => {
-            if (el.id === id) {
-                return { ...el, visible: !(el.visible ?? true) };
-            }
-            if (el.children) {
-                return { ...el, children: recursiveToggle(el.children) };
-            }
-            return el;
-        });
+      return els.map(el => {
+        if (el.id === id) {
+          return { ...el, visible: !(el.visible ?? true) };
+        }
+        if (el.children) {
+          return { ...el, children: recursiveToggle(el.children) };
+        }
+        return el;
+      });
     };
     updatePage(currentPage, { elements: recursiveToggle(currentElements) });
   };
-  
+
   const handleToggleLayerLock = (id: string) => {
     const recursiveToggle = (els: DesignElement[]): DesignElement[] => {
-        return els.map(el => {
-            if (el.id === id) {
-                return { ...el, locked: !el.locked };
-            }
-            if (el.children) {
-                return { ...el, children: recursiveToggle(el.children) };
-            }
-            return el;
-        });
+      return els.map(el => {
+        if (el.id === id) {
+          return { ...el, locked: !el.locked };
+        }
+        if (el.children) {
+          return { ...el, children: recursiveToggle(el.children) };
+        }
+        return el;
+      });
     };
     updatePage(currentPage, { elements: recursiveToggle(currentElements) });
     if (selectedElementIds.includes(id)) {
-        setSelectedElementIds(ids => ids.filter(selectedId => selectedId !== id));
+      setSelectedElementIds(ids => ids.filter(selectedId => selectedId !== id));
     }
   };
 
@@ -1503,47 +1516,47 @@ function DesignEditorInternal({
   const handleMobilePanelOpen = (panel: string) => {
     setActiveMobilePanel(panel);
     setMobileSheetOpen(true);
-    if(panel === 'brush' || panel === 'pen') {
-        setActiveTool(panel as any);
+    if (panel === 'brush' || panel === 'pen') {
+      setActiveTool(panel as any);
     } else {
-        setActiveTool('select');
+      setActiveTool('select');
     }
   }
 
   const renderMobilePanelContent = () => {
     switch (activeMobilePanel) {
-        case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />;
-        case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddSvgShape={handleAddSvgShape} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
-        case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
-        case 'brush': return <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} onClear={handleClearBrushStrokes} />;
-        case 'pen': return <PenToolPanel onFinish={() => finalizePath()} />;
-        case 'properties': return (
-            <div className="p-4">
-                <PropertiesPanel
-                    element={selectedElement} onUpdate={updateElement} product={product} onProductUpdate={handleProductUpdate}
-                    quantity={quantity} onQuantityChange={onQuantityChange} background={currentBackground} onBackgroundChange={onBackgroundChange}
-                    canvasSettings={{ showRulers, setShowRulers, showGrid, setShowGrid, snapToGrid, setSnapToGrid, gridSize, setGridSize, showPrintGuidelines, setShowPrintGuidelines, bleed, setBleed, safetyMargin, setSafetyMargin }}
-                    croppingElementId={croppingElementId}
-                    setCroppingElementId={setCroppingElementId}
-                    isAdmin={isAdmin}
-                    onMoveLayer={moveLayer}
-                />
-            </div>
-        );
-        default: return null;
+      case 'elements': return <TextAddPanel onAddText={addTextElement} onAddGroupedElements={handleAddGroupedElements} />;
+      case 'media': return <MediaPanel onImageSelect={handleAddImageFromLibrary} onAddSvgShape={handleAddSvgShape} onAddShape={handleAddShape} onEmojiSelect={handleAddEmoji} isAdmin={isAdmin} />;
+      case 'qrcode': return <QrCodePanel onAddQrCode={addQrCodeElement} />;
+      case 'brush': return <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} onClear={handleClearBrushStrokes} />;
+      case 'pen': return <PenToolPanel onFinish={() => finalizePath()} />;
+      case 'properties': return (
+        <div className="p-4">
+          <PropertiesPanel
+            element={selectedElement} onUpdate={updateElement} product={product} onProductUpdate={handleProductUpdate}
+            quantity={quantity} onQuantityChange={onQuantityChange} background={currentBackground} onBackgroundChange={onBackgroundChange}
+            canvasSettings={{ showRulers, setShowRulers, showGrid, setShowGrid, snapToGrid, setSnapToGrid, gridSize, setGridSize, showPrintGuidelines, setShowPrintGuidelines, bleed, setBleed, safetyMargin, setSafetyMargin }}
+            croppingElementId={croppingElementId}
+            setCroppingElementId={setCroppingElementId}
+            isAdmin={isAdmin}
+            onMoveLayer={moveLayer}
+          />
+        </div>
+      );
+      default: return null;
     }
   }
-  
+
   if (!currentState) {
     return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
-  
+
   const elementToCrop = croppingElementId ? findElementRecursive(currentElements, croppingElementId) : undefined;
 
   return (
     <>
       <div className="grid grid-rows-[auto_1fr] h-screen w-full bg-background print:hidden">
-        <EditorHeader 
+        <EditorHeader
           product={product}
           currentDesignName={currentDesignName}
           currentDesignId={currentDesignId}
@@ -1590,24 +1603,28 @@ function DesignEditorInternal({
           isOrdering={isOrdering}
           isSubmitting={isSubmitting}
           confirmNavigation={confirmNavigation}
+          onRotateCanvas={handleRotateCanvas}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          setCurrentPage={setCurrentPage}
         />
 
         <div className="flex overflow-hidden relative">
           <EditorSidebarLeft
-              activeTool={activeTool}
-              setActiveTool={setActiveTool}
-              isAdmin={isAdmin}
-              onAddImage={handleAddImageFromLibrary}
-              onAddSvgShape={handleAddSvgShape}
-              onAddShape={handleAddShape}
-              onAddEmoji={handleAddEmoji}
-              onAddText={addTextElement}
-              onAddGroupedElements={handleAddGroupedElements}
-              onAddQrCode={addQrCodeElement}
-              brushOptions={brushOptions}
-              setBrushOptions={setBrushOptions}
-              onClearBrush={handleClearBrushStrokes}
-              finalizePath={finalizePath}
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            isAdmin={isAdmin}
+            onAddImage={handleAddImageFromLibrary}
+            onAddSvgShape={handleAddSvgShape}
+            onAddShape={handleAddShape}
+            onAddEmoji={handleAddEmoji}
+            onAddText={addTextElement}
+            onAddGroupedElements={handleAddGroupedElements}
+            onAddQrCode={addQrCodeElement}
+            brushOptions={brushOptions}
+            setBrushOptions={setBrushOptions}
+            onClearBrush={handleClearBrushStrokes}
+            finalizePath={finalizePath}
           />
           <SidebarRail side="left" />
 
@@ -1620,23 +1637,24 @@ function DesignEditorInternal({
             >
 
 
-              {selectedElements.length > 0 && 
-                <ElementToolbar 
-                    selectedElements={selectedElements} 
-                    viewState={viewState} 
-                    onDuplicate={handleDuplicateElement} 
-                    onDelete={handleDeleteElement}
-                    spotUvAllowed={spotUvAllowed}
-                    availableFoils={availableFoils}
-                    onSetSpecialFinish={handleSetSpecialFinish}
-                    showRulers={showRulers}
-                    safetyMargin={safetyMargin}
+              {selectedElements.length > 0 &&
+                <ElementToolbar
+                  selectedElements={selectedElements}
+                  viewState={viewState}
+                  onDuplicate={handleDuplicateElement}
+                  onDelete={handleDeleteElement}
+                  spotUvAllowed={spotUvAllowed}
+                  availableFoils={availableFoils}
+                  onSetSpecialFinish={handleSetSpecialFinish}
+                  showRulers={showRulers}
+                  safetyMargin={safetyMargin}
                 />}
               <DesignCanvas
                 product={product} elements={currentElements} selectedElementIds={selectedElementIds} onSelectElement={handleSelectElement} onUpdateElement={updateElement} background={currentBackground}
                 showRulers={showRulers} showGrid={showGrid} gridSize={gridSize} guides={guides} smartGuides={activeSmartGuides}
                 onAddGuide={addGuide} onUpdateGuide={updateGuide} onRemoveGuide={removeGuide} onSmartGuidesChange={setActiveSmartGuides}
                 showPrintGuidelines={showPrintGuidelines} bleed={bleed} safetyMargin={safetyMargin} viewState={viewState}
+                unit={canvasUnit}
                 onInteractionStart={beginTransaction} onInteractionEnd={endTransaction}
                 livePencilPath={livePencilPath}
                 livePath={livePath}
@@ -1654,49 +1672,49 @@ function DesignEditorInternal({
                 </div>
               </div>
             </div>
+
+            {/* Right Floating Properties Panel */}
+            <div className={cn(
+              "absolute right-4 top-4 bottom-4 w-[320px] z-[60] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) hidden lg:block",
+              rightOpen ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+32px)] opacity-0 pointer-events-none"
+            )}>
+              <div className="h-full bg-background/80 backdrop-blur-2xl border border-border/50 rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col">
+                <ScrollArea className="flex-1">
+                  <div className="p-1">
+                    <PropertiesPanel
+                      element={selectedElement} onUpdate={updateElement} product={product} onProductUpdate={handleProductUpdate}
+                      quantity={quantity} onQuantityChange={onQuantityChange} background={currentBackground} onBackgroundChange={onBackgroundChange}
+                      canvasSettings={{ showRulers, setShowRulers, showGrid, setShowGrid, snapToGrid, setSnapToGrid, gridSize, setGridSize, showPrintGuidelines, setShowPrintGuidelines, bleed, setBleed, safetyMargin, setSafetyMargin, unit: canvasUnit, setUnit: setCanvasUnit }}
+                      croppingElementId={croppingElementId}
+                      setCroppingElementId={setCroppingElementId}
+                      isAdmin={isAdmin}
+                      onMoveLayer={moveLayer}
+                    />
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+
+            {/* Sidebar Toggle Button (Floating) */}
+            <div className={cn(
+              "absolute top-1/2 -translate-y-1/2 z-[70] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) hidden lg:block",
+              rightOpen ? "right-[336px]" : "right-4"
+            )}>
+              <Button
+                variant="secondary"
+                size="icon"
+                className={cn(
+                  "h-10 w-10 rounded-full shadow-2xl border border-white/10 bg-zinc-950/90 text-white backdrop-blur-md hover:bg-black transition-all group",
+                  !rightOpen && "animate-pulse shadow-primary/20"
+                )}
+                onClick={() => setRightOpen(!rightOpen)}
+              >
+                {rightOpen ? <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" /> : <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />}
+              </Button>
+            </div>
           </SidebarInset>
 
-          {/* Right Floating Properties Panel */}
-          <div className={cn(
-              "absolute right-4 top-4 bottom-4 w-[320px] z-40 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) hidden lg:block",
-              rightOpen ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+32px)] opacity-0 pointer-events-none"
-          )}>
-              <div className="h-full bg-background/80 backdrop-blur-2xl border border-border/50 rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col">
-                  <ScrollArea className="flex-1">
-                      <div className="p-1">
-                          <PropertiesPanel
-                              element={selectedElement} onUpdate={updateElement} product={product} onProductUpdate={handleProductUpdate}
-                              quantity={quantity} onQuantityChange={onQuantityChange} background={currentBackground} onBackgroundChange={onBackgroundChange}
-                              canvasSettings={{ showRulers, setShowRulers, showGrid, setShowGrid, snapToGrid, setSnapToGrid, gridSize, setGridSize, showPrintGuidelines, setShowPrintGuidelines, bleed, setBleed, safetyMargin, setSafetyMargin }}
-                              croppingElementId={croppingElementId}
-                              setCroppingElementId={setCroppingElementId}
-                              isAdmin={isAdmin}
-                              onMoveLayer={moveLayer}
-                          />
-                      </div>
-                  </ScrollArea>
-              </div>
-          </div>
-
-          {/* Sidebar Toggle Button (Floating) */}
-          <div className={cn(
-              "absolute top-1/2 -translate-y-1/2 z-50 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) hidden lg:block",
-              rightOpen ? "right-[336px]" : "right-4"
-          )}>
-              <Button 
-                  variant="secondary" 
-                  size="icon" 
-                  className={cn(
-                      "h-10 w-10 rounded-full shadow-2xl border border-white/10 bg-zinc-950/90 text-white backdrop-blur-md hover:bg-black transition-all group",
-                      !rightOpen && "animate-pulse shadow-primary/20"
-                  )}
-                  onClick={() => setRightOpen(!rightOpen)}
-              >
-                  {rightOpen ? <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" /> : <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />}
-              </Button>
-          </div>
-          
-           {isMobile && (
+          {isMobile && (
             <div className="lg:hidden">
               <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
                 <SheetContent side="bottom" className="h-[70vh] flex flex-col p-0">
@@ -1711,22 +1729,22 @@ function DesignEditorInternal({
 
               <footer className="fixed bottom-0 left-0 right-0 z-10 bg-card border-t p-2">
                 <ScrollArea className="w-full">
-                    <div className="flex gap-1 justify-center px-4">
-                        <Button 
-                            variant={activeMobilePanel === 'properties' ? 'selected' : 'ghost'}
-                            size="sm"
-                            className="flex flex-col h-auto p-2 gap-1"
-                            disabled={!selectedElement}
-                            onClick={() => handleMobilePanelOpen('properties')}
-                           >
-                            <SlidersHorizontal className="h-6 w-6" />
-                            <span className="text-[10px] font-bold uppercase tracking-tight">Properties</span>
-                           </Button> 
-                    </div>
+                  <div className="flex gap-1 justify-center px-4">
+                    <Button
+                      variant={activeMobilePanel === 'properties' ? 'selected' : 'ghost'}
+                      size="sm"
+                      className="flex flex-col h-auto p-2 gap-1"
+                      disabled={!selectedElement}
+                      onClick={() => handleMobilePanelOpen('properties')}
+                    >
+                      <SlidersHorizontal className="h-6 w-6" />
+                      <span className="text-[10px] font-bold uppercase tracking-tight">Properties</span>
+                    </Button>
+                  </div>
                 </ScrollArea>
               </footer>
             </div>
-           )}
+          )}
         </div>
       </div>
       <LoadDesignDialog isOpen={isLoadDialogOpen} onOpenChange={setIsLoadDialogOpen} onLoad={handleLoadDesign} />
@@ -1736,7 +1754,7 @@ function DesignEditorInternal({
           onClose={() => setCroppingElementId(null)}
           onApply={(cropData) => {
             const { processedSrc, crop, removeColor, threshold, newAspectRatio } = cropData;
-            
+
             const currentElement = findElementRecursive(currentElements, elementToCrop.id);
             if (!currentElement) return;
 
@@ -1745,10 +1763,10 @@ function DesignEditorInternal({
               newHeight = currentElement.width / newAspectRatio;
             }
 
-            updateElement(elementToCrop.id, { 
+            updateElement(elementToCrop.id, {
               src: processedSrc,
-              crop, 
-              removeColor, 
+              crop,
+              removeColor,
               colorThreshold: threshold,
               height: newHeight,
             });
@@ -1762,7 +1780,7 @@ function DesignEditorInternal({
 
 export function DesignEditor(props: DesignEditorProps) {
   return (
-    <SidebarProvider defaultLeftOpen={false}>
+    <SidebarProvider defaultLeftOpen={false} defaultRightOpen={true}>
       <DesignEditorInternal {...props} />
     </SidebarProvider>
   );

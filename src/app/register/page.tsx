@@ -7,21 +7,14 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User, Palette, ArrowRight, ShieldCheck, Zap, Globe } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const registerSchema = z.object({
     role: z.enum(['user', 'freelancer'], { required_error: 'Please select a role.' }),
@@ -69,14 +62,14 @@ export default function RegisterPage() {
       }
 
       toast({
-        title: 'Registration Successful!',
-        description: 'Please log in to continue.',
+        title: 'Identity Created!',
+        description: 'Welcome to the future of printing.',
       });
       router.push('/login');
     } catch (error: any) {
        toast({
         variant: 'destructive',
-        title: 'Registration Failed',
+        title: 'Creation Failed',
         description: error.message || 'An unexpected error occurred.',
       });
     } finally {
@@ -85,38 +78,88 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background py-12">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto">
-            <AmazoprintLogo />
+    <div className="min-h-screen flex bg-white dark:bg-slate-950">
+      {/* Left Side: Brand Visuals */}
+      <div className="hidden lg:flex lg:w-1/3 relative bg-slate-900 overflow-hidden shrink-0">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-overlay scale-110" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/50 to-transparent" />
+        
+        <div className="relative z-10 w-full flex flex-col justify-between p-12">
+          <Link href="/">
+             <AmazoprintLogo className="brightness-0 invert scale-110 origin-left" />
+          </Link>
+          
+          <div className="space-y-6">
+            <h1 className="text-4xl font-black text-white leading-tight tracking-tighter">
+              Join the Industrial<br />
+              <span className="text-primary text-5xl">Revolution.</span>
+            </h1>
+            <p className="text-slate-400 font-medium leading-relaxed">
+                Connect with professional designers or manage your industrial printing projects with our advanced AI ecosystem.
+            </p>
+            
+            <div className="space-y-4 pt-6">
+                {[
+                    { icon: Zap, title: "Instant Scaling", desc: "Grow your print business" },
+                    { icon: Globe, title: "Global Network", desc: "Expert designers worldwide" },
+                    { icon: ShieldCheck, title: "Verified Quality", desc: "Print-ready guarantees" },
+                ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-4 group">
+                        <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-all">
+                            <item.icon size={18} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white">{item.title}</p>
+                            <p className="text-[9px] text-slate-500 font-bold">{item.desc}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
           </div>
-          <CardTitle className="text-2xl">Create an Account</CardTitle>
-          <CardDescription>
-            Join our community of clients and designers.
-          </CardDescription>
-        </CardHeader>
-        <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(handleRegister)}>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <Label className="text-center block">Are you a...</Label>
+          
+          <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">
+            Precision Engineering • Design Excellence
+          </p>
+        </div>
+      </div>
+
+      {/* Right Side: Registration Form */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 lg:p-20 relative overflow-y-auto">
+        <div className="w-full max-w-2xl space-y-10 py-12">
+          <div className="text-center lg:text-left space-y-3">
+             <div className="lg:hidden flex justify-center mb-6">
+               <AmazoprintLogo />
+             </div>
+             <h2 className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Create New Identity</h2>
+             <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Select your role to begin the journey</p>
+          </div>
+
+          <FormProvider {...methods}>
+            <form onSubmit={handleSubmit(handleRegister)} className="space-y-10">
+              {/* Role Selection */}
+              <div className="space-y-4">
                 <RadioGroup
                   defaultValue={role}
                   onValueChange={(value) => methods.setValue('role', value as 'user' | 'freelancer')}
-                  className="grid grid-cols-2 gap-4"
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                 >
-                  <div>
+                  <div className="relative">
                     <RadioGroupItem value="user" id="client" className="peer sr-only" {...register('role')} />
                     <Label
                       htmlFor="client"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 h-full hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                      className="flex items-start gap-4 p-6 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 hover:border-primary/30 transition-all cursor-pointer peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/[0.03] group"
                     >
-                      Client
-                      <span className="text-sm text-muted-foreground mt-1 text-center">I need design work done.</span>
+                      <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors border shadow-sm group-peer-data-[state=checked]:text-primary group-peer-data-[state=checked]:border-primary/20">
+                        <User size={24} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-black uppercase tracking-widest mb-1">Corporate Client</p>
+                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">I need professional designs and industrial printing services.</p>
+                      </div>
                     </Label>
                   </div>
-                  <div>
+                  
+                  <div className="relative">
                     <RadioGroupItem
                       value="freelancer"
                       id="freelancer"
@@ -125,93 +168,95 @@ export default function RegisterPage() {
                     />
                     <Label
                       htmlFor="freelancer"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 h-full hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                      className="flex items-start gap-4 p-6 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 hover:border-primary/30 transition-all cursor-pointer peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/[0.03] group"
                     >
-                      Freelancer
-                       <span className="text-sm text-muted-foreground mt-1 text-center">I am a designer looking for work.</span>
+                      <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors border shadow-sm group-peer-data-[state=checked]:text-primary group-peer-data-[state=checked]:border-primary/20">
+                        <Palette size={24} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-black uppercase tracking-widest mb-1">Expert Designer</p>
+                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">I am a professional looking to contribute to global projects.</p>
+                      </div>
                     </Label>
                   </div>
                 </RadioGroup>
-                {errors.role && <p className="text-sm text-destructive text-center">{errors.role.message}</p>}
+                {errors.role && <p className="text-[10px] font-black text-red-500 text-center uppercase tracking-widest">{errors.role.message}</p>}
               </div>
 
               {role && (
-                <div className="space-y-6 animate-in fade-in-0">
-                  <h3 className="font-semibold text-center">{role === 'user' ? 'Client' : 'Freelancer'} Registration</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                          <Label htmlFor="name">Full Name</Label>
-                          <Input id="name" placeholder={role === 'user' ? "Priya Kumar" : "Arun Kumar"} {...register('name')} />
-                          {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+                          <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Identity</Label>
+                          <Input id="name" placeholder="John Doe" className="h-12 px-5 rounded-xl border-2 bg-slate-50/50 focus:border-primary transition-all font-bold text-sm" {...register('name')} />
+                          {errors.name && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.name.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email Address</Label>
-                        <Input id="email" type="email" placeholder={role === 'user' ? "priya.kumar@example.com" : "arun.kumar@design.co"} {...register('email')} />
-                        {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+                        <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Primary Email</Label>
+                        <Input id="email" type="email" placeholder="john@example.com" className="h-12 px-5 rounded-xl border-2 bg-slate-50/50 focus:border-primary transition-all font-bold text-sm" {...register('email')} />
+                        {errors.email && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.email.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number (Optional)</Label>
-                        <Input id="phone" type="tel" placeholder="+91 98765 43210" {...register('phone')} />
-                        {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
+                        <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Secure Contact</Label>
+                        <Input id="phone" type="tel" placeholder="+91 00000 00000" className="h-12 px-5 rounded-xl border-2 bg-slate-50/50 focus:border-primary transition-all font-bold text-sm" {...register('phone')} />
+                        {errors.phone && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.phone.message}</p>}
                       </div>
                   </div>
                   
                   {role === 'freelancer' && (
-                    <div className="space-y-4">
+                    <div className="space-y-6 bg-slate-50/50 p-6 rounded-2xl border-2 border-dashed border-slate-200">
                       <div className="space-y-2">
-                        <Label htmlFor="portfolioUrl">Portfolio or Website (Optional)</Label>
-                        <Input id="portfolioUrl" placeholder="https://behance.net/arunkumar" {...register('portfolioUrl')} />
-                        {errors.portfolioUrl && <p className="text-sm text-destructive">{errors.portfolioUrl.message}</p>}
+                        <Label htmlFor="portfolioUrl" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Portfolio Matrix (URL)</Label>
+                        <Input id="portfolioUrl" placeholder="https://behance.net/identity" className="h-12 px-5 rounded-xl border-2 bg-white focus:border-primary transition-all font-bold text-sm" {...register('portfolioUrl')} />
+                        {errors.portfolioUrl && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.portfolioUrl.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="skills">Skills / Specialties (Optional)</Label>
-                        <Textarea id="skills" placeholder="e.g., Logo Design, Brochure Design, Tamil Typography..." {...register('skills')} />
-                        <p className="text-xs text-muted-foreground">Please list your skills, separated by commas.</p>
-                        {errors.skills && <p className="text-sm text-destructive">{errors.skills.message}</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bio">Bio (Optional)</Label>
-                        <Textarea id="bio" placeholder="A brief introduction about yourself..." {...register('bio')} />
-                        {errors.bio && <p className="text-sm text-destructive">{errors.bio.message}</p>}
+                        <Label htmlFor="skills" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Skill Arsenal</Label>
+                        <Textarea id="skills" placeholder="Logo Design, Typography, Branding..." className="min-h-[100px] p-5 rounded-xl border-2 bg-white focus:border-primary transition-all font-bold text-sm resize-none" {...register('skills')} />
                       </div>
                     </div>
                   )}
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                       <div className="space-y-2">
-                          <Label htmlFor="password">Password</Label>
-                          <Input id="password" type="password" {...register('password')} />
-                          {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+                          <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Secure Key</Label>
+                          <Input id="password" type="password" placeholder="••••••••" className="h-12 px-5 rounded-xl border-2 bg-slate-50/50 focus:border-primary transition-all font-bold text-sm" {...register('password')} />
+                          {errors.password && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.password.message}</p>}
                       </div>
                       <div className="space-y-2">
-                          <Label htmlFor="confirm-password">Confirm Password</Label>
-                          <Input id="confirm-password" type="password" {...register('confirmPassword')} />
-                          {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>}
+                          <Label htmlFor="confirm-password" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Verify Key</Label>
+                          <Input id="confirm-password" type="password" placeholder="••••••••" className="h-12 px-5 rounded-xl border-2 bg-slate-50/50 focus:border-primary transition-all font-bold text-sm" {...register('confirmPassword')} />
+                          {errors.confirmPassword && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.confirmPassword.message}</p>}
                       </div>
+                  </div>
+
+                  <div className="pt-6">
+                    <Button type="submit" className="w-full h-14 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95 group" disabled={isLoading}>
+                        {isLoading ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                            <>
+                                Establish Identity
+                                <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                            </>
+                        )}
+                    </Button>
                   </div>
                 </div>
               )}
-            </CardContent>
-          
-            {role && (
-              <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={!role || isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create Account
-                </Button>
-              </CardFooter>
-            )}
-          </form>
-        </FormProvider>
-         <CardFooter className="justify-center pt-4">
-            <p className="text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <Link href="/login" className="text-primary hover:underline">
-                    Login
+            </form>
+          </FormProvider>
+
+          <div className="text-center pt-8 border-t border-slate-100 dark:border-slate-800">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                Already part of the network?{' '}
+                <Link href="/login" className="text-primary hover:underline font-black">
+                    Authorized Login
                 </Link>
             </p>
-        </CardFooter>
-      </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

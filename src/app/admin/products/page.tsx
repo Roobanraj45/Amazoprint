@@ -50,6 +50,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -84,13 +85,14 @@ const subProductSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().optional(),
   price: z.coerce.number().optional(),
-  width: z.coerce.number().min(0.1, 'Width must be positive'),
-  height: z.coerce.number().min(0.1, 'Height must be positive'),
+  width: z.coerce.number().min(0, 'Width must be non-negative'),
+  height: z.coerce.number().min(0, 'Height must be non-negative'),
   imageUrl: z.string().optional().or(z.literal('')),
   isActive: z.boolean().default(true),
   maxPages: z.preprocess((val) => (val === '' || val === null || val === undefined ? 1 : val), z.coerce.number().min(1)),
   spotUvAllowed: z.boolean().default(false),
   allowedFoils: z.array(z.coerce.number()).optional(),
+  unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
 });
 
 type Product = Awaited<ReturnType<typeof getProducts>>[0];
@@ -473,7 +475,7 @@ function SubProductsManager({ product, onUpdate, foilTypes }: { product: Product
                     </div>
                     <div>
                         <Label className="text-xs text-muted-foreground">Dimensions</Label>
-                        <p className="font-medium">{sp.width} x {sp.height} mm</p>
+                        <p className="font-medium">{sp.width} x {sp.height} {sp.unitType || 'mm'}</p>
                     </div>
                     <div>
                         <Label className="text-xs text-muted-foreground">Max Pages</Label>
@@ -520,7 +522,7 @@ function SubProductForm({
     setValue,
   } = useForm<z.infer<typeof subProductSchema>>({
     resolver: zodResolver(subProductSchema),
-    defaultValues: { isActive: true, imageUrl: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [] },
+    defaultValues: { isActive: true, imageUrl: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [], unitType: 'mm' },
   });
   
   const imageUrl = watch('imageUrl');
@@ -535,6 +537,7 @@ function SubProductForm({
           height: Number(subProduct.height),
           maxPages: subProduct.maxPages ?? 1,
           allowedFoils: subProduct.allowedFoils || [],
+          unitType: subProduct.unitType as any || 'mm',
       });
     } else {
         reset({
@@ -548,6 +551,7 @@ function SubProductForm({
             spotUvAllowed: false,
             maxPages: 1,
             allowedFoils: [],
+            unitType: 'mm',
         });
     }
   }, [subProduct, reset]);
@@ -566,7 +570,7 @@ function SubProductForm({
                     <Input id="sp-name" {...register('name')} />
                     {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
                 </div>
-                 <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                     <div>
                         <Label htmlFor="sp-sku">SKU</Label>
                         <Input id="sp-sku" {...register('sku')} />
@@ -576,14 +580,33 @@ function SubProductForm({
                         <Input id="sp-price" type="number" {...register('price')} />
                     </div>
                 </div>
+                <div>
+                    <Label htmlFor="sp-unitType">Unit Type</Label>
+                    <Controller
+                        name="unitType"
+                        control={control}
+                        render={({ field }) => (
+                            <Select value={field.value} onValueChange={field.onChange}>
+                                <SelectTrigger id="sp-unitType">
+                                    <SelectValue placeholder="Select Unit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="mm">mm</SelectItem>
+                                    <SelectItem value="inch">inch</SelectItem>
+                                    <SelectItem value="ft">ft</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <Label htmlFor="sp-width">Width (mm)</Label>
+                        <Label htmlFor="sp-width">Width</Label>
                         <Input id="sp-width" type="number" step="0.1" {...register('width')} />
                         {errors.width && <p className="text-destructive text-sm">{errors.width.message}</p>}
                     </div>
                     <div>
-                        <Label htmlFor="sp-height">Height (mm)</Label>
+                        <Label htmlFor="sp-height">Height</Label>
                         <Input id="sp-height" type="number" step="0.1" {...register('height')} />
                         {errors.height && <p className="text-destructive text-sm">{errors.height.message}</p>}
                     </div>

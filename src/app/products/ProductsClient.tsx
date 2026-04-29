@@ -234,7 +234,7 @@ export function ProductsClient({ initialProducts }: { initialProducts: any[] }) 
                                                                 </h3>
                                                                 <p className="text-[11px] text-muted-foreground mt-2 font-bold uppercase tracking-widest flex items-center gap-1.5 bg-muted/50 w-fit px-2.5 py-1 rounded-md border border-border/50">
                                                                     <Package2 size={14} className="text-primary/70" />
-                                                                    {subProduct.width} &times; {subProduct.height} mm
+                                                                    {subProduct.width} &times; {subProduct.height} {subProduct.unitType || 'mm'}
                                                                 </p>
                                                             </div>
                                                             

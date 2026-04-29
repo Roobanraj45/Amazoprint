@@ -11,11 +11,19 @@ import {
     Layers,
     Eye,
     ChevronLeft,
+    ChevronRight,
     ShoppingCart,
     MoreVertical,
     Library,
     Undo,
+    RectangleHorizontal,
+    RectangleVertical,
     AlignLeft,
+    AlignCenter,
+    AlignRight,
+    AlignStartVertical,
+    AlignCenterVertical,
+    AlignEndVertical,
     Blend,
     Copy,
     Trash2,
@@ -105,10 +113,14 @@ export function EditorHeader(props: any) {
         isSubmitting,
 
         confirmNavigation,
+        onRotateCanvas,
+        currentPage,
+        totalPages,
+        setCurrentPage,
     } = props;
 
-    const iconClass = "h-5 w-5";
-    const labelClass = "text-[9px] uppercase font-bold tracking-tighter opacity-70 group-hover:opacity-100 transition-opacity";
+    const iconClass = "h-4.5 w-4.5";
+    const labelClass = "text-[8px] uppercase font-bold tracking-tighter opacity-70 group-hover:opacity-100 transition-opacity";
 
     return (
         <header className="relative z-20 flex h-16 items-center justify-between border-b bg-card px-2 lg:px-4 whitespace-nowrap overflow-hidden">
@@ -156,24 +168,53 @@ export function EditorHeader(props: any) {
                     </div>
                 </div>
 
+                {/* Page Navigation */}
+                {totalPages > 1 && (
+                    <div className="flex items-center gap-1.5 px-1.5 py-1 bg-muted/40 rounded-xl border border-border/40 backdrop-blur-sm ml-2">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-lg hover:bg-background/80"
+                            disabled={currentPage === 0}
+                            onClick={() => setCurrentPage(currentPage - 1)}
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <div className="flex flex-col items-center justify-center min-w-[70px] leading-none">
+                            <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">Page</span>
+                            <span className="text-xs font-bold text-primary">{currentPage + 1} / {totalPages}</span>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-lg hover:bg-background/80"
+                            disabled={currentPage === totalPages - 1}
+                            onClick={() => setCurrentPage(currentPage + 1)}
+                        >
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
+
             </div>
 
-            {/* CENTER */}
-            <div className="hidden lg:flex flex-1 justify-center items-center gap-1.5 overflow-x-auto">
+            {/* CENTER - Scrollable Toolbar */}
+            <div className="hidden lg:flex flex-1 items-center justify-center min-w-0 px-2 overflow-hidden">
+                <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar py-1">
 
-                <Button onClick={undo} disabled={!canUndo} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                <Button onClick={undo} disabled={!canUndo} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                     <Undo className={iconClass} />
                     <span className={labelClass}>Undo</span>
                 </Button>
 
-                <Button onClick={redo} disabled={!canRedo} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                <Button onClick={redo} disabled={!canRedo} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                     <Redo className={iconClass} />
                     <span className={labelClass}>Redo</span>
                 </Button>
 
                 <Popover>
                     <PopoverTrigger asChild>
-                        <Button variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                        <Button variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                             <Layers className={iconClass} />
                             <span className={labelClass}>Layers</span>
                         </Button>
@@ -192,25 +233,42 @@ export function EditorHeader(props: any) {
                     </PopoverContent>
                 </Popover>
 
-                <Separator orientation="vertical" className="h-6 mx-1" />
+                <Separator orientation="vertical" className="h-5 mx-0.5 shrink-0" />
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                             <AlignLeft className={iconClass} />
                             <span className={labelClass}>Align</span>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleAlign('left')}>Left</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAlign('center')}>Center</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAlign('right')}>Right</DropdownMenuItem>
+                    <DropdownMenuContent align="center" className="w-36 p-1 bg-background/95 backdrop-blur-md border-border/50">
+                        <div className="grid grid-cols-3 gap-1">
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('left')} title="Align Left">
+                                <AlignLeft className="h-4 w-4" />
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('center')} title="Center Horizontal">
+                                <AlignCenter className="h-4 w-4" />
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('right')} title="Align Right">
+                                <AlignRight className="h-4 w-4" />
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('top')} title="Align Top">
+                                <AlignStartVertical className="h-4 w-4" />
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('middle')} title="Center Vertical">
+                                <AlignCenterVertical className="h-4 w-4" />
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('bottom')} title="Align Bottom">
+                                <AlignEndVertical className="h-4 w-4" />
+                            </DropdownMenuItem>
+                        </div>
                     </DropdownMenuContent>
                 </DropdownMenu>
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                             <LayoutDashboard className={iconClass} />
                             <span className={labelClass}>Move</span>
                         </Button>
@@ -229,7 +287,7 @@ export function EditorHeader(props: any) {
 
                 <Popover>
                     <PopoverTrigger asChild>
-                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                        <Button disabled={!isSingleElementSelected} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                             <Blend className={iconClass} />
                             <span className={labelClass}>Opacity</span>
                         </Button>
@@ -252,34 +310,40 @@ export function EditorHeader(props: any) {
                     </PopoverContent>
                 </Popover>
 
-                <Button onClick={handleDuplicateElement} disabled={!selectedElements.length} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                <Button onClick={handleDuplicateElement} disabled={!selectedElements.length} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                     <Copy className={iconClass} />
                     <span className={labelClass}>Copy</span>
                 </Button>
 
-                <Button onClick={handleDeleteElement} disabled={!selectedElements.length} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group text-red-500 hover:text-red-600 hover:bg-red-50/50">
+                <Button onClick={handleDeleteElement} disabled={!selectedElements.length} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group text-red-500 hover:text-red-600 hover:bg-red-50/50 shrink-0">
                     <Trash2 className={iconClass} />
                     <span className={labelClass}>Delete</span>
                 </Button>
 
-                <Separator orientation="vertical" className="h-6 mx-1" />
+                <Separator orientation="vertical" className="h-5 mx-0.5 shrink-0" />
 
-                <Button onClick={handleGroup} disabled={selectedElements.length < 2} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                <Button onClick={handleGroup} disabled={selectedElements.length < 2} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                     <Group className={iconClass} />
                     <span className={labelClass}>Group</span>
                 </Button>
 
-                <Button onClick={handleUngroup} disabled={!(isSingleElementSelected && selectedElement?.type === 'group')} variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group">
+                <Button onClick={handleUngroup} disabled={!(isSingleElementSelected && selectedElement?.type === 'group')} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                     <Ungroup className={iconClass} />
                     <span className={labelClass}>Ungroup</span>
                 </Button>
 
-                <Separator orientation="vertical" className="h-6 mx-1" />
+                <Separator orientation="vertical" className="h-5 mx-0.5 shrink-0" />
 
-                <Button variant="ghost" className="h-12 w-14 flex flex-col items-center gap-1 group text-red-500 hover:text-red-600 hover:bg-red-50/50">
+                <Button onClick={onRotateCanvas} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50/50 shrink-0">
+                    {product.width > product.height ? <RectangleVertical className={iconClass} /> : <RectangleHorizontal className={iconClass} />}
+                    <span className={labelClass}>{product.width > product.height ? 'Portrait' : 'Landscape'}</span>
+                </Button>
+
+                <Button variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group text-red-500 hover:text-red-600 hover:bg-red-50/50 shrink-0">
                     <PlayCircle className={iconClass} />
                     <span className={labelClass}>Simulation</span>
                 </Button>
+                </div>
             </div>
 
             {/* RIGHT */}

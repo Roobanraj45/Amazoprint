@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2 } from 'lucide-react';
+import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { resolveImagePath } from '@/lib/utils';
@@ -34,11 +34,18 @@ export function StartDesignContent() {
   
   const [pricingRules, setPricingRules] = useState<any[]>([]);
   const [loadingPricing, setLoadingPricing] = useState(false);
-  const [calculatedPrice, setCalculatedPrice] = useState<{ original: number; final: number; discount: number; description: string | null } | null>(null);
+  const [calculatedPrice, setCalculatedPrice] = useState<{ 
+    original: number; 
+    final: number; 
+    discount: number; 
+    description: string | null;
+    addons: { name: string; totalAmount: number }[];
+  } | null>(null);
 
   const [quantity, setQuantity] = useState('100');
   const [pages, setPages] = useState('1');
   const [spotUv, setSpotUv] = useState(false);
+  const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -87,6 +94,16 @@ export function StartDesignContent() {
         .sort((a, b) => (a.minQuantity || 0) - (b.minQuantity || 0));
   }, [pricingRules]);
 
+  const addonRules = useMemo(() => {
+    return pricingRules.filter(rule => rule.isAddon);
+  }, [pricingRules]);
+
+  const toggleAddon = (id: number) => {
+    setSelectedAddons(prev => 
+        prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
   useEffect(() => {
     if (!subProduct) {
         setCalculatedPrice(null);
@@ -119,14 +136,30 @@ export function StartDesignContent() {
         finalPrice = basePrice - discount;
     }
 
-    setCalculatedPrice({
-        original: basePrice * qty,
-        final: finalPrice * qty,
-        discount: discount * qty,
-        description: discountDescription,
+    let addonTotalPerUnit = 0;
+    const addonBreakdown: { name: string; totalAmount: number }[] = [];
+
+    selectedAddons.forEach(id => {
+        const rule = pricingRules.find(r => r.id === id);
+        if (rule && rule.addonPriceAmount) {
+            const amount = Number(rule.addonPriceAmount);
+            addonTotalPerUnit += amount;
+            addonBreakdown.push({
+                name: rule.addonName || 'Extra Add-on',
+                totalAmount: amount * qty
+            });
+        }
     });
 
-  }, [quantity, subProduct, pricingRules]);
+    setCalculatedPrice({
+        original: (basePrice + addonTotalPerUnit) * qty,
+        final: (finalPrice + addonTotalPerUnit) * qty,
+        discount: discount * qty,
+        description: discountDescription,
+        addons: addonBreakdown,
+    });
+
+  }, [quantity, subProduct, pricingRules, selectedAddons]);
 
   const constructedQuery = useMemo(() => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -137,8 +170,13 @@ export function StartDesignContent() {
     } else {
       newParams.delete('spotUv');
     }
+    if (selectedAddons.length > 0) {
+      newParams.set('addons', selectedAddons.join(','));
+    } else {
+      newParams.delete('addons');
+    }
     return newParams.toString();
-  }, [searchParams, quantity, pages, spotUv, subProduct]);
+  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons]);
 
   if (loading) {
     return (
@@ -214,7 +252,7 @@ export function StartDesignContent() {
                       </div>
                       <div className="rounded-md border bg-muted/30 p-2.5 dark:border-slate-800">
                           <p className="text-[10px] uppercase font-semibold text-muted-foreground">Dimensions</p>
-                          <p className="text-sm font-medium">{subProduct.width} x {subProduct.height} mm</p>
+                          <p className="text-sm font-medium">{subProduct.width} x {subProduct.height} {subProduct.unitType || 'mm'}</p>
                         </div>
                     </div>
                   </div>
@@ -224,50 +262,47 @@ export function StartDesignContent() {
               <div className="lg:col-span-7 space-y-12">
 
               {discountRules.length > 0 && (
-                        <Card className="border shadow-sm bg-white dark:bg-slate-900">
-                            <CardHeader>
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <Sparkles className="w-4 h-4 text-amber-500" />
-                                    Volume Discounts
+                        <Card className="border shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+                            <CardHeader className="bg-amber-50/50 dark:bg-amber-900/10 border-b py-3">
+                                <CardTitle className="text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                                    <Sparkles className="w-4 h-4" />
+                                    Exclusive Offers
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-2">
-                                {discountRules.map(rule => {
-                                    const qty = parseInt(quantity, 10);
-                                    const isActive = !isNaN(qty) && qty >= (rule.minQuantity || 1) && (!rule.maxQuantity || qty <= rule.maxQuantity);
-                                    const discountText = rule.discountType === 'percentage'
-                                        ? `${rule.discountValue}% OFF`
-                                        : `₹${rule.discountValue} OFF`;
-                                    return (
-                                        <div key={rule.id} className={cn(
-                                            "p-3 rounded-lg border transition-all", 
-                                            isActive 
-                                                ? "border-primary bg-primary/5 ring-2 ring-primary shadow-lg" 
-                                                : "bg-muted/30 dark:bg-slate-800/50"
-                                        )}>
-                                            <div className="flex justify-between items-center">
-                                                <p className="font-semibold text-sm">
-                                                    {rule.minQuantity || 1}{rule.maxQuantity ? ` - ${rule.maxQuantity}` : '+'} units
+                            <CardContent className="p-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {discountRules.map(rule => {
+                                        const qty = parseInt(quantity, 10);
+                                        const isActive = !isNaN(qty) && qty >= (rule.minQuantity || 1) && (!rule.maxQuantity || qty <= rule.maxQuantity);
+                                        const discountText = rule.discountType === 'percentage'
+                                            ? `${rule.discountValue}% OFF`
+                                            : `₹${rule.discountValue} OFF`;
+                                        return (
+                                            <div key={rule.id} className={cn(
+                                                "p-2 rounded-lg border text-center transition-all", 
+                                                isActive 
+                                                    ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm" 
+                                                    : "bg-muted/30 border-slate-100 dark:border-slate-800"
+                                            )}>
+                                                <p className="font-bold text-[10px] text-muted-foreground uppercase tracking-tighter">
+                                                    {rule.minQuantity || 1}{rule.maxQuantity ? ` - ${rule.maxQuantity}` : '+'} Qty
                                                 </p>
-                                                <Badge variant={isActive ? "default" : "secondary"}>{discountText}</Badge>
+                                                <p className={cn("font-black text-xs", isActive ? "text-primary" : "text-foreground")}>{discountText}</p>
                                             </div>
-                                        </div>
-                                    )
-                                })}
+                                        )
+                                    })}
+                                </div>
                             </CardContent>
                         </Card>
                     )}
 
               <div className="space-y-6">
-                    <Card className="border shadow-sm bg-white dark:bg-slate-900">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Specifications</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-5">
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Quantity</Label>
+                    <Card className="border shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+                      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x dark:divide-slate-800">
+                        <div className="p-4 space-y-3">
+                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Select Quantity</Label>
                           <Select value={quantity} onValueChange={setQuantity}>
-                            <SelectTrigger className="w-full h-10"><SelectValue/></SelectTrigger>
+                            <SelectTrigger className="w-full h-10 font-bold"><SelectValue/></SelectTrigger>
                             <SelectContent>
                               {[100, 250, 500, 1000, 2500, 5000].map(q => (
                                 <SelectItem key={q} value={String(q)}>{q} pieces</SelectItem>
@@ -276,74 +311,143 @@ export function StartDesignContent() {
                           </Select>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Print Sides</Label>
-                          <RadioGroup value={pages} onValueChange={setPages} className="grid grid-cols-2 gap-3">
-                            <div 
-                              onClick={() => setPages('1')}
-                              className={cn(
-                                "flex items-center justify-center p-2.5 rounded-md border text-sm font-medium cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800",
-                                pages === '1' ? "border-primary bg-primary/5 ring-1 ring-primary" : "text-muted-foreground dark:border-slate-800"
-                              )}
-                            >Single Sided</div>
-                            <div 
-                              onClick={() => setPages('2')}
-                              className={cn(
-                                "flex items-center justify-center p-2.5 rounded-md border text-sm font-medium cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800",
-                                pages === '2' ? "border-primary bg-primary/5 ring-1 ring-primary" : "text-muted-foreground dark:border-slate-800"
-                              )}
-                            >Double Sided</div>
-                          </RadioGroup>
-                        </div>
-
-                        {subProduct.spotUvAllowed && (
-                          <div className="flex items-center justify-between p-3 rounded-lg border dark:border-slate-800 bg-amber-50/20 dark:bg-amber-900/10">
-                            <div className="space-y-0.5">
-                              <Label htmlFor="spot-uv" className="flex items-center gap-1.5 text-sm">
-                                <Sparkles className="text-amber-500" size={14}/> Spot UV Finish
-                              </Label>
-                              <p className="text-[11px] text-muted-foreground">Add premium raised gloss</p>
-                            </div>
-                            <Switch id="spot-uv" checked={spotUv} onCheckedChange={setSpotUv} />
+                        <div className="p-4 space-y-3">
+                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Print Configuration</Label>
+                          <div className="flex gap-2">
+                            <button 
+                                onClick={() => setPages('1')}
+                                className={cn(
+                                    "flex-1 py-2 px-3 rounded-lg border text-xs font-bold transition-all",
+                                    pages === '1' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
+                                )}
+                            >Front Only</button>
+                            <button 
+                                onClick={() => setPages('2')}
+                                className={cn(
+                                    "flex-1 py-2 px-3 rounded-lg border text-xs font-bold transition-all",
+                                    pages === '2' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
+                                )}
+                            >Front & Back</button>
                           </div>
-                        )}
-                      </CardContent>
+                        </div>
+                      </div>
+                      
+                      {subProduct.spotUvAllowed && (
+                        <div className="bg-slate-50/50 dark:bg-slate-800/30 border-t dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold">Premium Spot UV</p>
+                                    <p className="text-[10px] text-muted-foreground font-medium">Add glossy raised texture</p>
+                                </div>
+                            </div>
+                            <Switch checked={spotUv} onCheckedChange={setSpotUv} className="data-[state=checked]:bg-amber-500" />
+                        </div>
+                      )}
                     </Card>
-                    <Card className="border shadow-sm bg-white dark:bg-slate-900">
-                        <CardHeader>
-                            <CardTitle className="text-base">Price Details</CardTitle>
-                            <CardDescription>Based on your selection.</CardDescription>
+
+                    {addonRules.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between px-1">
+                                <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                                    Enhancements
+                                </h3>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {addonRules.map(rule => {
+                                    const isSelected = selectedAddons.includes(rule.id);
+                                    const isCurved = rule.addonName?.toLowerCase().includes('curved') || rule.addonName?.toLowerCase().includes('round');
+                                    
+                                    return (
+                                        <div 
+                                            key={rule.id}
+                                            onClick={() => toggleAddon(rule.id)}
+                                            className={cn(
+                                                "p-2.5 rounded-xl border flex flex-col items-center gap-1.5 text-center transition-all cursor-pointer",
+                                                isSelected 
+                                                    ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm" 
+                                                    : "border-slate-100 dark:border-slate-800 hover:border-slate-200"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "w-7 h-7 rounded-full flex items-center justify-center",
+                                                isSelected ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                                            )}>
+                                                {isCurved ? <Square className="w-3.5 h-3.5 rounded-sm" /> : <PlusCircle className="w-3.5 h-3.5" />}
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black leading-none mb-0.5">{rule.addonName}</p>
+                                                <p className="text-[9px] text-muted-foreground font-bold">₹{Number(rule.addonPriceAmount)}</p>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    <Card className="border-2 border-primary/20 shadow-xl bg-primary/[0.02] dark:bg-slate-900 overflow-hidden">
+                        <CardHeader className="py-4 border-b bg-white dark:bg-slate-900/50">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center justify-between">
+                                Final Summary
+                                <IndianRupee className="w-4 h-4 opacity-50" />
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-5">
                             {loadingPricing ? (
                                 <div className="flex items-center justify-center h-24">
                                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                                 </div>
                             ) : calculatedPrice ? (
-                                <div className="space-y-3">
-                                    {calculatedPrice.discount > 0 && calculatedPrice.description && (
-                                        <>
-                                            <div className="flex justify-between text-sm text-muted-foreground">
-                                                <span>Base Price</span>
-                                                <span className="line-through">₹{calculatedPrice.original.toFixed(2)}</span>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm font-medium">
+                                            <span className="text-muted-foreground">Standard Printing</span>
+                                            <span className="font-bold">₹{calculatedPrice.original.toFixed(2)}</span>
+                                        </div>
+
+                                        {calculatedPrice.addons.length > 0 && (
+                                            <div className="space-y-1.5 pt-1">
+                                                {calculatedPrice.addons.map((addon, idx) => (
+                                                    <div key={idx} className="flex justify-between text-xs items-center">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
+                                                            <span className="text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tighter">{addon.name}</span>
+                                                        </div>
+                                                        <span className="font-bold text-primary/80">+ ₹{addon.totalAmount.toFixed(2)}</span>
+                                                    </div>
+                                                ))}
                                             </div>
-                                            <div className="flex justify-between text-sm text-emerald-600 font-medium">
-                                                <span>Discount ({calculatedPrice.description})</span>
+                                        )}
+                                        
+                                        {calculatedPrice.discount > 0 && calculatedPrice.description && (
+                                            <div className="flex justify-between text-xs font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5 rounded-md border border-emerald-100 dark:border-emerald-900/30">
+                                                <span className="uppercase tracking-widest">Saved with {calculatedPrice.description}</span>
                                                 <span>- ₹{calculatedPrice.discount.toFixed(2)}</span>
                                             </div>
-                                            <Separator />
-                                        </>
-                                    )}
-                                    <div className="flex justify-between items-center font-bold text-xl text-primary">
-                                        <span>Total Price</span>
-                                        <span className="flex items-center">
-                                            <IndianRupee size={18} className="mr-0.5"/>
-                                            {calculatedPrice.final.toFixed(2)}
-                                        </span>
+                                        )}
+                                    </div>
+
+                                    <div className="pt-4 border-t-2 border-dashed border-primary/10">
+                                        <div className="flex justify-between items-end">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">Total Amount</p>
+                                                <p className="text-[9px] text-muted-foreground/60 font-bold">Inclusive of all taxes</p>
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-3xl font-black text-primary flex items-center tracking-tighter">
+                                                    <IndianRupee size={24} className="mr-1 stroke-[3]"/>
+                                                    {calculatedPrice.final.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-sm text-muted-foreground text-center py-8">Select quantity to view price.</div>
+                                <div className="text-sm text-muted-foreground text-center py-8 font-bold italic">Configuring your price...</div>
                             )}
                         </CardContent>
                     </Card>

@@ -7,20 +7,13 @@ import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowRight, ShieldCheck, Sparkles, LayoutGrid } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address' }),
@@ -66,19 +59,17 @@ export default function LoginPage() {
       
       toast({
         title: 'Login Successful',
-        description: 'Welcome back!',
+        description: 'Welcome back to Amazoprint!',
       });
       
       let dashboardUrl = '/';
       switch (result.role) {
-        case 'freelancer':
-          dashboardUrl = '/freelancer/dashboard';
-          break;
-        case 'user':
-          dashboardUrl = '/';
-          break;
-        default:
-          dashboardUrl = '/'; // Fallback to home
+        case 'freelancer': dashboardUrl = '/freelancer/dashboard'; break;
+        case 'admin':
+        case 'super_admin':
+        case 'company_admin':
+        case 'designer': dashboardUrl = '/admin/dashboard'; break;
+        default: dashboardUrl = '/';
       }
       
       router.push(dashboardUrl);
@@ -96,60 +87,144 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto">
-             <AmazoprintLogo />
+    <div className="min-h-screen flex bg-white dark:bg-slate-950">
+      {/* Left Side: Brand & Visuals */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-slate-900 overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1562654508-4c3246f238c6?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay scale-110 animate-pulse-slow" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-transparent to-slate-900" />
+        
+        <div className="relative z-10 w-full flex flex-col justify-between p-16">
+          <Link href="/">
+             <AmazoprintLogo className="brightness-0 invert scale-125 origin-left" />
+          </Link>
+          
+          <div className="space-y-8">
+            <h1 className="text-6xl font-black text-white leading-tight tracking-tighter">
+              Industrial Precision.<br />
+              <span className="text-primary">AI-Powered</span> Design.
+            </h1>
+            <p className="text-xl text-slate-300 max-w-lg font-medium leading-relaxed">
+              Log in to access your dashboard, manage design quests, and experience the next generation of printing technology.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-6 pt-8">
+                {[
+                    { icon: ShieldCheck, title: "Secure Workflow", desc: "Enterprise-grade safety" },
+                    { icon: Sparkles, title: "AI Tools", desc: "Smart design assistance" },
+                ].map((feature, i) => (
+                    <div key={i} className="p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 space-y-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+                            <feature.icon size={20} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-white uppercase tracking-widest">{feature.title}</p>
+                            <p className="text-xs text-slate-400">{feature.desc}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
           </div>
-          <CardTitle>Welcome Back</CardTitle>
-          <CardDescription>
-            Enter your credentials to access your account.
-          </CardDescription>
-        </CardHeader>
-        <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(handleLogin)}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="user@example.com" {...register('email')} />
-                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" {...register('password')} />
-                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-              </div>
-               <div className="flex items-center space-x-2">
-                <Controller
-                  control={control}
-                  name="keepLoggedIn"
-                  render={({ field }) => (
-                    <Checkbox
-                      id="keep-logged-in"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
+          
+          <p className="text-slate-500 text-sm font-bold uppercase tracking-[0.3em]">
+            © {new Date().getFullYear()} Amazoprint Inc.
+          </p>
+        </div>
+      </div>
+
+      {/* Right Side: Login Form */}
+      <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-12 lg:p-24 relative">
+        <div className="w-full max-w-md space-y-12">
+          <div className="space-y-4">
+            <div className="lg:hidden mb-8">
+               <AmazoprintLogo />
+            </div>
+            <h2 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Welcome Back</h2>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">
+              Access your industrial design workspace
+            </p>
+          </div>
+
+          <FormProvider {...methods}>
+            <form onSubmit={handleSubmit(handleLogin)} className="space-y-8">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Identity</Label>
+                  <div className="relative">
+                    <Input 
+                        id="email" 
+                        type="email" 
+                        placeholder="your@identity.com" 
+                        className="h-14 px-6 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 focus:border-primary focus:ring-0 transition-all font-bold text-sm"
+                        {...register('email')} 
                     />
-                  )}
-                />
-                <Label htmlFor="keep-logged-in" className="font-normal">Keep me logged in</Label>
+                  </div>
+                  {errors.email && <p className="text-[10px] font-bold text-red-500 ml-4 uppercase tracking-widest animate-in slide-in-from-top-1">{errors.email.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center px-1">
+                    <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Security Key</Label>
+                    <Link href="#" className="text-[10px] font-black uppercase tracking-widest text-primary hover:opacity-70 transition-opacity">Reset Key?</Link>
+                  </div>
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    placeholder="••••••••"
+                    className="h-14 px-6 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 focus:border-primary focus:ring-0 transition-all font-bold text-sm"
+                    {...register('password')} 
+                  />
+                  {errors.password && <p className="text-[10px] font-bold text-red-500 ml-4 uppercase tracking-widest animate-in slide-in-from-top-1">{errors.password.message}</p>}
+                </div>
+
+                <div className="flex items-center space-x-3 px-1">
+                    <Controller
+                    control={control}
+                    name="keepLoggedIn"
+                    render={({ field }) => (
+                        <Checkbox
+                        id="keep-logged-in"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="rounded-md h-5 w-5 border-2"
+                        />
+                    )}
+                    />
+                    <Label htmlFor="keep-logged-in" className="text-[11px] font-bold uppercase tracking-widest text-slate-500 cursor-pointer select-none">Remember this session</Label>
+                </div>
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Login
+
+              <Button type="submit" className="w-full h-14 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95 group" disabled={isLoading}>
+                {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                    <>
+                        Authorize Access
+                        <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                    </>
+                )}
               </Button>
-            </CardContent>
-          </form>
-        </FormProvider>
-        <CardFooter className="justify-center">
-            <p className="text-sm text-muted-foreground">
-                Don't have an account?{' '}
-                <Link href="/register" className="text-primary hover:underline">
-                    Sign up
+            </form>
+          </FormProvider>
+
+          <div className="pt-8 text-center space-y-4 border-t border-slate-100 dark:border-slate-800">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                New to the platform?{' '}
+                <Link href="/register" className="text-primary hover:underline font-black">
+                    Create New Identity
                 </Link>
             </p>
-        </CardFooter>
-      </Card>
+            <div className="pt-2">
+                <Link 
+                    href="/admin-login" 
+                    className="inline-flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-primary transition-colors group"
+                >
+                    <ShieldCheck size={12} className="group-hover:rotate-12 transition-transform" />
+                    Admin Portal
+                </Link>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

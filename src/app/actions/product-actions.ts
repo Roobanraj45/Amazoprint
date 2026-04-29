@@ -22,13 +22,14 @@ const subProductSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().optional(),
   price: z.coerce.number().optional(),
-  width: z.coerce.number().min(0.1, 'Width must be positive'),
-  height: z.coerce.number().min(0.1, 'Height must be positive'),
+  width: z.coerce.number().min(0, 'Width must be non-negative'),
+  height: z.coerce.number().min(0, 'Height must be non-negative'),
   imageUrl: z.string().optional().or(z.literal('')),
   isActive: z.boolean().default(true),
   maxPages: z.preprocess((val) => (val === '' || val === null || val === undefined ? 1 : val), z.coerce.number().min(1)),
   spotUvAllowed: z.boolean().default(false),
   allowedFoils: z.array(z.coerce.number()).optional(),
+  unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
 });
 
 export async function getProducts() {

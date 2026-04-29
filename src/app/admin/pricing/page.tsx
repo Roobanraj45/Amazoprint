@@ -234,20 +234,20 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
     const isDiscount = watch('isDiscount');
     const isAddon = watch('isAddon');
 
-    // Handle mutual exclusivity
-    useEffect(() => {
-        if (isAddon) {
+    // Handle mutual exclusivity with a single source of truth logic
+    const handleToggle = (name: 'isContest' | 'isVerification' | 'isDiscount' | 'isAddon', checked: boolean) => {
+        if (checked) {
+            // If turning one ON, turn all others OFF
             setValue('isContest', false);
             setValue('isVerification', false);
             setValue('isDiscount', false);
-        }
-    }, [isAddon, setValue]);
-
-    useEffect(() => {
-        if (isContest || isVerification || isDiscount) {
             setValue('isAddon', false);
+            setValue(name, true);
+        } else {
+            // If turning OFF, just turn it OFF
+            setValue(name, false);
         }
-    }, [isContest, isVerification, isDiscount, setValue]);
+    };
 
     useEffect(() => {
         if (rule) {
@@ -281,20 +281,20 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
                 <div className="space-y-6 p-4">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="flex items-center space-x-2">
-                            <Controller name="isContest" control={control} render={({ field }) => <Switch id="isContest" checked={field.value} onCheckedChange={field.onChange} disabled={isAddon} />} />
-                            <Label htmlFor="isContest" className={cn(isAddon && "opacity-50")}>Contest</Label>
+                            <Controller name="isContest" control={control} render={({ field }) => <Switch id="isContest" checked={field.value} onCheckedChange={(val) => handleToggle('isContest', val)} />} />
+                            <Label htmlFor="isContest">Contest</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Controller name="isVerification" control={control} render={({ field }) => <Switch id="isVerification" checked={field.value} onCheckedChange={field.onChange} disabled={isAddon} />} />
-                            <Label htmlFor="isVerification" className={cn(isAddon && "opacity-50")}>Verification</Label>
+                            <Controller name="isVerification" control={control} render={({ field }) => <Switch id="isVerification" checked={field.value} onCheckedChange={(val) => handleToggle('isVerification', val)} />} />
+                            <Label htmlFor="isVerification">Verification</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Controller name="isDiscount" control={control} render={({ field }) => <Switch id="isDiscount" checked={field.value} onCheckedChange={field.onChange} disabled={isAddon} />} />
-                            <Label htmlFor="isDiscount" className={cn(isAddon && "opacity-50")}>Discount</Label>
+                            <Controller name="isDiscount" control={control} render={({ field }) => <Switch id="isDiscount" checked={field.value} onCheckedChange={(val) => handleToggle('isDiscount', val)} />} />
+                            <Label htmlFor="isDiscount">Discount</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Controller name="isAddon" control={control} render={({ field }) => <Switch id="isAddon" checked={field.value} onCheckedChange={field.onChange} disabled={isContest || isVerification || isDiscount} />} />
-                            <Label htmlFor="isAddon" className={cn((isContest || isVerification || isDiscount) && "opacity-50")}>Add-on</Label>
+                            <Controller name="isAddon" control={control} render={({ field }) => <Switch id="isAddon" checked={field.value} onCheckedChange={(val) => handleToggle('isAddon', val)} />} />
+                            <Label htmlFor="isAddon">Add-on</Label>
                         </div>
                     </div>
                     <Card>

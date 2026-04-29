@@ -56,12 +56,18 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
     });
   }
 
-  // Use explicit width/height from URL if provided, otherwise use sub-product dimensions (in mm), or fallback to a default.
-  const finalWidthInMm = searchParams.width ? Number(searchParams.width) : (subProductForDims ? Number(subProductForDims.width) : 85);
-  const finalHeightInMm = searchParams.height ? Number(searchParams.height) : (subProductForDims ? Number(subProductForDims.height) : 55);
+  // Determine unit conversion factor
+  const unitType = subProductForDims?.unitType || 'mm';
+  let unitToPx = MM_TO_PX;
+  if (unitType === 'inch') unitToPx = DPI;
+  else if (unitType === 'ft') unitToPx = DPI * 12;
 
-  const finalWidth = Math.round(finalWidthInMm * MM_TO_PX);
-  const finalHeight = Math.round(finalHeightInMm * MM_TO_PX);
+  // Use explicit width/height from URL if provided, otherwise use sub-product dimensions, or fallback to a default.
+  const finalWidthUnits = searchParams.width ? Number(searchParams.width) : (subProductForDims ? Number(subProductForDims.width) : 85);
+  const finalHeightUnits = searchParams.height ? Number(searchParams.height) : (subProductForDims ? Number(subProductForDims.height) : 55);
+
+  const finalWidth = Math.round(finalWidthUnits * unitToPx);
+  const finalHeight = Math.round(finalHeightUnits * unitToPx);
 
   // The DesignEditor component expects a `Product` type from `@/lib/types`.
   const productForEditor: Product = {
@@ -101,8 +107,8 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
             totalPages = 1;
         }
 
-        productForEditor.width = Math.round(template.width * MM_TO_PX);
-        productForEditor.height = Math.round(template.height * MM_TO_PX);
+        productForEditor.width = Math.round(template.width * unitToPx);
+        productForEditor.height = Math.round(template.height * unitToPx);
         
         const canUpdate = (session?.sub && template.userId === session.sub) || isAdmin || (isFreelancer && verificationId);
         
@@ -137,6 +143,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
             availableFoils={availableFoils}
             spotUvAllowed={spotUvAllowedForProduct}
             verificationId={verificationId}
+            initialUnit={unitType as any}
         />
     </Suspense>
   );

@@ -51,7 +51,7 @@ export async function deletePricingRule(id: number) {
 
 export async function getProductsWithPricing() {
     return await db.query.products.findMany({
-        orderBy: [desc(products.createdAt)],
+        orderBy: [asc(products.createdAt)],
         with: {
             subProducts: {
                 orderBy: [asc(subProducts.name)],

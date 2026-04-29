@@ -50,3 +50,10 @@ export async function getSession() {
   const session = await getAuthSession();
   return session;
 }
+
+export async function logout() {
+    const { deleteSession } = await import('@/lib/auth');
+    await deleteSession();
+    revalidatePath('/');
+    return { success: true };
+}

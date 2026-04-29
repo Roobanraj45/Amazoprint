@@ -19,6 +19,7 @@ export function middleware(request: NextRequest) {
     '/help',
     '/terms',
     '/privacy',
+    '/printer-registration',
   ];
 
   // If the path is public, let the request through

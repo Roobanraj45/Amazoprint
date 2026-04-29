@@ -55,6 +55,8 @@ type PropertiesPanelProps = {
     setBleed: (size: number) => void;
     safetyMargin: number;
     setSafetyMargin: (size: number) => void;
+    unit: 'mm' | 'inch' | 'ft';
+    setUnit: (unit: 'mm' | 'inch' | 'ft') => void;
   };
   croppingElementId: string | null;
   setCroppingElementId: (id: string | null) => void;
@@ -154,10 +156,67 @@ export function PropertiesPanel({
             <div className="space-y-3">
               <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Dimensions</p>
               <div className="grid grid-cols-2 gap-2">
-                <CoordInput label="W" value={Math.round(product?.width * PX_TO_MM)} onChange={(v: number) => onProductUpdate({ width: Math.round(v * MM_TO_PX) })} step={1} disabled={!isAdmin} />
-                <CoordInput label="H" value={Math.round(product?.height * PX_TO_MM)} onChange={(v: number) => onProductUpdate({ height: Math.round(v * MM_TO_PX) })} step={1} disabled={!isAdmin} />
+                {(() => {
+                  const DPI = 300;
+                  const unit = canvasSettings.unit;
+                  let pxToUnit = 25.4 / DPI; // default mm
+                  let unitToPx = DPI / 25.4;
+                  let step = 1;
+
+                  if (unit === 'inch') {
+                    pxToUnit = 1 / DPI;
+                    unitToPx = DPI;
+                    step = 0.1;
+                  } else if (unit === 'ft') {
+                    pxToUnit = 1 / (DPI * 12);
+                    unitToPx = DPI * 12;
+                    step = 0.01;
+                  }
+
+                  const formatVal = (px: number) => {
+                    const val = px * pxToUnit;
+                    return unit === 'mm' ? Math.round(val) : parseFloat(val.toFixed(2));
+                  };
+
+                  return (
+                    <>
+                      <CoordInput 
+                        label="W" 
+                        value={formatVal(product?.width)} 
+                        onChange={(v: number) => onProductUpdate({ width: Math.round(v * unitToPx) })} 
+                        step={step} 
+                        disabled={!isAdmin} 
+                      />
+                      <CoordInput 
+                        label="H" 
+                        value={formatVal(product?.height)} 
+                        onChange={(v: number) => onProductUpdate({ height: Math.round(v * unitToPx) })} 
+                        step={step} 
+                        disabled={!isAdmin} 
+                      />
+                    </>
+                  );
+                })()}
               </div>
-              <p className="text-[9px] text-muted-foreground/50 text-center">in millimeters</p>
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Canvas Unit</p>
+                <div className="flex bg-muted/40 p-0.5 rounded-md w-32">
+                    {['mm', 'inch', 'ft'].map((u) => (
+                        <button
+                            key={u}
+                            onClick={() => canvasSettings.setUnit(u as any)}
+                            className={cn(
+                                "flex-1 h-6 text-[9px] font-bold rounded transition-all uppercase",
+                                canvasSettings.unit === u 
+                                    ? "bg-background shadow-sm text-primary" 
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            {u}
+                        </button>
+                    ))}
+                </div>
+              </div>
             </div>
 
             <div className="h-px bg-border/40" />

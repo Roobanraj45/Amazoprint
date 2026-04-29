@@ -3,21 +3,22 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { DesignCanvas } from '@/components/design/design-canvas';
 import type { DesignElement, Product, Background, ViewState } from '@/lib/types';
-import { Loader2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Loader2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type PreviewData = {
-  elements: DesignElement[];
+  pages: { elements: DesignElement[]; background: Background }[];
   product: Product;
-  background: Background;
   bleed: number;
   safetyMargin: number;
+  currentPage?: number;
 };
 
 export default function ClientPreview() {
   const [data, setData] = useState<PreviewData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
+  const [currentPage, setCurrentPage] = useState(0);
 
   const mainCanvasRef = useRef<HTMLDivElement>(null);
   const isPanning = useRef(false);
@@ -27,7 +28,11 @@ export default function ClientPreview() {
     try {
       const savedData = localStorage.getItem('design_preview');
       if (savedData) {
-        setData(JSON.parse(savedData));
+        const parsed = JSON.parse(savedData);
+        setData(parsed);
+        if (parsed.currentPage !== undefined) {
+          setCurrentPage(parsed.currentPage);
+        }
       }
     } catch (error) {
       console.error('Failed to load preview data from localStorage', error);
@@ -149,11 +154,11 @@ export default function ClientPreview() {
     >
       <DesignCanvas
         product={data.product}
-        elements={data.elements}
+        elements={data.pages[currentPage]?.elements || []}
         selectedElementIds={[]}
         onSelectElement={() => {}}
         onUpdateElement={() => {}}
-        background={data.background}
+        background={data.pages[currentPage]?.background || { type: 'solid', color: '#ffffff' }}
         showRulers={false}
         showGrid={false}
         gridSize={20}
@@ -170,16 +175,48 @@ export default function ClientPreview() {
         onInteractionStart={() => {}}
         onInteractionEnd={() => {}}
       />
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-lg bg-card p-1.5 shadow-md border">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomOut}>
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="sm" className="h-8 text-xs w-16" onClick={resetView}>
-          {Math.round(viewState.zoom * 100)}%
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomIn}>
-          <ZoomIn className="h-4 w-4" />
-        </Button>
+      
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4">
+        {/* Page Navigation */}
+        {data.pages.length > 1 && (
+            <div className="flex items-center gap-1.5 rounded-lg bg-card p-1.5 shadow-md border">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={currentPage === 0}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex flex-col items-center justify-center min-w-[70px] leading-none">
+                    <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">Page</span>
+                    <span className="text-xs font-bold text-primary">{currentPage + 1} / {data.pages.length}</span>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={currentPage === data.pages.length - 1}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                >
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+        )}
+
+        {/* Zoom Controls */}
+        <div className="flex items-center gap-1 rounded-lg bg-card p-1.5 shadow-md border">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomOut}>
+            <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs w-16" onClick={resetView}>
+            {Math.round(viewState.zoom * 100)}%
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomIn}>
+            <ZoomIn className="h-4 w-4" />
+            </Button>
+        </div>
       </div>
     </main>
   );
