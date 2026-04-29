@@ -69,11 +69,11 @@
 }
 
 .font-headline {
-  font-family: var(--font-jakarta), sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
 }
 
 .font-body {
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
 }
 
 .gradient-text {

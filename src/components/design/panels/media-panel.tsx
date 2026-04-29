@@ -66,12 +66,12 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, onAddSvgS
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-2 border-b">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="p-4 border-b bg-muted/30">
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
           <Input
             placeholder="Search all media..."
-            className="pl-9"
+            className="pl-10 h-10 bg-background border-border/60 rounded-xl text-sm shadow-sm focus-visible:ring-primary/20 transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -88,7 +88,7 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, onAddSvgS
                   <div className="grid grid-cols-3 gap-2">
                     {searchResults.photos.map(img => (
                       <div key={img.id} className="cursor-pointer aspect-square relative overflow-hidden rounded-md group" onClick={() => onImageSelect(img.imageUrl)}>
-                        <Image src={img.imageUrl} alt={img.description} fill className="object-cover transition-transform group-hover:scale-105" data-ai-hint={img.imageHint} />
+                        <Image src={img.imageUrl} alt={img.description} fill className="object-cover" data-ai-hint={img.imageHint} />
                       </div>
                     ))}
                   </div>
@@ -136,23 +136,25 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, onAddSvgS
           )}
         </ScrollArea>
       ) : (
-        <Tabs defaultValue="photos" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-4 px-2 bg-transparent gap-1">
-            <TabsTrigger value="photos" className="text-[11px] font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-white">Photos</TabsTrigger>
-            <TabsTrigger value="shapes" className="text-[11px] font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-white">Shapes</TabsTrigger>
-            <TabsTrigger value="emojis" className="text-[11px] font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-white">Emojis</TabsTrigger>
-            <TabsTrigger value="assets" className="text-[11px] font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-white">Assets</TabsTrigger>
-          </TabsList>
-          <TabsContent value="photos" className="flex-1 overflow-hidden mt-0 min-h-0">
+        <Tabs defaultValue="photos" className="flex-1 flex flex-col min-h-0 bg-background">
+          <div className="p-4 pb-2">
+            <TabsList className="h-11 grid w-full grid-cols-4 bg-muted/40 border border-border/20 rounded-2xl p-1.5 shadow-inner">
+              <TabsTrigger value="photos" className="text-[11px] font-bold rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Photos</TabsTrigger>
+              <TabsTrigger value="shapes" className="text-[11px] font-bold rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Shapes</TabsTrigger>
+              <TabsTrigger value="emojis" className="text-[11px] font-bold rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Emojis</TabsTrigger>
+              <TabsTrigger value="assets" className="text-[11px] font-bold rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Assets</TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent value="photos" className="flex-1 overflow-hidden mt-0 min-h-0 border-t border-border/20">
             <ImageLibrary onImageSelect={onImageSelect} />
           </TabsContent>
-          <TabsContent value="shapes" className="flex-1 overflow-hidden mt-0 min-h-0">
+          <TabsContent value="shapes" className="flex-1 overflow-hidden mt-0 min-h-0 border-t border-border/20">
             <ShapeLibrary onAddShape={onAddShape} onAddImage={onImageSelect} onAddSvgShape={onAddSvgShape} />
           </TabsContent>
-          <TabsContent value="emojis" className="flex-1 overflow-hidden mt-0 min-h-0">
+          <TabsContent value="emojis" className="flex-1 overflow-hidden mt-0 min-h-0 border-t border-border/20">
             <EmojiLibrary onEmojiSelect={onEmojiSelect} />
           </TabsContent>
-          <TabsContent value="assets" className="flex-1 overflow-hidden mt-0 min-h-0">
+          <TabsContent value="assets" className="flex-1 overflow-hidden mt-0 min-h-0 border-t border-border/20">
             <AssetLibrary onImageSelect={onImageSelect} isAdmin={isAdmin} />
           </TabsContent>
         </Tabs>

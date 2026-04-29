@@ -191,8 +191,8 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         <Type size={18} strokeWidth={2.5} />
                     </div>
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-foreground">Typography</p>
-                        <p className="text-[9px] font-medium text-muted-foreground/60 leading-none">Font & Style Settings</p>
+                        <p className="text-[12px] font-black tracking-tight text-foreground leading-none">Typography</p>
+                        <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 leading-none tracking-tight">Font & style settings</p>
                     </div>
                 </div>
 
@@ -200,7 +200,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                     {/* Font Family Selection */}
                     <div className="space-y-1.5">
                         <div className="flex justify-between items-end">
-                            <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 ml-1">Font Family</Label>
+                            <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Font family</Label>
                             <div className="flex gap-1">
                                 <input type="file" ref={fontInputRef} className="hidden" accept=".ttf,.otf,.woff,.woff2" onChange={(e) => {
                                     const file = e.target.files?.[0];
@@ -235,7 +235,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
 
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                            <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 ml-1">Size</Label>
+                            <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Size</Label>
                             <div className="relative group">
                                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-foreground/40 pointer-events-none group-focus-within:text-primary transition-colors">PX</span>
                                 <Input type="number" className="pl-8 h-10 bg-background border-border/60 text-sm font-mono shadow-sm focus-visible:ring-primary/20"
@@ -243,7 +243,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                             </div>
                         </div>
                         <div className="space-y-1.5">
-                            <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 ml-1">Format</Label>
+                            <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Format</Label>
                             <div className="flex bg-background border border-border/60 rounded-xl p-1 gap-1 shadow-sm h-10">
                                 <IconBtn icon={Bold} active={element.fontWeight === 'bold'} title="Bold"
                                     onClick={() => handleUpdate({ fontWeight: element.fontWeight === 'bold' ? 'normal' : 'bold' })} />
@@ -257,7 +257,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
 
                     {/* Alignment */}
                     <div className="space-y-1.5">
-                        <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 ml-1">Alignment</Label>
+                        <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Alignment</Label>
                         <div className="flex gap-2">
                             <div className="flex flex-[1.4] bg-background border border-border/60 rounded-xl p-1 gap-1 shadow-sm h-10">
                                 <IconBtn icon={AlignLeft} active={element.textAlign === 'left'} title="Left" onClick={() => handleUpdate({ textAlign: 'left' })} />
@@ -276,12 +276,12 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                     {/* Spacing */}
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                            <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 ml-1">Letter Spacing</Label>
+                            <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Letter spacing</Label>
                             <Input type="number" className="h-10 bg-background border-border/60 text-sm font-mono shadow-sm"
                                 value={element.letterSpacing} onChange={(e) => handleUpdate({ letterSpacing: parseFloat(e.target.value) })} />
                         </div>
                         <div className="space-y-1.5">
-                            <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 ml-1">Line Height</Label>
+                            <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Line height</Label>
                             <Input type="number" step={0.1} className="h-10 bg-background border-border/60 text-sm font-mono shadow-sm"
                                 value={element.lineHeight} onChange={(e) => handleUpdate({ lineHeight: parseFloat(e.target.value) })} />
                         </div>
@@ -289,7 +289,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
 
                     {/* Case Transform */}
                     <div className="space-y-1.5">
-                        <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 ml-1">Text Case</Label>
+                        <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Text case</Label>
                         <div className="flex bg-background border border-border/60 rounded-xl p-1 gap-1 shadow-sm h-10">
                             {[
                                 { icon: CaseUpper, value: 'uppercase', title: 'Uppercase', bg: 'hover:bg-orange-500/10 hover:text-orange-600', activeBg: 'bg-orange-500 text-white shadow-orange-200' },
@@ -319,15 +319,15 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         <Palette size={18} strokeWidth={2.5} />
                     </div>
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-wider text-foreground">Color & Fill</p>
-                        <p className="text-[9px] font-medium text-muted-foreground/60 leading-none">Gradient & Pattern Styles</p>
+                        <p className="text-[12px] font-black tracking-tight text-foreground leading-none">Color & Fill</p>
+                        <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 leading-none tracking-tight">Gradient & pattern styles</p>
                     </div>
                 </div>
 
                 <Tabs defaultValue="fill" className="w-full">
                     <TabsList className="h-10 grid grid-cols-2 bg-background/50 border border-border/40 rounded-xl p-1 w-full mb-4 shadow-inner">
-                        <TabsTrigger value="fill" className="text-[10px] uppercase font-bold h-7 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all">Fill</TabsTrigger>
-                        <TabsTrigger value="stroke" className="text-[10px] uppercase font-bold h-7 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all">Stroke</TabsTrigger>
+                        <TabsTrigger value="fill" className="text-[11px] font-bold h-7 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all">Fill</TabsTrigger>
+                        <TabsTrigger value="stroke" className="text-[11px] font-bold h-7 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all">Stroke</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="fill" className="mt-0 space-y-3">
@@ -341,7 +341,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                                 { value: 'none', label: 'None', preview: <X size={14} className="text-red-500" />, activeBg: 'bg-red-500/10 border-red-500/40 text-red-700' },
                             ].map(({ value, label, preview, activeBg }) => (
                                 <button key={value} onClick={() => handleFillTypeChange(value as any)}
-                                    className={cn("flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl border text-[9px] font-bold uppercase transition-all shadow-sm",
+                                    className={cn("flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl border text-[10px] font-bold transition-all shadow-sm",
                                         currentFill === value
                                             ? cn("ring-1 ring-inset", activeBg)
                                             : "bg-background border-border/50 text-muted-foreground hover:bg-muted/30")}>
@@ -432,8 +432,8 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         <WandSparkles size={18} strokeWidth={2.5} />
                     </div>
                     <div>
-                        <p className="text-sm font-black uppercase tracking-widest text-foreground">Effects</p>
-                        <p className="text-[9px] font-medium text-muted-foreground/60 leading-none">Shadows & Warp Transformations</p>
+                        <p className="text-[12px] font-black tracking-tight text-foreground leading-none">Effects</p>
+                        <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 leading-none tracking-tight">Shadows & warp transformations</p>
                     </div>
                 </div>
 
@@ -456,23 +456,24 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                 </div>
 
                 {/* Text Warp */}
-                <div className="rounded-xl bg-muted/20 border border-border/40 p-3 space-y-3">
+                <div className="rounded-2xl bg-muted/20 border border-border/40 p-3.5 space-y-3.5 shadow-inner">
                     <div className="flex items-center justify-between">
-                        <Label className="text-sm font-semibold text-foreground">Warp / Curve</Label>
-                        <Select value={warp.style} onValueChange={(v) => handleWarpChange({ style: v as any })}>
-                            <SelectTrigger className="h-8 w-28 text-xs bg-background border-border/60 shadow-sm"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">None</SelectItem>
-                                <SelectItem value="circle">Circle</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div>
+                            <Label className="text-[11px] font-bold text-foreground">Circular warp</Label>
+                            <p className="text-[9px] text-muted-foreground font-medium leading-none mt-1">Bend text into a curve</p>
+                        </div>
+                        <Switch 
+                            checked={warp.style === 'circle'} 
+                            onCheckedChange={(c) => handleWarpChange({ style: c ? 'circle' : 'none' })} 
+                            className="scale-90 origin-right data-[state=checked]:bg-primary" 
+                        />
                     </div>
                     {warp.style === 'circle' && (
-                        <div className="space-y-2 pt-2 border-t border-border/40">
+                        <div className="space-y-4 pt-3.5 border-t border-border/40 animate-in fade-in slide-in-from-top-1 duration-300">
                             <PropSlider label="Radius" value={warp.radius || 100} display={`${warp.radius || 100}px`} min={10} max={500} step={1} onChange={(v: number) => handleWarpChange({ radius: v })} />
                             <PropSlider label="Rotation" value={warp.value || 0} display={`${warp.value || 0}°`} min={0} max={360} step={1} onChange={(v: number) => handleWarpChange({ value: v })} />
-                            <div className="flex items-center justify-between px-1">
-                                <Label className="text-xs text-muted-foreground">Reverse Direction</Label>
+                            <div className="flex items-center justify-between px-1 py-1 bg-background/40 rounded-lg border border-border/40">
+                                <Label className="text-[10px] font-bold text-muted-foreground/80">Reverse direction</Label>
                                 <Switch checked={warp.reverse || false} onCheckedChange={(c) => handleWarpChange({ reverse: c })} className="scale-75 origin-right" />
                             </div>
                         </div>

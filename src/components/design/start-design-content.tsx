@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { getProductBySlug } from '@/app/actions/product-actions';
 import { getPricingRulesForSubProduct } from '@/app/actions/pricing-actions';
 import { getSession } from '@/app/actions/user-actions';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle } from 'lucide-react';
+import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { resolveImagePath } from '@/lib/utils';
@@ -26,6 +26,7 @@ export function StartDesignContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [product, setProduct] = useState<ProductWithSubProducts | null>(null);
   const [subProduct, setSubProduct] = useState<SubProductData | null>(null);
@@ -72,6 +73,9 @@ export function StartDesignContent() {
             setSubProduct(sp);
             if (!sp.spotUvAllowed) {
                 setSpotUv(false);
+            }
+            if (sp.maxPages <= 1) {
+                setPages('1');
             }
             setLoadingPricing(true);
             getPricingRulesForSubProduct(sp.id).then(rules => {
@@ -139,6 +143,17 @@ export function StartDesignContent() {
     let addonTotalPerUnit = 0;
     const addonBreakdown: { name: string; totalAmount: number }[] = [];
 
+    const isDoubleSided = pages === '2';
+
+    if (isDoubleSided && subProduct.backSideCost) {
+        const amount = Number(subProduct.backSideCost);
+        addonTotalPerUnit += amount;
+        addonBreakdown.push({
+            name: 'Double Sided Printing',
+            totalAmount: amount * qty
+        });
+    }
+
     selectedAddons.forEach(id => {
         const rule = pricingRules.find(r => r.id === id);
         if (rule && rule.addonPriceAmount) {
@@ -159,7 +174,7 @@ export function StartDesignContent() {
         addons: addonBreakdown,
     });
 
-  }, [quantity, subProduct, pricingRules, selectedAddons]);
+  }, [quantity, subProduct, pricingRules, selectedAddons, pages]);
 
   const constructedQuery = useMemo(() => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -311,25 +326,27 @@ export function StartDesignContent() {
                           </Select>
                         </div>
 
-                        <div className="p-4 space-y-3">
-                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Print Configuration</Label>
-                          <div className="flex gap-2">
-                            <button 
-                                onClick={() => setPages('1')}
-                                className={cn(
-                                    "flex-1 py-2 px-3 rounded-lg border text-xs font-bold transition-all",
-                                    pages === '1' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
-                                )}
-                            >Front Only</button>
-                            <button 
-                                onClick={() => setPages('2')}
-                                className={cn(
-                                    "flex-1 py-2 px-3 rounded-lg border text-xs font-bold transition-all",
-                                    pages === '2' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
-                                )}
-                            >Front & Back</button>
+                        {subProduct.maxPages > 1 && (
+                          <div className="p-4 space-y-3">
+                            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Print Configuration</Label>
+                            <div className="flex gap-2">
+                              <button 
+                                  onClick={() => setPages('1')}
+                                  className={cn(
+                                      "flex-1 py-2 px-3 rounded-lg border text-xs font-bold transition-all",
+                                      pages === '1' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
+                                  )}
+                              >Front Only</button>
+                              <button 
+                                  onClick={() => setPages('2')}
+                                  className={cn(
+                                      "flex-1 py-2 px-3 rounded-lg border text-xs font-bold transition-all",
+                                      pages === '2' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
+                                  )}
+                              >Front & Back</button>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                       
                       {subProduct.spotUvAllowed && (
@@ -508,7 +525,177 @@ export function StartDesignContent() {
                    </p>
                 </div>
               </div>
+            </div>
 
+            {/* NEW: Formal Product Intelligence Section */}
+            <div className="mt-32 space-y-32 border-t border-slate-100 dark:border-slate-800 pt-32 pb-20">
+                
+                {/* 1. Feature Arsenal - Formal Grid */}
+                <div className="space-y-12">
+                    <div className="flex flex-col items-center text-center space-y-4 max-w-3xl mx-auto">
+                        <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-6 py-1.5 text-[10px] font-black uppercase tracking-[0.3em] rounded-full">Capability Matrix</Badge>
+                        <h2 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">Industrial Feature Arsenal</h2>
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                            Explore the technical capabilities and premium finishes engineered into every unit of {product.name}.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {[
+                            { 
+                                icon: Sparkles, 
+                                title: "Premium Finishing", 
+                                features: ["Spot UV Varnish", "Soft-Touch Lamination", "Metallic Foil Accents", "Embossed Textures"] 
+                            },
+                            { 
+                                icon: ShieldCheck, 
+                                title: "Production Rigor", 
+                                features: ["G7 Certified Color", "Precision Die-Cutting", "300+ DPI Clarity", "Structural Stress Tested"] 
+                            },
+                            { 
+                                icon: Zap, 
+                                title: "Rapid Fulfillment", 
+                                features: ["Next-Day Dispatch", "Live Tracking", "Safe-Transit Packing", "Volume Scaling"] 
+                            },
+                        ].map((group, i) => (
+                            <div key={i} className="p-8 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 transition-all duration-500 group">
+                                <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-primary mb-8 shadow-sm group-hover:scale-110 transition-transform">
+                                    <group.icon size={24} />
+                                </div>
+                                <h3 className="text-lg font-black uppercase tracking-tighter mb-6">{group.title}</h3>
+                                <ul className="space-y-4">
+                                    {group.features.map((feature, j) => (
+                                        <li key={j} className="flex items-center gap-3">
+                                            <CheckCircle2 size={14} className="text-primary/60 shrink-0" />
+                                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">{feature}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 2. Technical Specs & Interactive Variant Matrix */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+                    {/* Left: Deep Specs */}
+                    <div className="lg:col-span-7 space-y-10">
+                        <div className="space-y-4">
+                            <h3 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-4">
+                                <div className="w-2 h-8 bg-primary rounded-full" />
+                                Technical Blueprint
+                            </h3>
+                            <p className="text-sm text-slate-500 font-medium">Standard industrial parameters for {subProduct.width}x{subProduct.height} {subProduct.unitType} production.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {[
+                                { label: 'Paper Stock', value: subProduct.priceType === 'per_sqft' ? 'Industrial Flex' : '350 GSM Silk' },
+                                { label: 'Coating System', value: spotUv ? 'Spot UV + Matte' : 'Industrial Aqueous' },
+                                { label: 'Inking', value: 'High-Density CMYK' },
+                                { label: 'Finishing', value: 'Precision Trim' },
+                                { label: 'Margins', value: '3.0mm Safety' },
+                                { label: 'Resolution', value: '300 DPI Min' },
+                            ].map((spec, i) => (
+                                <div key={i} className="flex flex-col gap-2 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:shadow-md transition-all">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{spec.label}</span>
+                                    <span className="text-sm font-bold text-slate-900 dark:text-white">{spec.value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Right: Interactive Variant Selector */}
+                    <div className="lg:col-span-5 space-y-8">
+                        <div className="space-y-4">
+                            <h3 className="text-2xl font-black uppercase tracking-tighter">Variant Matrix</h3>
+                            <p className="text-sm text-slate-500 font-medium text-center lg:text-left">Switch between available dimensions.</p>
+                        </div>
+                        <div className="grid gap-3">
+                            {product.subProducts.map((sp) => (
+                                <button 
+                                    key={sp.id} 
+                                    onClick={() => {
+                                        const newParams = new URLSearchParams(searchParams.toString());
+                                        newParams.set('subProductId', sp.id.toString());
+                                        router.push(`${pathname}?${newParams.toString()}`);
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }}
+                                    className={cn(
+                                        "w-full flex items-center justify-between p-5 rounded-2xl border-2 transition-all group text-left",
+                                        subProduct.id === sp.id 
+                                            ? "bg-primary text-white border-primary shadow-xl shadow-primary/20" 
+                                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-primary/30"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn(
+                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                                            subProduct.id === sp.id ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:text-primary"
+                                        )}>
+                                            <Square size={18} />
+                                        </div>
+                                        <div>
+                                            <p className={cn("text-xs font-black uppercase tracking-widest", subProduct.id === sp.id ? "text-white" : "text-slate-900 dark:text-white")}>
+                                                {sp.width}x{sp.height} {sp.unitType}
+                                            </p>
+                                            <p className={cn("text-[10px] font-bold uppercase", subProduct.id === sp.id ? "text-white/70" : "text-slate-400")}>
+                                                Standard Format
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {subProduct.id === sp.id ? (
+                                        <CheckCircle2 size={18} className="text-white" />
+                                    ) : (
+                                        <ArrowRight size={16} className="text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Formal Use Case Showcase */}
+                <div className="p-16 rounded-[4rem] bg-slate-950 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-1/2 h-full opacity-20 pointer-events-none">
+                        <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-l from-primary/30 to-transparent" />
+                    </div>
+                    <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                        <div className="space-y-8">
+                            <Badge className="bg-primary text-white font-black px-6 py-1.5 text-[10px] uppercase tracking-[0.3em] rounded-full">Industrial Application</Badge>
+                            <h3 className="text-5xl font-black uppercase tracking-tighter leading-none">Designed for <br/><span className="text-primary">Excellence.</span></h3>
+                            <p className="text-slate-400 font-medium leading-relaxed text-lg max-w-md">
+                                From high-stakes corporate summits to luxury retail packaging, our {product.name.toLowerCase()} production line is built to deliver unmatched visual consistency.
+                            </p>
+                            <div className="grid grid-cols-2 gap-8 pt-4">
+                                {[
+                                    { label: 'Corporate', icon: Briefcase },
+                                    { label: 'Marketing', icon: Zap },
+                                ].map((item, i) => (
+                                    <div key={i} className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary">
+                                            <item.icon size={20} />
+                                        </div>
+                                        <span className="text-xs font-black uppercase tracking-widest">{item.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            {[
+                                { title: 'Durability', val: '100%' },
+                                { title: 'Color Match', val: '∆E < 2' },
+                                { title: 'Eco-Friendly', val: 'FSC' },
+                                { title: 'Finish', val: 'HD' },
+                            ].map((stat, i) => (
+                                <div key={i} className="p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl flex flex-col items-center justify-center text-center space-y-2">
+                                    <span className="text-4xl font-black text-primary">{stat.val}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{stat.title}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
           </div>
         </div>

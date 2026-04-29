@@ -47,42 +47,40 @@ export function AssetLibrary({ onImageSelect, isAdmin = false }: AssetLibraryPro
 
   const fetchAssets = useCallback(async () => {
     setIsLoading(true);
-    if (isAdmin) {
-      try {
-        const response = await fetch('/api/uploads/list');
-        const data = await response.json();
-        if (data.success) {
-          setFolders(data.folders);
-        } else {
-          throw new Error(data.error || 'Failed to fetch assets');
-        }
-      } catch (error) {
-        console.error("Failed to load user assets", error);
-        toast({
-          variant: 'destructive',
-          title: 'Loading Error',
-          description: 'Could not load uploaded assets.',
-        });
-        setFolders([]);
-      } finally {
-        setIsLoading(false);
+    try {
+      // 1. Fetch Global Assets (Admin-uploaded)
+      const response = await fetch('/api/uploads/list');
+      const data = await response.json();
+      let serverFolders: Folder[] = [];
+      if (data.success) {
+        serverFolders = data.folders;
       }
-    } else {
-      try {
-        const localAssetsRaw = localStorage.getItem(USER_ASSETS_LOCAL_STORAGE_KEY);
-        const localAssets = localAssetsRaw ? JSON.parse(localAssetsRaw) : [];
-        if (localAssets.length > 0) {
-          setFolders([{ name: 'My Local Uploads', files: localAssets }]);
-        } else {
-          setFolders([]);
+
+      // 2. Fetch Local Assets (User-uploaded)
+      let localFolders: Folder[] = [];
+      if (!isAdmin) {
+        try {
+          const localAssetsRaw = localStorage.getItem(USER_ASSETS_LOCAL_STORAGE_KEY);
+          const localAssets = localAssetsRaw ? JSON.parse(localAssetsRaw) : [];
+          if (localAssets.length > 0) {
+            localFolders = [{ name: 'My local uploads', files: localAssets }];
+          }
+        } catch (e) {
+          console.error("Local storage access failed", e);
         }
-      } catch (error) {
-          console.error("Failed to load user assets from localStorage", error);
-          toast({ variant: 'destructive', title: 'Loading Error', description: 'Could not load your local assets.' });
-          setFolders([]);
-      } finally {
-        setIsLoading(false);
       }
+
+      // Merge: Global assets first, then local ones
+      setFolders([...serverFolders, ...localFolders]);
+    } catch (error) {
+      console.error("Failed to load assets", error);
+      toast({
+        variant: 'destructive',
+        title: 'Loading error',
+        description: 'Could not load the asset library.',
+      });
+    } finally {
+      setIsLoading(false);
     }
   }, [toast, isAdmin]);
 
@@ -93,12 +91,8 @@ export function AssetLibrary({ onImageSelect, isAdmin = false }: AssetLibraryPro
   const handleFileUpload = async (file: File) => {
     if (!file) return;
     
-    // Auto-select folder if not admin
-    if (!isAdmin) {
-        setFileToUpload(file);
-        // Direct local storage logic below
-    } else {
-        // For admin, we need to show the folder selection before final upload
+    // For admin, we need to show the folder selection before final upload
+    if (isAdmin) {
         setFileToUpload(file);
         return;
     }
@@ -114,9 +108,10 @@ export function AssetLibrary({ onImageSelect, isAdmin = false }: AssetLibraryPro
             const updatedAssets = [dataUrl, ...localAssets];
             localStorage.setItem(USER_ASSETS_LOCAL_STORAGE_KEY, JSON.stringify(updatedAssets));
 
-            setFolders([{ name: 'My Local Uploads', files: updatedAssets }]);
+            // Refresh the view
+            fetchAssets();
             onImageSelect(dataUrl);
-            toast({ title: 'Image Added Locally' });
+            toast({ title: 'Image added locally' });
         } catch (e) {
             toast({ variant: 'destructive', title: 'Failed to save locally', description: 'Your browser storage might be full.' });
         } finally {

@@ -576,8 +576,15 @@ function SubProductForm({
                         <Input id="sp-sku" {...register('sku')} />
                     </div>
                     <div>
-                        <Label htmlFor="sp-price">Price</Label>
-                        <Input id="sp-price" type="number" {...register('price')} />
+                        <Label htmlFor="sp-price">Base Price</Label>
+                        <Input id="sp-price" type="number" step="0.01" {...register('price')} />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                    <div>
+                        <Label htmlFor="sp-backSideCost">Back Side Cost (Add-on)</Label>
+                        <Input id="sp-backSideCost" type="number" step="0.01" placeholder="0.00" {...register('backSideCost')} />
+                        <p className="text-[10px] text-muted-foreground font-medium mt-1 uppercase tracking-widest">Extra cost applied per unit if double-sided is selected.</p>
                     </div>
                 </div>
                 <div>

@@ -30,6 +30,7 @@ const subProductSchema = z.object({
   spotUvAllowed: z.boolean().default(false),
   allowedFoils: z.array(z.coerce.number()).optional(),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
+  backSideCost: z.coerce.number().optional().default(0),
 });
 
 export async function getProducts() {

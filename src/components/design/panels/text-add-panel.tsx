@@ -14,33 +14,44 @@ type TextAddPanelProps = {
 export const TextAddPanel = ({ onAddText, onAddGroupedElements }: TextAddPanelProps) => {
     
     return (
-        <div className="flex flex-col h-full bg-zinc-50/50 dark:bg-zinc-950 overflow-hidden">
-            <div className="p-5 space-y-4 shrink-0">
-                <div className="flex items-center gap-2 mb-1">
-                    <Type className="w-4 h-4 text-zinc-500" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">Quick Add</span>
+        <div className="flex flex-col h-full bg-background overflow-hidden">
+            <div className="p-6 space-y-6 shrink-0">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                        <Type className="w-4 h-4" />
+                    </div>
+                    <div>
+                        <p className="text-[12px] font-black tracking-tight text-foreground leading-none">Add text</p>
+                        <p className="text-[10px] text-muted-foreground font-bold mt-1 leading-none tracking-tight">Quick typography presets</p>
+                    </div>
                 </div>
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 gap-3">
                     <button
                         onClick={() => onAddText({ content: 'Add a heading', fontSize: 48, fontWeight: 'bold', fontFamily: 'Oswald' })}
-                        className="group flex items-center justify-between w-full p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 dark:hover:border-blue-500 transition-all shadow-sm hover:shadow-md"
+                        className="group flex items-center justify-between w-full p-5 rounded-2xl bg-card border border-border/60 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all"
                     >
-                        <span className="text-xl font-bold tracking-tight" style={{ fontFamily: 'Oswald' }}>Add heading</span>
-                        <ChevronRight className="w-4 h-4 text-zinc-300 group-hover:text-blue-500 transition-colors" />
+                        <span className="text-2xl font-black tracking-tight text-foreground" style={{ fontFamily: 'Oswald' }}>Add heading</span>
+                        <div className="p-1.5 rounded-lg bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                            <ChevronRight className="w-4 h-4" />
+                        </div>
                     </button>
                     <button
                         onClick={() => onAddText({ content: 'Add a subheading', fontSize: 32, fontFamily: 'Raleway' })}
-                        className="group flex items-center justify-between w-full p-3 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 transition-all shadow-sm"
+                        className="group flex items-center justify-between w-full p-4 rounded-2xl bg-card border border-border/60 hover:border-primary/40 hover:shadow-md transition-all"
                     >
-                        <span className="text-md font-semibold" style={{ fontFamily: 'Raleway' }}>Add subheading</span>
-                        <ChevronRight className="w-4 h-4 text-zinc-300 group-hover:text-blue-500 transition-colors" />
+                        <span className="text-lg font-bold text-foreground/80" style={{ fontFamily: 'Raleway' }}>Add subheading</span>
+                        <div className="p-1.5 rounded-lg bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                            <ChevronRight className="w-4 h-4" />
+                        </div>
                     </button>
                     <button
                         onClick={() => onAddText({ content: 'Add body text', fontSize: 16, fontFamily: 'Inter' })}
-                        className="group flex items-center justify-between w-full p-3 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 transition-all shadow-sm"
+                        className="group flex items-center justify-between w-full p-4 rounded-2xl bg-card border border-border/60 hover:border-primary/40 hover:shadow-md transition-all"
                     >
-                        <span className="text-sm" style={{ fontFamily: 'Inter' }}>Add body text</span>
-                        <ChevronRight className="w-4 h-4 text-zinc-300 group-hover:text-blue-500 transition-colors" />
+                        <span className="text-sm font-medium text-muted-foreground" style={{ fontFamily: 'Inter' }}>Add body text</span>
+                        <div className="p-1.5 rounded-lg bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                            <ChevronRight className="w-4 h-4" />
+                        </div>
                     </button>
                 </div>
             </div>

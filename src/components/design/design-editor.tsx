@@ -1675,12 +1675,12 @@ function DesignEditorInternal({
 
             {/* Right Floating Properties Panel */}
             <div className={cn(
-              "absolute right-4 top-4 bottom-4 w-[320px] z-[60] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) hidden lg:block",
+              "absolute right-4 top-4 bottom-4 w-[340px] z-[40] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) hidden lg:block",
               rightOpen ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+32px)] opacity-0 pointer-events-none"
             )}>
-              <div className="h-full bg-background/80 backdrop-blur-2xl border border-border/50 rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col">
+              <div className="h-full bg-card border border-border/60 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.25)] overflow-hidden flex flex-col">
                 <ScrollArea className="flex-1">
-                  <div className="p-1">
+                  <div className="p-1.5">
                     <PropertiesPanel
                       element={selectedElement} onUpdate={updateElement} product={product} onProductUpdate={handleProductUpdate}
                       quantity={quantity} onQuantityChange={onQuantityChange} background={currentBackground} onBackgroundChange={onBackgroundChange}

@@ -66,9 +66,9 @@ type PropertiesPanelProps = {
 
 const PropSlider = ({ label, value, display, min, max, step, onChange }: any) => (
   <div className="space-y-2 py-1">
-    <div className="flex justify-between items-center">
-      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
-      <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-foreground/80 min-w-[40px] text-center">{display}</span>
+    <div className="flex justify-between items-center px-0.5">
+      <span className="text-[10px] font-bold text-muted-foreground/80">{label}</span>
+      <span className="text-[10px] font-mono font-bold bg-primary/5 px-2 py-0.5 rounded-lg text-primary min-w-[40px] text-center border border-primary/10">{display}</span>
     </div>
     <Slider value={[value]} min={min} max={max} step={step} onValueChange={(v) => onChange(v[0])} />
   </div>
@@ -76,10 +76,12 @@ const PropSlider = ({ label, value, display, min, max, step, onChange }: any) =>
 
 // Compact XY / WH input pair
 const CoordInput = ({ label, value, onChange, step = 0.1, disabled = false }: any) => (
-  <div className="relative">
-    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground/60 pointer-events-none z-10">{label}</span>
+  <div className="relative group">
+    <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4 rounded bg-primary/10 border border-primary/20 pointer-events-none z-10">
+        <span className="text-[9px] font-black text-primary leading-none uppercase">{label}</span>
+    </div>
     <Input
-      className="pl-6 h-9 bg-muted/40 text-sm font-mono border-0 focus-visible:ring-1 focus-visible:ring-primary/40 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="pl-8 h-10 bg-muted/30 text-xs font-bold border-0 hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all rounded-xl disabled:opacity-50"
       type="number" step={step}
       value={typeof value === 'number' ? parseFloat(value.toFixed(1)) : value}
       onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
@@ -94,11 +96,11 @@ const IconToggle = ({ icon: Icon, active, onClick, title }: any) => (
     title={title}
     onClick={onClick}
     className={cn(
-      "flex items-center justify-center h-9 w-full rounded-md transition-all text-muted-foreground hover:text-foreground hover:bg-muted/60",
-      active && "bg-primary/15 text-primary ring-1 ring-primary/30"
+      "flex items-center justify-center h-10 w-full rounded-xl transition-all text-muted-foreground hover:text-primary hover:bg-primary/5 border border-transparent",
+      active && "bg-primary/10 text-primary border-primary/20 shadow-[0_2px_10px_-4px_rgba(var(--primary),0.3)]"
     )}
   >
-    <Icon size={16} />
+    <Icon size={18} />
   </button>
 );
 
@@ -139,17 +141,24 @@ export function PropertiesPanel({
       : [{ id: crypto.randomUUID(), color: background.color || '#000000', position: 0 }, { id: crypto.randomUUID(), color: '#ffffff', position: 1 }];
 
     return (
-      <div className="h-full flex flex-col overflow-hidden">
-        <div className="px-3 py-3 border-b bg-muted/20 flex items-center gap-2 shrink-0">
-          <Settings2 size={16} className="text-muted-foreground" />
-          <span className="text-sm font-bold text-foreground">Canvas Settings</span>
+      <div className="h-full flex flex-col overflow-hidden bg-card">
+        <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-primary/10 text-primary shadow-inner">
+                <Settings2 size={20} />
+            </div>
+            <div>
+                <h2 className="text-[13px] font-black tracking-tight text-foreground leading-none">Canvas settings</h2>
+                <p className="text-[10px] text-muted-foreground font-bold mt-1.5 tracking-tight">Manage document layout</p>
+            </div>
+          </div>
         </div>
 
         <Tabs key="canvas-settings" defaultValue="canvas" className="flex flex-col flex-1 overflow-hidden">
-          <TabsList className="shrink-0 mx-4 mt-3 h-10 grid grid-cols-3 bg-muted/60 rounded-lg p-1">
-            <TabsTrigger value="canvas" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Canvas</TabsTrigger>
-            <TabsTrigger value="background" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Background</TabsTrigger>
-            <TabsTrigger value="production" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Production</TabsTrigger>
+          <TabsList className="shrink-0 mx-5 mt-4 h-11 grid grid-cols-3 bg-muted/40 rounded-2xl p-1.5 border border-border/20">
+            <TabsTrigger value="canvas" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Canvas</TabsTrigger>
+            <TabsTrigger value="background" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Background</TabsTrigger>
+            <TabsTrigger value="production" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Production</TabsTrigger>
           </TabsList>
 
           <TabsContent value="canvas" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 space-y-5 mt-0">
@@ -229,8 +238,8 @@ export function PropertiesPanel({
                 { label: "Snap to Grid", checked: canvasSettings.snapToGrid, fn: canvasSettings.setSnapToGrid },
                 { label: "Print Guidelines", checked: canvasSettings.showPrintGuidelines, fn: canvasSettings.setShowPrintGuidelines },
               ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
-                  <Label className="text-xs cursor-pointer">{item.label}</Label>
+                <div key={item.label} className="flex items-center justify-between py-2 px-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors border border-border/20">
+                  <Label className="text-xs font-medium cursor-pointer">{item.label}</Label>
                   <Switch className="scale-75 origin-right" checked={item.checked} onCheckedChange={item.fn} />
                 </div>
               ))}
@@ -333,28 +342,34 @@ export function PropertiesPanel({
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden bg-card">
       {/* Header */}
-      <div className="px-3 py-3 border-b bg-muted/20 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">{typeIcon[element.type]}</span>
-          <span className="text-sm font-bold text-foreground">{elementTypeLabel[element.type] || element.type} Properties</span>
+      <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-primary/10 text-primary shadow-inner">
+            {typeIcon[element.type]}
+          </div>
+          <div>
+            <h2 className="text-[13px] font-black tracking-tight text-foreground leading-none">{elementTypeLabel[element.type] || element.type} properties</h2>
+            <p className="text-[10px] text-muted-foreground font-bold mt-1.5 tracking-tight">Edit element appearance</p>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+        <div className="flex items-center gap-1.5 bg-primary/5 px-2.5 py-1.5 rounded-full border border-primary/10">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+          <span className="text-[10px] font-black text-primary tracking-tight">Active</span>
         </div>
       </div>
 
       <Tabs key={element.id} defaultValue="design" className="flex flex-col flex-1 overflow-hidden">
-        <TabsList className="shrink-0 mx-4 mt-3 h-10 grid grid-cols-3 bg-muted/60 rounded-lg p-1">
-          <TabsTrigger value="design" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <Palette size={14} className="mr-1.5" />Design
+        <TabsList className="shrink-0 mx-5 mt-4 h-11 grid grid-cols-3 bg-muted/40 rounded-2xl p-1.5 border border-border/20">
+          <TabsTrigger value="design" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">
+            <Palette size={15} className="mr-2" />Design
           </TabsTrigger>
-          <TabsTrigger value="layout" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <LayoutTemplate size={14} className="mr-1.5" />Layout
+          <TabsTrigger value="layout" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">
+            <LayoutTemplate size={15} className="mr-2" />Layout
           </TabsTrigger>
-          <TabsTrigger value="effects" className="text-xs font-semibold h-8 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <Wand2 size={14} className="mr-1.5" />Effects
+          <TabsTrigger value="effects" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">
+            <Wand2 size={15} className="mr-2" />Effects
           </TabsTrigger>
         </TabsList>
 
