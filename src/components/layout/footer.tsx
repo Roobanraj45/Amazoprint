@@ -24,8 +24,8 @@ export function Footer() {
 
             {/* Quick Links */}
             <div className="lg:col-span-2">
-              <h4 className="font-black text-[10px] uppercase tracking-[0.3em] mb-8 text-white">Catalog</h4>
-              <ul className="space-y-4 text-slate-400 font-bold text-[11px] uppercase tracking-widest">
+              <h4 className="font-bold text-[12px] mb-8 text-white">Catalog</h4>
+              <ul className="space-y-4 text-slate-400 font-semibold text-[13px]">
                 <li><Link href="/products" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Business Cards</Link></li>
                 <li><Link href="/products" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Marketing Materials</Link></li>
                 <li><Link href="/products" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Custom Packaging</Link></li>
@@ -35,8 +35,8 @@ export function Footer() {
 
             {/* Company */}
             <div className="lg:col-span-2">
-              <h4 className="font-black text-[10px] uppercase tracking-[0.3em] mb-8 text-white">Support</h4>
-              <ul className="space-y-4 text-slate-400 font-bold text-[11px] uppercase tracking-widest">
+              <h4 className="font-bold text-[12px] mb-8 text-white">Support</h4>
+              <ul className="space-y-4 text-slate-400 font-semibold text-[13px]">
                 <li><Link href="/about" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Help Center</Link></li>
                 <li><Link href="/contact" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Shipping Policy</Link></li>
                 <li><Link href="/printer-registration" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Partner Program</Link></li>
@@ -44,7 +44,7 @@ export function Footer() {
               </ul>
             </div>
 
-            {/* Contact Info */}
+            {/* Contact Info - Hidden as requested
             <div className="lg:col-span-4 space-y-8 bg-slate-800/50 p-8 rounded-3xl border border-slate-700/50">
               <h4 className="font-black text-[10px] uppercase tracking-[0.3em] text-white">Get in Touch</h4>
               <div className="space-y-6">
@@ -87,6 +87,7 @@ export function Footer() {
                 </div>
               </div>
             </div>
+            */}
           </div>
 
           {/* Bottom Bar */}
@@ -97,14 +98,14 @@ export function Footer() {
                 { icon: Truck, text: "Global Shipping" },
                 { icon: CreditCard, text: "Multiple Gateways" }
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
+                <div key={i} className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
                   <item.icon size={14} className="text-primary/50" />
                   {item.text}
                 </div>
               ))}
             </div>
             
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest order-1 lg:order-2">
+            <p className="text-slate-500 text-[11px] font-bold order-1 lg:order-2">
               © {new Date().getFullYear()} Amazoprint Inc. All Rights Reserved.
             </p>
           </div>
