@@ -63,7 +63,9 @@ import { Separator } from '@/components/ui/separator';
 import { ElementToolbar } from '@/components/design/element-toolbar';
 import { LayersPanel } from '@/components/design/layers-panel';
 import { EditorHeader } from '@/components/design/editor-header';
+import { AdvancedColorPicker } from '@/components/design/advanced-color-picker';
 import { buildBrushTip, renderBristleSegment, BristleProfile, BrushEngineTip } from '@/lib/brush-engine';
+import { ImageMaskEditor } from '@/components/design/image-mask-editor';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { getDesign, saveDesign, updateDesign, getMyDesigns } from '@/app/actions/design-actions';
 import { submitContestEntry } from '@/app/actions/contest-actions';
@@ -76,6 +78,7 @@ import { CropDialog } from '@/components/design/crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { EditorSidebarLeft } from '@/components/design/editor-sidebar-left';
+import { AnimatePresence } from 'framer-motion';
 
 const DPI = 300;
 const MM_PER_INCH = 25.4;
@@ -132,6 +135,8 @@ function DesignEditorInternal({
   const [currentDesignId, setCurrentDesignId] = useState<number | null>(initialDesignId || null);
   const [currentDesignName, setCurrentDesignName] = useState<string | null>(initialDesignName || null);
   const [croppingElementId, setCroppingElementId] = useState<string | null>(null);
+  const [maskingElementId, setMaskingElementId] = useState<string | null>(null);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
 
   // Canvas settings
   const [showRulers, setShowRulers] = useState(true);
@@ -190,6 +195,19 @@ function DesignEditorInternal({
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [activeMobilePanel, setActiveMobilePanel] = useState<string | null>(null);
 
+  // Advanced Color Picker State
+  const [colorPicker, setColorPicker] = useState<{
+    isOpen: boolean;
+    color: string;
+    label: string;
+    onChange: (color: string) => void;
+  }>({
+    isOpen: false,
+    color: '#ffffff',
+    label: 'Color inspector',
+    onChange: () => {},
+  });
+
   type DesignState = {
     pages: Page[];
     guides: Guide[];
@@ -235,6 +253,13 @@ function DesignEditorInternal({
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
+
+  // Close color picker when selection changes to prevent editing wrong element
+  useEffect(() => {
+    if (colorPicker.isOpen) {
+      setColorPicker(prev => ({ ...prev, isOpen: false }));
+    }
+  }, [selectedElementIds]);
 
   const confirmNavigation = useCallback((e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
     if (isDirty) {
@@ -969,6 +994,19 @@ function DesignEditorInternal({
   };
 
   const handleAddImageFromLibrary = (src: string) => {
+    if (selectedElement && selectedElement.type === 'shape' && !selectedElement.locked) {
+      updateElement(selectedElement.id, {
+        fillType: 'image',
+        fillImageSrc: src,
+        fillImageScale: (selectedElement as any).fillImageScale || 1,
+        fillImageOffsetX: (selectedElement as any).fillImageOffsetX || 0,
+        fillImageOffsetY: (selectedElement as any).fillImageOffsetY || 0,
+      });
+      setMaskingElementId(selectedElement.id);
+      if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
+      return;
+    }
+
     const size = 400;
     const { x, y } = getCenterPosition(size, size);
     const newElement: DesignElement = {
@@ -979,6 +1017,7 @@ function DesignEditorInternal({
     };
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
+    setMaskingElementId(newElement.id); // Automatically open mask editor
     if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
@@ -1117,16 +1156,25 @@ function DesignEditorInternal({
       });
     };
 
-    let propsToUpdate = { ...newProps };
-    if (snapToGrid) {
-      if (propsToUpdate.x) propsToUpdate.x = Math.round(propsToUpdate.x / gridSize) * gridSize;
-      if (propsToUpdate.y) propsToUpdate.y = Math.round(propsToUpdate.y / gridSize) * gridSize;
-      if (propsToUpdate.width) propsToUpdate.width = Math.round(propsToUpdate.width / gridSize) * gridSize;
-      if (propsToUpdate.height) propsToUpdate.height = Math.round(propsToUpdate.height / gridSize) * gridSize;
-    }
+    setIsDirty(true);
+    setState(prev => {
+      if (!prev) return prev;
+      
+      let propsToUpdate = { ...newProps };
+      if (snapToGrid) {
+        if (propsToUpdate.x) propsToUpdate.x = Math.round(propsToUpdate.x / gridSize) * gridSize;
+        if (propsToUpdate.y) propsToUpdate.y = Math.round(propsToUpdate.y / gridSize) * gridSize;
+        if (propsToUpdate.width) propsToUpdate.width = Math.round(propsToUpdate.width / gridSize) * gridSize;
+        if (propsToUpdate.height) propsToUpdate.height = Math.round(propsToUpdate.height / gridSize) * gridSize;
+      }
 
-    const newPageElements = recursiveUpdate(currentElements, id, propsToUpdate);
-    updatePage(currentPage, { elements: newPageElements });
+      const currentElementsForPage = prev.pages[currentPage]?.elements || [];
+      const newPageElements = recursiveUpdate(currentElementsForPage, id, propsToUpdate);
+      
+      const newPages = [...prev.pages];
+      newPages[currentPage] = { ...newPages[currentPage], elements: newPageElements };
+      return { ...prev, pages: newPages };
+    });
   };
 
   const addGuide = (orientation: 'horizontal' | 'vertical', position: number) => {
@@ -1344,7 +1392,7 @@ function DesignEditorInternal({
 
   const handleDuplicateElement = () => {
     if (selectedElements.length === 0) return;
-    const newElementsToPush: DesignElement[] = [];
+    
     const duplicateRecursive = (element: DesignElement): DesignElement => {
       const newEl = { ...element, id: crypto.randomUUID(), x: element.x + 10, y: element.y + 10, locked: false, visible: true };
       if (newEl.type === 'group' && newEl.children) {
@@ -1352,15 +1400,25 @@ function DesignEditorInternal({
       }
       return newEl;
     }
-    selectedElements.forEach(element => newElementsToPush.push(duplicateRecursive(element)));
-    updatePage(currentPage, { elements: [...currentElements, ...newElementsToPush] });
+
+    const newElementsToPush = selectedElements.map(element => duplicateRecursive(element));
+    
+    setIsDirty(true);
+    setState(prev => {
+      if (!prev) return prev;
+      const currentElementsForPage = prev.pages[currentPage]?.elements || [];
+      const newPages = [...prev.pages];
+      newPages[currentPage] = { 
+        ...newPages[currentPage], 
+        elements: [...currentElementsForPage, ...newElementsToPush] 
+      };
+      return { ...prev, pages: newPages };
+    });
+    
     setSelectedElementIds(newElementsToPush.map(el => el.id));
   };
 
   const handleDuplicateLayer = (id: string) => {
-    const elementToDuplicate = findElementRecursive(currentElements, id);
-    if (!elementToDuplicate) return;
-
     const duplicateRecursive = (element: DesignElement): DesignElement => {
       const newEl = { ...element, id: crypto.randomUUID(), x: element.x + 10, y: element.y + 10, locked: false, visible: true };
       if (newEl.type === 'group' && newEl.children) {
@@ -1369,19 +1427,28 @@ function DesignEditorInternal({
       return newEl;
     }
 
-    const newElement = duplicateRecursive(elementToDuplicate);
+    setIsDirty(true);
+    setState(prev => {
+      if (!prev) return prev;
+      const currentElementsForPage = prev.pages[currentPage]?.elements || [];
+      const elementToDuplicate = findElementRecursive(currentElementsForPage, id);
+      if (!elementToDuplicate) return prev;
 
-    const topLevelIndex = currentElements.findIndex(el => el.id === id || (el.children && findElementRecursive(el.children, id)));
+      const newElement = duplicateRecursive(elementToDuplicate);
+      const topLevelIndex = currentElementsForPage.findIndex(el => el.id === id || (el.children && findElementRecursive(el.children, id)));
+      
+      const newElements = [...currentElementsForPage];
+      if (topLevelIndex !== -1) {
+        newElements.splice(topLevelIndex + 1, 0, newElement);
+      } else {
+        newElements.push(newElement);
+      }
 
-    const newElements = [...currentElements];
-    if (topLevelIndex !== -1) {
-      newElements.splice(topLevelIndex + 1, 0, newElement);
-    } else {
-      newElements.push(newElement);
-    }
-
-    updatePage(currentPage, { elements: newElements });
-    setSelectedElementIds([newElement.id]);
+      const newPages = [...prev.pages];
+      newPages[currentPage] = { ...newPages[currentPage], elements: newElements };
+      setSelectedElementIds([newElement.id]);
+      return { ...prev, pages: newPages };
+    });
   };
 
   const handleDeleteElement = () => {
@@ -1540,6 +1607,7 @@ function DesignEditorInternal({
             setCroppingElementId={setCroppingElementId}
             isAdmin={isAdmin}
             onMoveLayer={moveLayer}
+            onOpenColorPicker={(label, color, onChange) => setColorPicker({ isOpen: true, label, color, onChange })}
           />
         </div>
       );
@@ -1552,6 +1620,7 @@ function DesignEditorInternal({
   }
 
   const elementToCrop = croppingElementId ? findElementRecursive(currentElements, croppingElementId) : undefined;
+  const elementToMask = maskingElementId ? findElementRecursive(currentElements, maskingElementId) : undefined;
 
   return (
     <>
@@ -1625,6 +1694,7 @@ function DesignEditorInternal({
             setBrushOptions={setBrushOptions}
             onClearBrush={handleClearBrushStrokes}
             finalizePath={finalizePath}
+            onOpenColorPicker={(label, color, onChange) => setColorPicker({ isOpen: true, label, color, onChange })}
           />
           <SidebarRail side="left" />
 
@@ -1662,6 +1732,8 @@ function DesignEditorInternal({
                 activeTool={activeTool}
                 croppingElementId={croppingElementId}
                 setCroppingElementId={setCroppingElementId}
+                editingTextId={editingTextId}
+                setEditingId={setEditingTextId}
                 pathEditingElement={pathEditingElementId ? findElementRecursive(currentElements, pathEditingElementId) ?? null : null}
               />
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-end justify-center gap-2">
@@ -1687,8 +1759,11 @@ function DesignEditorInternal({
                       canvasSettings={{ showRulers, setShowRulers, showGrid, setShowGrid, snapToGrid, setSnapToGrid, gridSize, setGridSize, showPrintGuidelines, setShowPrintGuidelines, bleed, setBleed, safetyMargin, setSafetyMargin, unit: canvasUnit, setUnit: setCanvasUnit }}
                       croppingElementId={croppingElementId}
                       setCroppingElementId={setCroppingElementId}
+                      maskingElementId={maskingElementId}
+                      setMaskingElementId={setMaskingElementId}
                       isAdmin={isAdmin}
                       onMoveLayer={moveLayer}
+                      onOpenColorPicker={(label, color, onChange) => setColorPicker({ isOpen: true, label, color, onChange })}
                     />
                   </div>
                 </ScrollArea>
@@ -1774,6 +1849,30 @@ function DesignEditorInternal({
           }}
         />
       )}
+      
+      {elementToMask && (
+        <ImageMaskEditor
+            isOpen={!!maskingElementId}
+            onClose={() => setMaskingElementId(null)}
+            element={elementToMask}
+            product={product}
+            onUpdate={updateElement}
+        />
+      )}
+      
+      <AnimatePresence>
+        {colorPicker.isOpen && (
+          <AdvancedColorPicker
+            label={colorPicker.label}
+            color={colorPicker.color}
+            onChange={(newColor) => {
+              setColorPicker(prev => ({ ...prev, color: newColor }));
+              colorPicker.onChange(newColor);
+            }}
+            onClose={() => setColorPicker(prev => ({ ...prev, isOpen: false }))}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

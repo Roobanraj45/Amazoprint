@@ -51,6 +51,7 @@ export type Background = {
   imageSrc?: string;
   imagePosition?: 'fill' | 'fit' | 'stretch' | 'center';
   gradientSteps?: number;
+  gradientType?: 'linear' | 'radial';
 };
 
 export type Guide = {
@@ -128,11 +129,14 @@ export type DesignElement = {
   fillType?: 'solid' | 'gradient' | 'none' | 'stepped-gradient' | 'image';
   fillImageSrc?: string;
   fillImageScale?: number;
+  fillImageScaleX?: number;
+  fillImageScaleY?: number;
   fillImageOffsetX?: number;
   fillImageOffsetY?: number;
   gradientStops?: GradientStop[];
   gradientDirection?: number;
   gradientSteps?: number;
+  gradientType?: 'linear' | 'radial';
   tintOpacity?: number; // For shape gradient tint or image tint, 0-1
   blendMode?: 'normal' | 'multiply' | 'screen' | 'overlay' | 'darken' | 'lighten' | 'color-dodge' | 'color-burn' | 'hard-light' | 'soft-light' | 'difference' | 'exclusion' | 'hue' | 'saturation' | 'color' | 'luminosity';
   spotUv?: boolean;

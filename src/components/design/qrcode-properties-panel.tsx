@@ -26,6 +26,7 @@ type QrCodePropertiesPanelProps = {
     element: DesignElement;
     onUpdate: (id: string, newProps: Partial<DesignElement>) => void;
     isAdmin?: boolean;
+    onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
 };
 
 const SectionCard = ({ title, icon, children, ...props }: any) => (
@@ -72,7 +73,7 @@ const QrStylePreview = ({ options, size = 64 }: { options: any, size?: number })
     return <div ref={ref} />;
 };
 
-export function QrCodePropertiesPanel({ element, onUpdate, isAdmin }: QrCodePropertiesPanelProps) {
+export function QrCodePropertiesPanel({ element, onUpdate, isAdmin, onOpenColorPicker }: QrCodePropertiesPanelProps) {
     const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
 
     const handleUpdate = (props: Partial<DesignElement>) => {
@@ -128,16 +129,28 @@ export function QrCodePropertiesPanel({ element, onUpdate, isAdmin }: QrCodeProp
             </div>
             <div className="bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm space-y-4">
                 <SectionCard title="Styling" icon={<Palette size={14}/>}>
-                    <ColorPicker
-                        label="Code Color"
-                        color={element.qrColor || '#000000'}
-                        onChange={(color) => handleUpdate({ qrColor: color })}
-                    />
-                    <ColorPicker
-                        label="Background Color"
-                        color={element.qrBgColor || '#FFFFFF'}
-                        onChange={(color) => handleUpdate({ qrBgColor: color })}
-                    />
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-muted-foreground/70 ml-1">Code color</Label>
+                        <Button 
+                            variant="outline" 
+                            className="h-10 w-full px-3 justify-start rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all"
+                            onClick={() => onOpenColorPicker("Code color", element.qrColor || "#000000", (color) => handleUpdate({ qrColor: color }))}
+                        >
+                            <div className="w-5 h-5 rounded-md border border-white/20 shadow-sm mr-3" style={{ backgroundColor: element.qrColor || "#000000" }} />
+                            <span className="text-xs font-mono">{element.qrColor || "#000000"}</span>
+                        </Button>
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-muted-foreground/70 ml-1">Background color</Label>
+                        <Button 
+                            variant="outline" 
+                            className="h-10 w-full px-3 justify-start rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all"
+                            onClick={() => onOpenColorPicker("Background color", element.qrBgColor || "#FFFFFF", (color) => handleUpdate({ qrBgColor: color }))}
+                        >
+                            <div className="w-5 h-5 rounded-md border border-white/20 shadow-sm mr-3" style={{ backgroundColor: element.qrBgColor || "#FFFFFF" }} />
+                            <span className="text-xs font-mono">{element.qrBgColor || "#FFFFFF"}</span>
+                        </Button>
+                    </div>
                 </SectionCard>
             </div>
             <div className="bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm space-y-4">

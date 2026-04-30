@@ -5,7 +5,7 @@ import type { DesignElement, Guide, PathPoint, Product } from '@/lib/types';
 import * as lucide from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { TextCanvasElement } from './text-canvas-element';
-import { generatePathD } from '@/lib/utils';
+import { generatePathD, resolveImagePath } from '@/lib/utils';
 import { renderBristleSegment, buildBrushTip, BrushEngineTip, BristleProfile } from '@/lib/brush-engine';
 
 
@@ -36,10 +36,22 @@ const createGradientString = (element: DesignElement, { reversed = false } = {})
     if (stopsToUse.length < 2) {
       return stopsToUse.length ? stopsToUse[0].color : null;
     }
-    // For smooth gradients, distribute stops evenly regardless of weight.
+    
+    const totalWeight = stopsToUse.reduce((sum, stop) => sum + (stop.weight ?? 1), 0) || 1;
+    let accumulatedWeight = 0;
+    
     colorStopsString = stopsToUse
-      .map((s, i) => `${s.color} ${(i / (stopsToUse.length - 1)) * 100}%`)
+      .map((s, i) => {
+          if (i === 0) return `${s.color} 0%`;
+          accumulatedWeight += stopsToUse[i-1].weight ?? 1;
+          const pos = Math.max(0, Math.min(100, (accumulatedWeight / totalWeight) * 100));
+          return `${s.color} ${pos}%`;
+      })
       .join(', ');
+  }
+
+  if (element.gradientType === 'radial') {
+    return `radial-gradient(circle at center, ${colorStopsString})`;
   }
 
   return `linear-gradient(${gradientDirection || 0}deg, ${colorStopsString})`;
@@ -73,51 +85,79 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
       }
     } else { // 'gradient'
       if (gradientStops.length >= 2) {
-        stopElements = gradientStops.map((stop, index) => (
-          <stop key={stop.id || index} offset={`${(index / (gradientStops.length - 1)) * 100}%`} stopColor={stop.color} />
-        ));
+        const totalWeight = gradientStops.slice(0, -1).reduce((sum, stop) => sum + (stop.weight ?? 1), 0) || 1;
+        let accumulatedWeight = 0;
+        
+        stopElements = gradientStops.map((stop, index) => {
+            let offset: string;
+            if (index === 0) offset = "0%";
+            else if (index === gradientStops.length - 1) offset = "100%";
+            else {
+                accumulatedWeight += gradientStops[index-1].weight ?? 1;
+                offset = `${(accumulatedWeight / totalWeight) * 100}%`;
+            }
+            return <stop key={stop.id || index} offset={offset} stopColor={stop.color} />;
+        });
       }
     }
 
     if (stopElements) {
-      defs.push(
-        <linearGradient
-          key={`grad-${element.id}`}
-          id={`grad-${element.id}`}
-          gradientUnits="objectBoundingBox"
-          gradientTransform={`rotate(${gradientDirection - 90} 0.5 0.5)`}
-        >
-          {stopElements}
-        </linearGradient>
-      );
+      if (element.gradientType === 'radial') {
+        defs.push(
+          <radialGradient
+            key={`grad-${element.id}`}
+            id={`grad-${element.id}`}
+            gradientUnits="objectBoundingBox"
+            cx="0.5" cy="0.5" r="0.5" fx="0.5" fy="0.5"
+          >
+            {stopElements}
+          </radialGradient>
+        );
+      } else {
+        defs.push(
+          <linearGradient
+            key={`grad-${element.id}`}
+            id={`grad-${element.id}`}
+            gradientUnits="objectBoundingBox"
+            gradientTransform={`rotate(${gradientDirection - 90} 0.5 0.5)`}
+          >
+            {stopElements}
+          </linearGradient>
+        );
+      }
     }
   }
 
   // Image fill support
   if (fillType === 'image' && fillImageSrc) {
-    const scale = element.fillImageScale || 1;
+    const scaleX = element.fillImageScaleX || element.fillImageScale || 1;
+    const scaleY = element.fillImageScaleY || element.fillImageScale || 1;
     const offsetX = element.fillImageOffsetX || 0;
     const offsetY = element.fillImageOffsetY || 0;
-    const cx = element.width / 2;
-    const cy = element.height / 2;
     
-    // Scale around the center of the element, then apply pan offsets
-    const transformStr = `translate(${cx + offsetX}, ${cy + offsetY}) scale(${scale}) translate(${-cx}, ${-cy})`;
+    // When using objectBoundingBox:
+    const relativeOffsetX = offsetX / element.width;
+    const relativeOffsetY = offsetY / element.height;
+
+    // Scale around the center (0.5, 0.5)
+    const transformStr = `translate(${0.5 + relativeOffsetX}, ${0.5 + relativeOffsetY}) scale(${scaleX}, ${scaleY}) translate(-0.5, -0.5)`;
     
     defs.push(
       <pattern 
         key={`img-fill-${element.id}`}
         id={`img-fill-${element.id}`} 
         patternUnits="objectBoundingBox" 
-        patternContentUnits="userSpaceOnUse"
+        patternContentUnits="objectBoundingBox"
         width="1" 
         height="1"
       >
         <image 
-          href={fillImageSrc} 
-          width={element.width} 
-          height={element.height} 
-          preserveAspectRatio="xMidYMid slice" 
+          href={resolveImagePath(fillImageSrc)} 
+          x="0"
+          y="0"
+          width="1" 
+          height="1" 
+          preserveAspectRatio="none" 
           transform={transformStr}
         />
       </pattern>
@@ -294,6 +334,8 @@ type CanvasElementProps = {
   activeTool?: 'select' | 'pan' | 'pen' | 'brush';
   croppingElementId?: string | null;
   setCroppingElementId?: (id: string | null) => void;
+  isEditing?: boolean;
+  setEditingId?: (id: string | null) => void;
   isEditingPath?: boolean;
 };
 
@@ -339,12 +381,35 @@ const CanvasBrushRenderer = ({ element, isSpotUv }: { element: DesignElement, is
     );
 };
 
-export const NonInteractiveContent = memo(({ element, product, renderMode }: { element: DesignElement, product: Product, renderMode?: 'default' | 'cmyk' | 'spotuv' | 'foil' }) => {
+export const NonInteractiveContent = memo(({ 
+  element, 
+  product, 
+  renderMode,
+  isEditing,
+  setEditingId,
+  onUpdate 
+}: { 
+  element: DesignElement, 
+  product: Product, 
+  renderMode?: 'default' | 'cmyk' | 'spotuv' | 'foil',
+  isEditing?: boolean,
+  setEditingId?: (id: string | null) => void,
+  onUpdate?: (id: string, updates: Partial<DesignElement>) => void
+}) => {
   const isSpotUv = renderMode === 'spotuv' || renderMode === 'foil';
 
     switch (element.type) {
       case 'text': {
-        return <TextCanvasElement element={element} product={product} renderMode={renderMode} />;
+        return (
+          <TextCanvasElement 
+            element={element} 
+            product={product} 
+            renderMode={renderMode} 
+            isEditing={isEditing}
+            setEditingId={setEditingId}
+            onUpdate={onUpdate}
+          />
+        );
       }
       case 'image': {
         if (isSpotUv) {
@@ -362,10 +427,7 @@ export const NonInteractiveContent = memo(({ element, product, renderMode }: { e
           `blur(${element.filterBlur || 0}px)`,
         ].join(' ');
     
-        const transforms = [
-            `scaleX(${element.flipHorizontal ? -1 : 1})`,
-            `scaleY(${element.flipVertical ? -1 : 1})`,
-        ].join(' ');
+        const transforms = [].join(' ');
         
         if (!element.src) {
           return (
@@ -590,6 +652,7 @@ export const NonInteractiveContent = memo(({ element, product, renderMode }: { e
         }
 
         switch (element.shapeType) {
+          case 'circle':
           case 'oval':
             return (
               <div style={{ width: '100%', height: '100%' }}>
@@ -615,6 +678,43 @@ export const NonInteractiveContent = memo(({ element, product, renderMode }: { e
                       cy={element.height / 2}
                       rx={element.width / 2}
                       ry={element.height / 2}
+                      fill={element.color}
+                      fillOpacity={element.tintOpacity}
+                    />
+                  )}
+                </svg>
+              </div>
+            );
+          case 'rounded-rect':
+          case 'rectangle':
+             return (
+              <div style={{ width: '100%', height: '100%' }}>
+                <svg
+                  width="100%"
+                  height="100%"
+                  viewBox={`0 0 ${element.width} ${element.height}`}
+                  preserveAspectRatio="none"
+                  style={{ overflow: 'visible' }}
+                >
+                  {!isSpotUv && <SvgFillDefs element={element} />}
+                  <rect
+                    x={0}
+                    y={0}
+                    width={element.width}
+                    height={element.height}
+                    rx={element.shapeType === 'rounded-rect' ? (element.borderRadius || 20) : (element.borderRadius || 0)}
+                    ry={element.shapeType === 'rounded-rect' ? (element.borderRadius || 20) : (element.borderRadius || 0)}
+                    fill={getFillForSvg()}
+                    {...svgStrokeProps}
+                  />
+                  {showTint && (
+                    <rect
+                      x={0}
+                      y={0}
+                      width={element.width}
+                      height={element.height}
+                      rx={element.shapeType === 'rounded-rect' ? (element.borderRadius || 20) : (element.borderRadius || 0)}
+                      ry={element.shapeType === 'rounded-rect' ? (element.borderRadius || 20) : (element.borderRadius || 0)}
                       fill={element.color}
                       fillOpacity={element.tintOpacity}
                     />
@@ -694,42 +794,7 @@ export const NonInteractiveContent = memo(({ element, product, renderMode }: { e
                     </svg>
                 </div>
             );
-          case 'rectangle':
-             return (
-              <div style={{ width: '100%', height: '100%' }}>
-                <svg
-                  width="100%"
-                  height="100%"
-                  viewBox={`0 0 ${element.width} ${element.height}`}
-                  preserveAspectRatio="none"
-                  style={{ overflow: 'visible' }}
-                >
-                  {!isSpotUv && <SvgFillDefs element={element} />}
-                  <rect
-                    x={0}
-                    y={0}
-                    width={element.width}
-                    height={element.height}
-                    rx={element.borderRadius || 0}
-                    ry={element.borderRadius || 0}
-                    fill={getFillForSvg()}
-                    {...svgStrokeProps}
-                  />
-                  {showTint && (
-                    <rect
-                      x={0}
-                      y={0}
-                      width={element.width}
-                      height={element.height}
-                      rx={element.borderRadius || 0}
-                      ry={element.borderRadius || 0}
-                      fill={element.color}
-                      fillOpacity={element.tintOpacity}
-                    />
-                  )}
-                </svg>
-              </div>
-            );
+
           case 'custom-svg':
             return (
               <div style={{ width: '100%', height: '100%' }}>
@@ -743,14 +808,22 @@ export const NonInteractiveContent = memo(({ element, product, renderMode }: { e
                         <feComposite in2="dilated" operator="in" />
                       </filter>
                     )}
+                    <filter id={`mask-white-${element.id}`}>
+                      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0" />
+                    </filter>
                     <mask id={`mask-${element.id}`}>
-                      <image href={element.src} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" />
+                      <image 
+                        href={resolveImagePath(element.src)} 
+                        width="100%" height="100%" 
+                        preserveAspectRatio="xMidYMid meet" 
+                        filter={`url(#mask-white-${element.id})`}
+                      />
                     </mask>
                   </defs>
                   {/* Stroke Layer */}
                   {element.borderWidth && element.borderWidth > 0 && (
                     <image 
-                      href={element.src} 
+                      href={resolveImagePath(element.src)} 
                       width="100%" height="100%" 
                       preserveAspectRatio="xMidYMid meet" 
                       filter={`url(#dilate-${element.id})`} 
@@ -900,6 +973,8 @@ const _CanvasElement = ({
   activeTool = 'select',
   croppingElementId,
   setCroppingElementId,
+  isEditing = false,
+  setEditingId,
   isEditingPath = false,
 }: CanvasElementProps) => {
   const elementRef = useRef<HTMLDivElement>(null);
@@ -1293,14 +1368,30 @@ const _CanvasElement = ({
             };
             return (
               <div key={child.id} style={childStyle}>
-                <NonInteractiveContent element={child} product={product} renderMode={renderMode} />
+                <NonInteractiveContent 
+                  element={child} 
+                  product={product} 
+                  renderMode={renderMode} 
+                  isEditing={isEditing}
+                  setEditingId={setEditingId}
+                  onUpdate={onUpdate}
+                />
               </div>
             );
           })}
         </div>
       );
     }
-    return <NonInteractiveContent element={element} product={product} renderMode={renderMode} />
+    return (
+      <NonInteractiveContent 
+        element={element} 
+        product={product} 
+        renderMode={renderMode} 
+        isEditing={isEditing}
+        setEditingId={setEditingId}
+        onUpdate={onUpdate}
+      />
+    );
   };
 
   if (isHidden) return null;
@@ -1310,6 +1401,12 @@ const _CanvasElement = ({
       ref={elementRef}
       style={elementStyle}
       onMouseDown={isInteractive && !isCroppingThisElement ? handleMouseDown : undefined}
+      onDoubleClick={(e) => {
+        if (isInteractive && element.type === 'text' && !isCroppingThisElement) {
+            e.stopPropagation();
+            setEditingId?.(element.id);
+        }
+      }}
     >
       <div style={{
           position: 'absolute',
@@ -1317,7 +1414,9 @@ const _CanvasElement = ({
           top: -visualBounds.top,
           width: element.width,
           height: element.height,
-          pointerEvents: 'none' // Let wrapper handle the mouse events
+          pointerEvents: 'none', // Let wrapper handle the mouse events
+          transform: `scaleX(${element.flipHorizontal ? -1 : 1}) scaleY(${element.flipVertical ? -1 : 1})`,
+          transformOrigin: 'center center'
       }}>
         {renderContent()}
       </div>

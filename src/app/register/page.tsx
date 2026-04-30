@@ -62,14 +62,14 @@ export default function RegisterPage() {
       }
 
       toast({
-        title: 'Identity Created!',
+        title: 'Identity created!',
         description: 'Welcome to the future of printing.',
       });
       router.push('/login');
     } catch (error: any) {
        toast({
         variant: 'destructive',
-        title: 'Creation Failed',
+        title: 'Creation failed',
         description: error.message || 'An unexpected error occurred.',
       });
     } finally {
@@ -90,8 +90,8 @@ export default function RegisterPage() {
           </Link>
           
           <div className="space-y-6">
-            <h1 className="text-4xl font-black text-white leading-tight tracking-tighter">
-              Join the Industrial<br />
+            <h1 className="text-4xl font-bold text-white leading-tight tracking-tight">
+              Join the industrial<br />
               <span className="text-primary text-5xl">Revolution.</span>
             </h1>
             <p className="text-slate-400 font-medium leading-relaxed">
@@ -100,25 +100,25 @@ export default function RegisterPage() {
             
             <div className="space-y-4 pt-6">
                 {[
-                    { icon: Zap, title: "Instant Scaling", desc: "Grow your print business" },
-                    { icon: Globe, title: "Global Network", desc: "Expert designers worldwide" },
-                    { icon: ShieldCheck, title: "Verified Quality", desc: "Print-ready guarantees" },
+                    { icon: Zap, title: "Instant scaling", desc: "Grow your print business" },
+                    { icon: Globe, title: "Global network", desc: "Expert designers worldwide" },
+                    { icon: ShieldCheck, title: "Verified quality", desc: "Print-ready guarantees" },
                 ].map((item, i) => (
                     <div key={i} className="flex items-center gap-4 group">
                         <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-all">
                             <item.icon size={18} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-white">{item.title}</p>
-                            <p className="text-[9px] text-slate-500 font-bold">{item.desc}</p>
+                            <p className="text-[11px] font-bold text-white">{item.title}</p>
+                            <p className="text-[10px] text-slate-500 font-semibold">{item.desc}</p>
                         </div>
                     </div>
                 ))}
             </div>
           </div>
           
-          <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">
-            Precision Engineering • Design Excellence
+          <p className="text-slate-600 text-[11px] font-bold">
+            Precision engineering • Design excellence
           </p>
         </div>
       </div>
@@ -130,8 +130,8 @@ export default function RegisterPage() {
              <div className="lg:hidden flex justify-center mb-6">
                <AmazoprintLogo />
              </div>
-             <h2 className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Create New Identity</h2>
-             <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Select your role to begin the journey</p>
+             <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Create new identity</h2>
+             <p className="text-slate-500 font-semibold text-[13px]">Select your role to begin the journey</p>
           </div>
 
           <FormProvider {...methods}>
@@ -153,8 +153,8 @@ export default function RegisterPage() {
                         <User size={24} />
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-black uppercase tracking-widest mb-1">Corporate Client</p>
-                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">I need professional designs and industrial printing services.</p>
+                        <p className="text-[12px] font-bold mb-1">Corporate client</p>
+                        <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">I need professional designs and industrial printing services.</p>
                       </div>
                     </Label>
                   </div>
@@ -174,69 +174,69 @@ export default function RegisterPage() {
                         <Palette size={24} />
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-black uppercase tracking-widest mb-1">Expert Designer</p>
-                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">I am a professional looking to contribute to global projects.</p>
+                        <p className="text-[12px] font-bold mb-1">Expert designer</p>
+                        <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">I am a professional looking to contribute to global projects.</p>
                       </div>
                     </Label>
                   </div>
                 </RadioGroup>
-                {errors.role && <p className="text-[10px] font-black text-red-500 text-center uppercase tracking-widest">{errors.role.message}</p>}
+                {errors.role && <p className="text-[11px] font-bold text-red-500 text-center">{errors.role.message}</p>}
               </div>
 
               {role && (
                 <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                          <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Identity</Label>
+                          <Label htmlFor="name" className="text-[11px] font-bold text-slate-400 ml-1">Full identity</Label>
                           <Input id="name" placeholder="John Doe" className="h-12 px-5 rounded-xl border-2 bg-slate-50/50 focus:border-primary transition-all font-bold text-sm" {...register('name')} />
-                          {errors.name && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.name.message}</p>}
+                          {errors.name && <p className="text-[11px] font-bold text-red-500 ml-2">{errors.name.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Primary Email</Label>
+                        <Label htmlFor="email" className="text-[11px] font-bold text-slate-400 ml-1">Primary email</Label>
                         <Input id="email" type="email" placeholder="john@example.com" className="h-12 px-5 rounded-xl border-2 bg-slate-50/50 focus:border-primary transition-all font-bold text-sm" {...register('email')} />
-                        {errors.email && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.email.message}</p>}
+                        {errors.email && <p className="text-[11px] font-bold text-red-500 ml-2">{errors.email.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Secure Contact</Label>
+                        <Label htmlFor="phone" className="text-[11px] font-bold text-slate-400 ml-1">Secure contact</Label>
                         <Input id="phone" type="tel" placeholder="+91 00000 00000" className="h-12 px-5 rounded-xl border-2 bg-slate-50/50 focus:border-primary transition-all font-bold text-sm" {...register('phone')} />
-                        {errors.phone && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.phone.message}</p>}
+                        {errors.phone && <p className="text-[11px] font-bold text-red-500 ml-2">{errors.phone.message}</p>}
                       </div>
                   </div>
                   
                   {role === 'freelancer' && (
                     <div className="space-y-6 bg-slate-50/50 p-6 rounded-2xl border-2 border-dashed border-slate-200">
                       <div className="space-y-2">
-                        <Label htmlFor="portfolioUrl" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Portfolio Matrix (URL)</Label>
+                        <Label htmlFor="portfolioUrl" className="text-[11px] font-bold text-slate-400 ml-1">Portfolio matrix (URL)</Label>
                         <Input id="portfolioUrl" placeholder="https://behance.net/identity" className="h-12 px-5 rounded-xl border-2 bg-white focus:border-primary transition-all font-bold text-sm" {...register('portfolioUrl')} />
-                        {errors.portfolioUrl && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.portfolioUrl.message}</p>}
+                        {errors.portfolioUrl && <p className="text-[11px] font-bold text-red-500 ml-2">{errors.portfolioUrl.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="skills" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Skill Arsenal</Label>
-                        <Textarea id="skills" placeholder="Logo Design, Typography, Branding..." className="min-h-[100px] p-5 rounded-xl border-2 bg-white focus:border-primary transition-all font-bold text-sm resize-none" {...register('skills')} />
+                        <Label htmlFor="skills" className="text-[11px] font-bold text-slate-400 ml-1">Skill arsenal</Label>
+                        <Textarea id="skills" placeholder="Logo design, typography, branding..." className="min-h-[100px] p-5 rounded-xl border-2 bg-white focus:border-primary transition-all font-bold text-sm resize-none" {...register('skills')} />
                       </div>
                     </div>
                   )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                       <div className="space-y-2">
-                          <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Secure Key</Label>
+                          <Label htmlFor="password" className="text-[11px] font-bold text-slate-400 ml-1">Secure key</Label>
                           <Input id="password" type="password" placeholder="••••••••" className="h-12 px-5 rounded-xl border-2 bg-slate-50/50 focus:border-primary transition-all font-bold text-sm" {...register('password')} />
-                          {errors.password && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.password.message}</p>}
+                          {errors.password && <p className="text-[11px] font-bold text-red-500 ml-2">{errors.password.message}</p>}
                       </div>
                       <div className="space-y-2">
-                          <Label htmlFor="confirm-password" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Verify Key</Label>
+                          <Label htmlFor="confirm-password" className="text-[11px] font-bold text-slate-400 ml-1">Verify key</Label>
                           <Input id="confirm-password" type="password" placeholder="••••••••" className="h-12 px-5 rounded-xl border-2 bg-slate-50/50 focus:border-primary transition-all font-bold text-sm" {...register('confirmPassword')} />
-                          {errors.confirmPassword && <p className="text-[10px] font-bold text-red-500 ml-2 uppercase tracking-widest">{errors.confirmPassword.message}</p>}
+                          {errors.confirmPassword && <p className="text-[11px] font-bold text-red-500 ml-2">{errors.confirmPassword.message}</p>}
                       </div>
                   </div>
 
                   <div className="pt-6">
-                    <Button type="submit" className="w-full h-14 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95 group" disabled={isLoading}>
+                    <Button type="submit" className="w-full h-14 rounded-2xl text-sm font-bold shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95 group" disabled={isLoading}>
                         {isLoading ? (
                             <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
                             <>
-                                Establish Identity
+                                Establish identity
                                 <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
                             </>
                         )}
@@ -248,10 +248,10 @@ export default function RegisterPage() {
           </FormProvider>
 
           <div className="text-center pt-8 border-t border-slate-100 dark:border-slate-800">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+            <p className="text-[13px] font-bold text-slate-500">
                 Already part of the network?{' '}
-                <Link href="/login" className="text-primary hover:underline font-black">
-                    Authorized Login
+                <Link href="/login" className="text-primary hover:underline font-bold">
+                    Authorized login
                 </Link>
             </p>
           </div>

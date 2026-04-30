@@ -6,8 +6,9 @@ import { Slider } from '@/components/ui/slider';
 import type { DesignElement, Product } from '@/lib/types';
 import { NonInteractiveContent } from './canvas-element';
 import { Label } from '@/components/ui/label';
-import { ZoomIn, ZoomOut, Move, RotateCcw } from 'lucide-react';
+import { ZoomIn, ZoomOut, Move, RotateCcw, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 type ImageMaskEditorProps = {
     isOpen: boolean;
@@ -16,6 +17,8 @@ type ImageMaskEditorProps = {
     product?: Product;
     onUpdate: (id: string, updates: Partial<DesignElement>) => void;
 };
+
+
 
 export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }: ImageMaskEditorProps) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -31,7 +34,7 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
     const isDragging = useRef(false);
     const dragStart = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
 
-    const maxDimension = 300; // Reduced for smaller popup
+    const maxDimension = 320; 
     const elementMax = Math.max(element?.width || 1, element?.height || 1);
     const previewScale = elementMax > 0 ? Math.min(1, maxDimension / elementMax) : 1;
 
@@ -47,21 +50,9 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
         }
     }, [isOpen, element.id, element.fillImageOffsetX, element.fillImageOffsetY, element.fillImageScale]);
 
-    // Clamping logic to prevent image from "flying away"
-    const clampOffset = useCallback((x: number, y: number, scale: number) => {
-        const w = element.width;
-        const h = element.height;
-        const scaledW = w * scale;
-        const scaledH = h * scale;
-
-        const maxX = Math.max(scaledW, w);
-        const maxY = Math.max(scaledH, h);
-
-        return {
-            x: Math.max(-maxX, Math.min(maxX, x)),
-            y: Math.max(-maxY, Math.min(maxY, y))
-        };
-    }, [element]);
+    const handleUpdateElement = useCallback((updates: Partial<DesignElement>) => {
+        onUpdate(element.id, updates);
+    }, [element.id, onUpdate]);
 
     const updateRender = () => {
         requestAnimationFrame(() => {
@@ -87,13 +78,10 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
             const dx = (e.clientX - dragStart.current.x) / previewScale;
             const dy = (e.clientY - dragStart.current.y) / previewScale;
 
-            const next = clampOffset(
-                dragStart.current.ox + dx,
-                dragStart.current.oy + dy,
-                scaleRef.current
-            );
-
-            offsetRef.current = next;
+            offsetRef.current = {
+                x: dragStart.current.ox + dx,
+                y: dragStart.current.oy + dy
+            };
             updateRender();
         };
 
@@ -101,7 +89,7 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
             if (!isDragging.current) return;
             isDragging.current = false;
             
-            onUpdate(element.id, {
+            handleUpdateElement({
                 fillImageOffsetX: offsetRef.current.x,
                 fillImageOffsetY: offsetRef.current.y,
                 fillImageScale: scaleRef.current
@@ -114,7 +102,7 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
             window.removeEventListener('mousemove', move);
             window.removeEventListener('mouseup', up);
         };
-    }, [clampOffset, previewScale, element.id, onUpdate]);
+    }, [previewScale, handleUpdateElement]);
 
     const handleWheel = useCallback((e: React.WheelEvent) => {
         e.preventDefault();
@@ -128,24 +116,27 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
         const nextScale = Math.max(0.1, Math.min(10, prevScale * (e.deltaY > 0 ? 0.95 : 1.05)));
         const scaleRatio = nextScale / prevScale;
 
-        const nextOffset = clampOffset(
-            offsetRef.current.x - cx * (scaleRatio - 1),
-            offsetRef.current.y - cy * (scaleRatio - 1),
-            nextScale
-        );
-
         scaleRef.current = nextScale;
-        offsetRef.current = nextOffset;
+        offsetRef.current = {
+            x: offsetRef.current.x - cx * (scaleRatio - 1),
+            y: offsetRef.current.y - cy * (scaleRatio - 1)
+        };
+        
         updateRender();
-    }, [previewScale, clampOffset]);
+        handleUpdateElement({
+            fillImageOffsetX: offsetRef.current.x,
+            fillImageOffsetY: offsetRef.current.y,
+            fillImageScale: scaleRef.current
+        });
+    }, [previewScale, handleUpdateElement]);
 
     const previewElement = useMemo(() => ({
         ...element,
         fillImageOffsetX: offsetRef.current.x,
         fillImageOffsetY: offsetRef.current.y,
         fillImageScale: scaleRef.current,
-        borderWidth: Math.max(element.borderWidth || 0, 2 / previewScale),
-        borderColor: '#3b82f6',
+        borderWidth: Math.max(element.borderWidth || 0, 1.5 / previewScale),
+        borderColor: 'rgba(59, 130, 246, 0.5)',
         borderStyle: 'solid' as const,
         visible: true,
         opacity: 1
@@ -155,30 +146,62 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
 
     return (
         <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-            <DialogContent className="max-w-md sm:max-w-lg w-full max-h-[90vh] border-none bg-zinc-950 text-white p-0 overflow-hidden shadow-2xl flex flex-col">
-                <div className="p-4 border-b border-white/5 flex-shrink-0">
-                    <DialogHeader>
-                        <DialogTitle className="text-base font-bold tracking-tight flex items-center gap-2">
-                            <Move className="w-4 h-4 text-blue-400" />
-                            Adjust Image Mask
-                        </DialogTitle>
-                    </DialogHeader>
-                </div>
+            <DialogContent className="max-w-lg w-[95vw] sm:w-full p-0 overflow-hidden border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] bg-slate-950 rounded-[2rem] max-h-[90vh] flex flex-col">
+                <div className="relative flex flex-col flex-1 overflow-y-auto custom-scrollbar min-h-0">
+                    {/* Atmospheric Background Layer */}
+                    <div className="absolute inset-0 z-0 pointer-events-none">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-950 to-indigo-950/30" />
+                        <div className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-blue-500/10 to-transparent blur-[120px]" />
+                        <div className="absolute -bottom-48 -left-48 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px]" />
+                        
+                        {/* Mist/Fog Effect */}
+                        <div className="absolute inset-0 opacity-20 mix-blend-screen" style={{
+                            background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15) 0%, transparent 70%)',
+                            filter: 'blur(40px)'
+                        }} />
+                    </div>
 
-                <div className="flex-1 overflow-y-auto">
-                    <div className="flex flex-col gap-4 p-4 bg-zinc-900/50">
-                        {/* Preview Area - Slightly smaller */}
+                    {/* Header */}
+                    <div className="relative z-10 px-8 pt-8 pb-4">
+                        <DialogHeader>
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <DialogTitle className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+                                        <div className="p-2 bg-blue-500/20 rounded-xl">
+                                            <ImageIcon className="w-5 h-5 text-blue-400" />
+                                        </div>
+                                        Image Mask Editor
+                                    </DialogTitle>
+                                    <p className="text-slate-400 text-xs font-medium ml-12">
+                                        Choose a shape and adjust the image placement
+                                    </p>
+                                </div>
+                            </div>
+                        </DialogHeader>
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="relative z-10 flex-1 flex flex-col px-8 pb-8 gap-6">
+                        {/* Preview Section */}
                         <div 
                             ref={containerRef}
-                            className="w-full h-[300px] bg-[#0a0a0a] rounded-xl overflow-hidden relative flex items-center justify-center cursor-move shadow-inner group active:cursor-grabbing border border-white/5"
+                            className="relative aspect-square w-full bg-black/40 rounded-[2.5rem] border border-white/5 overflow-hidden flex items-center justify-center cursor-move group transition-all duration-500 hover:border-blue-500/30 active:scale-[0.99] shadow-2xl"
                             onMouseDown={handleMouseDown}
                             onWheel={handleWheel}
                         >
-                            <div className="absolute inset-0 opacity-10" style={{
-                                backgroundImage: 'conic-gradient(#fff 0.25turn, #000 0.25turn 0.5turn, #fff 0.5turn 0.75turn, #000 0.75turn)',
-                                backgroundSize: '24px 24px'
-                            }} />
+                            {/* Interaction Hint */}
+                            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 px-4 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 scale-90 group-hover:scale-100 flex items-center gap-2 pointer-events-none">
+                                <Move className="w-3 h-3 text-blue-400" />
+                                <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">Drag to Reposition</span>
+                            </div>
 
+                            {/* Center Guides */}
+                            <div className="absolute inset-0 pointer-events-none opacity-20">
+                                <div className="absolute top-1/2 left-0 right-0 h-px bg-white/20" />
+                                <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/20" />
+                            </div>
+
+                            {/* Transparent/Underlay Layer */}
                             <div style={{
                                 width: element.width,
                                 height: element.height,
@@ -188,9 +211,9 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
                                 position: 'relative',
                                 zIndex: 1
                             }}>
-                                <div className="absolute inset-0 opacity-30 pointer-events-none overflow-hidden" style={{ zIndex: -1 }}>
+                                <div className="absolute inset-0 opacity-20 grayscale" style={{ zIndex: -1 }}>
                                     <img 
-                                        src={element.fillImageSrc} 
+                                        src={element.fillImageSrc || element.src} 
                                         alt=""
                                         className="w-full h-full object-cover"
                                         style={{
@@ -203,79 +226,56 @@ export function ImageMaskEditor({ isOpen, onClose, element, product, onUpdate }:
                                 <NonInteractiveContent element={previewElement as any} product={product!} />
                             </div>
 
-                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/60 backdrop-blur-xl rounded-full text-[9px] font-bold text-white/60 border border-white/10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                                Pan & Zoom
+                            {/* Status Indicators */}
+                            <div className="absolute bottom-6 right-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-500">
+                                <div className="px-3 py-1 bg-blue-500 rounded-full text-[9px] font-black text-white uppercase tracking-tighter shadow-lg shadow-blue-500/40">
+                                    {Math.round(scaleRef.current * 100)}% Zoom
+                                </div>
                             </div>
                         </div>
 
-                        {/* Controls Panel - Compact */}
-                        <div className="bg-black/40 rounded-xl p-4 border border-white/5 space-y-4">
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-2 text-white/40">
-                                        <ZoomIn className="w-3.5 h-3.5" />
-                                        <Label className="text-[10px] font-bold">Zoom</Label>
+                        {/* Controls Section */}
+                        <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-[2rem] p-6 shadow-inner mt-auto space-y-6">
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center px-1">
+                                    <Label className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Magnification</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-white/10" onClick={() => { scaleRef.current = Math.max(0.1, scaleRef.current - 0.1); updateRender(); handleUpdateElement({ fillImageScale: scaleRef.current }); }}><ZoomOut className="w-3 h-3" /></Button>
+                                        <span className="text-[10px] font-mono font-bold text-white min-w-[40px] text-center">{Math.round(scaleRef.current * 100)}%</span>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-white/10" onClick={() => { scaleRef.current = Math.min(10, scaleRef.current + 0.1); updateRender(); handleUpdateElement({ fillImageScale: scaleRef.current }); }}><ZoomIn className="w-3 h-3" /></Button>
                                     </div>
-                                    <span className="text-[10px] font-mono bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20 font-bold min-w-[50px] text-center">
-                                        {Math.round(scaleRef.current * 100)}%
-                                    </span>
                                 </div>
-                                
-                                <div className="flex items-center gap-3">
-                                    <Button 
-                                        variant="ghost" size="icon"
-                                        onClick={() => {
-                                            scaleRef.current = Math.max(0.1, scaleRef.current - 0.1);
-                                            updateRender();
-                                        }}
-                                        className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 text-white/60"
-                                    >
-                                        <ZoomOut className="w-3.5 h-3.5" />
-                                    </Button>
-                                    <Slider 
-                                        value={[scaleRef.current]} 
-                                        min={0.1} 
-                                        max={10} 
-                                        step={0.01} 
-                                        onValueChange={(v) => {
-                                            scaleRef.current = v[0];
-                                            updateRender();
-                                        }}
-                                        onValueCommit={(v) => onUpdate(element.id, { fillImageScale: v[0] })}
-                                        className="cursor-pointer flex-1"
-                                    />
-                                    <Button 
-                                        variant="ghost" size="icon"
-                                        onClick={() => {
-                                            scaleRef.current = Math.min(10, scaleRef.current + 0.1);
-                                            updateRender();
-                                        }}
-                                        className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 text-white/60"
-                                    >
-                                        <ZoomIn className="w-3.5 h-3.5" />
-                                    </Button>
-                                </div>
+                                <Slider 
+                                    value={[scaleRef.current]} 
+                                    min={0.1} 
+                                    max={5} 
+                                    step={0.01} 
+                                    onValueChange={(v) => { scaleRef.current = v[0]; updateRender(); }}
+                                    onValueCommit={(v) => handleUpdateElement({ fillImageScale: v[0] })}
+                                    className="cursor-pointer"
+                                />
                             </div>
 
-                            <div className="pt-1 flex justify-between items-center gap-3">
+                            <div className="flex justify-between items-center pt-2">
                                 <Button 
                                     variant="ghost"
                                     onClick={() => {
                                         offsetRef.current = { x: 0, y: 0 };
                                         scaleRef.current = 1;
                                         updateRender();
-                                        onUpdate(element.id, { fillImageOffsetX: 0, fillImageOffsetY: 0, fillImageScale: 1 });
+                                        handleUpdateElement({ fillImageOffsetX: 0, fillImageOffsetY: 0, fillImageScale: 1 });
                                     }}
-                                    className="h-8 px-3 text-[9px] font-bold text-white/30 hover:text-blue-400 hover:bg-blue-400/5 gap-1.5"
+                                    className="h-10 px-4 text-[10px] font-black text-slate-500 hover:text-white hover:bg-white/5 rounded-2xl gap-2 transition-all uppercase tracking-widest"
                                 >
                                     <RotateCcw className="w-3 h-3" />
-                                    Reset
+                                    Reset View
                                 </Button>
+                                
                                 <Button 
                                     onClick={onClose}
-                                    className="px-6 h-8 bg-blue-600 hover:bg-blue-500 text-white text-[9px] font-bold rounded-lg shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
+                                    className="px-6 sm:px-10 h-10 bg-white hover:bg-blue-50 text-slate-950 text-[10px] sm:text-[11px] font-black rounded-2xl shadow-xl active:scale-95 transition-all uppercase tracking-widest"
                                 >
-                                    Done
+                                    Apply Changes
                                 </Button>
                             </div>
                         </div>

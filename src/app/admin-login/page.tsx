@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldAlert, Lock, ArrowRight, Home } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid admin identity' }),
@@ -52,7 +51,7 @@ export default function AdminLoginPage() {
       }
       
       toast({
-        title: 'Authorization Successful',
+        title: 'Authorization successful',
         description: 'Welcome to the Command Center.',
       });
       
@@ -73,7 +72,7 @@ export default function AdminLoginPage() {
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Access Denied',
+        title: 'Access denied',
         description: error.message || 'Identity verification failed.',
       });
     } finally {
@@ -95,11 +94,11 @@ export default function AdminLoginPage() {
                 <AmazoprintLogo className="brightness-0 invert scale-125 mx-auto" />
             </Link>
             <div className="space-y-2">
-                <h1 className="text-2xl font-black tracking-[0.2em] text-white uppercase flex items-center justify-center gap-3">
+                <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-3">
                     <ShieldAlert className="text-primary w-6 h-6" />
-                    Admin Portal
+                    Admin portal
                 </h1>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">Authorized Personnel Only</p>
+                <p className="text-[11px] font-bold text-slate-500">Authorized personnel only</p>
             </div>
         </div>
 
@@ -108,7 +107,7 @@ export default function AdminLoginPage() {
             <form onSubmit={handleSubmit(handleLogin)} className="space-y-8">
                 <div className="space-y-6">
                 <div className="space-y-3">
-                    <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Admin Identity</Label>
+                    <Label htmlFor="email" className="text-[11px] font-bold text-slate-400 ml-1">Admin identity</Label>
                     <div className="relative group">
                         <Input 
                             id="email" 
@@ -118,11 +117,11 @@ export default function AdminLoginPage() {
                             {...register('email')} 
                         />
                     </div>
-                    {errors.email && <p className="text-[10px] font-bold text-red-500 ml-4 uppercase tracking-widest">{errors.email.message}</p>}
+                    {errors.email && <p className="text-[11px] font-bold text-red-500 ml-4">{errors.email.message}</p>}
                 </div>
 
                 <div className="space-y-3">
-                    <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Security Key</Label>
+                    <Label htmlFor="password" className="text-[11px] font-bold text-slate-400 ml-1">Security key</Label>
                     <div className="relative group">
                         <Input 
                             id="password" 
@@ -133,16 +132,16 @@ export default function AdminLoginPage() {
                         />
                         <Lock className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-primary transition-colors" />
                     </div>
-                    {errors.password && <p className="text-[10px] font-bold text-red-500 ml-4 uppercase tracking-widest">{errors.password.message}</p>}
+                    {errors.password && <p className="text-[11px] font-bold text-red-500 ml-4">{errors.password.message}</p>}
                 </div>
                 </div>
 
-                <Button type="submit" className="w-full h-14 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95 group" disabled={isLoading}>
+                <Button type="submit" className="w-full h-14 rounded-2xl text-sm font-bold shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95 group" disabled={isLoading}>
                 {isLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                     <>
-                        Secure Authorization
+                        Secure authorization
                         <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
                     </>
                 )}
@@ -154,10 +153,10 @@ export default function AdminLoginPage() {
         <div className="text-center pt-4">
             <Link 
                 href="/" 
-                className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-white transition-colors"
+                className="inline-flex items-center gap-2 text-[11px] font-bold text-slate-500 hover:text-white transition-colors"
             >
                 <Home size={12} />
-                Return to Public Site
+                Return to public site
             </Link>
         </div>
       </div>

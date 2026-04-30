@@ -10,7 +10,7 @@ import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type BrushOptions = {
-    brushTip: 'chisel' | 'dry_bristle' | 'rake' | 'charcoal' | 'ink' | 'spray' | 'airbrush' | 'soft_round' | 'hard_round' | 'glow' | 'eraser';
+    brushTip: 'chisel' | 'dry_bristle' | 'rake' | 'charcoal' | 'ink' | 'spray' | 'airbrush' | 'soft_round' | 'hard_round' | 'glow' | 'mist' | 'eraser';
     size: number;
     flow: number;
     color: string;
@@ -21,9 +21,10 @@ type BrushToolPanelProps = {
     options: BrushOptions;
     setOptions: React.Dispatch<React.SetStateAction<BrushOptions>>;
     onClear: () => void;
+    onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
 };
 
-export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelProps) {
+export function BrushToolPanel({ options, setOptions, onClear, onOpenColorPicker }: BrushToolPanelProps) {
     const tips = [
         { id: 'chisel',      label: 'Sharp Chisel (Crisp Edges)' },
         { id: 'dry_bristle', label: 'Dry Bristle (Textured)' },
@@ -31,6 +32,7 @@ export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelP
         { id: 'charcoal',    label: 'Vine Charcoal (Grainy)' },
         { id: 'ink',         label: 'Flowing Ink (Smooth)' },
         { id: 'spray',       label: 'Classic Spray' },
+        { id: 'mist',        label: 'Mist Spray (White Glow)' },
         { id: 'airbrush',    label: 'Airbrush (Mist)' },
         { id: 'soft_round',  label: 'Soft Round' },
         { id: 'hard_round',  label: 'Hard Round' },
@@ -41,9 +43,9 @@ export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelP
     const update = (field: keyof BrushOptions, value: any) =>
         setOptions(prev => ({ ...prev, [field]: value }));
 
-    const sprayTips = tips.filter(tip => ['spray', 'airbrush', 'soft_round', 'hard_round', 'glow', 'eraser'].includes(tip.id));
-    const brushTips = tips.filter(tip => !['airbrush', 'soft_round', 'hard_round', 'glow', 'eraser'].includes(tip.id));
-    const currentTab = ['spray', 'airbrush', 'soft_round', 'hard_round', 'glow', 'eraser'].includes(options.brushTip) ? 'spray' : 'brush';
+    const sprayTips = tips.filter(tip => ['spray', 'mist', 'airbrush', 'soft_round', 'hard_round', 'glow', 'eraser'].includes(tip.id));
+    const brushTips = tips.filter(tip => !['mist', 'airbrush', 'soft_round', 'hard_round', 'glow', 'eraser'].includes(tip.id));
+    const currentTab = ['spray', 'mist', 'airbrush', 'soft_round', 'hard_round', 'glow', 'eraser'].includes(options.brushTip) ? 'spray' : 'brush';
 
     const handleTabChange = (value: string) => {
         if (value === 'spray') {
@@ -124,11 +126,15 @@ export function BrushToolPanel({ options, setOptions, onClear }: BrushToolPanelP
 
                 {/* Color */}
                 <div className="space-y-2">
-                    <ColorPicker
-                        label="Color"
-                        color={options.color}
-                        onChange={(color) => update('color', color)}
-                    />
+                    <Label className="text-[10px] font-bold text-muted-foreground ml-1">Brush color</Label>
+                    <Button 
+                        variant="outline" 
+                        className="h-10 w-full px-3 justify-start rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all"
+                        onClick={() => onOpenColorPicker("Brush color", options.color, (color) => update('color', color))}
+                    >
+                        <div className="w-5 h-5 rounded-md border border-white/20 shadow-sm mr-3" style={{ backgroundColor: options.color }} />
+                        <span className="text-xs font-mono">{options.color}</span>
+                    </Button>
                 </div>
 
                 {/* Clear */}

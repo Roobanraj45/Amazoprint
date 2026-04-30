@@ -34,6 +34,8 @@ import {
     ArrowRight,
     Group,
     Ungroup,
+    FlipHorizontal,
+    FlipVertical,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -123,7 +125,7 @@ export function EditorHeader(props: any) {
     const labelClass = "text-[10px] font-bold opacity-70 group-hover:opacity-100 transition-opacity";
 
     return (
-        <header className="relative z-20 flex h-16 items-center justify-between border-b bg-card px-2 lg:px-4 whitespace-nowrap overflow-hidden">
+        <header className="relative z-20 flex h-16 items-center justify-between border-b bg-white px-2 lg:px-4 whitespace-nowrap overflow-hidden shadow-sm">
 
             {/* LEFT */}
             <div className="flex items-center gap-3">
@@ -132,7 +134,7 @@ export function EditorHeader(props: any) {
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="hidden lg:flex flex-col items-center gap-1 h-12 px-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50/50 group"
+                    className="hidden lg:flex flex-col items-center gap-1 h-12 px-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50/50 group"
                     asChild
                     onClick={confirmNavigation}
                 >
@@ -244,23 +246,42 @@ export function EditorHeader(props: any) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="center" className="w-36 p-1 bg-background/95 backdrop-blur-md border-border/50">
                         <div className="grid grid-cols-3 gap-1">
-                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('left')} title="Align Left">
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onSelect={(e) => e.preventDefault()} onClick={() => handleAlign('left')} title="Align Left">
                                 <AlignLeft className="h-4 w-4" />
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('center')} title="Center Horizontal">
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onSelect={(e) => e.preventDefault()} onClick={() => handleAlign('center')} title="Center Horizontal">
                                 <AlignCenter className="h-4 w-4" />
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('right')} title="Align Right">
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onSelect={(e) => e.preventDefault()} onClick={() => handleAlign('right')} title="Align Right">
                                 <AlignRight className="h-4 w-4" />
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('top')} title="Align Top">
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onSelect={(e) => e.preventDefault()} onClick={() => handleAlign('top')} title="Align Top">
                                 <AlignStartVertical className="h-4 w-4" />
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('middle')} title="Center Vertical">
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onSelect={(e) => e.preventDefault()} onClick={() => handleAlign('middle')} title="Center Vertical">
                                 <AlignCenterVertical className="h-4 w-4" />
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onClick={() => handleAlign('bottom')} title="Align Bottom">
+                            <DropdownMenuItem className="justify-center h-10 hover:bg-primary/10 transition-colors" onSelect={(e) => e.preventDefault()} onClick={() => handleAlign('bottom')} title="Align Bottom">
                                 <AlignEndVertical className="h-4 w-4" />
+                            </DropdownMenuItem>
+                        </div>
+                        <div className="h-px bg-border/40 my-1 mx-1" />
+                        <div className="grid grid-cols-2 gap-1">
+                            <DropdownMenuItem 
+                                className="justify-center h-10 hover:bg-primary/10 transition-colors" 
+                                onSelect={(e) => e.preventDefault()}
+                                onClick={() => selectedElement && updateElement(selectedElement.id, { flipHorizontal: !selectedElement.flipHorizontal })} 
+                                title="Flip Horizontal"
+                            >
+                                <FlipHorizontal className="h-4 w-4" />
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                                className="justify-center h-10 hover:bg-primary/10 transition-colors" 
+                                onSelect={(e) => e.preventDefault()}
+                                onClick={() => selectedElement && updateElement(selectedElement.id, { flipVertical: !selectedElement.flipVertical })} 
+                                title="Flip Vertical"
+                            >
+                                <FlipVertical className="h-4 w-4" />
                             </DropdownMenuItem>
                         </div>
                     </DropdownMenuContent>

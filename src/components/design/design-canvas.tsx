@@ -249,6 +249,8 @@ type DesignCanvasProps = {
   setCroppingElementId?: (id: string | null) => void;
   /** When set, shows an interactive node-editing overlay for this finalized path element */
   pathEditingElement?: DesignElement | null;
+  editingTextId?: string | null;
+  setEditingId?: (id: string | null) => void;
 };
 
 
@@ -285,6 +287,8 @@ export function DesignCanvas({
   croppingElementId,
   setCroppingElementId,
   pathEditingElement,
+  editingTextId,
+  setEditingId,
 }: DesignCanvasProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const liveBrushCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -408,12 +412,36 @@ export function DesignCanvas({
           const endPercent = accumulatedPercentage;
           return `${stop.color} ${startPercent}%, ${stop.color} ${endPercent}%`;
         }).join(', ');
-        bgImages.push(`linear-gradient(${background.gradientDirection || 0}deg, ${colorStops})`);
+        
+        if (background.gradientType === 'radial') {
+          bgImages.push(`radial-gradient(circle at center, ${colorStops})`);
+        } else {
+          bgImages.push(`linear-gradient(${background.gradientDirection || 0}deg, ${colorStops})`);
+        }
       }
     } else {
-      const sortedStops = [...background.gradientStops].sort((a,b) => a.position - b.position);
-      const colorStops = sortedStops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
-      bgImages.push(`linear-gradient(${background.gradientDirection || 0}deg, ${colorStops})`);
+      const stops = [...background.gradientStops];
+      const totalWeight = stops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0) || 1;
+      let accumulatedWeight = 0;
+      
+      const colorStops = stops.map((s, i) => {
+          let pos: number;
+          if (i === 0) {
+            pos = 0;
+          } else {
+            accumulatedWeight += stops[i-1].weight ?? 1;
+            pos = (accumulatedWeight / totalWeight) * 100;
+          }
+          // Clamp pos
+          pos = Math.max(0, Math.min(100, pos));
+          return `${s.color} ${pos}%`;
+      }).join(', ');
+      
+      if (background.gradientType === 'radial') {
+        bgImages.push(`radial-gradient(circle at center, ${colorStops})`);
+      } else {
+        bgImages.push(`linear-gradient(${background.gradientDirection || 0}deg, ${colorStops})`);
+      }
     }
     bgSizes.push('cover');
     bgRepeats.push('no-repeat');
@@ -564,6 +592,8 @@ export function DesignCanvas({
                 activeTool={activeTool}
                 croppingElementId={croppingElementId}
                 setCroppingElementId={setCroppingElementId}
+                isEditing={editingTextId === element.id}
+                setEditingId={setEditingId}
                 />
             ))}
           </div>

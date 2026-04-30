@@ -21,7 +21,7 @@ const hexToRgba = (hex: string): { r: number; g: number; b: number; a: number } 
 
 
 const createGradientString = (element: DesignElement, { reversed = false } = {}): string | null => {
-  const { fillType, gradientDirection, gradientStops } = element;
+  const { fillType, gradientDirection, gradientStops, gradientType = 'linear' } = element;
 
   if (!gradientStops || gradientStops.length === 0 || (fillType !== 'gradient' && fillType !== 'stepped-gradient')) {
     return null;
@@ -47,16 +47,26 @@ const createGradientString = (element: DesignElement, { reversed = false } = {})
     if (stopsToUse.length < 2) {
       return stopsToUse.length ? stopsToUse[0].color : null;
     }
+    const totalWeight = stopsToUse.reduce((sum, stop) => sum + (stop.weight ?? 1), 0) || 1;
+    let accumulatedWeight = 0;
     colorStopsString = stopsToUse
-      .map((s, i) => `${s.color} ${(i / (stopsToUse.length - 1)) * 100}%`)
+      .map((s, i) => {
+          if (i === 0) return `${s.color} 0%`;
+          accumulatedWeight += stopsToUse[i-1].weight ?? 1;
+          const pos = Math.max(0, Math.min(100, (accumulatedWeight / totalWeight) * 100));
+          return `${s.color} ${pos}%`;
+      })
       .join(', ');
   }
 
+  if (gradientType === 'radial') {
+    return `radial-gradient(circle at center, ${colorStopsString})`;
+  }
   return `linear-gradient(${gradientDirection || 0}deg, ${colorStopsString})`;
 };
 
 const SvgGradientDefs = ({ element, product }: { element: DesignElement; product: Product }) => {
-  const { fillType, gradientDirection = 90, gradientStops, width, height } = element;
+  const { fillType, gradientDirection = 90, gradientStops, gradientType = 'linear' } = element;
 
   if (!gradientStops || gradientStops.length === 0 || (fillType !== 'gradient' && fillType !== 'stepped-gradient')) {
     return null;
@@ -83,43 +93,88 @@ const SvgGradientDefs = ({ element, product }: { element: DesignElement; product
     });
   } else { // 'gradient'
     if (gradientStops.length < 2) return null;
-    stopElements = gradientStops.map((stop, index) => (
-      <stop key={stop.id || index} offset={`${(index / (gradientStops.length - 1)) * 100}%`} stopColor={stop.color} />
-    ));
+    const totalWeight = gradientStops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0) || 1;
+    let accumulatedWeight = 0;
+    stopElements = gradientStops.map((stop, index) => {
+        let offset = 0;
+        if (index === 0) offset = 0;
+        else if (index === gradientStops.length - 1) offset = 1;
+        else {
+            accumulatedWeight += gradientStops[index-1].weight ?? 1;
+            offset = Math.max(0, Math.min(1, accumulatedWeight / totalWeight));
+        }
+        return <stop key={stop.id || index} offset={`${offset * 100}%`} stopColor={stop.color} />;
+    });
   }
   
+  if (gradientType === 'radial') {
+      return (
+          <radialGradient
+              id={`grad-${element.id}`}
+              cx={element.width / 2}
+              cy={element.height / 2}
+              r={Math.max(element.width, element.height) / 2}
+              fx={element.width / 2}
+              fy={element.height / 2}
+              gradientUnits="userSpaceOnUse"
+          >
+              {stopElements}
+          </radialGradient>
+      );
+  }
+
+  const cx = element.width / 2;
+  const cy = element.height / 2;
+  
+  // Calculate distance along the angle to reach the box edges (CSS standard behavior)
   const angleRad = (gradientDirection - 90) * (Math.PI / 180);
-  const x1 = 0.5 - Math.cos(angleRad) * 0.5;
-  const y1 = 0.5 - Math.sin(angleRad) * 0.5;
-  const x2 = 0.5 + Math.cos(angleRad) * 0.5;
-  const y2 = 0.5 + Math.sin(angleRad) * 0.5;
+  const cos = Math.abs(Math.cos(angleRad));
+  const sin = Math.abs(Math.sin(angleRad));
+  const dist = (element.width * cos + element.height * sin) / 2;
+  
+  const x1 = cx - Math.cos(angleRad) * dist;
+  const y1 = cy - Math.sin(angleRad) * dist;
+  const x2 = cx + Math.cos(angleRad) * dist;
+  const y2 = cy + Math.sin(angleRad) * dist;
 
   return (
-    <defs>
-      <linearGradient
-        id={`grad-${element.id}`}
-        gradientUnits="objectBoundingBox"
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-      >
-        {stopElements}
-      </linearGradient>
-    </defs>
+    <linearGradient
+      id={`grad-${element.id}`}
+      gradientUnits="userSpaceOnUse"
+      x1={x1}
+      y1={y1}
+      x2={x2}
+      y2={y2}
+    >
+      {stopElements}
+    </linearGradient>
   );
 };
 
 export function TextCanvasElement({ 
   element, 
   product, 
-  renderMode 
+  renderMode,
+  isEditing,
+  setEditingId,
+  onUpdate 
 }: { 
   element: DesignElement; 
   product: Product; 
-  renderMode?: string 
+  renderMode?: string;
+  isEditing?: boolean;
+  setEditingId?: (id: string | null) => void;
+  onUpdate?: (id: string, updates: Partial<DesignElement>) => void;
 }) {
   const [fontsLoaded, setFontsLoaded] = React.useState(false);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  React.useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      const length = textareaRef.current.value.length;
+      textareaRef.current.setSelectionRange(length, length);
+    }
+  }, [isEditing]);
 
   React.useEffect(() => {
     // Initial check
@@ -178,13 +233,12 @@ export function TextCanvasElement({
     return element.color || '#000000';
   };
   
-  if (warpStyle === 'circle') {
-    const { radius = 100, value: rotation = 0, reverse = false } = warp || {};
+  if (warpStyle && warpStyle !== 'none') {
+    const { radius = 100, value: rotation = 0, reverse = false, bend = 50 } = warp || {};
     const fontSize = element.fontSize || 16;
-    const effectiveRadius = reverse ? radius - fontSize * 0.8 : radius;
-
+    
     const centerX = element.width / 2;
-    const pathCenterY = element.height / 2;
+    const centerY = element.height / 2;
 
     let contentToWrap = element.content || '';
     if (element.textTransform === 'uppercase') contentToWrap = contentToWrap.toUpperCase();
@@ -202,30 +256,95 @@ export function TextCanvasElement({
         
         const widths = chars.map(char => context.measureText(char).width);
         const totalWidth = widths.reduce((a, b) => a + b, 0) + (chars.length - 1) * spacing;
-        
-        const totalArcDegrees = (totalWidth / (2 * Math.PI * effectiveRadius)) * 360;
-        let currentAngle = rotation - (totalArcDegrees / 2);
-        
+
+        if (warpStyle === 'circle') {
+            const effectiveRadius = reverse ? radius - fontSize * 0.8 : radius;
+            const totalArcDegrees = (totalWidth / (2 * Math.PI * effectiveRadius)) * 360;
+            let currentAngle = rotation - (totalArcDegrees / 2);
+            
+            return chars.map((char, i) => {
+                const charWidth = widths[i];
+                const charAngleWidth = (charWidth / (2 * Math.PI * effectiveRadius)) * 360;
+                const midAngle = currentAngle + (charAngleWidth / 2);
+                currentAngle += charAngleWidth + (spacing / (2 * Math.PI * effectiveRadius)) * 360;
+                const angleInRadians = (midAngle - 90) * Math.PI / 180;
+                return {
+                    char,
+                    x: centerX + (effectiveRadius * Math.cos(angleInRadians)),
+                    y: centerY + (effectiveRadius * Math.sin(angleInRadians)),
+                    rotation: midAngle + (reverse ? 180 : 0)
+                };
+            });
+        }
+
+        // For other styles (arc, arch, wave, flag, rise)
+        // We calculate positions along a 0 to 1 progress line
+        let currentXOffset = 0;
         return chars.map((char, i) => {
             const charWidth = widths[i];
-            const charAngleWidth = (charWidth / (2 * Math.PI * effectiveRadius)) * 360;
-            const midAngle = currentAngle + (charAngleWidth / 2);
+            const midXInLine = currentXOffset + (charWidth / 2);
+            currentXOffset += charWidth + spacing;
             
-            // Advance for next char
-            currentAngle += charAngleWidth + (spacing / (2 * Math.PI * effectiveRadius)) * 360;
-            
-            const angleInRadians = (midAngle - 90) * Math.PI / 180;
-            const x = centerX + (effectiveRadius * Math.cos(angleInRadians));
-            const y = pathCenterY + (effectiveRadius * Math.sin(angleInRadians));
-            
+            // Progress from -0.5 to 0.5 (centered at 0)
+            const progress = (midXInLine / totalWidth) - 0.5;
+            const x = centerX + (progress * totalWidth);
+            let y = centerY;
+            let charRotation = 0;
+
+            const bendFactor = bend / 100;
+            const bendAmount = element.height * 0.4 * bendFactor;
+
+            switch (warpStyle) {
+                case 'arc': {
+                    // Parabolic arc
+                    const arcY = (1 - 4 * (progress * progress)) * bendAmount;
+                    y = centerY - arcY;
+                    // Rotation based on tangent
+                    const slope = -8 * progress * bendAmount / totalWidth;
+                    charRotation = Math.atan(slope) * 180 / Math.PI;
+                    break;
+                }
+                case 'arch': {
+                    // Similar to arc but steeper
+                    const archY = Math.cos(progress * Math.PI) * bendAmount;
+                    y = centerY - archY;
+                    const slope = -Math.sin(progress * Math.PI) * (bendAmount * Math.PI / totalWidth);
+                    charRotation = Math.atan(slope) * 180 / Math.PI;
+                    break;
+                }
+                case 'wave': {
+                    const waveY = Math.sin(progress * Math.PI * 2) * bendAmount;
+                    y = centerY - waveY;
+                    const slope = -Math.cos(progress * Math.PI * 2) * (bendAmount * Math.PI * 2 / totalWidth);
+                    charRotation = Math.atan(slope) * 180 / Math.PI;
+                    break;
+                }
+                case 'flag': {
+                    const flagY = Math.sin(progress * Math.PI) * bendAmount;
+                    y = centerY - flagY;
+                    const slope = -Math.cos(progress * Math.PI) * (bendAmount * Math.PI / totalWidth);
+                    charRotation = Math.atan(slope) * 180 / Math.PI;
+                    break;
+                }
+                case 'rise': {
+                    const riseY = progress * bendAmount * 2;
+                    y = centerY - riseY;
+                    const slope = -bendAmount * 2 / totalWidth;
+                    charRotation = Math.atan(slope) * 180 / Math.PI;
+                    break;
+                }
+            }
+
             return {
                 char,
                 x,
                 y,
-                rotation: midAngle + (reverse ? 180 : 0)
+                rotation: charRotation
             };
         });
-    }, [contentToWrap, element.fontStyle, element.fontWeight, element.fontSize, element.fontFamily, element.letterSpacing, effectiveRadius, rotation, reverse, centerX, pathCenterY, fontsLoaded]);
+    }, [contentToWrap, element.fontStyle, element.fontWeight, element.fontSize, element.fontFamily, element.letterSpacing, radius, rotation, reverse, bend, warpStyle, centerX, centerY, fontsLoaded, element.width, element.height]);
+
+    const isSmoothGradient = element.fillType === 'gradient';
 
     return (
       <svg 
@@ -239,26 +358,28 @@ export function TextCanvasElement({
             {shadowFilterDef}
         </defs>
         
-        <g filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}>
+        <g 
+            filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}
+            fill={isSmoothGradient ? getSvgFill() : undefined}
+        >
           {charData.map((data, i) => (
-            <React.Fragment key={i}>
-                <text 
-                    style={{
-                        ...textStyle,
-                        paintOrder: 'stroke fill',
-                    }} 
-                    textAnchor="middle" 
-                    dominantBaseline="middle"
-                    transform={`translate(${data.x}, ${data.y}) rotate(${data.rotation})`}
-                    stroke={!isSpotUv && element.textStrokeWidth ? (element.textStrokeColor || '#000000') : 'none'}
-                    strokeWidth={!isSpotUv ? (element.textStrokeWidth || 0) : 0}
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                    fill={getSvgFill()}
-                >
-                    {data.char}
-                </text>
-            </React.Fragment>
+            <text 
+                key={i}
+                style={{
+                    ...textStyle,
+                    paintOrder: 'stroke fill',
+                }} 
+                textAnchor="middle" 
+                dominantBaseline="middle"
+                transform={`translate(${data.x}, ${data.y}) rotate(${data.rotation})`}
+                stroke={!isSpotUv && element.textStrokeWidth ? (element.textStrokeColor || '#000000') : 'none'}
+                strokeWidth={!isSpotUv ? (element.textStrokeWidth || 0) : 0}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                fill={isSmoothGradient ? 'inherit' : getSvgFill()}
+            >
+                {data.char}
+            </text>
           ))}
         </g>
       </svg>
@@ -266,7 +387,7 @@ export function TextCanvasElement({
   }
 
   // -- Normal Flat Text --
-  const charData = React.useMemo(() => {
+  const lineData = React.useMemo(() => {
     if (!element.content) return [];
     
     const canvas = document.createElement('canvas');
@@ -281,47 +402,25 @@ export function TextCanvasElement({
     else if (element.textTransform === 'capitalize') contentToWrap = contentToWrap.replace(/\b\w/g, char => char.toUpperCase());
 
     const allLines = contentToWrap.split('\n');
-    const lines: { char: string; x: number; y: number; width: number }[][] = [];
+    const lines: { text: string; y: number; width: number }[] = [];
     const lineHeightPx = (element.lineHeight || 1.2) * (element.fontSize || 16);
-    const spacing = element.letterSpacing || 0;
 
-    allLines.forEach((lineContent, lineIdx) => {
+    allLines.forEach((lineContent) => {
         const words = lineContent.split(' ');
-        let currentLineChars: { char: string; x: number; width: number }[] = [];
-        let currentLineWidth = 0;
-
-        words.forEach((word, wordIdx) => {
-            const wordWithSpace = wordIdx > 0 ? ' ' + word : word;
-            const wordChars = Array.from(wordWithSpace);
-            const wordWidth = context.measureText(wordWithSpace).width;
-
-            if (currentLineWidth + wordWidth > element.width && currentLineChars.length > 0) {
-                // Push current line and reset
-                lines.push(currentLineChars.map(c => ({ ...c, y: 0, width: 0 }))); // Y will be set later
-                currentLineChars = [];
-                currentLineWidth = 0;
-                
-                // Process word again without leading space
-                const cleanWord = word;
-                const cleanChars = Array.from(cleanWord);
-                let xOffset = 0;
-                cleanChars.forEach(char => {
-                    const w = context.measureText(char).width;
-                    currentLineChars.push({ char, x: xOffset, width: w });
-                    xOffset += w + spacing;
-                });
-                currentLineWidth = xOffset - spacing;
+        let currentLine = "";
+        
+        words.forEach((word) => {
+            const testLine = currentLine ? currentLine + " " + word : word;
+            const testWidth = context.measureText(testLine).width;
+            
+            if (testWidth > element.width && currentLine) {
+                lines.push({ text: currentLine, y: 0, width: context.measureText(currentLine).width });
+                currentLine = word;
             } else {
-                let xOffset = currentLineWidth > 0 ? currentLineWidth + spacing : 0;
-                wordChars.forEach(char => {
-                    const w = context.measureText(char).width;
-                    currentLineChars.push({ char, x: xOffset, width: w });
-                    xOffset += w + spacing;
-                });
-                currentLineWidth = xOffset - spacing;
+                currentLine = testLine;
             }
         });
-        if (currentLineChars.length > 0) lines.push(currentLineChars.map(c => ({ ...c, y: 0, width: 0 })));
+        if (currentLine) lines.push({ text: currentLine, y: 0, width: context.measureText(currentLine).width });
     });
 
     const totalTextHeight = lines.length * lineHeightPx;
@@ -332,40 +431,47 @@ export function TextCanvasElement({
         default: startY = (element.height - totalTextHeight) / 2 + (lineHeightPx * 0.8); break;
     }
 
-    return lines.map((line, i) => {
-        const lineTotalWidth = line.length > 0 ? (line[line.length - 1].x + line[line.length - 1].width) : 0;
-        let lineXOffset = 0;
-        if (element.textAlign === 'center') lineXOffset = (element.width - lineTotalWidth) / 2;
-        else if (element.textAlign === 'right') lineXOffset = element.width - lineTotalWidth;
-
-        const yPos = startY + i * lineHeightPx;
-        return line.map(c => ({
-            char: c.char,
-            x: c.x + lineXOffset,
-            y: yPos
-        }));
-    });
+    return lines.map((line, i) => ({
+        ...line,
+        y: startY + i * lineHeightPx
+    }));
   }, [element, element.content, element.width, element.height, element.textAlign, element.verticalAlign, fontsLoaded]);
+
+  const isGradient = element.fillType === 'gradient' || element.fillType === 'stepped-gradient';
 
   return (
     <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
         <defs>
             {!isSpotUv && <SvgGradientDefs element={element} product={product} />}
             {!isSpotUv && element.fillType === 'image' && element.fillImageSrc && (() => {
-                const scale = element.fillImageScale || 1;
+                const scaleX = element.fillImageScaleX || element.fillImageScale || 1;
+                const scaleY = element.fillImageScaleY || element.fillImageScale || 1;
                 const offsetX = element.fillImageOffsetX || 0;
                 const offsetY = element.fillImageOffsetY || 0;
-                const cx = element.width / 2;
-                const cy = element.height / 2;
-                const transformStr = `translate(${cx + offsetX}, ${cy + offsetY}) scale(${scale}) translate(${-cx}, ${-cy})`;
+                
+                // When using objectBoundingBox:
+                // 1.0 = 100% of the element's width/height
+                // We normalize offset to be relative (0.5 = center)
+                const relativeOffsetX = offsetX / element.width;
+                const relativeOffsetY = offsetY / element.height;
+                
+                // Scale around the center (0.5, 0.5)
+                const transformStr = `translate(${0.5 + relativeOffsetX}, ${0.5 + relativeOffsetY}) scale(${scaleX}, ${scaleY}) translate(-0.5, -0.5)`;
                 
                 return (
-                    <pattern id={`img-fill-${element.id}`} patternUnits="userSpaceOnUse" width={element.width} height={element.height}>
+                    <pattern 
+                      id={`img-fill-${element.id}`} 
+                      patternUnits="objectBoundingBox" 
+                      width="1" 
+                      height="1"
+                    >
                         <image 
                             href={element.fillImageSrc} 
-                            width={element.width} 
-                            height={element.height} 
-                            preserveAspectRatio="xMidYMid slice"
+                            x="0"
+                            y="0"
+                            width="1" 
+                            height="1" 
+                            preserveAspectRatio="none"
                             transform={transformStr}
                         />
                     </pattern>
@@ -374,29 +480,89 @@ export function TextCanvasElement({
             {shadowFilterDef}
         </defs>
 
-      <g filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}>
-          {charData.map((line, lineIdx) => (
-              <React.Fragment key={lineIdx}>
-                  {line.map((c, charIdx) => (
-                      <text 
-                        key={charIdx} 
-                        style={{
-                            ...textStyle,
-                            paintOrder: 'stroke fill',
-                        }} 
-                        transform={`translate(${c.x}, ${c.y})`}
-                        stroke={!isSpotUv && element.textStrokeWidth ? (element.textStrokeColor || '#000000') : 'none'}
-                        strokeWidth={!isSpotUv ? (element.textStrokeWidth || 0) : 0}
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                        fill={getSvgFill()}
-                      >
-                        {c.char}
-                      </text>
-                  ))}
-              </React.Fragment>
-          ))}
+      {isEditing ? (
+        <foreignObject x={0} y={0} width={element.width} height={element.height}>
+          <div style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: element.verticalAlign === 'top' ? 'flex-start' : (element.verticalAlign === 'bottom' ? 'flex-end' : 'center'),
+            padding: 0
+          }}>
+            <textarea
+              ref={textareaRef}
+              autoFocus
+              style={{
+                width: '100%',
+                height: 'auto', // Let flex container control vertical space
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                resize: 'none',
+                color: element.color,
+                fontFamily: element.fontFamily,
+                fontSize: `${element.fontSize}px`,
+                textAlign: element.textAlign,
+                fontWeight: element.fontWeight,
+                fontStyle: element.fontStyle,
+                lineHeight: element.lineHeight,
+                padding: 0,
+                margin: 0,
+                overflow: 'hidden',
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                display: 'block'
+              }}
+              value={element.content}
+              onChange={(e) => onUpdate?.(element.id, { content: e.target.value })}
+              onBlur={() => setEditingId?.(null)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setEditingId?.(null);
+                e.stopPropagation();
+              }}
+            />
+          </div>
+        </foreignObject>
+      ) : (
+        <g 
+          filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}
+          fill={isGradient ? getSvgFill() : undefined}
+        >
+          {lineData.map((line, lineIdx) => {
+              let x = 0;
+              if (element.textAlign === 'center') x = element.width / 2;
+              else if (element.textAlign === 'right') x = element.width;
+              
+              const textAlignMap = {
+                  left: 'start',
+                  center: 'middle',
+                  right: 'end',
+                  justify: 'start'
+              };
+
+              return (
+                  <text 
+                    key={lineIdx} 
+                    style={{
+                        ...textStyle,
+                        paintOrder: 'stroke fill',
+                    }} 
+                    x={x}
+                    y={line.y}
+                    textAnchor={textAlignMap[element.textAlign || 'left'] as any}
+                    stroke={!isSpotUv && element.textStrokeWidth ? (element.textStrokeColor || '#000000') : 'none'}
+                    strokeWidth={!isSpotUv ? (element.textStrokeWidth || 0) : 0}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    fill={isGradient ? 'inherit' : getSvgFill()}
+                  >
+                    {line.text}
+                  </text>
+              );
+          })}
       </g>
+      )}
     </svg>
   );
 }

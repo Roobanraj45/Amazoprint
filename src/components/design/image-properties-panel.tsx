@@ -19,6 +19,7 @@ import {
   SlidersHorizontal,
   Maximize,
   ListFilter,
+  X,
   Crop as CropIcon,
 } from "lucide-react";
 import { CMYKColorPicker as ColorPicker } from "./cmyk-color-picker";
@@ -32,23 +33,26 @@ type Props = {
   onUpdate: (id: string, newProps: Partial<DesignElement>) => void;
   croppingElementId: string | null;
   setCroppingElementId: (id: string | null) => void;
+  maskingElementId: string | null;
+  setMaskingElementId: (id: string | null) => void;
   isAdmin?: boolean;
+  onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
 };
 
 const SectionCard = ({ title, icon, children, ...props }: any) => (
-  <div {...props}>
-    <div className="flex items-center gap-2 mb-3 text-[11px] font-bold text-foreground">
-      <div className="p-1.5 rounded-md bg-primary/10 border border-primary/20">
+  <div {...props} className={cn("p-2 rounded-xl bg-white border border-slate-200 shadow-sm", props.className)}>
+    <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+      <div className="p-1 rounded-md bg-primary/10 border border-primary/20 text-primary">
         {icon}
       </div>
       {title}
     </div>
-    <div className="space-y-4">{children}</div>
+    <div className="space-y-2">{children}</div>
   </div>
 );
 
 
-export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, setCroppingElementId }: Props) {
+export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, setCroppingElementId, maskingElementId, setMaskingElementId, onOpenColorPicker }: Props) {
   const update = (props: Partial<DesignElement>) =>
     onUpdate(element.id, props);
 
@@ -67,6 +71,8 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
         }));
         newProps.gradientStops = newStops;
         newProps.gradientSteps = steps;
+        newProps.gradientDirection = 180;
+        newProps.gradientType = 'linear';
     }
     update(newProps);
   }
@@ -161,9 +167,8 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
   return (
     <div className="space-y-4">
         {/* TRANSFORM SECTION */}
-        <div className="bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm">
-            <SectionCard title="Transform" icon={<Maximize size={14} />}>
-                <div className="space-y-4">
+        <SectionCard title="Transform" icon={<Maximize size={12} />} className="p-2">
+            <div className="space-y-3">
                     <div className="space-y-2">
                     <Label className="text-xs font-medium text-muted-foreground">
                         Flip
@@ -222,56 +227,77 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                     </Select>
                     </div>
 
-                    <div className="pt-4 border-t border-border/40 space-y-4">
-                      <Button 
-                        variant="outline"
-                        className="w-full gap-2"
-                        onClick={() => setCroppingElementId(element.id)}
-                      >
-                        <CropIcon size={14} />
-                        Crop Image
-                      </Button>
+                    <div className="pt-3 border-t border-border/40 space-y-3">
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <Button 
+                            variant="outline"
+                            className="gap-2 h-9 text-xs font-bold rounded-xl border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
+                            onClick={() => setCroppingElementId(element.id)}
+                        >
+                            <CropIcon size={14} />
+                            Crop
+                        </Button>
+                        <Button 
+                            variant="default"
+                            className="gap-2 h-9 text-xs font-bold rounded-xl shadow-md transition-all active:scale-95"
+                            onClick={() => setMaskingElementId(element.id)}
+                        >
+                            <Maximize size={14} />
+                            Mask Editor
+                        </Button>
+                      </div>
                     </div>
 
                 </div>
             </SectionCard>
-        </div>
         
         {/* APPEARANCE SECTION */}
-        <div className="bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm">
-            <SectionCard title="Appearance" icon={<Palette size={12} />}>
-                <div className="flex items-center justify-between gap-4">
-                    <Label className="text-xs text-muted-foreground font-medium">Overlay Type</Label>
-                    <Select
-                    value={element.fillType || "solid"}
-                    onValueChange={(v) => handleFillTypeChange(v as any)}
-                    >
-                    <SelectTrigger className="h-9 w-32 text-xs bg-background/50 border-border/50">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="solid">Solid Color</SelectItem>
-                        <SelectItem value="gradient">Gradient</SelectItem>
-                        <SelectItem value="stepped-gradient">Stepped</SelectItem>
-                    </SelectContent>
-                    </Select>
-                </div>
+        <SectionCard title="Appearance" icon={<Palette size={12} />} className="p-3">
+            <div className="space-y-3">
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Overlay Type</Label>
+                        <div className="flex gap-1">
+                            {[
+                                { value: 'solid', label: 'Solid', preview: <div className="w-4 h-4 rounded-full border border-slate-200 shadow-sm" style={{ backgroundColor: element.color || '#3b82f6' }} /> },
+                                { value: 'gradient', label: 'Gradient', preview: <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-sm" /> },
+                                { value: 'stepped-gradient', label: 'Stepped', preview: <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-green-400 shadow-sm" /> },
+                                { value: 'none', label: 'None', preview: <X size={14} className="text-slate-400" /> },
+                            ].map(({ value, label, preview }) => (
+                                <button key={value} onClick={() => handleFillTypeChange(value as any)}
+                                    className={cn("flex-1 flex flex-col items-center gap-1 py-1.5 rounded-lg border text-[9px] font-bold transition-all shadow-sm",
+                                        element.fillType === value || (value === 'solid' && !element.fillType)
+                                            ? "bg-primary/10 border-primary/50 text-primary"
+                                            : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50")}>
+                                    {preview}{label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
-                <div className="rounded-lg bg-secondary/30 p-2 border border-border/40">
+                <div className="rounded-lg bg-slate-50/50 p-2 border border-slate-200 shadow-inner">
                     {(!element.fillType || element.fillType === "solid") && (
-                    <ColorPicker
-                        label=""
-                        color={element.color || 'transparent'}
-                        onChange={(c) => update({ color: c || "" })}
-                    />
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-bold text-slate-500 ml-1">Tint color</Label>
+                            <Button 
+                                variant="outline" 
+                                className="h-9 w-full px-3 justify-start rounded-xl border-slate-200 bg-white hover:bg-slate-100 transition-all shadow-sm"
+                                onClick={() => onOpenColorPicker("Tint color", element.color || "transparent", (c) => update({ color: c || "" }))}
+                            >
+                                <div className="w-4 h-4 rounded-md border border-slate-200 shadow-sm mr-3" style={{ backgroundColor: element.color || "transparent" }} />
+                                <span className="text-[11px] font-mono leading-none tracking-tight text-slate-700">{element.color || "transparent"}</span>
+                            </Button>
+                        </div>
                     )}
 
                     {element.fillType === "gradient" && (
                     <GradientPicker
                         stops={gradientStops}
                         direction={element.gradientDirection || 0}
+                        gradientType={element.gradientType || 'linear'}
                         onDirectionChange={(d) => update({ gradientDirection: d })}
+                        onTypeChange={(t) => update({ gradientType: t })}
                         onStopsChange={(s) => update({ gradientStops: s })}
+                        onOpenColorPicker={onOpenColorPicker}
                     />
                     )}
 
@@ -303,25 +329,27 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                                     <ListFilter size={12} />
                                     Color Steps
                                 </div>
-                                <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
                                     {(element.gradientStops || []).map((stop, index) => (
-                                        <div key={stop.id} className="bg-background/40 p-3 rounded-xl border border-border/40">
+                                        <div key={stop.id} className="bg-slate-50/80 p-3 rounded-xl border border-slate-200 shadow-sm">
                                             <div className="flex gap-3 items-end">
-                                                <ColorPicker
-                                                    label={`Step ${index + 1}`}
-                                                    color={stop.color}
-                                                    onChange={color => handleSteppedStopChange(index, { color })}
-                                                    containerClassName="space-y-0 flex-1"
-                                                />
-                                                <div className="w-20 space-y-1">
-                                                    <Label className="text-[10px] font-bold text-muted-foreground text-center">Ratio</Label>
-                                                    <Input
-                                                        type="number"
-                                                        className="h-8 text-xs font-mono bg-background border-border/50 focus-visible:ring-1 ring-primary/30"
-                                                        value={stop.weight ?? 1}
-                                                        onChange={e => handleSteppedStopChange(index, { weight: parseInt(e.target.value, 10) || 1 })}
-                                                        min={1}
-                                                    />
+                                                <div className="flex-1 space-y-1.5">
+                                                    <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Step {index + 1}</Label>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        className="h-8 w-full px-2 justify-start rounded-lg border-slate-200 bg-white hover:bg-slate-100 transition-all shadow-sm"
+                                                        onClick={() => onOpenColorPicker(`Step ${index + 1} color`, stop.color, (color) => handleSteppedStopChange(index, { color }))}
+                                                    >
+                                                        <div className="w-4 h-4 rounded-sm border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: stop.color }} />
+                                                        <span className="text-[10px] font-mono text-slate-700">{stop.color}</span>
+                                                    </Button>
+                                                </div>
+                                                <div className="flex-1 space-y-1">
+                                                    <div className="flex justify-between items-center px-1">
+                                                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ratio</Label>
+                                                        <span className="text-[11px] font-mono font-bold text-primary">{(stop.weight ?? 1).toFixed(1)}</span>
+                                                    </div>
+                                                    <Slider value={[stop.weight ?? 1]} onValueChange={(v) => handleSteppedStopChange(index, { weight: v[0] })} min={1} max={10} step={0.1} className="py-1" />
                                                 </div>
                                             </div>
                                         </div>
@@ -339,15 +367,13 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                     display={`${Math.round((element.tintOpacity || 0) * 100)}%`}
                     min={0}
                     max={1}
-                    step={0.01}
                     onChange={(v: number) => update({ tintOpacity: v })}
                 />
+                </div>
             </SectionCard>
-        </div>
 
         {/* ADJUSTMENTS SECTION */}
-        <div className="bg-background/60 p-3 rounded-xl border border-border/50 shadow-sm">
-            <SectionCard title="Adjustments" icon={<SlidersHorizontal size={12} />}>
+        <SectionCard title="Adjustments" icon={<SlidersHorizontal size={12} />} className="p-2">
             <Tabs defaultValue="basic" className="w-full">
               <TabsList className="grid w-full grid-cols-3 h-9">
                   <TabsTrigger value="basic" className="text-xs">Basic</TabsTrigger>
@@ -370,7 +396,6 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
               </TabsContent>
             </Tabs>
             </SectionCard>
-        </div>
     </div>
   );
 }

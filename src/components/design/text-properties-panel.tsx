@@ -34,6 +34,7 @@ type TextPropertiesPanelProps = {
     onUpdate: (id: string, newProps: Partial<DesignElement>) => void;
     product: Product;
     isAdmin?: boolean;
+    onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
 };
 
 const GOOGLE_FONTS = [
@@ -67,7 +68,19 @@ const IconBtn = ({ icon: Icon, active, onClick, title }: any) => (
     </button>
 );
 
-export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: TextPropertiesPanelProps) {
+const SectionCard = ({ title, icon, children, ...props }: any) => (
+    <div {...props} className={cn("p-2 rounded-xl bg-white border border-slate-200 shadow-sm", props.className)}>
+        <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            <div className="p-1 rounded-md bg-primary/10 border border-primary/20 text-primary">
+                {icon}
+            </div>
+            {title}
+        </div>
+        <div className="space-y-2">{children}</div>
+    </div>
+);
+
+export function TextPropertiesPanel({ element, onUpdate, product, isAdmin, onOpenColorPicker }: TextPropertiesPanelProps) {
     const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
     const [isImageMaskEditorOpen, setIsImageMaskEditorOpen] = useState(false);
     const handleUpdate = (props: Partial<DesignElement>) => onUpdate(element.id, props);
@@ -134,11 +147,13 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
             const steps = element.gradientSteps || 2;
             const stops = element.gradientStops || [];
             const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#000000', '#ffffff', '#aaaaaa', '#555555'];
-            newProps.gradientStops = Array.from({ length: steps }, (_, i) => ({
+            const newStops = Array.from({ length: steps }, (_, i) => ({
                 id: stops[i]?.id || crypto.randomUUID(), color: stops[i]?.color || colors[i % colors.length], position: 0, weight: stops[i]?.weight || 1,
             }));
+            newProps.gradientStops = newStops;
             newProps.gradientSteps = steps;
             newProps.gradientDirection = 180;
+            newProps.gradientType = 'linear';
         }
         handleUpdate(newProps);
     };
@@ -179,45 +194,38 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
     const currentFill = element.fillType || 'solid';
 
     return (
-        <div className="space-y-4">
-            {/* Text Content */}
-            <Textarea value={element.content} className="min-h-[72px] bg-muted/30 border-0 shadow-inner resize-none text-sm focus-visible:ring-1 ring-primary/30"
-                onChange={(e) => handleUpdate({ content: e.target.value })} placeholder="Type something..." />
+        <div className="space-y-2 px-1 pb-6 h-full overflow-y-auto custom-scrollbar bg-slate-50/30">
+            {/* Content Section */}
+            <SectionCard title="Content" icon={<Type size={12} />} className="p-1.5">
+                <Textarea 
+                    value={element.content} 
+                    className="min-h-[60px] bg-white border-slate-200 rounded-lg shadow-sm resize-none text-xs focus-visible:ring-1 ring-primary/30"
+                    onChange={(e) => handleUpdate({ content: e.target.value })} 
+                    placeholder="Type something..." 
+                />
+            </SectionCard>
 
-            {/* Typography Block */}
-            <div className="space-y-4 p-3.5 rounded-2xl bg-gradient-to-b from-muted/30 to-muted/10 border border-border/50 shadow-sm">
-                <div className="flex items-center gap-2.5 pb-2.5 border-b border-border/40 mb-1">
-                    <div className="p-2 rounded-xl bg-blue-500/15 text-blue-600 shadow-inner">
-                        <Type size={18} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                        <p className="text-[12px] font-black tracking-tight text-foreground leading-none">Typography</p>
-                        <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 leading-none tracking-tight">Font & style settings</p>
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    {/* Font Family Selection */}
+            {/* Typography Section */}
+            <SectionCard title="Typography" icon={<Type size={12} />} className="p-1.5">
+                <div className="space-y-3">
                     <div className="space-y-1.5">
                         <div className="flex justify-between items-end">
-                            <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Font family</Label>
+                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Font family</Label>
                             <div className="flex gap-1">
                                 <input type="file" ref={fontInputRef} className="hidden" accept=".ttf,.otf,.woff,.woff2" onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) handleFontUpload(file);
                                 }} />
-                                <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[9px] text-primary hover:text-primary/80 hover:bg-primary/10" onClick={() => fontInputRef.current?.click()} disabled={isUploadingFont}>
-                                    {isUploadingFont ? <Loader2 size={10} className="animate-spin mr-1" /> : <UploadCloud size={10} className="mr-1" />}
-                                    Upload
+                                <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[9px] font-bold text-primary hover:bg-primary/5" onClick={() => setIsManageFontsOpen(true)}>
+                                    <Settings2 size={10} className="mr-1" /> Manage
                                 </Button>
-                                <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[9px] text-muted-foreground hover:text-foreground hover:bg-muted" onClick={() => setIsManageFontsOpen(true)}>
-                                    <Settings2 size={10} className="mr-1" />
-                                    {isAdmin ? "Manage" : "View List"}
+                                <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[9px] font-bold text-primary hover:bg-primary/5" onClick={() => fontInputRef.current?.click()}>
+                                    <UploadCloud size={10} className="mr-1" /> Add
                                 </Button>
                             </div>
                         </div>
                         <Select value={element.fontFamily || 'Inter'} onValueChange={(f) => handleUpdate({ fontFamily: f })}>
-                            <SelectTrigger className="w-full bg-background border-border/60 h-10 text-sm shadow-sm hover:border-primary/40 transition-colors" style={{ fontFamily: element.fontFamily || 'Inter' }}>
+                            <SelectTrigger className="h-9 w-full text-xs bg-white border-slate-200 rounded-lg">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="max-h-[300px]">
@@ -234,17 +242,17 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                            <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Size</Label>
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Size</Label>
                             <div className="relative group">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-foreground/40 pointer-events-none group-focus-within:text-primary transition-colors">PX</span>
-                                <Input type="number" className="pl-8 h-10 bg-background border-border/60 text-sm font-mono shadow-sm focus-visible:ring-primary/20"
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 pointer-events-none group-focus-within:text-primary transition-colors">PX</span>
+                                <Input type="number" className="pl-7 h-9 bg-white border-slate-200 text-xs font-mono rounded-xl shadow-sm"
                                     value={element.fontSize} onChange={(e) => handleUpdate({ fontSize: parseInt(e.target.value, 10) })} />
                             </div>
                         </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Format</Label>
-                            <div className="flex bg-background border border-border/60 rounded-xl p-1 gap-1 shadow-sm h-10">
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Format</Label>
+                            <div className="flex bg-white border border-slate-200 rounded-xl p-0.5 gap-0.5 h-9 shadow-sm">
                                 <IconBtn icon={Bold} active={element.fontWeight === 'bold'} title="Bold"
                                     onClick={() => handleUpdate({ fontWeight: element.fontWeight === 'bold' ? 'normal' : 'bold' })} />
                                 <IconBtn icon={Italic} active={element.fontStyle === 'italic'} title="Italic"
@@ -255,17 +263,16 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         </div>
                     </div>
 
-                    {/* Alignment */}
-                    <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Alignment</Label>
+                    <div className="space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Alignment</Label>
                         <div className="flex gap-2">
-                            <div className="flex flex-[1.4] bg-background border border-border/60 rounded-xl p-1 gap-1 shadow-sm h-10">
+                            <div className="flex flex-[1.4] bg-white border border-slate-200 rounded-xl p-0.5 gap-0.5 h-9 shadow-sm">
                                 <IconBtn icon={AlignLeft} active={element.textAlign === 'left'} title="Left" onClick={() => handleUpdate({ textAlign: 'left' })} />
                                 <IconBtn icon={AlignCenter} active={element.textAlign === 'center'} title="Center" onClick={() => handleUpdate({ textAlign: 'center' })} />
                                 <IconBtn icon={AlignRight} active={element.textAlign === 'right'} title="Right" onClick={() => handleUpdate({ textAlign: 'right' })} />
                                 <IconBtn icon={AlignJustify} active={element.textAlign === 'justify'} title="Justify" onClick={() => handleUpdate({ textAlign: 'justify' })} />
                             </div>
-                            <div className="flex flex-1 bg-background border border-border/60 rounded-xl p-1 gap-1 shadow-sm h-10">
+                            <div className="flex flex-1 bg-white border border-slate-200 rounded-xl p-0.5 gap-0.5 h-9 shadow-sm">
                                 <IconBtn icon={AlignVerticalJustifyStart} active={element.verticalAlign === 'top'} title="Align Top" onClick={() => handleUpdate({ verticalAlign: 'top' })} />
                                 <IconBtn icon={AlignVerticalJustifyCenter} active={!element.verticalAlign || element.verticalAlign === 'middle'} title="Align Middle" onClick={() => handleUpdate({ verticalAlign: 'middle' })} />
                                 <IconBtn icon={AlignVerticalJustifyEnd} active={element.verticalAlign === 'bottom'} title="Align Bottom" onClick={() => handleUpdate({ verticalAlign: 'bottom' })} />
@@ -273,213 +280,297 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                         </div>
                     </div>
 
-                    {/* Spacing */}
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                            <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Letter spacing</Label>
-                            <Input type="number" className="h-10 bg-background border-border/60 text-sm font-mono shadow-sm"
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Letter spacing</Label>
+                            <Input type="number" className="h-9 bg-white border-slate-200 text-xs font-mono rounded-xl shadow-sm"
                                 value={element.letterSpacing} onChange={(e) => handleUpdate({ letterSpacing: parseFloat(e.target.value) })} />
                         </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Line height</Label>
-                            <Input type="number" step={0.1} className="h-10 bg-background border-border/60 text-sm font-mono shadow-sm"
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Line height</Label>
+                            <Input type="number" step={0.1} className="h-9 bg-white border-slate-200 text-xs font-mono rounded-xl shadow-sm"
                                 value={element.lineHeight} onChange={(e) => handleUpdate({ lineHeight: parseFloat(e.target.value) })} />
                         </div>
                     </div>
 
-                    {/* Case Transform */}
-                    <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Text case</Label>
-                        <div className="flex bg-background border border-border/60 rounded-xl p-1 gap-1 shadow-sm h-10">
+                    <div className="space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Text case</Label>
+                        <div className="flex bg-white border border-slate-200 rounded-xl p-0.5 gap-0.5 h-9 shadow-sm">
                             {[
-                                { icon: CaseUpper, value: 'uppercase', title: 'Uppercase', bg: 'hover:bg-orange-500/10 hover:text-orange-600', activeBg: 'bg-orange-500 text-white shadow-orange-200' },
-                                { icon: CaseLower, value: 'lowercase', title: 'Lowercase', bg: 'hover:bg-green-500/10 hover:text-green-600', activeBg: 'bg-green-500 text-white shadow-green-200' },
-                                { label: 'Aa', value: 'capitalize', title: 'Capitalize', bg: 'hover:bg-blue-500/10 hover:text-blue-600', activeBg: 'bg-blue-500 text-white shadow-blue-200' },
-                                { icon: X, value: 'none', title: 'None', bg: 'hover:bg-red-500/10 hover:text-red-600', activeBg: 'bg-red-500 text-white shadow-red-200' },
+                                { icon: CaseUpper, value: 'uppercase', title: 'Uppercase', bg: 'hover:bg-primary/5', activeBg: 'bg-primary text-white' },
+                                { icon: CaseLower, value: 'lowercase', title: 'Lowercase', bg: 'hover:bg-primary/5', activeBg: 'bg-primary text-white' },
+                                { label: 'Aa', value: 'capitalize', title: 'Capitalize', bg: 'hover:bg-primary/5', activeBg: 'bg-primary text-white' },
+                                { icon: X, value: 'none', title: 'None', bg: 'hover:bg-red-50 hover:text-red-600', activeBg: 'bg-red-500 text-white' },
                             ].map(({ icon: Icon, label, value, title, bg, activeBg }) => (
                                 <button key={value} title={title} onClick={() => handleUpdate({ textTransform: value as any })}
-                                    className={cn("flex-1 flex items-center justify-center rounded-lg transition-all text-xs font-bold",
+                                    className={cn("flex-1 flex items-center justify-center rounded-lg transition-all text-[11px] font-bold",
                                         (!element.textTransform && value === 'none' || element.textTransform === value)
-                                            ? cn("shadow-md", activeBg)
-                                            : cn("text-muted-foreground", bg))}>
-                                    {Icon ? <Icon size={16} strokeWidth={3} /> : label}
+                                            ? activeBg
+                                            : cn("text-slate-500", bg))}>
+                                    {Icon ? <Icon size={14} /> : label}
                                 </button>
                             ))}
                         </div>
                     </div>
                 </div>
-            </div>
+            </SectionCard>
 
-            <div className="h-px bg-border/40" />
+            <div className="h-px bg-slate-200/50 mx-2" />
 
-            {/* Fill & Stroke Tabs */}
-            <div className="space-y-4 p-3.5 rounded-2xl bg-gradient-to-b from-muted/30 to-muted/10 border border-border/50 shadow-sm">
-                <div className="flex items-center gap-2.5 pb-2.5 border-b border-border/40 mb-1">
-                    <div className="p-2 rounded-xl bg-purple-500/15 text-purple-600 shadow-inner">
-                        <Palette size={18} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                        <p className="text-[12px] font-black tracking-tight text-foreground leading-none">Color & Fill</p>
-                        <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 leading-none tracking-tight">Gradient & pattern styles</p>
-                    </div>
-                </div>
-
+            {/* Color & Fill Section */}
+            <SectionCard title="Color & Fill" icon={<Palette size={12} />} className="p-1.5">
                 <Tabs defaultValue="fill" className="w-full">
-                    <TabsList className="h-10 grid grid-cols-2 bg-background/50 border border-border/40 rounded-xl p-1 w-full mb-4 shadow-inner">
-                        <TabsTrigger value="fill" className="text-[11px] font-bold h-7 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all">Fill</TabsTrigger>
-                        <TabsTrigger value="stroke" className="text-[11px] font-bold h-7 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all">Stroke</TabsTrigger>
+                    <TabsList className="h-9 grid grid-cols-2 bg-slate-50 border border-slate-200 rounded-lg p-1 w-full mb-3 shadow-inner">
+                        <TabsTrigger value="fill" className="text-[11px] font-bold h-7 rounded-md data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Fill</TabsTrigger>
+                        <TabsTrigger value="stroke" className="text-[11px] font-bold h-7 rounded-md data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Stroke</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="fill" className="mt-0 space-y-3">
-                        {/* Fill type pills */}
                         <div className="flex gap-1.5 pt-1">
                             {[
-                                { value: 'solid', label: 'Solid', preview: <div className="w-4 h-4 rounded-full bg-gray-400 border border-white/20 shadow-sm" />, activeBg: 'bg-gray-500/10 border-gray-500/40 text-gray-700' },
-                                { value: 'gradient', label: 'Gradient', preview: <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 shadow-sm" />, activeBg: 'bg-blue-500/10 border-blue-500/40 text-blue-700' },
-                                { value: 'stepped-gradient', label: 'Stepped', preview: <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-green-400 shadow-sm" />, activeBg: 'bg-orange-500/10 border-orange-500/40 text-orange-700' },
-                                { value: 'image', label: 'Image', preview: <ImageIcon size={14} className="text-indigo-500" />, activeBg: 'bg-indigo-500/10 border-indigo-500/40 text-indigo-700' },
-                                { value: 'none', label: 'None', preview: <X size={14} className="text-red-500" />, activeBg: 'bg-red-500/10 border-red-500/40 text-red-700' },
-                            ].map(({ value, label, preview, activeBg }) => (
+                                { value: 'solid', label: 'Solid', preview: <div className="w-3.5 h-3.5 rounded-full bg-slate-400 border border-white/20" /> },
+                                { value: 'gradient', label: 'Gradient', preview: <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-blue-400 to-purple-500" /> },
+                                { value: 'stepped-gradient', label: 'Stepped', preview: <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-green-400" /> },
+                                { value: 'image', label: 'Image', preview: <ImageIcon size={12} className="text-indigo-500" /> },
+                                { value: 'none', label: 'None', preview: <X size={12} className="text-red-500" /> },
+                            ].map(({ value, label, preview }) => (
                                 <button key={value} onClick={() => handleFillTypeChange(value as any)}
-                                    className={cn("flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl border text-[10px] font-bold transition-all shadow-sm",
+                                    className={cn("flex-1 flex flex-col items-center gap-1 py-1.5 rounded-lg border text-[9px] font-bold transition-all shadow-sm",
                                         currentFill === value
-                                            ? cn("ring-1 ring-inset", activeBg)
-                                            : "bg-background border-border/50 text-muted-foreground hover:bg-muted/30")}>
+                                            ? "bg-primary/10 border-primary/40 text-primary"
+                                            : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50")}>
                                     {preview}{label}
                                 </button>
                             ))}
                         </div>
 
-                        <div className="rounded-xl bg-muted/20 border border-border/40 p-2.5">
+                        <div className="rounded-xl bg-slate-50/50 border border-slate-200 p-2 shadow-inner">
                             {(currentFill === 'solid' || !element.fillType) && (
-                                <ColorPicker label="" color={element.color || '#000000'} onChange={(color) => handleUpdate({ color })} />
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Text color</Label>
+                                    <Button variant="outline" className="h-9 w-full px-2 justify-start rounded-lg border-slate-200 bg-white hover:bg-slate-50 transition-all shadow-sm"
+                                        onClick={() => onOpenColorPicker("Text color", element.color || "#000000", (color) => handleUpdate({ color }))}>
+                                        <div className="w-4 h-4 rounded-md border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: element.color || "#000000" }} />
+                                        <span className="text-[10px] font-mono text-slate-700">{element.color || "#000000"}</span>
+                                    </Button>
+                                </div>
                             )}
                             {currentFill === 'gradient' && (
-                                <GradientPicker stops={gradientStops} direction={element.gradientDirection || 0}
-                                    onDirectionChange={(d) => handleUpdate({ gradientDirection: d })}
-                                    onStopsChange={(s) => handleUpdate({ gradientStops: s })} />
+                                <GradientPicker stops={gradientStops} direction={element.gradientDirection || 0} gradientType={element.gradientType || 'linear'}
+                                    onDirectionChange={(d) => handleUpdate({ gradientDirection: d })} onTypeChange={(t) => handleUpdate({ gradientType: t })}
+                                    onStopsChange={(s) => handleUpdate({ gradientStops: s })} onOpenColorPicker={onOpenColorPicker} />
                             )}
                             {currentFill === 'stepped-gradient' && (
-                                <div className="space-y-4 pt-2">
-                                    <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+                                <div className="space-y-3 pt-1">
+                                    <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
                                         <PropSlider label="Angle" value={element.gradientDirection || 0} display={`${element.gradientDirection || 0}°`} min={0} max={360} step={1} onChange={(v: number) => handleUpdate({ gradientDirection: v })} />
-                                        <div className="space-y-1 w-16">
-                                            <Label className="text-[10px] uppercase text-muted-foreground/60">Steps</Label>
-                                            <Input type="number" className="h-8 text-sm font-mono bg-background border-0" value={element.gradientSteps || 2}
+                                        <div className="space-y-1 w-14">
+                                            <Label className="text-[9px] uppercase font-bold text-slate-500">Steps</Label>
+                                            <Input type="number" className="h-8 text-xs font-mono bg-white border-slate-200" value={element.gradientSteps || 2}
                                                 onChange={(e) => handleGradientStepsChange(parseInt(e.target.value))} min={2} max={10} />
                                         </div>
                                     </div>
-                                    <div className="space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">
+                                    <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
                                         {(element.gradientStops || []).map((stop, i) => (
-                                            <div key={stop.id} className="flex items-center gap-3 p-2.5 bg-background/60 rounded-lg border border-border/40">
-                                                <ColorPicker label={`#${i + 1}`} color={stop.color} onChange={(c) => handleSteppedStopChange(i, { color: c })} containerClassName="flex-1 space-y-0" />
-                                                <Input type="number" className="h-7 w-14 text-xs font-mono bg-muted/40 border-0" value={stop.weight ?? 1}
-                                                    onChange={(e) => handleSteppedStopChange(i, { weight: parseInt(e.target.value, 10) || 1 })} min={1} />
+                                            <div key={stop.id} className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 shadow-sm transition-all hover:border-primary/20">
+                                                <div className="flex-1 space-y-1">
+                                                    <Label className="text-[9px] font-bold text-slate-500 uppercase ml-1 tracking-widest">Step {i + 1}</Label>
+                                                    <Button variant="outline" className="h-8 w-full px-2 justify-start rounded-lg border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all shadow-sm"
+                                                        onClick={() => onOpenColorPicker(`Step ${i + 1} color`, stop.color, (c) => handleSteppedStopChange(i, { color: c }))}>
+                                                        <div className="w-3.5 h-3.5 rounded-sm border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: stop.color }} />
+                                                        <span className="text-[10px] font-mono text-slate-700">{stop.color}</span>
+                                                    </Button>
+                                                </div>
+                                                <div className="flex-1 space-y-1">
+                                                    <div className="flex justify-between items-center px-1">
+                                                        <Label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Ratio</Label>
+                                                        <span className="text-[10px] font-mono font-bold text-primary">{(stop.weight ?? 1).toFixed(1)}</span>
+                                                    </div>
+                                                    <Slider value={[stop.weight ?? 1]} onValueChange={(v) => handleSteppedStopChange(i, { weight: v[0] })} min={1} max={10} step={0.1} className="py-1" />
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
-                                    <Button variant="outline" size="sm" className="w-full h-8 text-sm" onClick={() => handleGradientStepsChange((element.gradientSteps || 2) + 1)}>+ Add Step</Button>
+                                    <Button variant="ghost" size="sm" className="w-full h-8 text-[11px] font-bold text-primary hover:bg-primary/5" onClick={() => handleGradientStepsChange((element.gradientSteps || 2) + 1)}>+ Add Step</Button>
                                 </div>
                             )}
                             {currentFill === 'image' && (
-                                <div className="space-y-3 pt-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-muted rounded-md shrink-0 flex items-center justify-center overflow-hidden border border-border/50">
-                                            {element.fillImageSrc ? <Image src={element.fillImageSrc} alt="" width={48} height={48} className="object-cover" /> : <ImageIcon size={16} className="text-muted-foreground" />}
+                                <div className="space-y-4 pt-2">
+                                    <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm transition-all hover:border-primary/20">
+                                        <div className="w-12 h-12 bg-slate-50 rounded-lg shrink-0 flex items-center justify-center overflow-hidden border border-slate-200 shadow-inner group relative">
+                                            {element.fillImageSrc ? (
+                                                <Image src={element.fillImageSrc} alt="" width={48} height={48} className="object-cover" />
+                                            ) : (
+                                                <ImageIcon size={18} className="text-slate-300" />
+                                            )}
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors cursor-pointer flex items-center justify-center" onClick={() => setIsAssetLibraryOpen(true)}>
+                                                <Library size={12} className="text-white opacity-0 group-hover:opacity-100" />
+                                            </div>
                                         </div>
                                         <div className="flex-1 space-y-2">
-                                            <Input type="text" value={element.fillImageSrc || ''} onChange={(e) => handleUpdate({ fillImageSrc: e.target.value })} placeholder="Image URL..." className="h-8 text-sm bg-muted/40 border-0" />
-                                            <div className="flex gap-2">
-                                                <Button variant="outline" size="sm" className="h-7 text-xs flex-1" onClick={() => setIsAssetLibraryOpen(true)}>
-                                                    <Library size={12} className="mr-1.5" /> Browse
+                                            <div className="flex gap-1.5">
+                                                <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold flex-1 rounded-lg border-slate-200" onClick={() => setIsAssetLibraryOpen(true)}>
+                                                    Change
                                                 </Button>
-                                                {element.fillImageSrc && (
-                                                    <Button variant="secondary" size="sm" className="h-7 text-xs flex-1" onClick={() => setIsImageMaskEditorOpen(true)}>
-                                                        <Edit3 size={12} className="mr-1.5" /> Adjust
-                                                    </Button>
-                                                )}
+                                                <Button variant="secondary" size="sm" className="h-7 text-[10px] font-bold flex-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200" onClick={() => setIsImageMaskEditorOpen(true)}>
+                                                    Adjust
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>
-                                    <ImageMaskEditor
-                                        isOpen={isImageMaskEditorOpen}
-                                        onClose={() => setIsImageMaskEditorOpen(false)}
-                                        element={element}
-                                        product={product}
-                                        onUpdate={onUpdate}
-                                    />
+
+                                    <div className="rounded-xl bg-slate-50/50 border border-slate-200 p-3 space-y-4 shadow-inner">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between items-center px-1">
+                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Scale X</Label>
+                                                    <span className="text-[10px] font-mono font-bold text-primary">{Math.round((element.fillImageScaleX || element.fillImageScale || 1) * 100)}%</span>
+                                                </div>
+                                                <Slider 
+                                                    value={[element.fillImageScaleX || element.fillImageScale || 1]} 
+                                                    min={0.1} max={5} step={0.01} 
+                                                    onValueChange={(v) => handleUpdate({ fillImageScaleX: v[0] })}
+                                                    className="py-1"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between items-center px-1">
+                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Scale Y</Label>
+                                                    <span className="text-[10px] font-mono font-bold text-primary">{Math.round((element.fillImageScaleY || element.fillImageScale || 1) * 100)}%</span>
+                                                </div>
+                                                <Slider 
+                                                    value={[element.fillImageScaleY || element.fillImageScale || 1]} 
+                                                    min={0.1} max={5} step={0.01} 
+                                                    onValueChange={(v) => handleUpdate({ fillImageScaleY: v[0] })}
+                                                    className="py-1"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between items-center px-1">
+                                                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Uniform Zoom</Label>
+                                                <span className="text-[11px] font-mono font-bold text-primary">{Math.round((element.fillImageScale || 1) * 100)}%</span>
+                                            </div>
+                                            <Slider 
+                                                value={[element.fillImageScale || 1]} 
+                                                min={0.1} max={5} step={0.01} 
+                                                onValueChange={(v) => handleUpdate({ 
+                                                    fillImageScale: v[0],
+                                                    fillImageScaleX: v[0],
+                                                    fillImageScaleY: v[0]
+                                                })}
+                                                className="py-1"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Offset X</Label>
+                                                <Input type="number" className="h-8 bg-white border-slate-200 text-xs font-mono rounded-lg shadow-sm"
+                                                    value={element.fillImageOffsetX || 0} onChange={(e) => handleUpdate({ fillImageOffsetX: parseFloat(e.target.value) || 0 })} />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Offset Y</Label>
+                                                <Input type="number" className="h-8 bg-white border-slate-200 text-xs font-mono rounded-lg shadow-sm"
+                                                    value={element.fillImageOffsetY || 0} onChange={(e) => handleUpdate({ fillImageOffsetY: parseFloat(e.target.value) || 0 })} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <ImageMaskEditor isOpen={isImageMaskEditorOpen} onClose={() => setIsImageMaskEditorOpen(false)} element={element} product={product} onUpdate={onUpdate} />
                                 </div>
                             )}
-                            {currentFill === 'none' && <p className="text-sm text-muted-foreground py-3 text-center">No fill</p>}
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="stroke" className="mt-0 space-y-2">
-                        <div className="rounded-xl bg-muted/20 border border-border/40 p-3 space-y-4">
-                            <ColorPicker label="Stroke Color" color={element.textStrokeColor || '#000000'} onChange={(c) => handleUpdate({ textStrokeColor: c })} />
+                    <TabsContent value="stroke" className="mt-0 space-y-3">
+                        <div className="rounded-xl bg-slate-50/50 border border-slate-200 p-3 space-y-4 shadow-inner">
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Stroke color</Label>
+                                <Button variant="outline" className="h-9 w-full px-2 justify-start rounded-lg border-slate-200 bg-white hover:bg-slate-100 transition-all shadow-sm"
+                                    onClick={() => onOpenColorPicker("Stroke color", element.textStrokeColor || "#000000", (c) => handleUpdate({ textStrokeColor: c }))}>
+                                    <div className="w-4 h-4 rounded-md border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: element.textStrokeColor || "#000000" }} />
+                                    <span className="text-[10px] font-mono text-slate-700">{element.textStrokeColor || "#000000"}</span>
+                                </Button>
+                            </div>
                             <PropSlider label="Width" value={element.textStrokeWidth || 0} display={`${element.textStrokeWidth || 0}px`} min={0} max={20} step={0.5} onChange={(v: number) => handleUpdate({ textStrokeWidth: v })} />
                         </div>
                     </TabsContent>
                 </Tabs>
-            </div>
+            </SectionCard>
 
-            <div className="h-px bg-border/40" />
+            <div className="h-px bg-slate-200/50 mx-2" />
 
-            {/* Effects Block */}
-            <div className="space-y-4 p-3.5 rounded-2xl bg-gradient-to-b from-muted/30 to-muted/10 border border-border/50 shadow-sm">
-                <div className="flex items-center gap-2.5 pb-2.5 border-b border-border/40 mb-1">
-                    <div className="p-2 rounded-xl bg-amber-500/15 text-amber-600 shadow-inner">
-                        <WandSparkles size={18} strokeWidth={2.5} />
+            {/* Effects Section */}
+            <SectionCard title="Effects" icon={<WandSparkles size={12} />} className="p-1.5">
+                <div className="space-y-4">
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between px-1">
+                            <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Shadow</Label>
+                            <Switch checked={element.textShadows?.length > 0} onCheckedChange={toggleShadow} className="scale-75 origin-right" />
+                        </div>
+                        {element.textShadows && element.textShadows.length > 0 && (
+                            <div className="rounded-xl bg-slate-50/50 border border-slate-200 p-3 space-y-4 shadow-inner">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Shadow color</Label>
+                                    <Button variant="outline" className="h-9 w-full px-2 justify-start rounded-lg border-slate-200 bg-white hover:bg-slate-50 transition-all shadow-sm"
+                                        onClick={() => onOpenColorPicker("Shadow color", firstShadow?.color || "#00000080", (c) => handleShadowChange({ color: c }))}>
+                                        <div className="w-4 h-4 rounded-md border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: firstShadow?.color || "#00000080" }} />
+                                        <span className="text-[10px] font-mono text-slate-700">{firstShadow?.color || "#00000080"}</span>
+                                    </Button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <PropSlider label="Offset X" value={firstShadow?.offsetX || 0} display={`${firstShadow?.offsetX || 0}px`} min={-20} max={20} step={1} onChange={(v: number) => handleShadowChange({ offsetX: v })} />
+                                    <PropSlider label="Offset Y" value={firstShadow?.offsetY || 0} display={`${firstShadow?.offsetY || 0}px`} min={-20} max={20} step={1} onChange={(v: number) => handleShadowChange({ offsetY: v })} />
+                                </div>
+                                <PropSlider label="Blur" value={firstShadow?.blur || 0} display={`${firstShadow?.blur || 0}px`} min={0} max={30} step={1} onChange={(v: number) => handleShadowChange({ blur: v })} />
+                            </div>
+                        )}
                     </div>
-                    <div>
-                        <p className="text-[12px] font-black tracking-tight text-foreground leading-none">Effects</p>
-                        <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 leading-none tracking-tight">Shadows & warp transformations</p>
-                    </div>
-                </div>
 
-                {/* Shadow */}
-                <div className="rounded-xl bg-muted/20 border border-border/40 p-2.5 space-y-3">
-                    <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold">Shadow</Label>
-                        <Switch checked={!!firstShadow} onCheckedChange={toggleShadow} className="scale-75 origin-right" />
+                    <div className="h-px bg-slate-100" />
+
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Warp Style</Label>
+                        <Select value={warp.style || 'none'} onValueChange={(v) => handleWarpChange({ style: v as any })}>
+                            <SelectTrigger className="h-9 w-full text-xs bg-white border-slate-200 rounded-lg">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                <SelectItem value="arc">Arc</SelectItem>
+                                <SelectItem value="arch">Arch</SelectItem>
+                                <SelectItem value="flag">Flag</SelectItem>
+                                <SelectItem value="wave">Wave</SelectItem>
+                                <SelectItem value="rise">Rise</SelectItem>
+                                <SelectItem value="circle">Circle</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
-                    {firstShadow && (
-                        <div className="space-y-2 pt-2 border-t border-border/40">
-                            <ColorPicker label="Color" color={firstShadow.color} onChange={(c) => handleShadowChange({ color: c })} />
-                            <div className="grid grid-cols-3 gap-2">
-                                <PropSlider label="X" value={firstShadow.offsetX} display={`${firstShadow.offsetX}px`} min={-20} max={20} step={0.5} onChange={(v: number) => handleShadowChange({ offsetX: v })} />
-                                <PropSlider label="Y" value={firstShadow.offsetY} display={`${firstShadow.offsetY}px`} min={-20} max={20} step={0.5} onChange={(v: number) => handleShadowChange({ offsetY: v })} />
-                                <PropSlider label="Blur" value={firstShadow.blur} display={`${firstShadow.blur}px`} min={0} max={50} step={1} onChange={(v: number) => handleShadowChange({ blur: v })} />
+
+                    {warp.style !== 'none' && warp.style !== 'circle' && (
+                        <div className="rounded-xl bg-slate-50/50 border border-slate-200 p-3 space-y-4 shadow-inner">
+                            <PropSlider label="Bend" value={warp.bend || 50} display={`${warp.bend || 0}%`} min={-100} max={100} step={1} onChange={(v: number) => handleWarpChange({ bend: v })} />
+                            <div className="flex items-center justify-between px-1">
+                                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Reverse</Label>
+                                <Switch checked={warp.reverse || false} onCheckedChange={(c) => handleWarpChange({ reverse: c })} className="scale-75 origin-right" />
                             </div>
                         </div>
                     )}
-                </div>
 
-                {/* Text Warp */}
-                <div className="rounded-2xl bg-muted/20 border border-border/40 p-3.5 space-y-3.5 shadow-inner">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <Label className="text-[11px] font-bold text-foreground">Circular warp</Label>
-                            <p className="text-[9px] text-muted-foreground font-medium leading-none mt-1">Bend text into a curve</p>
-                        </div>
-                        <Switch 
-                            checked={warp.style === 'circle'} 
-                            onCheckedChange={(c) => handleWarpChange({ style: c ? 'circle' : 'none' })} 
-                            className="scale-90 origin-right data-[state=checked]:bg-primary" 
-                        />
-                    </div>
                     {warp.style === 'circle' && (
-                        <div className="space-y-4 pt-3.5 border-t border-border/40 animate-in fade-in slide-in-from-top-1 duration-300">
+                        <div className="rounded-xl bg-slate-50/50 border border-slate-200 p-3 space-y-4 shadow-inner">
                             <PropSlider label="Radius" value={warp.radius || 100} display={`${warp.radius || 100}px`} min={10} max={500} step={1} onChange={(v: number) => handleWarpChange({ radius: v })} />
                             <PropSlider label="Rotation" value={warp.value || 0} display={`${warp.value || 0}°`} min={0} max={360} step={1} onChange={(v: number) => handleWarpChange({ value: v })} />
-                            <div className="flex items-center justify-between px-1 py-1 bg-background/40 rounded-lg border border-border/40">
-                                <Label className="text-[10px] font-bold text-muted-foreground/80">Reverse direction</Label>
+                            <div className="flex items-center justify-between px-1">
+                                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Reverse</Label>
                                 <Switch checked={warp.reverse || false} onCheckedChange={(c) => handleWarpChange({ reverse: c })} className="scale-75 origin-right" />
                             </div>
                         </div>
                     )}
                 </div>
-            </div>
+            </SectionCard>
 
             {/* Asset Library Dialog */}
             <Dialog open={isAssetLibraryOpen} onOpenChange={setIsAssetLibraryOpen}>
@@ -502,13 +593,8 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin }: Tex
                                 <div key={font.name} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/10 group">
                                     <span style={{ fontFamily: font.name }} className="text-sm font-medium">{font.name}</span>
                                     {isAdmin && (
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            onClick={() => handleDeleteFont(font.url)}
-                                            disabled={isDeletingFont === font.url}
-                                        >
+                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => handleDeleteFont(font.url)} disabled={isDeletingFont === font.url}>
                                             {isDeletingFont === font.url ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                         </Button>
                                     )}

@@ -60,8 +60,11 @@ type PropertiesPanelProps = {
   };
   croppingElementId: string | null;
   setCroppingElementId: (id: string | null) => void;
+  maskingElementId: string | null;
+  setMaskingElementId: (id: string | null) => void;
   isAdmin?: boolean;
   onMoveLayer: (direction: 'front' | 'back' | 'forward' | 'backward') => void;
+  onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
 };
 
 const PropSlider = ({ label, value, display, min, max, step, onChange }: any) => (
@@ -107,7 +110,7 @@ const IconToggle = ({ icon: Icon, active, onClick, title }: any) => (
 export function PropertiesPanel({
   element, onUpdate, product, onProductUpdate, quantity, onQuantityChange,
   background, onBackgroundChange, canvasSettings, croppingElementId,
-  setCroppingElementId, isAdmin, onMoveLayer,
+  setCroppingElementId, maskingElementId, setMaskingElementId, isAdmin, onMoveLayer, onOpenColorPicker,
 }: PropertiesPanelProps) {
 
   // =================== NO ELEMENT → CANVAS SETTINGS ===================
@@ -124,15 +127,29 @@ export function PropertiesPanel({
 
     const handleBgFill = (fillType: 'solid' | 'gradient' | 'stepped-gradient' | 'image') => {
       const newProps: Partial<Background> = { type: fillType };
+      
       if (fillType === 'stepped-gradient') {
         const steps = background.gradientSteps || 2;
         const stops = background.gradientStops || [];
-        const colors = ['#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#000000','#ffffff','#aaaaaa','#555555'];
+        const colors = ['#3b82f6','#8b5cf6','#ec4899','#f43f5e','#f97316','#eab308','#22c55e','#06b6d4','#6366f1','#64748b'];
         newProps.gradientStops = Array.from({ length: steps }, (_, i) => ({
-          id: stops[i]?.id || crypto.randomUUID(), color: stops[i]?.color || colors[i % colors.length], position: 0, weight: stops[i]?.weight || 1,
+          id: stops[i]?.id || crypto.randomUUID(), 
+          color: stops[i]?.color || colors[i % colors.length], 
+          position: 0, 
+          weight: stops[i]?.weight || 1,
         }));
         newProps.gradientSteps = steps;
+        newProps.gradientDirection = 180;
+        newProps.gradientType = 'linear';
+      } else if (fillType === 'gradient' && (!background.gradientStops || background.gradientStops.length === 0)) {
+        newProps.gradientStops = [
+          { id: crypto.randomUUID(), color: background.color || '#3b82f6', position: 0, weight: 1 },
+          { id: crypto.randomUUID(), color: '#ffffff', position: 1, weight: 1 }
+        ];
+        newProps.gradientType = 'linear';
+        newProps.gradientDirection = 180;
       }
+      
       handleBg(newProps);
     };
 
@@ -141,24 +158,24 @@ export function PropertiesPanel({
       : [{ id: crypto.randomUUID(), color: background.color || '#000000', position: 0 }, { id: crypto.randomUUID(), color: '#ffffff', position: 1 }];
 
     return (
-      <div className="h-full flex flex-col overflow-hidden bg-card">
-        <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-primary/10 text-primary shadow-inner">
-                <Settings2 size={20} />
+      <div className="h-full flex flex-col overflow-hidden bg-white border-l shadow-sm">
+        <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-2xl bg-primary/10 text-primary shadow-inner">
+                <Settings2 size={18} />
             </div>
             <div>
-                <h2 className="text-[13px] font-black tracking-tight text-foreground leading-none">Canvas settings</h2>
-                <p className="text-[10px] text-muted-foreground font-bold mt-1.5 tracking-tight">Manage document layout</p>
+                <h2 className="text-[12px] font-black tracking-tight text-foreground leading-none uppercase">Canvas</h2>
+                <p className="text-[9px] text-muted-foreground font-bold mt-1 tracking-tight">Layout settings</p>
             </div>
           </div>
         </div>
 
         <Tabs key="canvas-settings" defaultValue="canvas" className="flex flex-col flex-1 overflow-hidden">
-          <TabsList className="shrink-0 mx-5 mt-4 h-11 grid grid-cols-3 bg-muted/40 rounded-2xl p-1.5 border border-border/20">
-            <TabsTrigger value="canvas" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Canvas</TabsTrigger>
-            <TabsTrigger value="background" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Background</TabsTrigger>
-            <TabsTrigger value="production" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Production</TabsTrigger>
+          <TabsList className="shrink-0 mx-4 mt-3 h-10 grid grid-cols-3 bg-muted/40 rounded-xl p-1 border border-border/20">
+            <TabsTrigger value="canvas" className="text-[10px] font-bold h-7 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Canvas</TabsTrigger>
+            <TabsTrigger value="background" className="text-[10px] font-bold h-7 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Background</TabsTrigger>
+            <TabsTrigger value="production" className="text-[10px] font-bold h-7 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Production</TabsTrigger>
           </TabsList>
 
           <TabsContent value="canvas" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 space-y-5 mt-0">
@@ -269,28 +286,97 @@ export function PropertiesPanel({
           {/* BACKGROUND TAB */}
           <TabsContent value="background" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 space-y-5 mt-0">
             <div className="space-y-3">
-              <p className="text-[11px] font-bold text-muted-foreground">Fill type</p>
+              <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Fill type</p>
               <div className="grid grid-cols-4 gap-2">
                 {[
-                  { value: 'solid', preview: <div className="w-5 h-5 rounded-sm bg-gray-400 border" />, label: 'Solid' },
-                  { value: 'gradient', preview: <div className="w-5 h-5 rounded-sm bg-gradient-to-br from-blue-400 to-purple-500 border" />, label: 'Gradient' },
-                  { value: 'stepped-gradient', preview: <div className="w-5 h-5 rounded-sm bg-gradient-to-r from-red-500 via-yellow-400 to-green-400 border" />, label: 'Stepped' },
-                  { value: 'image', preview: <ImageIcon size={18} />, label: 'Image' },
+                  { value: 'solid', preview: <div className="w-4 h-4 rounded-full bg-slate-400 border border-slate-300" />, label: 'Solid' },
+                  { value: 'gradient', preview: <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-purple-500" />, label: 'Gradient' },
+                  { value: 'stepped-gradient', preview: <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-green-400" />, label: 'Stepped' },
+                  { value: 'image', preview: <ImageIcon size={16} className="text-slate-500" />, label: 'Image' },
                 ].map(({ value, preview, label }) => (
                   <button key={value} onClick={() => handleBgFill(value as any)}
-                    className={cn("flex flex-col items-center gap-2 p-2.5 rounded-lg border text-xs font-semibold transition-all hover:shadow-sm", background.type === value ? "bg-primary/10 border-primary text-primary shadow-sm" : "bg-muted/30 border-border/50 text-muted-foreground hover:bg-muted/60")}>
+                    className={cn("flex flex-col items-center gap-1.5 py-2 rounded-xl border text-[10px] font-bold transition-all shadow-sm", 
+                      background.type === value 
+                        ? "bg-primary/10 border-primary/50 text-primary" 
+                        : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50")}>
                     {preview}{label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-xl bg-muted/20 border border-border/40 p-4 shadow-sm">
-              {background.type === 'solid' && <ColorPicker label="Color" color={background.color} onChange={(color) => handleBg({ color })} />}
+            <div className="rounded-xl bg-slate-50/50 border border-slate-200 p-3 shadow-inner">
+              {background.type === 'solid' && (
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-bold text-slate-500 ml-1">Background color</Label>
+                  <Button 
+                    variant="outline" 
+                    className="h-10 w-full px-3 justify-start rounded-xl border-slate-200 bg-white hover:bg-slate-100 transition-all shadow-sm"
+                    onClick={() => onOpenColorPicker("Background color", background.color || "#ffffff", (color) => handleBg({ color }))}
+                  >
+                    <div className="w-5 h-5 rounded-md border border-slate-200 shadow-sm mr-3" style={{ backgroundColor: background.color || "#ffffff" }} />
+                    <span className="text-[11px] font-mono text-slate-700">{background.color || "#ffffff"}</span>
+                  </Button>
+                </div>
+              )}
               {background.type === 'gradient' && (
-                <GradientPicker stops={bgGradientStops} direction={background.gradientDirection || 0}
+                <GradientPicker 
+                  stops={bgGradientStops} 
+                  direction={background.gradientDirection || 0}
+                  gradientType={background.gradientType || 'linear'}
                   onDirectionChange={(d) => handleBg({ gradientDirection: d })}
-                  onStopsChange={(s) => handleBg({ gradientStops: s })} />
+                  onTypeChange={(t) => handleBg({ gradientType: t })}
+                  onStopsChange={(s) => handleBg({ gradientStops: s })}
+                  onOpenColorPicker={onOpenColorPicker} 
+                />
+              )}
+              {background.type === 'stepped-gradient' && (
+                <div className="space-y-4 pt-1">
+                  <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
+                    <PropSlider label="Angle" value={background.gradientDirection || 0} display={`${background.gradientDirection || 0}°`} min={0} max={360} step={1} onChange={(v) => handleBg({ gradientDirection: v })} />
+                    <div className="space-y-1 w-14">
+                      <Label className="text-[9px] uppercase font-bold text-slate-500">Steps</Label>
+                      <Input type="number" className="h-8 text-xs font-mono bg-white border-slate-200" value={background.gradientSteps || 2}
+                        onChange={(e) => {
+                          const steps = Math.max(2, Math.min(10, parseInt(e.target.value) || 2));
+                          const stops = [...(background.gradientStops || [])];
+                          const colors = ['#3b82f6','#8b5cf6','#ec4899','#f43f5e','#f97316','#eab308','#22c55e','#06b6d4','#6366f1','#64748b'];
+                          const newStops = Array.from({ length: steps }, (_, i) => stops[i] || { id: crypto.randomUUID(), color: colors[i % colors.length], position: 0, weight: 1 });
+                          handleBg({ gradientSteps: steps, gradientStops: newStops });
+                        }} min={2} max={10} />
+                    </div>
+                  </div>
+                  <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+                    {(background.gradientStops || []).map((stop, i) => (
+                      <div key={stop.id} className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 shadow-sm transition-all hover:border-primary/20">
+                        <div className="flex-1 space-y-1">
+                          <Label className="text-[9px] font-bold text-slate-500 uppercase ml-1 tracking-widest">Step {i + 1}</Label>
+                          <Button 
+                            variant="outline" 
+                            className="h-8 w-full px-2 justify-start rounded-lg border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all shadow-sm"
+                            onClick={() => onOpenColorPicker(`Step ${i + 1} color`, stop.color, (c) => {
+                              const newStops = [...(background.gradientStops || [])];
+                              if (newStops[i]) { newStops[i] = { ...newStops[i], color: c }; handleBg({ gradientStops: newStops }); }
+                            })}
+                          >
+                            <div className="w-3.5 h-3.5 rounded-sm border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: stop.color }} />
+                            <span className="text-[10px] font-mono text-slate-700">{stop.color}</span>
+                          </Button>
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex justify-between items-center px-1">
+                            <Label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Ratio</Label>
+                            <span className="text-[10px] font-mono font-bold text-primary">{(stop.weight ?? 1).toFixed(1)}</span>
+                          </div>
+                          <Slider value={[stop.weight ?? 1]} onValueChange={(v) => {
+                            const newStops = [...(background.gradientStops || [])];
+                            if (newStops[i]) { newStops[i] = { ...newStops[i], weight: v[0] }; handleBg({ gradientStops: newStops }); }
+                          }} min={1} max={10} step={0.1} className="py-1" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
               {background.type === 'image' && (
                 <div className="space-y-3">
@@ -342,47 +428,51 @@ export function PropertiesPanel({
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-card">
+    <div className="h-full flex flex-col overflow-hidden bg-white border-l shadow-sm">
       {/* Header */}
-      <div className="px-5 py-4 border-b bg-muted/30 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-primary/10 text-primary shadow-inner">
+      <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-2xl bg-primary/10 text-primary shadow-inner">
             {typeIcon[element.type]}
           </div>
           <div>
-            <h2 className="text-[13px] font-bold tracking-tight text-foreground leading-none">{elementTypeLabel[element.type] || element.type} properties</h2>
-            <p className="text-[10px] text-muted-foreground font-semibold mt-1.5 tracking-tight">Edit element appearance</p>
+            <h2 className="text-[12px] font-bold tracking-tight text-foreground leading-none uppercase">{elementTypeLabel[element.type] || element.type}</h2>
+            <p className="text-[9px] text-muted-foreground font-semibold mt-1 tracking-tight">Appearance</p>
           </div>
         </div>
-          <div className="flex items-center gap-1.5 bg-primary/5 px-2.5 py-1.5 rounded-full border border-primary/10">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
-          <span className="text-[10px] font-bold text-primary tracking-tight">Active</span>
+          <div className="flex items-center gap-1.5 bg-primary/5 px-2 py-1 rounded-full border border-primary/10">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="text-[9px] font-bold text-primary tracking-tight">Live</span>
         </div>
       </div>
 
       <Tabs key={element.id} defaultValue="design" className="flex flex-col flex-1 overflow-hidden">
-        <TabsList className="shrink-0 mx-5 mt-4 h-11 grid grid-cols-3 bg-muted/40 rounded-2xl p-1.5 border border-border/20">
-          <TabsTrigger value="design" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">
-            <Palette size={15} className="mr-2" />Design
+        <TabsList className="shrink-0 mx-4 mt-3 h-10 grid grid-cols-3 bg-muted/40 rounded-xl p-1 border border-border/20">
+          <TabsTrigger value="design" className="text-[10px] font-bold h-7 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">
+            <Palette size={14} className="mr-1.5" />Design
           </TabsTrigger>
-          <TabsTrigger value="layout" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">
-            <LayoutTemplate size={15} className="mr-2" />Layout
+          <TabsTrigger value="layout" className="text-[10px] font-bold h-7 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">
+            <LayoutTemplate size={14} className="mr-1.5" />Layout
           </TabsTrigger>
-          <TabsTrigger value="effects" className="text-[11px] font-bold h-8 rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">
-            <Wand2 size={15} className="mr-2" />Effects
+          <TabsTrigger value="effects" className="text-[10px] font-bold h-7 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">
+            <Wand2 size={14} className="mr-1.5" />Effects
           </TabsTrigger>
         </TabsList>
 
         {/* ===== DESIGN TAB ===== */}
-        <TabsContent value="design" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 mt-0">
-          {element.type === 'text' && <TextPropertiesPanel element={element} onUpdate={onUpdate} product={product} isAdmin={isAdmin} />}
+        <TabsContent value="design" className="flex-1 overflow-y-auto custom-scrollbar px-2 pt-2 pb-6 mt-0">
+          {element.type === 'text' && <TextPropertiesPanel element={element} onUpdate={onUpdate} product={product} isAdmin={isAdmin} onOpenColorPicker={onOpenColorPicker} />}
           {element.type === 'image' && (
             <ImagePropertiesPanel element={element} onUpdate={onUpdate}
-              croppingElementId={croppingElementId} setCroppingElementId={setCroppingElementId} isAdmin={isAdmin} />
+              croppingElementId={croppingElementId} setCroppingElementId={setCroppingElementId}
+              maskingElementId={maskingElementId} setMaskingElementId={setMaskingElementId}
+              isAdmin={isAdmin} onOpenColorPicker={onOpenColorPicker} />
           )}
-          {element.type === 'shape' && <ShapePropertiesPanel element={element} onUpdate={onUpdate} isAdmin={isAdmin} />}
-          {element.type === 'path' && <PathPropertiesPanel element={element} onUpdate={onUpdate} />}
-          {element.type === 'qrcode' && <QrCodePropertiesPanel element={element} onUpdate={onUpdate} isAdmin={isAdmin} />}
+          {element.type === 'shape' && <ShapePropertiesPanel element={element} onUpdate={onUpdate} 
+            maskingElementId={maskingElementId} setMaskingElementId={setMaskingElementId}
+            isAdmin={isAdmin} onOpenColorPicker={onOpenColorPicker} />}
+          {element.type === 'path' && <PathPropertiesPanel element={element} onUpdate={onUpdate} onOpenColorPicker={onOpenColorPicker} />}
+          {element.type === 'qrcode' && <QrCodePropertiesPanel element={element} onUpdate={onUpdate} isAdmin={isAdmin} onOpenColorPicker={onOpenColorPicker} />}
           {element.type === 'group' && (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
               <Layers size={24} className="opacity-40" />
@@ -449,8 +539,24 @@ export function PropertiesPanel({
               <div className="space-y-4">
                 <p className="text-[11px] font-bold text-muted-foreground">Container</p>
                 <div className="rounded-xl bg-muted/20 border border-border/40 p-3">
-                  <ColorPicker label="Background" color={element.backgroundColor}
-                    onChange={(color) => onUpdate(element.id, { backgroundColor: color })} />
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold text-muted-foreground/70 ml-1">Container background</Label>
+                    <Button 
+                      variant="outline" 
+                      className="h-10 w-full px-3 justify-start rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all"
+                      onClick={() => onOpenColorPicker("Container background", element.backgroundColor || "transparent", (color) => onUpdate(element.id, { backgroundColor: color }))}
+                    >
+                      <div 
+                        className="w-5 h-5 rounded-md border border-white/20 shadow-sm mr-3" 
+                        style={{ 
+                          backgroundColor: element.backgroundColor === 'transparent' ? undefined : element.backgroundColor,
+                          backgroundImage: element.backgroundColor === 'transparent' ? 'repeating-conic-gradient(#ddd 0% 25%, transparent 0% 50%)' : undefined,
+                          backgroundSize: '6px 6px'
+                        }} 
+                      />
+                      <span className="text-xs font-mono">{element.backgroundColor || "transparent"}</span>
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Border */}

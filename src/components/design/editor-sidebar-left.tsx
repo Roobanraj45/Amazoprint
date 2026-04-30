@@ -55,6 +55,7 @@ type EditorSidebarLeftProps = {
     setBrushOptions: any;
     onClearBrush: () => void;
     finalizePath: () => void;
+    onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
 };
 
 export function EditorSidebarLeft({
@@ -72,6 +73,7 @@ export function EditorSidebarLeft({
     setBrushOptions,
     onClearBrush,
     finalizePath,
+    onOpenColorPicker,
 }: EditorSidebarLeftProps) {
     const [activePanel, setActivePanel] = React.useState('upload');
     const { setLeftOpen, leftOpen } = useSidebar();
@@ -91,7 +93,7 @@ export function EditorSidebarLeft({
             "absolute left-4 top-4 bottom-4 z-[40] hidden lg:flex transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1)",
             leftOpen ? "w-[400px]" : "w-[80px]"
         )}>
-            <div className="h-full w-full bg-card border border-border/60 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.25)] overflow-hidden flex">
+            <div className="h-full w-full bg-white border border-border/60 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] overflow-hidden flex">
                 <TooltipProvider>
                     <Tabs
                         value={activePanel}
@@ -107,7 +109,7 @@ export function EditorSidebarLeft({
                         }}
                     >
                         {/* Vertical Icon Bar */}
-                        <TabsList className="flex flex-col h-full w-[80px] py-6 gap-3 bg-muted/40 border-r border-border/40 shrink-0">
+                        <TabsList className="flex flex-col h-full w-[80px] py-6 gap-3 bg-slate-50/50 border-r border-border/40 shrink-0">
                             {panels.map((panel) => (
                                 <Tooltip key={panel.id} delayDuration={0}>
                                     <TooltipTrigger asChild>
@@ -152,7 +154,7 @@ export function EditorSidebarLeft({
 
                         {/* Content Panel */}
                         <div className={cn(
-                            "flex-1 min-h-0 flex flex-col bg-card transition-all duration-300",
+                            "flex-1 min-h-0 flex flex-col bg-white transition-all duration-300",
                             !leftOpen && "opacity-0 pointer-events-none hidden",
                             activeTool === 'pen' && "hidden"
                         )}>
@@ -174,7 +176,7 @@ export function EditorSidebarLeft({
                                         <TextAddPanel onAddText={onAddText} onAddGroupedElements={onAddGroupedElements} />
                                     </TabsContent>
                                     <TabsContent value="brush" className="flex-1 m-0 focus-visible:outline-none overflow-auto h-full">
-                                        <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} onClear={onClearBrush} />
+                                        <BrushToolPanel options={brushOptions} setOptions={setBrushOptions} onClear={onClearBrush} onOpenColorPicker={onOpenColorPicker} />
                                     </TabsContent>
                                     <TabsContent value="ai" className="flex-1 m-0 focus-visible:outline-none overflow-auto h-full">
                                         <AiPanel onImageProcessed={onAddImage} />
