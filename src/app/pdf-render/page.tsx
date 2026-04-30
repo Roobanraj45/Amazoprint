@@ -18,6 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { getUserRole } from '@/app/actions/user-actions';
+import { getFoilTypes } from '@/app/actions/foil-actions';
 
 export default function PdfRenderPage() {
   const [data, setData] = useState<RenderData | null>(null);
@@ -55,6 +56,10 @@ export default function PdfRenderPage() {
             const parsedData: RenderData = JSON.parse(savedData);
             setData(parsedData);
 
+            // Fetch foils for labeling
+            const allFoils = await getFoilTypes();
+            const foilMap = new Map(allFoils.map(f => [f.id, f.name]));
+
             const allLayers: any[] = [];
             parsedData.pages.forEach((page, pageIndex) => {
               const pageLabel = parsedData.pages.length > 1 ? `Page ${pageIndex + 1} - ` : '';
@@ -90,18 +95,27 @@ export default function PdfRenderPage() {
                 });
               }
 
-              // Foil Mask
-              const pageFoilElements = page.elements.filter(el => el.spotUv === true && el.foilId !== undefined);
-              if (pageFoilElements.length > 0) {
+              // Separate Foil Masks
+              const foilGroups = new Map<number, any[]>();
+              page.elements.forEach(el => {
+                if (el.spotUv === true && el.foilId !== undefined) {
+                  const list = foilGroups.get(el.foilId) || [];
+                  list.push(el);
+                  foilGroups.set(el.foilId, list);
+                }
+              });
+
+              foilGroups.forEach((elements, foilId) => {
+                const foilName = foilMap.get(foilId) || `Foil ${foilId}`;
                 allLayers.push({
-                  id: `page-${pageIndex}-foil-mask`,
-                  label: `${pageLabel}Foil Mask`,
-                  elements: pageFoilElements,
+                  id: `page-${pageIndex}-foil-${foilId}`,
+                  label: `${pageLabel}${foilName} Mask`,
+                  elements: elements,
                   background: { type: 'solid', color: 'transparent' },
                   renderMode: 'foil',
                   isComposite: false,
                 });
-              }
+              });
             });
             
             setLayers(allLayers);
@@ -398,7 +412,7 @@ export default function PdfRenderPage() {
                 product={data.product}
                 elements={activeLayerData.elements}
                 background={activeLayerData.background}
-                showPrintGuidelines={true}
+                showPrintGuidelines={false}
                 bleed={data.bleed}
                 safetyMargin={data.safetyMargin}
                 renderMode={activeLayerData.renderMode}
@@ -409,32 +423,12 @@ export default function PdfRenderPage() {
                 showGrid={false}
                 />
             </div>
-            
-            {/* Legend/Info Float */}
-            <div className="absolute -bottom-16 left-0 right-0 no-print flex justify-center">
-                <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-full border border-slate-200 shadow-sm text-[11px] font-medium text-slate-500 flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-red-400" />
-                    Bleed Line
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-green-400" />
-                    Safety Margin
-                  </div>
-                  <Separator orientation="vertical" className="h-3" />
-                  <span>{printWidth} × {printHeight} PX</span>
-                </div>
-            </div>
           </div>
         </main>
       </div>
 
       <footer className="no-print h-6 bg-white border-t border-slate-200 flex items-center justify-between px-6 text-[9px] text-slate-400 font-medium uppercase tracking-widest">
         <span>Design Engine Render System v2.0</span>
-        <div className="flex items-center gap-4">
-          <span>Bleed: {data.bleed}px</span>
-          <span>Safety: {data.safetyMargin}px</span>
-        </div>
       </footer>
     </div>
   );

@@ -398,28 +398,30 @@ export function DesignCanvas({
     bgPositions.push('center');
   }
 
-  if (renderMode !== 'spotuv' && renderMode !== 'foil' && (background.type === 'gradient' || background.type === 'stepped-gradient') && background.gradientStops) {
+  if (renderMode !== 'spotuv' && renderMode !== 'foil' && (background.type === 'gradient' || background.type === 'stepped-gradient')) {
     if (background.type === 'stepped-gradient') {
-      const stops = background.gradientStops;
-      const totalWeight = stops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
-      if (totalWeight > 0) {
-        let accumulatedPercentage = 0;
-        const colorStops = stops.map((stop) => {
-          const weight = stop.weight ?? 1;
-          const startPercent = accumulatedPercentage;
-          const stepPercentage = (weight / totalWeight) * 100;
-          accumulatedPercentage += stepPercentage;
-          const endPercent = accumulatedPercentage;
-          return `${stop.color} ${startPercent}%, ${stop.color} ${endPercent}%`;
-        }).join(', ');
-        
-        if (background.gradientType === 'radial') {
-          bgImages.push(`radial-gradient(circle at center, ${colorStops})`);
-        } else {
-          bgImages.push(`linear-gradient(${background.gradientDirection || 0}deg, ${colorStops})`);
+      const stops = background.steppedGradientStops || background.gradientStops;
+      if (stops && stops.length > 0) {
+        const totalWeight = stops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
+        if (totalWeight > 0) {
+          let accumulatedPercentage = 0;
+          const colorStops = stops.map((stop) => {
+            const weight = stop.weight ?? 1;
+            const startPercent = accumulatedPercentage;
+            const stepPercentage = (weight / totalWeight) * 100;
+            accumulatedPercentage += stepPercentage;
+            const endPercent = accumulatedPercentage;
+            return `${stop.color} ${startPercent}%, ${stop.color} ${endPercent}%`;
+          }).join(', ');
+          
+          if ((background.steppedGradientType || background.gradientType) === 'radial') {
+            bgImages.push(`radial-gradient(circle at center, ${colorStops})`);
+          } else {
+            bgImages.push(`linear-gradient(${(background.steppedGradientDirection ?? background.gradientDirection) || 0}deg, ${colorStops})`);
+          }
         }
       }
-    } else {
+    } else if (background.gradientStops) {
       const stops = [...background.gradientStops];
       const totalWeight = stops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0) || 1;
       let accumulatedWeight = 0;

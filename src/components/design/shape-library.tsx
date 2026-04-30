@@ -6,11 +6,13 @@ import * as lucide from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 type ShapeLibraryProps = {
   onAddShape: (shapeType: string) => void;
   onAddImage: (src: string) => void;
   onAddSvgShape?: (src: string) => void;
+  isAdmin?: boolean;
 };
 
 const USER_SHAPES_STORAGE_KEY = 'user_uploaded_shapes';
@@ -636,11 +638,29 @@ export const allShapes = allDefinedShapes.filter(el => {
   return !duplicate;
 });
 
-export function ShapeLibrary({ onAddShape, onAddImage, onAddSvgShape }: ShapeLibraryProps) {
+export function ShapeLibrary({ onAddShape, onAddImage, onAddSvgShape, isAdmin = false }: ShapeLibraryProps) {
   const [userShapes, setUserShapes] = useState<string[]>([]);
+  const [serverShapes, setServerShapes] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+
+  const fetchServerShapes = async () => {
+    try {
+      const response = await fetch('/api/uploads/list');
+      const data = await response.json();
+      if (data.success) {
+        const shapesFolder = data.folders.find((f: any) => f.name.toLowerCase() === 'shapes');
+        if (shapesFolder) {
+          setServerShapes(shapesFolder.files);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch server shapes", error);
+    }
+  };
 
   useEffect(() => {
+    fetchServerShapes();
     try {
       const savedShapes = localStorage.getItem(USER_SHAPES_STORAGE_KEY);
       if (savedShapes) {
@@ -659,19 +679,44 @@ export function ShapeLibrary({ onAddShape, onAddImage, onAddSvgShape }: ShapeLib
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && (file.type === 'image/svg+xml' || file.name.endsWith('.svg'))) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          const newShapeSrc = event.target.result as string;
-          const updatedShapes = [...userShapes, newShapeSrc];
-          setUserShapes(updatedShapes);
-          saveUserShapes(updatedShapes);
+    if (!file) return;
+
+    if (isAdmin) {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'shapes');
+      
+      try {
+        const response = await fetch('/api/upload', { method: 'POST', body: formData });
+        const result = await response.json();
+        if (result.success) {
+          if (onAddSvgShape) onAddSvgShape(result.url);
+          else onAddImage(result.url);
+          fetchServerShapes(); // Refresh the list
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error("Upload failed", error);
+      } finally {
+        setIsUploading(false);
+      }
+    } else {
+      if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            const newShapeSrc = event.target.result as string;
+            const updatedShapes = [newShapeSrc, ...userShapes];
+            setUserShapes(updatedShapes);
+            saveUserShapes(updatedShapes);
+            if (onAddSvgShape) onAddSvgShape(newShapeSrc);
+            else onAddImage(newShapeSrc);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     }
     e.target.value = '';
   };
@@ -692,38 +737,67 @@ export function ShapeLibrary({ onAddShape, onAddImage, onAddSvgShape }: ShapeLib
       </div>
       <ScrollArea className="flex-1">
         <div className="p-2 grid grid-cols-3 gap-2">
-            <Label className="cursor-pointer aspect-square relative flex flex-col items-center justify-center overflow-hidden rounded-md group bg-muted hover:bg-accent text-foreground border-2 border-dashed">
-              <lucide.Upload className="w-8 h-8 text-muted-foreground" />
-              <span className="mt-2 text-sm text-center text-muted-foreground">
-                Upload SVG
+            <Label className={cn(
+              "cursor-pointer aspect-square relative flex flex-col items-center justify-center overflow-hidden rounded-md group bg-muted hover:bg-accent text-foreground border-2 border-dashed",
+              isUploading && "opacity-50 cursor-not-allowed"
+            )}>
+              {isUploading ? (
+                <lucide.Loader2 className="w-8 h-8 animate-spin text-primary" />
+              ) : (
+                <lucide.Upload className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
+              )}
+              <span className="mt-2 text-[10px] font-bold text-center text-muted-foreground group-hover:text-primary">
+                {isAdmin ? 'Upload to Server' : 'Upload SVG'}
               </span>
               <Input
                 type="file"
                 accept=".svg, image/svg+xml"
                 className="hidden"
                 onChange={handleFileUpload}
+                disabled={isUploading}
               />
             </Label>
+          
+          {/* User Local Shapes */}
           {userShapes.map((src, index) => (
             <div
               key={`user-shape-${index}`}
               title={`User Shape ${index + 1}`}
-              className="cursor-pointer aspect-square relative flex items-center justify-center overflow-hidden rounded-md group bg-muted hover:bg-accent"
+              className="cursor-pointer aspect-square relative flex items-center justify-center overflow-hidden rounded-md group bg-muted hover:bg-accent border border-border/20"
               onClick={() => onAddSvgShape ? onAddSvgShape(src) : onAddImage(src)}
             >
               <Image
                 src={src}
                 alt={`User Shape ${index + 1}`}
                 fill
-                className="object-contain p-2"
+                className="object-contain p-2 transition-transform group-hover:scale-110"
+              />
+              <div className="absolute top-1 left-1 bg-primary/80 text-[8px] text-white px-1 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity">Local</div>
+            </div>
+          ))}
+
+          {/* Server Shared Shapes */}
+          {serverShapes.map((url, index) => (
+            <div
+              key={`server-shape-${index}`}
+              title={`Shared Shape ${index + 1}`}
+              className="cursor-pointer aspect-square relative flex items-center justify-center overflow-hidden rounded-md group bg-muted hover:bg-accent border border-border/20 shadow-sm"
+              onClick={() => onAddSvgShape ? onAddSvgShape(url) : onAddImage(url)}
+            >
+              <Image
+                src={url}
+                alt={`Shared Shape ${index + 1}`}
+                fill
+                className="object-contain p-2 transition-transform group-hover:scale-110"
               />
             </div>
           ))}
+
            {filteredShapes.map((shape) => (
             <div
               key={shape.name}
               title={shape.name}
-              className="cursor-pointer aspect-square relative flex items-center justify-center overflow-hidden rounded-md group bg-muted hover:bg-accent text-foreground"
+              className="cursor-pointer aspect-square relative flex items-center justify-center overflow-hidden rounded-md group bg-muted hover:bg-accent text-foreground border border-border/10"
               onClick={() => onAddShape(shape.name)}
             >
               {shape.icon}

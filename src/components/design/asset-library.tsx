@@ -52,26 +52,28 @@ export function AssetLibrary({ onImageSelect, isAdmin = false }: AssetLibraryPro
       const response = await fetch('/api/uploads/list');
       const data = await response.json();
       let serverFolders: Folder[] = [];
+      const excludedFolders = ['designs', 'direct-selling', 'fonts', 'products', 'sub-products'];
+      
       if (data.success) {
-        serverFolders = data.folders;
+        serverFolders = data.folders.filter((f: Folder) => 
+          !excludedFolders.includes(f.name.toLowerCase())
+        );
       }
 
-      // 2. Fetch Local Assets (User-uploaded)
+      // 2. Fetch Local Assets (User & Admin)
       let localFolders: Folder[] = [];
-      if (!isAdmin) {
-        try {
-          const localAssetsRaw = localStorage.getItem(USER_ASSETS_LOCAL_STORAGE_KEY);
-          const localAssets = localAssetsRaw ? JSON.parse(localAssetsRaw) : [];
-          if (localAssets.length > 0) {
-            localFolders = [{ name: 'My local uploads', files: localAssets }];
-          }
-        } catch (e) {
-          console.error("Local storage access failed", e);
+      try {
+        const localAssetsRaw = localStorage.getItem(USER_ASSETS_LOCAL_STORAGE_KEY);
+        const localAssets = localAssetsRaw ? JSON.parse(localAssetsRaw) : [];
+        if (localAssets.length > 0) {
+          localFolders = [{ name: 'My local uploads', files: localAssets }];
         }
+      } catch (e) {
+        console.error("Local storage access failed", e);
       }
 
-      // Merge: Global assets first, then local ones
-      setFolders([...serverFolders, ...localFolders]);
+      // Merge: Local ones first, then Global assets
+      setFolders([...localFolders, ...serverFolders]);
     } catch (error) {
       console.error("Failed to load assets", error);
       toast({
@@ -86,6 +88,8 @@ export function AssetLibrary({ onImageSelect, isAdmin = false }: AssetLibraryPro
 
   useEffect(() => {
     fetchAssets();
+    window.addEventListener('amazoprint_assets_updated', fetchAssets);
+    return () => window.removeEventListener('amazoprint_assets_updated', fetchAssets);
   }, [fetchAssets]);
 
   const handleFileUpload = async (file: File) => {

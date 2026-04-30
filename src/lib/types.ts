@@ -52,6 +52,15 @@ export type Background = {
   imagePosition?: 'fill' | 'fit' | 'stretch' | 'center';
   gradientSteps?: number;
   gradientType?: 'linear' | 'radial';
+  steppedGradientStops?: GradientStop[];
+  steppedGradientDirection?: number;
+  steppedGradientType?: 'linear' | 'radial';
+  crop?: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
 };
 
 export type Guide = {
@@ -122,6 +131,7 @@ export type DesignElement = {
   };
   removeColor?: string | null;
   colorThreshold?: number;
+  overlayMode?: 'tint' | 'background';
 
   // Shape specific properties
   shapeType?: string;
@@ -137,7 +147,10 @@ export type DesignElement = {
   gradientDirection?: number;
   gradientSteps?: number;
   gradientType?: 'linear' | 'radial';
-  tintOpacity?: number; // For shape gradient tint or image tint, 0-1
+  steppedGradientStops?: GradientStop[];
+  steppedGradientDirection?: number;
+  steppedGradientType?: 'linear' | 'radial';
+  tintOpacity?: number; 
   blendMode?: 'normal' | 'multiply' | 'screen' | 'overlay' | 'darken' | 'lighten' | 'color-dodge' | 'color-burn' | 'hard-light' | 'soft-light' | 'difference' | 'exclusion' | 'hue' | 'saturation' | 'color' | 'luminosity';
   spotUv?: boolean;
   foilId?: number;

@@ -21,13 +21,17 @@ const hexToRgba = (hex: string): { r: number; g: number; b: number; a: number } 
 
 
 const createGradientString = (element: DesignElement, { reversed = false } = {}): string | null => {
-  const { fillType, gradientDirection, gradientStops, gradientType = 'linear' } = element;
+  const { fillType } = element;
+  const isStepped = fillType === 'stepped-gradient';
+  const stops = isStepped ? (element.steppedGradientStops || element.gradientStops) : element.gradientStops;
+  const direction = isStepped ? (element.steppedGradientDirection ?? element.gradientDirection) : element.gradientDirection;
+  const type = isStepped ? (element.steppedGradientType ?? element.gradientType) : (element.gradientType || 'linear');
 
-  if (!gradientStops || gradientStops.length === 0 || (fillType !== 'gradient' && fillType !== 'stepped-gradient')) {
+  if (!stops || stops.length === 0 || (fillType !== 'gradient' && fillType !== 'stepped-gradient')) {
     return null;
   }
   
-  const stopsToUse = reversed ? [...gradientStops].reverse() : [...gradientStops];
+  const stopsToUse = reversed ? [...stops].reverse() : [...stops];
   let colorStopsString = '';
 
   if (fillType === 'stepped-gradient') {
@@ -59,27 +63,31 @@ const createGradientString = (element: DesignElement, { reversed = false } = {})
       .join(', ');
   }
 
-  if (gradientType === 'radial') {
+  if (type === 'radial') {
     return `radial-gradient(circle at center, ${colorStopsString})`;
   }
-  return `linear-gradient(${gradientDirection || 0}deg, ${colorStopsString})`;
+  return `linear-gradient(${direction || 0}deg, ${colorStopsString})`;
 };
 
 const SvgGradientDefs = ({ element, product }: { element: DesignElement; product: Product }) => {
-  const { fillType, gradientDirection = 90, gradientStops, gradientType = 'linear' } = element;
+  const { fillType } = element;
+  const isStepped = fillType === 'stepped-gradient';
+  const stops = isStepped ? (element.steppedGradientStops || element.gradientStops) : element.gradientStops;
+  const direction = isStepped ? (element.steppedGradientDirection ?? element.gradientDirection) : (element.gradientDirection ?? 90);
+  const type = isStepped ? (element.steppedGradientType ?? element.gradientType) : (element.gradientType || 'linear');
 
-  if (!gradientStops || gradientStops.length === 0 || (fillType !== 'gradient' && fillType !== 'stepped-gradient')) {
+  if (!stops || stops.length === 0 || (fillType !== 'gradient' && fillType !== 'stepped-gradient')) {
     return null;
   }
 
   let stopElements: React.ReactNode[] | null = null;
   
   if (fillType === 'stepped-gradient') {
-    const totalWeight = gradientStops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
+    const totalWeight = stops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
     if (totalWeight <= 0) return null;
     
     let accumulatedOffset = 0;
-    stopElements = gradientStops.flatMap((stop, index) => {
+    stopElements = stops.flatMap((stop, index) => {
         const weight = stop.weight ?? 1;
         const startOffset = accumulatedOffset;
         const stepOffset = weight / totalWeight;
@@ -92,22 +100,21 @@ const SvgGradientDefs = ({ element, product }: { element: DesignElement; product
         ];
     });
   } else { // 'gradient'
-    if (gradientStops.length < 2) return null;
-    const totalWeight = gradientStops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0) || 1;
+    if (stops.length < 2) return null;
+    const totalWeight = stops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0) || 1;
     let accumulatedWeight = 0;
-    stopElements = gradientStops.map((stop, index) => {
+    stopElements = stops.map((stop, index) => {
         let offset = 0;
         if (index === 0) offset = 0;
-        else if (index === gradientStops.length - 1) offset = 1;
         else {
-            accumulatedWeight += gradientStops[index-1].weight ?? 1;
+            accumulatedWeight += stops[index-1].weight ?? 1;
             offset = Math.max(0, Math.min(1, accumulatedWeight / totalWeight));
         }
         return <stop key={stop.id || index} offset={`${offset * 100}%`} stopColor={stop.color} />;
     });
   }
   
-  if (gradientType === 'radial') {
+  if (type === 'radial') {
       return (
           <radialGradient
               id={`grad-${element.id}`}
@@ -127,7 +134,7 @@ const SvgGradientDefs = ({ element, product }: { element: DesignElement; product
   const cy = element.height / 2;
   
   // Calculate distance along the angle to reach the box edges (CSS standard behavior)
-  const angleRad = (gradientDirection - 90) * (Math.PI / 180);
+  const angleRad = (direction - 90) * (Math.PI / 180);
   const cos = Math.abs(Math.cos(angleRad));
   const sin = Math.abs(Math.sin(angleRad));
   const dist = (element.width * cos + element.height * sin) / 2;

@@ -87,8 +87,8 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, onAddSvgS
                   <Label className="text-xs font-bold text-muted-foreground px-1 mb-2 block">Photos</Label>
                   <div className="grid grid-cols-3 gap-2">
                     {searchResults.photos.map(img => (
-                      <div key={img.id} className="cursor-pointer aspect-square relative overflow-hidden rounded-md group" onClick={() => onImageSelect(img.imageUrl)}>
-                        <Image src={img.imageUrl} alt={img.description} fill className="object-cover" data-ai-hint={img.imageHint} />
+                      <div key={img.id} className="cursor-pointer aspect-square relative overflow-hidden rounded-md group bg-muted/20" onClick={() => onImageSelect(img.imageUrl)}>
+                        <Image src={img.imageUrl} alt={img.description} fill className="object-contain p-1 transition-transform group-hover:scale-105" data-ai-hint={img.imageHint} />
                       </div>
                     ))}
                   </div>
@@ -146,10 +146,10 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, onAddSvgS
             </TabsList>
           </div>
           <TabsContent value="photos" className="flex-1 overflow-hidden mt-0 min-h-0 border-t border-border/20">
-            <ImageLibrary onImageSelect={onImageSelect} />
+            <ImageLibrary onImageSelect={onImageSelect} isAdmin={isAdmin} />
           </TabsContent>
           <TabsContent value="shapes" className="flex-1 overflow-hidden mt-0 min-h-0 border-t border-border/20">
-            <ShapeLibrary onAddShape={onAddShape} onAddImage={onImageSelect} onAddSvgShape={onAddSvgShape} />
+            <ShapeLibrary onAddShape={onAddShape} onAddImage={onImageSelect} onAddSvgShape={onAddSvgShape} isAdmin={isAdmin} />
           </TabsContent>
           <TabsContent value="emojis" className="flex-1 overflow-hidden mt-0 min-h-0 border-t border-border/20">
             <EmojiLibrary onEmojiSelect={onEmojiSelect} />

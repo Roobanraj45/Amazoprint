@@ -20,11 +20,9 @@ import { CMYKColorPicker as ColorPicker } from "./cmyk-color-picker";
 import { GradientPicker } from "./gradient-picker";
 import { Switch } from "../ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
-import { AssetLibrary } from "./asset-library";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Edit3 } from "lucide-react";
-import { ImageMaskEditor } from "./image-mask-editor";
 import { useCustomFonts } from "@/hooks/use-custom-fonts";
 import { useToast } from "@/hooks/use-toast";
 import { useRef } from "react";
@@ -81,8 +79,6 @@ const SectionCard = ({ title, icon, children, ...props }: any) => (
 );
 
 export function TextPropertiesPanel({ element, onUpdate, product, isAdmin, onOpenColorPicker }: TextPropertiesPanelProps) {
-    const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
-    const [isImageMaskEditorOpen, setIsImageMaskEditorOpen] = useState(false);
     const handleUpdate = (props: Partial<DesignElement>) => onUpdate(element.id, props);
 
     const { customFonts, refreshFonts } = useCustomFonts();
@@ -331,7 +327,6 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin, onOpe
                                 { value: 'solid', label: 'Solid', preview: <div className="w-3.5 h-3.5 rounded-full bg-slate-400 border border-white/20" /> },
                                 { value: 'gradient', label: 'Gradient', preview: <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-blue-400 to-purple-500" /> },
                                 { value: 'stepped-gradient', label: 'Stepped', preview: <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-green-400" /> },
-                                { value: 'image', label: 'Image', preview: <ImageIcon size={12} className="text-indigo-500" /> },
                                 { value: 'none', label: 'None', preview: <X size={12} className="text-red-500" /> },
                             ].map(({ value, label, preview }) => (
                                 <button key={value} onClick={() => handleFillTypeChange(value as any)}
@@ -392,93 +387,6 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin, onOpe
                                         ))}
                                     </div>
                                     <Button variant="ghost" size="sm" className="w-full h-8 text-[11px] font-bold text-primary hover:bg-primary/5" onClick={() => handleGradientStepsChange((element.gradientSteps || 2) + 1)}>+ Add Step</Button>
-                                </div>
-                            )}
-                            {currentFill === 'image' && (
-                                <div className="space-y-4 pt-2">
-                                    <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm transition-all hover:border-primary/20">
-                                        <div className="w-12 h-12 bg-slate-50 rounded-lg shrink-0 flex items-center justify-center overflow-hidden border border-slate-200 shadow-inner group relative">
-                                            {element.fillImageSrc ? (
-                                                <Image src={element.fillImageSrc} alt="" width={48} height={48} className="object-cover" />
-                                            ) : (
-                                                <ImageIcon size={18} className="text-slate-300" />
-                                            )}
-                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors cursor-pointer flex items-center justify-center" onClick={() => setIsAssetLibraryOpen(true)}>
-                                                <Library size={12} className="text-white opacity-0 group-hover:opacity-100" />
-                                            </div>
-                                        </div>
-                                        <div className="flex-1 space-y-2">
-                                            <div className="flex gap-1.5">
-                                                <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold flex-1 rounded-lg border-slate-200" onClick={() => setIsAssetLibraryOpen(true)}>
-                                                    Change
-                                                </Button>
-                                                <Button variant="secondary" size="sm" className="h-7 text-[10px] font-bold flex-1 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200" onClick={() => setIsImageMaskEditorOpen(true)}>
-                                                    Adjust
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="rounded-xl bg-slate-50/50 border border-slate-200 p-3 space-y-4 shadow-inner">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="space-y-1">
-                                                <div className="flex justify-between items-center px-1">
-                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Scale X</Label>
-                                                    <span className="text-[10px] font-mono font-bold text-primary">{Math.round((element.fillImageScaleX || element.fillImageScale || 1) * 100)}%</span>
-                                                </div>
-                                                <Slider 
-                                                    value={[element.fillImageScaleX || element.fillImageScale || 1]} 
-                                                    min={0.1} max={5} step={0.01} 
-                                                    onValueChange={(v) => handleUpdate({ fillImageScaleX: v[0] })}
-                                                    className="py-1"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <div className="flex justify-between items-center px-1">
-                                                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Scale Y</Label>
-                                                    <span className="text-[10px] font-mono font-bold text-primary">{Math.round((element.fillImageScaleY || element.fillImageScale || 1) * 100)}%</span>
-                                                </div>
-                                                <Slider 
-                                                    value={[element.fillImageScaleY || element.fillImageScale || 1]} 
-                                                    min={0.1} max={5} step={0.01} 
-                                                    onValueChange={(v) => handleUpdate({ fillImageScaleY: v[0] })}
-                                                    className="py-1"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            <div className="flex justify-between items-center px-1">
-                                                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Uniform Zoom</Label>
-                                                <span className="text-[11px] font-mono font-bold text-primary">{Math.round((element.fillImageScale || 1) * 100)}%</span>
-                                            </div>
-                                            <Slider 
-                                                value={[element.fillImageScale || 1]} 
-                                                min={0.1} max={5} step={0.01} 
-                                                onValueChange={(v) => handleUpdate({ 
-                                                    fillImageScale: v[0],
-                                                    fillImageScaleX: v[0],
-                                                    fillImageScaleY: v[0]
-                                                })}
-                                                className="py-1"
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="space-y-1">
-                                                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Offset X</Label>
-                                                <Input type="number" className="h-8 bg-white border-slate-200 text-xs font-mono rounded-lg shadow-sm"
-                                                    value={element.fillImageOffsetX || 0} onChange={(e) => handleUpdate({ fillImageOffsetX: parseFloat(e.target.value) || 0 })} />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Offset Y</Label>
-                                                <Input type="number" className="h-8 bg-white border-slate-200 text-xs font-mono rounded-lg shadow-sm"
-                                                    value={element.fillImageOffsetY || 0} onChange={(e) => handleUpdate({ fillImageOffsetY: parseFloat(e.target.value) || 0 })} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <ImageMaskEditor isOpen={isImageMaskEditorOpen} onClose={() => setIsImageMaskEditorOpen(false)} element={element} product={product} onUpdate={onUpdate} />
                                 </div>
                             )}
                         </div>
@@ -572,13 +480,6 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin, onOpe
                 </div>
             </SectionCard>
 
-            {/* Asset Library Dialog */}
-            <Dialog open={isAssetLibraryOpen} onOpenChange={setIsAssetLibraryOpen}>
-                <DialogContent className="max-w-4xl h-[80vh]">
-                    <DialogHeader><DialogTitle>Image Library</DialogTitle><DialogDescription>Select an image to use as a fill mask.</DialogDescription></DialogHeader>
-                    <AssetLibrary onImageSelect={(url) => { handleUpdate({ fillImageSrc: url }); setIsAssetLibraryOpen(false); }} isAdmin={isAdmin} />
-                </DialogContent>
-            </Dialog>
 
             {/* Manage Fonts Dialog */}
             <Dialog open={isManageFontsOpen} onOpenChange={setIsManageFontsOpen}>

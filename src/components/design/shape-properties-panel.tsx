@@ -9,7 +9,8 @@ import type { DesignElement, GradientStop } from "@/lib/types";
 import { CMYKColorPicker as ColorPicker } from "./cmyk-color-picker";
 import { GradientPicker } from "./gradient-picker";
 import { Input } from "../ui/input";
-import { X, ImageIcon, Library, PaintBucket, Edit3 } from "lucide-react";
+import { X, ImageIcon, Library, PaintBucket, Edit3, Sparkles, Loader2 } from "lucide-react";
+import { removeBackground } from "@imgly/background-removal";
 import { Button } from "../ui/button";
 import { cn, resolveImagePath } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
@@ -36,40 +37,76 @@ const PropSlider = ({ label, value, display, min, max, step, onChange }: any) =>
 
 export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setMaskingElementId, isAdmin, onOpenColorPicker }: ShapePropertiesPanelProps) {
     const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
+    const [isRemovingBackground, setIsRemovingBackground] = useState(false);
+
+    const handleRemoveBackground = async () => {
+        if (!element.fillImageSrc || isRemovingBackground) return;
+        setIsRemovingBackground(true);
+        try {
+            const resolvedPath = resolveImagePath(element.fillImageSrc);
+            const imageResponse = await fetch(resolvedPath);
+            if (!imageResponse.ok) throw new Error("Image not found or inaccessible");
+            const inputBlob = await imageResponse.blob();
+
+            const blob = await removeBackground(inputBlob);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64data = reader.result as string;
+                handleUpdate({ fillImageSrc: base64data });
+                setIsRemovingBackground(false);
+            };
+            reader.readAsDataURL(blob);
+        } catch (error) {
+            console.error("Failed to remove background:", error);
+            setIsRemovingBackground(false);
+        }
+    };
 
     const handleUpdate = (props: Partial<DesignElement>) => onUpdate(element.id, props);
 
     const handleFillTypeChange = (fillType: 'solid' | 'gradient' | 'stepped-gradient' | 'image' | 'none') => {
         const newProps: Partial<DesignElement> = { fillType };
         if (fillType === 'stepped-gradient') {
-            const steps = element.gradientSteps || 2;
-            const stops = element.gradientStops || [];
-            const colors = ['#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#000000','#ffffff','#aaaaaa','#555555'];
-            const newStops = Array.from({ length: steps }, (_, i) => ({
-                id: stops[i]?.id || crypto.randomUUID(), color: stops[i]?.color || colors[i % colors.length],
-                position: 0, weight: stops[i]?.weight || 1,
-            }));
-            newProps.gradientStops = newStops;
-            newProps.gradientSteps = steps;
-            newProps.gradientDirection = 180;
-            newProps.gradientType = 'linear';
+            if (!element.steppedGradientStops) {
+                const steps = element.gradientSteps || 2;
+                const stops = element.gradientStops || [];
+                const colors = ['#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#000000','#ffffff','#aaaaaa','#555555'];
+                newProps.steppedGradientStops = Array.from({ length: steps }, (_, i) => ({
+                    id: stops[i]?.id || crypto.randomUUID(), color: stops[i]?.color || colors[i % colors.length],
+                    position: 0, weight: stops[i]?.weight || 1,
+                }));
+                newProps.steppedGradientSteps = steps;
+                newProps.steppedGradientDirection = element.gradientDirection ?? 180;
+                newProps.steppedGradientType = element.gradientType ?? 'linear';
+            }
         }
         handleUpdate(newProps);
     };
 
     const handleGradientStepsChange = (steps: number) => {
         const newSteps = Math.max(2, Math.min(10, steps));
-        const stops = [...(element.gradientStops || [])];
+        const isStepped = element.fillType === 'stepped-gradient';
+        const stops = [...((isStepped ? element.steppedGradientStops : element.gradientStops) || [])];
         const colors = ['#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#000000','#ffffff','#aaaaaa','#555555'];
         const newStops = Array.from({ length: newSteps }, (_, i) => ({
             id: stops[i]?.id || crypto.randomUUID(), color: stops[i]?.color || colors[i % colors.length], position: 0, weight: stops[i]?.weight || 1,
         }));
-        handleUpdate({ gradientSteps: newSteps, gradientStops: newStops });
+        
+        if (isStepped) {
+            handleUpdate({ steppedGradientSteps: newSteps, steppedGradientStops: newStops });
+        } else {
+            handleUpdate({ gradientSteps: newSteps, gradientStops: newStops });
+        }
     };
 
     const handleSteppedStopChange = (index: number, props: Partial<GradientStop>) => {
-        const newStops = [...(element.gradientStops || [])];
-        if (newStops[index]) { newStops[index] = { ...newStops[index], ...props }; handleUpdate({ gradientStops: newStops }); }
+        const isStepped = element.fillType === 'stepped-gradient';
+        const stopsField = isStepped ? 'steppedGradientStops' : 'gradientStops';
+        const newStops = [...((element[stopsField] as GradientStop[]) || [])];
+        if (newStops[index]) { 
+            newStops[index] = { ...newStops[index], ...props }; 
+            handleUpdate({ [stopsField]: newStops }); 
+        }
     };
 
     const shapeSupportsGradient = (element.type === 'shape' && !['line', 'arrow'].includes(element.shapeType || '')) || element.type === 'path';
@@ -77,6 +114,10 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
     const gradientStops = element.gradientStops?.length
         ? element.gradientStops
         : [{ id: crypto.randomUUID(), color: '#000000', position: 0 }, { id: crypto.randomUUID(), color: '#ffffff', position: 1 }];
+
+    const steppedStops = element.steppedGradientStops?.length
+        ? element.steppedGradientStops
+        : [{ id: crypto.randomUUID(), color: '#000000', position: 0, weight: 1 }, { id: crypto.randomUUID(), color: '#ffffff', position: 1, weight: 1 }];
 
     const currentFill = element.fillType || 'solid';
 
@@ -168,15 +209,21 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                         {currentFill === 'stepped-gradient' && (
                             <div className="space-y-3 pt-1">
                                 <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
-                                    <PropSlider label="Angle" value={element.gradientDirection || 0} display={`${element.gradientDirection || 0}°`} min={0} max={360} step={1} onChange={(v) => handleUpdate({ gradientDirection: v })} />
+                                    <PropSlider 
+                                        label="Angle" 
+                                        value={element.steppedGradientDirection ?? element.gradientDirection ?? 0} 
+                                        display={`${element.steppedGradientDirection ?? element.gradientDirection ?? 0}°`} 
+                                        min={0} max={360} step={1} 
+                                        onChange={(v: number) => handleUpdate({ steppedGradientDirection: v })} 
+                                    />
                                     <div className="space-y-1 w-14">
                                         <Label className="text-[10px] font-bold text-muted-foreground/60">Steps</Label>
-                                        <Input type="number" className="h-7 text-xs font-mono bg-background border-0" value={element.gradientSteps || 2}
+                                        <Input type="number" className="h-7 text-xs font-mono bg-background border-0" value={element.steppedGradientSteps || element.gradientSteps || 2}
                                             onChange={(e) => handleGradientStepsChange(parseInt(e.target.value))} min={2} max={10} />
                                     </div>
                                 </div>
                                 <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
-                                    {(element.gradientStops || []).map((stop, i) => (
+                                    {steppedStops.map((stop, i) => (
                                         <div key={stop.id} className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 shadow-sm transition-all hover:border-primary/20">
                                             <div className="flex-1 space-y-1">
                                                 <Label className="text-[9px] font-bold text-muted-foreground/50 uppercase ml-1 tracking-widest">Step {i + 1}</Label>
@@ -199,7 +246,7 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                                         </div>
                                     ))}
                                 </div>
-                                <Button variant="outline" size="sm" className="w-full h-8 text-[11px] font-bold uppercase tracking-wider" onClick={() => handleGradientStepsChange((element.gradientSteps || 2) + 1)}>+ Add Step</Button>
+                                <Button variant="outline" size="sm" className="w-full h-8 text-[11px] font-bold uppercase tracking-wider" onClick={() => handleGradientStepsChange((element.steppedGradientSteps || element.gradientSteps || 2) + 1)}>+ Add Step</Button>
                             </div>
                         )}
                         {currentFill === 'image' && (
@@ -225,6 +272,25 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                                                 Visual Adjust
                                             </Button>
                                         </div>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="w-full h-8 gap-2 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all"
+                                            onClick={handleRemoveBackground}
+                                            disabled={isRemovingBackground || !element.fillImageSrc}
+                                        >
+                                            {isRemovingBackground ? (
+                                                <>
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                    AI Processing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles size={12} />
+                                                    AI Remove Background
+                                                </>
+                                            )}
+                                        </Button>
                                     </div>
                                 </div>
                                 

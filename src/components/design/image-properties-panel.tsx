@@ -21,10 +21,13 @@ import {
   ListFilter,
   X,
   Crop as CropIcon,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
+import { removeBackground } from "@imgly/background-removal";
 import { CMYKColorPicker as ColorPicker } from "./cmyk-color-picker";
 import { GradientPicker } from "./gradient-picker";
-import { cn } from "@/lib/utils";
+import { cn, resolveImagePath } from "@/lib/utils";
 import { Input } from "../ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -164,6 +167,31 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
     </div>
   );
 
+  const [isRemovingBackground, setIsRemovingBackground] = React.useState(false);
+
+  const handleRemoveBackground = async () => {
+    if (!element.src || isRemovingBackground) return;
+    setIsRemovingBackground(true);
+    try {
+      const resolvedPath = resolveImagePath(element.src);
+      const imageResponse = await fetch(resolvedPath);
+      if (!imageResponse.ok) throw new Error("Image not found or inaccessible");
+      const inputBlob = await imageResponse.blob();
+
+      const blob = await removeBackground(inputBlob);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64data = reader.result as string;
+        update({ src: base64data });
+        setIsRemovingBackground(false);
+      };
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      console.error("Failed to remove background:", error);
+      setIsRemovingBackground(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
         {/* TRANSFORM SECTION */}
@@ -250,127 +278,34 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
 
                 </div>
             </SectionCard>
-        
-        {/* APPEARANCE SECTION */}
-        <SectionCard title="Appearance" icon={<Palette size={12} />} className="p-3">
+
+        {/* AI TOOLS SECTION */}
+        <SectionCard title="AI Tools" icon={<Sparkles size={12} />} className="p-3 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 border-indigo-100 shadow-indigo-100/20">
             <div className="space-y-3">
-                    <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Overlay Type</Label>
-                        <div className="flex gap-1">
-                            {[
-                                { value: 'solid', label: 'Solid', preview: <div className="w-4 h-4 rounded-full border border-slate-200 shadow-sm" style={{ backgroundColor: element.color || '#3b82f6' }} /> },
-                                { value: 'gradient', label: 'Gradient', preview: <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-sm" /> },
-                                { value: 'stepped-gradient', label: 'Stepped', preview: <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-green-400 shadow-sm" /> },
-                                { value: 'none', label: 'None', preview: <X size={14} className="text-slate-400" /> },
-                            ].map(({ value, label, preview }) => (
-                                <button key={value} onClick={() => handleFillTypeChange(value as any)}
-                                    className={cn("flex-1 flex flex-col items-center gap-1 py-1.5 rounded-lg border text-[9px] font-bold transition-all shadow-sm",
-                                        element.fillType === value || (value === 'solid' && !element.fillType)
-                                            ? "bg-primary/10 border-primary/50 text-primary"
-                                            : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50")}>
-                                    {preview}{label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                <div className="rounded-lg bg-slate-50/50 p-2 border border-slate-200 shadow-inner">
-                    {(!element.fillType || element.fillType === "solid") && (
-                        <div className="space-y-1">
-                            <Label className="text-[10px] font-bold text-slate-500 ml-1">Tint color</Label>
-                            <Button 
-                                variant="outline" 
-                                className="h-9 w-full px-3 justify-start rounded-xl border-slate-200 bg-white hover:bg-slate-100 transition-all shadow-sm"
-                                onClick={() => onOpenColorPicker("Tint color", element.color || "transparent", (c) => update({ color: c || "" }))}
-                            >
-                                <div className="w-4 h-4 rounded-md border border-slate-200 shadow-sm mr-3" style={{ backgroundColor: element.color || "transparent" }} />
-                                <span className="text-[11px] font-mono leading-none tracking-tight text-slate-700">{element.color || "transparent"}</span>
-                            </Button>
-                        </div>
+                <p className="text-[10px] text-indigo-600 font-medium leading-tight">
+                    Remove background from images instantly using local AI.
+                </p>
+                <Button 
+                    variant="default"
+                    className="w-full gap-2 h-10 text-xs font-bold rounded-xl shadow-lg bg-indigo-600 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-70"
+                    onClick={handleRemoveBackground}
+                    disabled={isRemovingBackground || !element.src}
+                >
+                    {isRemovingBackground ? (
+                        <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Processing...
+                        </>
+                    ) : (
+                        <>
+                            <Sparkles size={14} />
+                            Remove Background
+                        </>
                     )}
-
-                    {element.fillType === "gradient" && (
-                    <GradientPicker
-                        stops={gradientStops}
-                        direction={element.gradientDirection || 0}
-                        gradientType={element.gradientType || 'linear'}
-                        onDirectionChange={(d) => update({ gradientDirection: d })}
-                        onTypeChange={(t) => update({ gradientType: t })}
-                        onStopsChange={(s) => update({ gradientStops: s })}
-                        onOpenColorPicker={onOpenColorPicker}
-                    />
-                    )}
-
-                    {element.fillType === 'stepped-gradient' && (
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-4 bg-muted/40 p-3 rounded-xl border border-border/40">
-                                <div className="flex-1 space-y-2">
-                                    <div className="flex justify-between text-[10px] font-bold text-muted-foreground">
-                                        <Label>Angle</Label>
-                                        <span>{element.gradientDirection || 0}°</span>
-                                    </div>
-                                    <Slider value={[element.gradientDirection || 0]} onValueChange={v => update({gradientDirection: v[0]})} max={360} step={1} />
-                                </div>
-                                <div className="w-px h-10 bg-border/60" />
-                                <div className="w-16 space-y-1">
-                                    <Label className="text-[10px] font-bold text-muted-foreground">Steps</Label>
-                                    <Input
-                                        type="number"
-                                        className="h-8 text-xs font-mono bg-background border-none"
-                                        value={element.gradientSteps || 2}
-                                        onChange={e => handleGradientStepsChange(parseInt(e.target.value))}
-                                        min={2} max={10}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 pt-2">
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground/60 mb-2">
-                                    <ListFilter size={12} />
-                                    Color Steps
-                                </div>
-                                <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {(element.gradientStops || []).map((stop, index) => (
-                                        <div key={stop.id} className="bg-slate-50/80 p-3 rounded-xl border border-slate-200 shadow-sm">
-                                            <div className="flex gap-3 items-end">
-                                                <div className="flex-1 space-y-1.5">
-                                                    <Label className="text-[10px] font-bold text-muted-foreground/60 ml-1">Step {index + 1}</Label>
-                                                    <Button 
-                                                        variant="outline" 
-                                                        className="h-8 w-full px-2 justify-start rounded-lg border-slate-200 bg-white hover:bg-slate-100 transition-all shadow-sm"
-                                                        onClick={() => onOpenColorPicker(`Step ${index + 1} color`, stop.color, (color) => handleSteppedStopChange(index, { color }))}
-                                                    >
-                                                        <div className="w-4 h-4 rounded-sm border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: stop.color }} />
-                                                        <span className="text-[10px] font-mono text-slate-700">{stop.color}</span>
-                                                    </Button>
-                                                </div>
-                                                <div className="flex-1 space-y-1">
-                                                    <div className="flex justify-between items-center px-1">
-                                                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ratio</Label>
-                                                        <span className="text-[11px] font-mono font-bold text-primary">{(stop.weight ?? 1).toFixed(1)}</span>
-                                                    </div>
-                                                    <Slider value={[stop.weight ?? 1]} onValueChange={(v) => handleSteppedStopChange(index, { weight: v[0] })} min={1} max={10} step={0.1} className="py-1" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <Button variant="outline" size="sm" onClick={() => handleGradientStepsChange((element.gradientSteps || 2) + 1)} className="w-full mt-2">Add Step</Button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <PropertyRow
-                    label="Tint Strength"
-                    value={element.tintOpacity || 0}
-                    display={`${Math.round((element.tintOpacity || 0) * 100)}%`}
-                    min={0}
-                    max={1}
-                    onChange={(v: number) => update({ tintOpacity: v })}
-                />
-                </div>
-            </SectionCard>
+                </Button>
+            </div>
+        </SectionCard>
+        
 
         {/* ADJUSTMENTS SECTION */}
         <SectionCard title="Adjustments" icon={<SlidersHorizontal size={12} />} className="p-2">

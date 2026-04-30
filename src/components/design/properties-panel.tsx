@@ -20,7 +20,7 @@ import {
   SendToBack, ChevronsUp, ChevronsDown, AlignHorizontalJustifyStart,
   AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd,
   AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
-  Type, Wand2, Settings2, LayoutTemplate,
+  Type, Wand2, Settings2, LayoutTemplate, Crop, FlipHorizontal, FlipVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -99,11 +99,11 @@ const IconToggle = ({ icon: Icon, active, onClick, title }: any) => (
     title={title}
     onClick={onClick}
     className={cn(
-      "flex items-center justify-center h-10 w-full rounded-xl transition-all text-muted-foreground hover:text-primary hover:bg-primary/5 border border-transparent",
+      "flex items-center justify-center h-9 w-full rounded-lg transition-all text-muted-foreground hover:text-primary hover:bg-primary/5 border border-transparent",
       active && "bg-primary/10 text-primary border-primary/20 shadow-[0_2px_10px_-4px_rgba(var(--primary),0.3)]"
     )}
   >
-    <Icon size={18} />
+    <Icon size={16} />
   </button>
 );
 
@@ -129,18 +129,20 @@ export function PropertiesPanel({
       const newProps: Partial<Background> = { type: fillType };
       
       if (fillType === 'stepped-gradient') {
-        const steps = background.gradientSteps || 2;
-        const stops = background.gradientStops || [];
-        const colors = ['#3b82f6','#8b5cf6','#ec4899','#f43f5e','#f97316','#eab308','#22c55e','#06b6d4','#6366f1','#64748b'];
-        newProps.gradientStops = Array.from({ length: steps }, (_, i) => ({
-          id: stops[i]?.id || crypto.randomUUID(), 
-          color: stops[i]?.color || colors[i % colors.length], 
-          position: 0, 
-          weight: stops[i]?.weight || 1,
-        }));
-        newProps.gradientSteps = steps;
-        newProps.gradientDirection = 180;
-        newProps.gradientType = 'linear';
+        if (!background.steppedGradientStops) {
+            const steps = background.gradientSteps || 2;
+            const stops = background.gradientStops || [];
+            const colors = ['#3b82f6','#8b5cf6','#ec4899','#f43f5e','#f97316','#eab308','#22c55e','#06b6d4','#6366f1','#64748b'];
+            newProps.steppedGradientStops = Array.from({ length: steps }, (_, i) => ({
+              id: stops[i]?.id || crypto.randomUUID(), 
+              color: stops[i]?.color || colors[i % colors.length], 
+              position: 0, 
+              weight: stops[i]?.weight || 1,
+            }));
+            newProps.steppedGradientSteps = steps;
+            newProps.steppedGradientDirection = background.gradientDirection ?? 180;
+            newProps.steppedGradientType = background.gradientType ?? 'linear';
+        }
       } else if (fillType === 'gradient' && (!background.gradientStops || background.gradientStops.length === 0)) {
         newProps.gradientStops = [
           { id: crypto.randomUUID(), color: background.color || '#3b82f6', position: 0, weight: 1 },
@@ -157,6 +159,10 @@ export function PropertiesPanel({
       ? background.gradientStops
       : [{ id: crypto.randomUUID(), color: background.color || '#000000', position: 0 }, { id: crypto.randomUUID(), color: '#ffffff', position: 1 }];
 
+    const bgSteppedStops = background.steppedGradientStops?.length
+      ? background.steppedGradientStops
+      : [{ id: crypto.randomUUID(), color: background.color || '#000000', position: 0, weight: 1 }, { id: crypto.randomUUID(), color: '#ffffff', position: 1, weight: 1 }];
+
     return (
       <div className="h-full flex flex-col overflow-hidden bg-white border-l shadow-sm">
         <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between shrink-0">
@@ -172,13 +178,13 @@ export function PropertiesPanel({
         </div>
 
         <Tabs key="canvas-settings" defaultValue="canvas" className="flex flex-col flex-1 overflow-hidden">
-          <TabsList className="shrink-0 mx-4 mt-3 h-10 grid grid-cols-3 bg-muted/40 rounded-xl p-1 border border-border/20">
+          <TabsList className="shrink-0 mx-4 mt-2 h-9 grid grid-cols-3 bg-muted/40 rounded-xl p-1 border border-border/20">
             <TabsTrigger value="canvas" className="text-[10px] font-bold h-7 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Canvas</TabsTrigger>
             <TabsTrigger value="background" className="text-[10px] font-bold h-7 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Background</TabsTrigger>
             <TabsTrigger value="production" className="text-[10px] font-bold h-7 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all">Production</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="canvas" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 space-y-5 mt-0">
+          <TabsContent value="canvas" className="flex-1 overflow-y-auto custom-scrollbar px-3 pt-2 pb-4 space-y-3 mt-0">
             <div className="space-y-3">
               <p className="text-[11px] font-bold text-muted-foreground">Dimensions</p>
               <div className="grid grid-cols-2 gap-2">
@@ -284,7 +290,7 @@ export function PropertiesPanel({
           </TabsContent>
 
           {/* BACKGROUND TAB */}
-          <TabsContent value="background" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 space-y-5 mt-0">
+          <TabsContent value="background" className="flex-1 overflow-y-auto custom-scrollbar px-3 pt-2 pb-4 space-y-3 mt-0">
             <div className="space-y-3">
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest ml-1">Fill type</p>
               <div className="grid grid-cols-4 gap-2">
@@ -333,21 +339,27 @@ export function PropertiesPanel({
               {background.type === 'stepped-gradient' && (
                 <div className="space-y-4 pt-1">
                   <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
-                    <PropSlider label="Angle" value={background.gradientDirection || 0} display={`${background.gradientDirection || 0}°`} min={0} max={360} step={1} onChange={(v) => handleBg({ gradientDirection: v })} />
+                    <PropSlider 
+                      label="Angle" 
+                      value={background.steppedGradientDirection ?? background.gradientDirection ?? 0} 
+                      display={`${background.steppedGradientDirection ?? background.gradientDirection ?? 0}°`} 
+                      min={0} max={360} step={1} 
+                      onChange={(v) => handleBg({ steppedGradientDirection: v })} 
+                    />
                     <div className="space-y-1 w-14">
                       <Label className="text-[9px] uppercase font-bold text-slate-500">Steps</Label>
-                      <Input type="number" className="h-8 text-xs font-mono bg-white border-slate-200" value={background.gradientSteps || 2}
+                      <Input type="number" className="h-8 text-xs font-mono bg-white border-slate-200" value={background.steppedGradientSteps || background.gradientSteps || 2}
                         onChange={(e) => {
                           const steps = Math.max(2, Math.min(10, parseInt(e.target.value) || 2));
-                          const stops = [...(background.gradientStops || [])];
+                          const stops = [...bgSteppedStops];
                           const colors = ['#3b82f6','#8b5cf6','#ec4899','#f43f5e','#f97316','#eab308','#22c55e','#06b6d4','#6366f1','#64748b'];
                           const newStops = Array.from({ length: steps }, (_, i) => stops[i] || { id: crypto.randomUUID(), color: colors[i % colors.length], position: 0, weight: 1 });
-                          handleBg({ gradientSteps: steps, gradientStops: newStops });
+                          handleBg({ steppedGradientSteps: steps, steppedGradientStops: newStops });
                         }} min={2} max={10} />
                     </div>
                   </div>
                   <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
-                    {(background.gradientStops || []).map((stop, i) => (
+                    {bgSteppedStops.map((stop, i) => (
                       <div key={stop.id} className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 shadow-sm transition-all hover:border-primary/20">
                         <div className="flex-1 space-y-1">
                           <Label className="text-[9px] font-bold text-slate-500 uppercase ml-1 tracking-widest">Step {i + 1}</Label>
@@ -355,8 +367,8 @@ export function PropertiesPanel({
                             variant="outline" 
                             className="h-8 w-full px-2 justify-start rounded-lg border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all shadow-sm"
                             onClick={() => onOpenColorPicker(`Step ${i + 1} color`, stop.color, (c) => {
-                              const newStops = [...(background.gradientStops || [])];
-                              if (newStops[i]) { newStops[i] = { ...newStops[i], color: c }; handleBg({ gradientStops: newStops }); }
+                              const newStops = [...bgSteppedStops];
+                              if (newStops[i]) { newStops[i] = { ...newStops[i], color: c }; handleBg({ steppedGradientStops: newStops }); }
                             })}
                           >
                             <div className="w-3.5 h-3.5 rounded-sm border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: stop.color }} />
@@ -369,8 +381,8 @@ export function PropertiesPanel({
                             <span className="text-[10px] font-mono font-bold text-primary">{(stop.weight ?? 1).toFixed(1)}</span>
                           </div>
                           <Slider value={[stop.weight ?? 1]} onValueChange={(v) => {
-                            const newStops = [...(background.gradientStops || [])];
-                            if (newStops[i]) { newStops[i] = { ...newStops[i], weight: v[0] }; handleBg({ gradientStops: newStops }); }
+                            const newStops = [...bgSteppedStops];
+                            if (newStops[i]) { newStops[i] = { ...newStops[i], weight: v[0] }; handleBg({ steppedGradientStops: newStops }); }
                           }} min={1} max={10} step={0.1} className="py-1" />
                         </div>
                       </div>
@@ -387,15 +399,27 @@ export function PropertiesPanel({
                       <span className="text-[10px]">Click to upload</span>
                     </div>
                   </div>
-                  <Select value={background.imagePosition || 'fill'} onValueChange={(v) => handleBg({ imagePosition: v as any })}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fill">Fill</SelectItem>
-                      <SelectItem value="fit">Fit</SelectItem>
-                      <SelectItem value="stretch">Stretch</SelectItem>
-                      <SelectItem value="center">Center</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select value={background.imagePosition || 'fill'} onValueChange={(v) => handleBg({ imagePosition: v as any })} className="flex-1">
+                      <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fill">Fill</SelectItem>
+                        <SelectItem value="fit">Fit</SelectItem>
+                        <SelectItem value="stretch">Stretch</SelectItem>
+                        <SelectItem value="center">Center</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-9 gap-2 text-xs font-bold rounded-lg border-slate-200 hover:bg-slate-50 transition-all shadow-sm flex-1"
+                      onClick={() => setCroppingElementId('background')}
+                      disabled={!background.imageSrc}
+                    >
+                      <Crop size={14} />
+                      Crop
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -483,10 +507,10 @@ export function PropertiesPanel({
         </TabsContent>
 
         {/* ===== LAYOUT TAB ===== */}
-        <TabsContent value="layout" className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 space-y-6 mt-0">
+        <TabsContent value="layout" className="flex-1 overflow-y-auto custom-scrollbar px-3 pt-2 pb-4 space-y-4 mt-0">
           {/* Transform */}
-          <div className="space-y-4">
-            <p className="text-xs font-bold text-muted-foreground">Transform</p>
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Transform</p>
             <div className="grid grid-cols-2 gap-3">
               <CoordInput label="X" value={element.x} onChange={(v: number) => onUpdate(element.id, { x: v })} />
               <CoordInput label="Y" value={element.y} onChange={(v: number) => onUpdate(element.id, { y: v })} />
@@ -495,13 +519,37 @@ export function PropertiesPanel({
             </div>
             <PropSlider label="Rotation" value={element.rotation} display={`${element.rotation}°`} min={0} max={360} step={1}
               onChange={(v: number) => onUpdate(element.id, { rotation: v })} />
+            
+            <div className="pt-1">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1 mb-2">Flip</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className={cn("h-9 gap-2 text-xs font-bold rounded-lg border-slate-200", element.flipHorizontal && "bg-primary/10 border-primary/40 text-primary")}
+                  onClick={() => onUpdate(element.id, { flipHorizontal: !element.flipHorizontal })}
+                >
+                  <FlipHorizontal size={14} />
+                  Horizontal
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className={cn("h-9 gap-2 text-xs font-bold rounded-lg border-slate-200", element.flipVertical && "bg-primary/10 border-primary/40 text-primary")}
+                  onClick={() => onUpdate(element.id, { flipVertical: !element.flipVertical })}
+                >
+                  <FlipVertical size={14} />
+                  Vertical
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="h-px bg-border/40" />
 
           {/* Align to Page */}
-          <div className="space-y-4">
-            <p className="text-xs font-bold text-muted-foreground">Align to page</p>
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Align to page</p>
             <div className="grid grid-cols-3 gap-3">
               <IconToggle icon={AlignHorizontalJustifyStart} title="Left" onClick={() => onUpdate(element.id, { x: 0 })} />
               <IconToggle icon={AlignHorizontalJustifyCenter} title="Center H" onClick={() => onUpdate(element.id, { x: (product.width - element.width) / 2 })} />
@@ -515,8 +563,8 @@ export function PropertiesPanel({
           <div className="h-px bg-border/40" />
 
           {/* Layering */}
-          <div className="space-y-4">
-            <p className="text-xs font-bold text-muted-foreground">Layer order</p>
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Layer order</p>
             <div className="grid grid-cols-4 gap-3">
               <IconToggle icon={BringToFront} title="Bring to Front" onClick={() => onMoveLayer('front')} />
               <IconToggle icon={ChevronsUp} title="Bring Forward" onClick={() => onMoveLayer('forward')} />

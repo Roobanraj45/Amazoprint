@@ -579,10 +579,21 @@ function DesignEditorInternal({
           return;
         }
 
-        for (let i = 1; i < livePath.length; i++) {
+        for (let i = 0; i < livePath.length; i++) {
           const p = livePath[i];
+          // Check anchor
           if (Math.hypot(x - p.x, y - p.y) < hitRadius) {
             setDraggingPoint({ index: i, type: 'anchor' });
+            return;
+          }
+          // Check cp1
+          if (Math.hypot(x - p.cp1x, y - p.cp1y) < hitRadius) {
+            setDraggingPoint({ index: i, type: 'cp1' });
+            return;
+          }
+          // Check cp2
+          if (Math.hypot(x - p.cp2x, y - p.cp2y) < hitRadius) {
+            setDraggingPoint({ index: i, type: 'cp2' });
             return;
           }
         }
@@ -1018,6 +1029,21 @@ function DesignEditorInternal({
     updatePage(currentPage, { elements: [...currentElements, newElement] });
     setSelectedElementIds([newElement.id]);
     setMaskingElementId(newElement.id); // Automatically open mask editor
+    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
+  };
+
+  const handleAddImageNoMask = (src: string) => {
+    const size = 400;
+    const { x, y } = getCenterPosition(size, size);
+    const newElement: DesignElement = {
+      id: crypto.randomUUID(), type: 'image', x, y, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
+      backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+      src, objectFit: 'contain', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+      content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle',
+    };
+    updatePage(currentPage, { elements: [...currentElements, newElement] });
+    setSelectedElementIds([newElement.id]);
+    // NO MASK EDITOR OPENED
     if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
@@ -1619,7 +1645,9 @@ function DesignEditorInternal({
     return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
-  const elementToCrop = croppingElementId ? findElementRecursive(currentElements, croppingElementId) : undefined;
+  const elementToCrop = croppingElementId === 'background' 
+    ? { id: 'background', type: 'image', src: currentBackground.imageSrc, crop: currentBackground.crop } as any
+    : (croppingElementId ? findElementRecursive(currentElements, croppingElementId) : undefined);
   const elementToMask = maskingElementId ? findElementRecursive(currentElements, maskingElementId) : undefined;
 
   return (
@@ -1684,17 +1712,22 @@ function DesignEditorInternal({
             setActiveTool={setActiveTool}
             isAdmin={isAdmin}
             onAddImage={handleAddImageFromLibrary}
+            onAddImageNoMask={handleAddImageNoMask}
             onAddSvgShape={handleAddSvgShape}
             onAddShape={handleAddShape}
             onAddEmoji={handleAddEmoji}
             onAddText={addTextElement}
             onAddGroupedElements={handleAddGroupedElements}
             onAddQrCode={addQrCodeElement}
+            onAddAIElements={(els) => updatePage(currentPage, { elements: [...currentElements, ...els] })}
             brushOptions={brushOptions}
             setBrushOptions={setBrushOptions}
             onClearBrush={handleClearBrushStrokes}
             finalizePath={finalizePath}
             onOpenColorPicker={(label, color, onChange) => setColorPicker({ isOpen: true, label, color, onChange })}
+            product={product}
+            canvasWidth={product.width}
+            canvasHeight={product.height}
           />
           <SidebarRail side="left" />
 
@@ -1750,7 +1783,7 @@ function DesignEditorInternal({
               "absolute right-4 top-4 bottom-4 w-[340px] z-[40] transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) hidden lg:block",
               rightOpen ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+32px)] opacity-0 pointer-events-none"
             )}>
-              <div className="h-full bg-card border border-border/60 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.25)] overflow-hidden flex flex-col">
+              <div className="h-full bg-card border border-border/60 rounded-[1.25rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.25)] overflow-hidden flex flex-col">
                 <ScrollArea className="flex-1">
                   <div className="p-1.5">
                     <PropertiesPanel
@@ -1830,21 +1863,29 @@ function DesignEditorInternal({
           onApply={(cropData) => {
             const { processedSrc, crop, removeColor, threshold, newAspectRatio } = cropData;
 
-            const currentElement = findElementRecursive(currentElements, elementToCrop.id);
-            if (!currentElement) return;
+            if (croppingElementId === 'background') {
+              onBackgroundChange({
+                ...currentBackground,
+                imageSrc: processedSrc,
+                crop,
+              });
+            } else {
+              const currentElement = findElementRecursive(currentElements, elementToCrop.id);
+              if (!currentElement) return;
 
-            let newHeight = currentElement.height;
-            if (newAspectRatio && isFinite(newAspectRatio) && newAspectRatio > 0) {
-              newHeight = currentElement.width / newAspectRatio;
+              let newHeight = currentElement.height;
+              if (newAspectRatio && isFinite(newAspectRatio) && newAspectRatio > 0) {
+                newHeight = currentElement.width / newAspectRatio;
+              }
+
+              updateElement(elementToCrop.id, {
+                src: processedSrc,
+                crop,
+                removeColor,
+                colorThreshold: threshold,
+                height: newHeight,
+              });
             }
-
-            updateElement(elementToCrop.id, {
-              src: processedSrc,
-              crop,
-              removeColor,
-              colorThreshold: threshold,
-              height: newHeight,
-            });
             setCroppingElementId(null);
           }}
         />

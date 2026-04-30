@@ -10,13 +10,17 @@ import { renderBristleSegment, buildBrushTip, BrushEngineTip, BristleProfile } f
 
 
 const createGradientString = (element: DesignElement, { reversed = false } = {}): string | null => {
-  const { fillType, gradientDirection, gradientStops } = element;
+  const { fillType } = element;
+  const isStepped = fillType === 'stepped-gradient';
+  const stops = isStepped ? (element.steppedGradientStops || element.gradientStops) : element.gradientStops;
+  const direction = isStepped ? (element.steppedGradientDirection ?? element.gradientDirection) : element.gradientDirection;
+  const type = isStepped ? (element.steppedGradientType ?? element.gradientType) : element.gradientType;
 
-  if (!gradientStops || gradientStops.length === 0 || (fillType !== 'gradient' && fillType !== 'stepped-gradient')) {
+  if (!stops || stops.length === 0 || (fillType !== 'gradient' && fillType !== 'stepped-gradient')) {
     return null;
   }
   
-  const stopsToUse = reversed ? [...gradientStops].reverse() : [...gradientStops];
+  const stopsToUse = reversed ? [...stops].reverse() : [...stops];
   let colorStopsString = '';
 
   if (fillType === 'stepped-gradient') {
@@ -50,28 +54,32 @@ const createGradientString = (element: DesignElement, { reversed = false } = {})
       .join(', ');
   }
 
-  if (element.gradientType === 'radial') {
+  if (type === 'radial') {
     return `radial-gradient(circle at center, ${colorStopsString})`;
   }
 
-  return `linear-gradient(${gradientDirection || 0}deg, ${colorStopsString})`;
+  return `linear-gradient(${direction || 0}deg, ${colorStopsString})`;
 };
 
 
 const SvgFillDefs = ({ element }: { element: DesignElement }) => {
-  const { fillType, gradientDirection = 90, gradientStops, fillImageSrc } = element;
+  const { fillType, fillImageSrc } = element;
+  const isStepped = fillType === 'stepped-gradient';
+  const stops = isStepped ? (element.steppedGradientStops || element.gradientStops) : element.gradientStops;
+  const direction = isStepped ? (element.steppedGradientDirection ?? element.gradientDirection) : (element.gradientDirection ?? 90);
+  const type = isStepped ? (element.steppedGradientType ?? element.gradientType) : element.gradientType;
 
   const defs: JSX.Element[] = [];
 
   // Gradient support
-  if ((fillType === 'gradient' || fillType === 'stepped-gradient') && gradientStops && gradientStops.length > 0) {
+  if ((fillType === 'gradient' || fillType === 'stepped-gradient') && stops && stops.length > 0) {
     let stopElements: JSX.Element[] | null = null;
     
     if (fillType === 'stepped-gradient') {
-      const totalWeight = gradientStops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
+      const totalWeight = stops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0);
       if (totalWeight > 0) {
         let accumulatedOffset = 0;
-        stopElements = gradientStops.flatMap((stop, index) => {
+        stopElements = stops.flatMap((stop, index) => {
             const weight = stop.weight ?? 1;
             const startOffset = accumulatedOffset;
             const stepOffset = weight / totalWeight;
@@ -84,17 +92,16 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
         });
       }
     } else { // 'gradient'
-      if (gradientStops.length >= 2) {
-        const totalWeight = gradientStops.slice(0, -1).reduce((sum, stop) => sum + (stop.weight ?? 1), 0) || 1;
+      if (stops.length >= 2) {
+        const totalWeight = stops.reduce((sum, stop) => sum + (stop.weight ?? 1), 0) || 1;
         let accumulatedWeight = 0;
         
-        stopElements = gradientStops.map((stop, index) => {
+        stopElements = stops.map((stop, index) => {
             let offset: string;
             if (index === 0) offset = "0%";
-            else if (index === gradientStops.length - 1) offset = "100%";
             else {
-                accumulatedWeight += gradientStops[index-1].weight ?? 1;
-                offset = `${(accumulatedWeight / totalWeight) * 100}%`;
+                accumulatedWeight += stops[index-1].weight ?? 1;
+                offset = `${Math.max(0, Math.min(100, (accumulatedWeight / totalWeight) * 100))}%`;
             }
             return <stop key={stop.id || index} offset={offset} stopColor={stop.color} />;
         });
@@ -102,7 +109,7 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
     }
 
     if (stopElements) {
-      if (element.gradientType === 'radial') {
+      if (type === 'radial') {
         defs.push(
           <radialGradient
             key={`grad-${element.id}`}
@@ -119,7 +126,7 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
             key={`grad-${element.id}`}
             id={`grad-${element.id}`}
             gradientUnits="objectBoundingBox"
-            gradientTransform={`rotate(${gradientDirection - 90} 0.5 0.5)`}
+            gradientTransform={`rotate(${direction - 90} 0.5 0.5)`}
           >
             {stopElements}
           </linearGradient>
@@ -442,18 +449,19 @@ export const NonInteractiveContent = memo(({
         const hasGradientTint = (fillType === 'gradient' || fillType === 'stepped-gradient') && element.gradientStops && element.gradientStops.length > 0;
         const hasTint = (element.tintOpacity ?? 0) > 0 && (hasSolidTint || hasGradientTint);
         const hasCrop = element.crop && (element.crop.top > 0 || element.crop.right > 0 || element.crop.bottom > 0 || element.crop.left > 0);
-    
-        if (hasTint) {
+        const tintMode = element.overlayMode || 'tint';
+
+        const getTintBackground = () => {
+            if (fillType === 'gradient' || fillType === 'stepped-gradient') return createGradientString(element);
+            return element.color;
+        };
+
+        if (hasTint && tintMode === 'tint') {
             let maskSizeValue: 'cover' | 'contain' | '100% 100%' | 'auto' | undefined;
             if (element.objectFit === 'fill') maskSizeValue = '100% 100%';
             else if (element.objectFit === 'none') maskSizeValue = 'auto';
             else if (element.objectFit === 'contain' || element.objectFit === 'cover') maskSizeValue = element.objectFit;
             
-            const getTintBackground = () => {
-                if (fillType === 'gradient' || fillType === 'stepped-gradient') return createGradientString(element);
-                return element.color;
-            };
-    
             let finalMaskSize: string | undefined = maskSizeValue;
             let finalMaskPosition = 'center';
     
@@ -488,6 +496,16 @@ export const NonInteractiveContent = memo(({
             return <div style={tintedStyle} />;
         }
         
+        const backgroundOverlay = hasTint && tintMode === 'background' ? (
+            <div style={{ 
+                position: 'absolute', 
+                inset: 0, 
+                background: getTintBackground(), 
+                opacity: element.tintOpacity,
+                zIndex: 0
+            }} />
+        ) : null;
+
         if (hasCrop) {
             const crop = element.crop!;
             const cropWidthRatio = 1 - crop.left - crop.right;
@@ -510,10 +528,12 @@ export const NonInteractiveContent = memo(({
                 maxHeight: 'none',
                 filter: filters,
                 transform: transforms,
+                zIndex: 1
             };
     
             return (
                 <div style={imageWrapperStyle}>
+                    {backgroundOverlay}
                     <img src={element.src} alt={element.id} style={imageStyle} />
                 </div>
             );
@@ -525,10 +545,13 @@ export const NonInteractiveContent = memo(({
           objectFit: element.objectFit,
           filter: filters,
           transform: transforms,
+          position: 'relative',
+          zIndex: 1
         };
         
         return (
-          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+            {backgroundOverlay}
             <img src={element.src} alt={element.id} style={imageStyle} />
           </div>
         );
