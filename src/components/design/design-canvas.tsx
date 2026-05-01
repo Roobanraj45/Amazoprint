@@ -251,6 +251,7 @@ type DesignCanvasProps = {
   pathEditingElement?: DesignElement | null;
   editingTextId?: string | null;
   setEditingId?: (id: string | null) => void;
+  isPreview?: boolean;
 };
 
 
@@ -289,6 +290,7 @@ export function DesignCanvas({
   pathEditingElement,
   editingTextId,
   setEditingId,
+  isPreview = false,
 }: DesignCanvasProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const liveBrushCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -596,6 +598,7 @@ export function DesignCanvas({
                 setCroppingElementId={setCroppingElementId}
                 isEditing={editingTextId === element.id}
                 setEditingId={setEditingId}
+                isPreview={isPreview}
                 />
             ))}
           </div>

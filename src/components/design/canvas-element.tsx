@@ -470,6 +470,7 @@ type CanvasElementProps = {
   isEditing?: boolean;
   setEditingId?: (id: string | null) => void;
   isEditingPath?: boolean;
+  isPreview?: boolean;
 };
 
 type ResizeHandle = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top' | 'bottom' | 'left' | 'right';
@@ -520,14 +521,16 @@ export const NonInteractiveContent = memo(({
   renderMode,
   isEditing,
   setEditingId,
-  onUpdate 
+  onUpdate,
+  isPreview
 }: { 
   element: DesignElement, 
   product: Product, 
   renderMode?: 'default' | 'cmyk' | 'spotuv' | 'foil',
   isEditing?: boolean,
   setEditingId?: (id: string | null) => void,
-  onUpdate?: (id: string, updates: Partial<DesignElement>) => void
+  onUpdate?: (id: string, updates: Partial<DesignElement>) => void,
+  isPreview?: boolean
 }) => {
   const isSpotUv = renderMode === 'spotuv' || renderMode === 'foil';
 
@@ -710,9 +713,12 @@ export const NonInteractiveContent = memo(({
         const showTint = !isSpotUv && (element.fillType === 'gradient' || element.fillType === 'stepped-gradient' || element.fillType === 'image') && element.color && (element.tintOpacity ?? 0) > 0;
         
         const svgStrokeProps = {
-          stroke: isSpotUv ? 'black' : element.borderColor,
-          strokeWidth: element.borderWidth,
+          stroke: isSpotUv ? 'black' : (element.strokeColor || element.borderColor || element.color || '#000000'),
+          strokeWidth: element.strokeWidth || element.borderWidth || 0,
           strokeDasharray: element.borderStyle === 'dashed' ? '4 2' : (element.borderStyle === 'dotted' ? '1 2' : 'none'),
+          strokeLinecap: 'round' as const,
+          strokeLinejoin: 'round' as const,
+          ...(isPreview ? {} : { vectorEffect: 'non-scaling-stroke' as const })
         }
 
         return (
@@ -781,7 +787,7 @@ export const NonInteractiveContent = memo(({
           strokeDasharray: element.borderStyle === 'dashed' ? '4 2' : (element.borderStyle === 'dotted' ? '1 2' : 'none'),
           strokeLinecap: 'round' as const,
           strokeLinejoin: 'round' as const,
-          vectorEffect: 'non-scaling-stroke' as const
+          ...(isPreview ? {} : { vectorEffect: 'non-scaling-stroke' as const })
         };
 
         const maskScale = element.maskScale ?? 1;
@@ -932,6 +938,7 @@ const _CanvasElement = ({
   isEditing = false,
   setEditingId,
   isEditingPath = false,
+  isPreview = false,
 }: CanvasElementProps) => {
   const elementRef = useRef<HTMLDivElement>(null);
   
@@ -1275,7 +1282,7 @@ const _CanvasElement = ({
     borderColor: renderMode === 'spotuv' ? 'transparent' : (element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 'transparent' : element.borderColor),
     borderStyle: element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 'solid' : element.borderStyle,
     borderRadius: renderMode === 'spotuv' ? 0 : (element.type !== 'shape' ? element.borderRadius : 0),
-    overflow: (isWarped || element.type === 'path') ? 'visible' : 'hidden', // Ensure paths can render curves slightly outside bounds
+    overflow: (isWarped || element.type === 'path' || element.type === 'text') ? 'visible' : 'hidden', // Ensure text and paths don't crop unnecessarily
   };
   
   const resizeHandles: ResizeHandle[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top', 'bottom', 'left', 'right'];
@@ -1344,6 +1351,7 @@ const _CanvasElement = ({
                   isEditing={isEditing}
                   setEditingId={setEditingId}
                   onUpdate={onUpdate}
+                  isPreview={isPreview}
                 />
               </div>
             );
@@ -1359,6 +1367,7 @@ const _CanvasElement = ({
         isEditing={isEditing}
         setEditingId={setEditingId}
         onUpdate={onUpdate}
+        isPreview={isPreview}
       />
     );
   };

@@ -106,7 +106,7 @@ export function measureTextDimensions(
     });
 
     return {
-        width: Math.max(50, Math.min(maxLineWidth + 20, maxWidthLimit)),
-        height: Math.max(element.fontSize * 1.2, totalLines * lineHeightPx + 10)
+        width: Math.max(50, Math.min(maxLineWidth + 30, maxWidthLimit)),
+        height: Math.max(element.fontSize * 1.5, totalLines * lineHeightPx + 15)
     };
 }

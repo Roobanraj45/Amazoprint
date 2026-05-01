@@ -504,7 +504,7 @@ export function TextCanvasElement({
               autoFocus
               style={{
                 width: '100%',
-                height: 'auto',
+                height: '100%',
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
@@ -526,7 +526,7 @@ export function TextCanvasElement({
               value={element.content}
               onChange={(e) => {
                 const newContent = e.target.value;
-                const dims = measureTextDimensions(newContent, element, product.width - 40);
+                const dims = measureTextDimensions(newContent, element, product.width * 2);
                 onUpdate?.(element.id, { 
                     content: newContent,
                     width: dims.width,

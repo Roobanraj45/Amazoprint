@@ -40,7 +40,9 @@ export function TemplatesClient({ templates }: { templates: any[] }) {
 
   const filteredTemplates = templates.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || t.productSlug.includes(selectedCategory.toLowerCase());
+    const slug = (t.productSlug || '').toLowerCase().replace(/_/g, '-');
+    const category = selectedCategory.toLowerCase().replace(/[\s_]+/g, '-');
+    const matchesCategory = selectedCategory === 'All' || slug.includes(category);
     return matchesSearch && matchesCategory;
   });
 
@@ -102,20 +104,22 @@ export function TemplatesClient({ templates }: { templates: any[] }) {
                           <div className="aspect-[4/5] relative bg-muted overflow-hidden flex items-center justify-center">
                             {/* Live Design Rendering */}
                             {(() => {
-                              const widthInPx = Math.round(template.width * MM_TO_PX);
-                              const heightInPx = Math.round(template.height * MM_TO_PX);
+                               const widthInPx = Math.round((template.width || 300) * MM_TO_PX);
+                              const heightInPx = Math.round((template.height || 200) * MM_TO_PX);
                               const productForCanvas: Product = {
-                                id: template.productSlug,
-                                name: template.name,
+                                id: template.productSlug || 'custom',
+                                name: template.name || 'Untitled',
                                 description: '',
                                 imageId: '',
                                 width: widthInPx,
                                 height: heightInPx,
                                 type: '',
                               };
-                              const isMultiPage = Array.isArray(template.elements) && template.elements.length > 0 && Array.isArray(template.elements[0]);
-                              const elements: DesignElement[] = (isMultiPage ? template.elements[0] : template.elements) as DesignElement[];
-                              const background: Background = (isMultiPage && Array.isArray(template.background) ? template.background[0] : template.background) as Background;
+                              const rawElements = typeof template.elements === 'string' ? JSON.parse(template.elements) : (template.elements || []);
+                              const isMultiPage = Array.isArray(rawElements) && rawElements.length > 0 && Array.isArray(rawElements[0]);
+                              const elements: DesignElement[] = (isMultiPage ? rawElements[0] : rawElements) as DesignElement[];
+                              const rawBackground = typeof template.background === 'string' ? JSON.parse(template.background) : (template.background || { type: 'solid', color: '#ffffff' });
+                              const background: Background = (isMultiPage && Array.isArray(rawBackground) ? rawBackground[0] : rawBackground) as Background;
                               
                               // Calculate scale to fit aspect-[4/5]
                               // Max width is roughly 300-400px depending on screen
@@ -138,6 +142,7 @@ export function TemplatesClient({ templates }: { templates: any[] }) {
                                       bleed={0}
                                       safetyMargin={0}
                                       viewState={{ zoom: 1, pan: { x: 0, y: 0 } }}
+                                      isPreview={true}
                                     />
                                   </div>
                                 </div>
