@@ -49,6 +49,7 @@ export function Header() {
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/products', label: 'Products' },
+    { href: '/templates', label: 'Templates' },
     { href: '/contests', label: 'Design Quests' },
   ];
 

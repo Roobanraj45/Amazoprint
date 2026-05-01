@@ -253,6 +253,7 @@ export function TextCanvasElement({
     else if (element.textTransform === 'capitalize') contentToWrap = contentToWrap.replace(/\b\w/g, char => char.toUpperCase());
 
     const charData = React.useMemo(() => {
+        if (typeof document === 'undefined') return [];
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         if (!context) return [];
@@ -396,6 +397,7 @@ export function TextCanvasElement({
   // -- Normal Flat Text --
   const lineData = React.useMemo(() => {
     if (!element.content) return [];
+    if (typeof document === 'undefined') return [];
     
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');

@@ -15,6 +15,11 @@ function getSoftDab(color: string, edgeColor?: string): HTMLCanvasElement {
     const key = edgeColor ? `${color}-${edgeColor}` : color;
     if (dabCache[key]) return dabCache[key];
 
+    if (typeof document === 'undefined') {
+        // Return a mock canvas-like object or handle it gracefully on server
+        return { width: 0, height: 0 } as any; 
+    }
+
     const size = 128; // Larger size for smoother gradients
     const canvas = document.createElement('canvas');
     canvas.width = size;
