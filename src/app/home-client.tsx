@@ -306,7 +306,62 @@ export function HomeClient({
           </div>
         </section>
 
-        {/* --- 3. JOIN & EARN --- */}
+        {/* --- 3. TEMPLATE EXPLORATION --- */}
+        <section className="py-24 relative overflow-hidden">
+          <div className="container px-4 mx-auto">
+            <TiltCard>
+              <div className="relative overflow-hidden rounded-[3rem] bg-zinc-950 text-white p-12 md:p-20 border border-white/5 shadow-2xl">
+                {/* Background effects */}
+                <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/20 to-transparent pointer-events-none" />
+                <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-violet-600/10 blur-[120px] rounded-full pointer-events-none" />
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+                  <div className="space-y-8">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-primary font-black uppercase tracking-widest text-[10px]">
+                      <LayoutGrid size={14} /> Design Ready
+                    </div>
+                    <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase font-headline leading-[1.1]">
+                      Don't Start from <br /><span className="text-primary">Scratch.</span>
+                    </h2>
+                    <p className="text-lg text-zinc-400 font-medium leading-relaxed max-w-md">
+                      Browse our library of premium, print-verified templates crafted by elite designers. Just swap your details and you're production-ready.
+                    </p>
+                    <div className="pt-4">
+                      <Button size="lg" asChild className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 group">
+                        <Link href="/templates" className="flex items-center justify-center gap-2">
+                          Explore Library <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="relative hidden lg:block">
+                    {/* Mock template stack effect */}
+                    <div className="relative w-full aspect-square max-w-md mx-auto">
+                      <div className="absolute inset-0 bg-white/5 border border-white/10 rounded-3xl rotate-6 translate-x-4 translate-y-4" />
+                      <div className="absolute inset-0 bg-white/5 border border-white/10 rounded-3xl -rotate-3 -translate-x-4 translate-y-2" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/20 rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden">
+                        <Image 
+                          src="/uploads/hero.png" 
+                          alt="Template Preview" 
+                          fill 
+                          className="object-cover opacity-60 mix-blend-overlay"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-20 h-20 rounded-full bg-primary/20 backdrop-blur-xl border border-primary/30 flex items-center justify-center text-primary animate-pulse">
+                            <Sparkles size={40} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TiltCard>
+          </div>
+        </section>
+
+        {/* --- 4. JOIN & EARN --- */}
         <section className="py-24 bg-zinc-950 text-white overflow-hidden relative">
           <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/8 blur-[180px] rounded-full opacity-50 pointer-events-none" />
           <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-violet-500/5 blur-[120px] rounded-full pointer-events-none" />

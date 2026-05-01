@@ -83,8 +83,8 @@ export async function updateDesign(data: z.infer<typeof updateDesignSchema>) {
         isAuthorized = true;
     }
     
-    // Case 2: User is an admin.
-    const adminRoles = ['admin', 'super_admin', 'company_admin', 'designer'];
+    // Case 2: User is an admin or authorized staff.
+    const adminRoles = ['admin', 'super_admin', 'company_admin', 'designer', 'printer', 'accounts'];
     if (!isAuthorized && session.role && adminRoles.includes(session.role)) {
         isAuthorized = true;
     }
@@ -161,9 +161,33 @@ export async function getTemplatesForProduct(productSlug: string) {
     });
 }
 
+export async function getAllTemplates() {
+    try {
+        console.log('Fetching all designs for templates...');
+        const allDesigns = await db.query.designs.findMany({
+            orderBy: [desc(designs.createdAt)]
+        });
+        console.log('Fetched designs:', allDesigns.length);
+        return allDesigns;
+    } catch (error) {
+        console.error('Error in getAllTemplates:', error);
+        return [];
+    }
+}
+
 export async function getDesign(id: number) {
     return await db.query.designs.findFirst({
-        where: eq(designs.id, id)
+        where: eq(designs.id, id),
+        with: {
+            user: {
+                columns: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    profileImage: true,
+                }
+            }
+        }
     });
 }
 

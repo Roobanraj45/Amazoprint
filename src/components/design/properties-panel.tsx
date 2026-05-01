@@ -65,6 +65,7 @@ type PropertiesPanelProps = {
   isAdmin?: boolean;
   onMoveLayer: (direction: 'front' | 'back' | 'forward' | 'backward') => void;
   onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
+  design?: any;
 };
 
 const PropSlider = ({ label, value, display, min, max, step, onChange }: any) => (
@@ -111,6 +112,7 @@ export function PropertiesPanel({
   element, onUpdate, product, onProductUpdate, quantity, onQuantityChange,
   background, onBackgroundChange, canvasSettings, croppingElementId,
   setCroppingElementId, maskingElementId, setMaskingElementId, isAdmin, onMoveLayer, onOpenColorPicker,
+  design,
 }: PropertiesPanelProps) {
 
   // =================== NO ELEMENT → CANVAS SETTINGS ===================
@@ -287,6 +289,28 @@ export function PropertiesPanel({
                 </div>
               </div>
             </div>
+
+            {design?.user && (
+              <>
+                <div className="h-px bg-border/40 my-4" />
+                <div className="space-y-3">
+                  <p className="text-[11px] font-bold text-muted-foreground">User Information</p>
+                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
+                    {design.user.profileImage ? (
+                      <img src={design.user.profileImage} alt={design.user.name} className="h-10 w-10 rounded-xl object-cover border border-white shadow-sm" />
+                    ) : (
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20">
+                        {design.user.name?.charAt(0) || 'U'}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800 truncate leading-tight">{design.user.name || 'Anonymous User'}</p>
+                      <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">{design.user.email}</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </TabsContent>
 
           {/* BACKGROUND TAB */}

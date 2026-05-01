@@ -61,6 +61,7 @@ type EditorSidebarLeftProps = {
     canvasWidth?: number;
     canvasHeight?: number;
     onAddAIElements?: (elements: any[]) => void;
+    currentElements?: any[];
 };
 
 export function EditorSidebarLeft({
@@ -84,6 +85,7 @@ export function EditorSidebarLeft({
     canvasWidth,
     canvasHeight,
     onAddAIElements,
+    currentElements,
 }: EditorSidebarLeftProps) {
     const [activePanel, setActivePanel] = React.useState('upload');
     const [highlightedTab, setHighlightedTab] = React.useState<string | null>(null);
@@ -225,6 +227,7 @@ export function EditorSidebarLeft({
                                             canvasWidth={canvasWidth}
                                             canvasHeight={canvasHeight}
                                             onAddElements={onAddAIElements}
+                                            currentElements={currentElements}
                                         />
                                     </TabsContent>
                                     <TabsContent value="qrcode" className="flex-1 m-0 focus-visible:outline-none overflow-auto h-full">

@@ -102,6 +102,7 @@ type DesignEditorProps = {
   availableFoils?: FoilType[];
   spotUvAllowed?: boolean;
   verificationId?: string | null;
+  initialDesign?: any;
 };
 
 function DesignEditorInternal({
@@ -113,6 +114,7 @@ function DesignEditorInternal({
   initialDesignId,
   initialDesignName,
   isAdmin,
+  initialDesign,
   allFoils = [],
   availableFoils = [],
   spotUvAllowed = false,
@@ -126,6 +128,7 @@ function DesignEditorInternal({
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
   const searchParams = useSearchParams();
@@ -1248,6 +1251,7 @@ function DesignEditorInternal({
   const onBackgroundChange = (newBackground: Background) => updatePage(currentPage, { background: newBackground });
 
   const handleSave = async () => {
+    setIsSaving(true);
     const saveData = {
       productSlug: product.id,
       elements: pages.map(p => p.elements),
@@ -1258,18 +1262,14 @@ function DesignEditorInternal({
       height: Math.round(product.height * PX_TO_MM),
     };
 
-    if (currentDesignId && currentDesignName) {
-      try {
+    try {
+      if (currentDesignId && currentDesignName) {
         await updateDesign({ id: currentDesignId, name: currentDesignName, verificationId: verificationId || null, ...saveData });
         toast({ title: 'Design Updated!' });
         setIsDirty(false);
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Error Updating Design' });
-      }
-    } else {
-      const designName = prompt('Enter a name for your design:');
-      if (designName) {
-        try {
+      } else {
+        const designName = prompt('Enter a name for your design:');
+        if (designName) {
           const savedDesign = await saveDesign({ name: designName, ...saveData });
           setCurrentDesignId(savedDesign.id);
           setCurrentDesignName(savedDesign.name);
@@ -1279,10 +1279,19 @@ function DesignEditorInternal({
           if (verificationId) {
             await linkDesignToVerification(Number(verificationId), savedDesign.id);
           }
-        } catch (error) {
-          toast({ variant: 'destructive', title: 'Error Saving Design' });
+        } else {
+          toast({ variant: 'destructive', title: 'Save Canceled', description: 'A design name is required to save for the first time.' });
         }
       }
+    } catch (error) {
+      console.error("Save Error:", error);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Error Saving Design', 
+        description: error instanceof Error ? error.message : 'Unknown error occurred' 
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1698,6 +1707,7 @@ function DesignEditorInternal({
           isAdmin={isAdmin}
           isDownloadingPdf={isDownloadingPdf}
           isOrdering={isOrdering}
+          isSaving={isSaving}
           isSubmitting={isSubmitting}
           confirmNavigation={confirmNavigation}
           onRotateCanvas={handleRotateCanvas}
@@ -1719,7 +1729,18 @@ function DesignEditorInternal({
             onAddText={addTextElement}
             onAddGroupedElements={handleAddGroupedElements}
             onAddQrCode={addQrCodeElement}
-            onAddAIElements={(els) => updatePage(currentPage, { elements: [...currentElements, ...els] })}
+            onAddAIElements={(els) => {
+              const mergedElements = [...currentElements];
+              els.forEach(newEl => {
+                const index = mergedElements.findIndex(el => el.id === newEl.id);
+                if (index !== -1) {
+                  mergedElements[index] = newEl;
+                } else {
+                  mergedElements.push(newEl);
+                }
+              });
+              updatePage(currentPage, { elements: mergedElements });
+            }}
             brushOptions={brushOptions}
             setBrushOptions={setBrushOptions}
             onClearBrush={handleClearBrushStrokes}
@@ -1728,6 +1749,7 @@ function DesignEditorInternal({
             product={product}
             canvasWidth={product.width}
             canvasHeight={product.height}
+            currentElements={currentElements}
           />
           <SidebarRail side="left" />
 
@@ -1797,6 +1819,7 @@ function DesignEditorInternal({
                       isAdmin={isAdmin}
                       onMoveLayer={moveLayer}
                       onOpenColorPicker={(label, color, onChange) => setColorPicker({ isOpen: true, label, color, onChange })}
+                      design={initialDesign}
                     />
                   </div>
                 </ScrollArea>

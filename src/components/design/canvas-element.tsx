@@ -1322,7 +1322,6 @@ const _CanvasElement = ({
     transform: `rotate(${element.rotation}deg) skewX(${element.skewX || 0}deg) skewY(${element.skewY || 0}deg)`,
     pointerEvents: isInteractive && !isEditingPath ? 'auto' : 'none',
     userSelect: 'none',
-    opacity: (renderMode === 'spotuv' || renderMode === 'foil') ? 1 : element.opacity,
     boxShadow: (renderMode === 'spotuv' || renderMode === 'foil') ? 'none' : (element.spotUv ? `0 0 8px 2px hsla(var(--accent), 0.8), ${existingShadow}` : existingShadow),
     backgroundColor: (renderMode === 'spotuv' || renderMode === 'foil') ? 'transparent' : ((element.type === 'text' || element.type === 'group') ? element.backgroundColor : 'transparent'),
     borderWidth: element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 0 : element.borderWidth,
@@ -1438,6 +1437,7 @@ const _CanvasElement = ({
           width: element.width,
           height: element.height,
           pointerEvents: 'none', // Let wrapper handle the mouse events
+          opacity: (renderMode === 'spotuv' || renderMode === 'foil') ? 1 : element.opacity,
           transform: `scaleX(${element.flipHorizontal ? -1 : 1}) scaleY(${element.flipVertical ? -1 : 1})`,
           transformOrigin: 'center center'
       }}>

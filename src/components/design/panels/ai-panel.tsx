@@ -21,9 +21,10 @@ type AiPanelProps = {
     canvasWidth?: number;
     canvasHeight?: number;
     onAddElements?: (elements: any[]) => void;
+    currentElements?: any[];
 }
 
-export const AiPanel = ({ onImageProcessed, product, canvasWidth, canvasHeight, onAddElements }: AiPanelProps) => {
+export const AiPanel = ({ onImageProcessed, product, canvasWidth, canvasHeight, onAddElements, currentElements }: AiPanelProps) => {
     const [isRemoving, setIsRemoving] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -96,7 +97,8 @@ export const AiPanel = ({ onImageProcessed, product, canvasWidth, canvasHeight, 
                     prompt,
                     product,
                     width: canvasWidth,
-                    height: canvasHeight
+                    height: canvasHeight,
+                    currentElements: currentElements
                 })
             });
             

@@ -58,6 +58,7 @@ import { useRouter } from 'next/navigation';
 
 export function EditorHeader(props: any) {
     const router = useRouter();
+    const [isLayersOpen, setIsLayersOpen] = React.useState(false);
 
     const {
         product,
@@ -214,7 +215,7 @@ export function EditorHeader(props: any) {
                     <span className={labelClass}>Redo</span>
                 </Button>
 
-                <Popover>
+                <Popover open={isLayersOpen} onOpenChange={setIsLayersOpen}>
                     <PopoverTrigger asChild>
                         <Button variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                             <Layers className={iconClass} />
@@ -225,7 +226,10 @@ export function EditorHeader(props: any) {
                         <LayersPanel
                             elements={currentElements}
                             selectedElementIds={selectedElementIds}
-                            onSelectElement={handleSelectElement}
+                            onSelectElement={(id) => {
+                                handleSelectElement(id);
+                                setIsLayersOpen(false);
+                            }}
                             onToggleVisibility={handleToggleLayerVisibility}
                             onToggleLock={handleToggleLayerLock}
                             onDuplicate={handleDuplicateLayer}
@@ -371,9 +375,13 @@ export function EditorHeader(props: any) {
             <div className="flex items-center gap-2">
 
                 <div className="hidden lg:flex items-center gap-2">
-                    <Button variant="outline" className="h-12 w-14 flex flex-col items-center gap-1 group" onClick={handleSave}>
-                        <Save className={iconClass} />
-                        <span className={labelClass}>Save</span>
+                    <Button variant="outline" className="h-12 w-14 flex flex-col items-center gap-1 group" onClick={handleSave} disabled={props.isSaving}>
+                        {props.isSaving ? (
+                            <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                        ) : (
+                            <Save className={iconClass} />
+                        )}
+                        <span className={labelClass}>{props.isSaving ? 'Saving' : 'Save'}</span>
                     </Button>
 
                     <Button variant="outline" className="h-12 w-14 flex flex-col items-center gap-1 group" onClick={handlePreview}>

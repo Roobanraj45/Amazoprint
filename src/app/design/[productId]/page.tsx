@@ -95,8 +95,9 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
   const isAdmin = !!session?.role && adminRoles.includes(session.role);
   const isFreelancer = session?.role === 'freelancer';
 
+  let template = null;
   if (templateId) {
-    const template = await getDesign(Number(templateId));
+    template = await getDesign(Number(templateId));
     if (template) {
         initialElements = template.elements as DesignElement[] | DesignElement[][];
         initialBackground = template.background as Background | Background[];
@@ -144,6 +145,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
             spotUvAllowed={spotUvAllowedForProduct}
             verificationId={verificationId}
             initialUnit={unitType as any}
+            initialDesign={template}
         />
     </Suspense>
   );
