@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { Loader2, ArrowRight, ShieldCheck, Sparkles, Printer } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const loginSchema = z.object({
@@ -212,7 +212,14 @@ export default function LoginPage() {
                     Create new identity
                 </Link>
             </p>
-            <div className="pt-2">
+            <div className="pt-2 flex flex-wrap justify-center gap-4">
+                <Link 
+                    href="/printer-login" 
+                    className="inline-flex items-center gap-2 text-[11px] font-bold text-slate-400 hover:text-primary transition-colors group"
+                >
+                    <Printer size={12} className="group-hover:rotate-12 transition-transform" />
+                    Printer portal
+                </Link>
                 <Link 
                     href="/admin-login" 
                     className="inline-flex items-center gap-2 text-[11px] font-bold text-slate-400 hover:text-primary transition-colors group"

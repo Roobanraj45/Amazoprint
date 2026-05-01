@@ -75,3 +75,46 @@ export async function updatePrinterApproval(id: string, isApproved: boolean) {
         .where(eq(printPressUsers.id, id));
     revalidatePath('/admin/printers');
 }
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address.'),
+  password: z.string().min(1, 'Password is required.'),
+  keepLoggedIn: z.boolean().default(false).optional(),
+});
+
+export async function loginPrinter(data: z.infer<typeof loginSchema>) {
+    const validated = loginSchema.parse(data);
+
+    const user = await db.query.printPressUsers.findFirst({
+        where: eq(printPressUsers.email, validated.email),
+    });
+
+    if (!user) {
+        throw new Error('Invalid email or password.');
+    }
+
+    if (!user.isActive) {
+        throw new Error('This account has been deactivated.');
+    }
+
+    if (!user.isApproved) {
+        throw new Error('Your application is still pending review. We will notify you once approved.');
+    }
+
+    const passwordMatch = await bcrypt.compare(validated.password, user.passwordHash);
+
+    if (!passwordMatch) {
+        throw new Error('Invalid email or password.');
+    }
+
+    // Update last login
+    await db.update(printPressUsers)
+        .set({ lastLogin: new Date() })
+        .where(eq(printPressUsers.id, user.id));
+
+    // Create session
+    const { createSession } = await import('@/lib/auth');
+    await createSession(user.id, 'printer', user.fullName, !!validated.keepLoggedIn);
+
+    return { success: true, role: 'printer' };
+}

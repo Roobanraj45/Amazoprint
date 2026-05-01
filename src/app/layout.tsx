@@ -14,7 +14,12 @@ export const metadata: Metadata = {
     default: 'Amazoprint | Custom Printing & Design Services',
     template: '%s | Amazoprint',
   },
-  description: 'Your one-stop shop for high-quality custom printing and design services. Use our AI tools, start a design contest, or upload your own files.',
+  description: 'Premium custom printing and design services powered by AI. Design business cards, posters, packaging, and more with our professional online editor.',
+  keywords: ['custom printing', 'online design tool', 'print on demand', 'AI design', 'business cards', 'posters', 'flyers', 'packaging', 'Amazoprint', 'graphic design'],
+  authors: [{ name: 'Amazoprint Team' }],
+  creator: 'Amazoprint',
+  publisher: 'Amazoprint',
+  applicationName: 'Amazoprint',
   icons: {
     icon: '/uploads/amazoIcon.png',
     shortcut: '/uploads/amazoIcon.png',
@@ -22,7 +27,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Amazoprint | Custom Printing & Design Services',
-    description: 'Your one-stop shop for high-quality custom printing and design services.',
+    description: 'Create stunning custom designs with Amazoprint. AI-powered tools for professional print results.',
     url: siteUrl,
     siteName: 'Amazoprint',
     images: [
@@ -30,7 +35,7 @@ export const metadata: Metadata = {
         url: '/uploads/amazoIcon.png', 
         width: 512,
         height: 512,
-        alt: 'Amazoprint Icon',
+        alt: 'Amazoprint - Custom Printing & Design',
       },
     ],
     locale: 'en_US',
@@ -39,7 +44,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Amazoprint | Custom Printing & Design Services',
-    description: 'Your one-stop shop for high-quality custom printing and design services.',
+    description: 'The easiest way to design and print high-quality custom products.',
     images: [`${siteUrl}/uploads/amazoIcon.png`],
   },
   robots: {
@@ -53,7 +58,12 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  alternates: {
+    canonical: siteUrl,
+  },
 };
+
+import { StructuredData } from '@/components/layout/structured-data';
 
 export default function RootLayout({
   children,
@@ -63,6 +73,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("antialiased", montserrat.variable)}>
       <head>
+        <StructuredData />
         <link rel="icon" href="/uploads/amazoIcon.png" sizes="any" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

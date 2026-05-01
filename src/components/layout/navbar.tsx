@@ -27,6 +27,7 @@ export function Navbar() {
   const [isOpen, setIsOpen] = React.useState(false);
   const [session, setSession] = React.useState<Session | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [scrolled, setScrolled] = React.useState(false);
   const pathname = usePathname();
 
   React.useEffect(() => {
@@ -34,6 +35,10 @@ export function Navbar() {
       setSession(s);
       setLoading(false);
     });
+
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const getDashboardUrl = (role?: string) => {
@@ -59,18 +64,41 @@ export function Navbar() {
     { href: '/about', label: 'About' },
   ];
 
+  const isHome = pathname === '/';
+
   return (
-    <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-2xl border-b border-border/50 shadow-sm transition-all duration-300">
-      <div className="container mx-auto px-4 lg:px-8 h-24 flex items-center justify-between">
-        {/* Logo Section - Scale adjusted to 80% of previous */}
+    <nav className={cn(
+        "fixed top-0 w-full z-50 transition-all duration-500",
+        scrolled 
+            ? "bg-background/80 backdrop-blur-2xl border-b border-border/50 shadow-sm py-0" 
+            : isHome 
+                ? "bg-transparent border-transparent py-4" 
+                : "bg-background border-b border-border/50 py-0"
+    )}>
+      <div className={cn(
+          "container mx-auto px-4 lg:px-8 transition-all duration-500 flex items-center justify-between",
+          scrolled ? "h-20" : "h-24"
+      )}>
+        {/* Logo Section */}
         <div className="flex-shrink-0">
           <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity" prefetch={false}>
-            <AmazoprintLogo className="scale-80 sm:scale-90 md:scale-100 origin-left" />
+            <AmazoprintLogo className={cn(
+                "transition-all duration-500 origin-left",
+                scrolled ? "scale-90" : "scale-100",
+                (!scrolled && isHome) && "brightness-0 invert"
+            )} />
           </Link>
         </div>
 
-        {/* Desktop Navigation - Centered and Clean */}
-        <div className="hidden lg:flex items-center gap-1 mx-auto bg-muted/30 p-1.5 rounded-full border border-border/40">
+        {/* Desktop Navigation */}
+        <div className={cn(
+            "hidden lg:flex items-center gap-1 mx-auto transition-all duration-500 p-1.5 rounded-full border",
+            scrolled 
+                ? "bg-muted/30 border-border/40" 
+                : isHome 
+                    ? "bg-white/10 border-white/20 backdrop-blur-md" 
+                    : "bg-muted/30 border-border/40"
+        )}>
           {navLinks.map((link) => (
             <Link 
               key={link.href} 
@@ -79,7 +107,9 @@ export function Navbar() {
                 "px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-200",
                 pathname === link.href 
                   ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  : scrolled || !isHome
+                    ? "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
               )}
             >
               {link.label}
@@ -87,17 +117,22 @@ export function Navbar() {
           ))}
         </div>
 
-        {/* Action Buttons - Grouped for clarity */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-4">
           <div className="hidden sm:flex items-center gap-3">
             {loading ? (
               <div className="flex items-center gap-2">
-                <Skeleton className="h-12 w-24 rounded-full" />
-                <Skeleton className="h-12 w-32 rounded-full" />
+                <Skeleton className="h-10 w-24 rounded-full opacity-20" />
+                <Skeleton className="h-10 w-32 rounded-full opacity-20" />
               </div>
             ) : session ? (
               <>
-                <Button asChild variant="outline" className="rounded-full font-bold h-12 px-6 border-2 hover:bg-primary/5">
+                <Button asChild variant="outline" className={cn(
+                    "rounded-full font-bold h-11 px-6 border-2 transition-all",
+                    scrolled || !isHome
+                        ? "hover:bg-primary/5"
+                        : "bg-white/5 border-white/10 text-white hover:bg-white/10"
+                )}>
                   <Link href={dashboardUrl}>
                     <LayoutGrid className="w-4 h-4 mr-2" />
                     Workspace
@@ -107,10 +142,15 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Button asChild variant="ghost" className="rounded-full font-bold px-6 h-12 text-muted-foreground hover:text-foreground">
+                <Button asChild variant="ghost" className={cn(
+                    "rounded-full font-bold px-6 h-11 transition-all",
+                    scrolled || !isHome
+                        ? "text-muted-foreground hover:text-foreground"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
+                )}>
                   <Link href="/login">Login</Link>
                 </Button>
-                <Button asChild className="rounded-full px-8 h-12 font-black text-md shadow-xl shadow-primary/30 hover:scale-105 transition-transform active:scale-95 bg-primary hover:bg-primary/90">
+                <Button asChild className="rounded-full px-8 h-11 font-black text-sm shadow-xl shadow-primary/30 hover:scale-105 transition-transform active:scale-95 bg-primary hover:bg-primary/90">
                   <Link href="/products">Get Started</Link>
                 </Button>
               </>
@@ -123,11 +163,16 @@ export function Navbar() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="lg:hidden rounded-2xl h-12 w-12 hover:bg-primary/5 border border-transparent active:border-primary/20" 
+              className={cn(
+                  "lg:hidden rounded-2xl h-11 w-11 transition-all border border-transparent",
+                  scrolled || !isHome
+                    ? "hover:bg-primary/5 active:border-primary/20"
+                    : "text-white hover:bg-white/10 border-white/10"
+              )}
               onClick={() => setIsOpen(!isOpen)}
               aria-label="Toggle Menu"
             >
-              {isOpen ? <X className="w-6 h-6 text-primary" /> : <Menu className="w-6 h-6" />}
+              {isOpen ? <X className="w-6 h-6 text-primary" /> : <Menu className={cn("w-6 h-6", !scrolled && isHome && "text-white")} />}
             </Button>
           </div>
         </div>

@@ -93,6 +93,7 @@ const subProductSchema = z.object({
   spotUvAllowed: z.boolean().default(false),
   allowedFoils: z.array(z.coerce.number()).optional(),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
+  backSideCost: z.coerce.number().optional().default(0),
 });
 
 type Product = Awaited<ReturnType<typeof getProducts>>[0];
@@ -275,90 +276,96 @@ function ProductForm({
   }, [product, reset]);
 
   return (
-    <DialogContent className="sm:max-w-2xl">
-      <DialogHeader>
+    <DialogContent className="sm:max-w-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
+      <DialogHeader className="p-6 pb-4 border-b">
         <DialogTitle>{product ? 'Edit' : 'Add'} Product</DialogTitle>
         <DialogDescription>
           {product ? 'Edit the details of the product.' : 'Add a new product to your catalog.'}
         </DialogDescription>
       </DialogHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-            <div className="space-y-4">
-                <div>
-                    <Label htmlFor="name">Name</Label>
-                    <Input id="name" {...register('name')} />
-                    {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
-                </div>
-                 <div>
-                    <Label htmlFor="slug">Slug</Label>
-                    <Input id="slug" {...register('slug')} />
-                    {errors.slug && <p className="text-destructive text-sm">{errors.slug.message}</p>}
-                </div>
-                <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Input id="category" {...register('category')} />
-                </div>
-                <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea id="description" {...register('description')} />
-                </div>
-            </div>
-            <div className="space-y-4">
-                 <div className="space-y-2">
-                  <Label>Image</Label>
-                  <div className="flex items-center gap-4">
-                    {(imageUrl && imageUrl.trim()) ? (
-                      <Image src={resolveImagePath(imageUrl)} alt="Current image" width={80} height={80} className="rounded-md object-cover aspect-square bg-muted" />
-                    ) : (
-                      <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center">
-                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 space-y-2">
-                        <Input 
-                            type="text"
-                            placeholder="Image URL"
-                           {...register('imageUrl')}
-                        />
-                        <Dialog open={isImageBrowserOpen} onOpenChange={setImageBrowserOpen}>
-                            <DialogTrigger asChild>
-                                <Button type="button" variant="outline">
-                                    <Library className="mr-2 h-4 w-4" />
-                                    Browse Library
-                                </Button>
-                            </DialogTrigger>
-                            <ImageBrowserDialog 
-                                folder={currentFolder} 
-                                setFolder={setCurrentFolder} 
-                                onSelect={(url) => {
-                                    setValue('imageUrl', url, { shouldDirty: true, shouldValidate: true });
-                                    setImageBrowserOpen(false);
-                                }}
-                            />
-                        </Dialog>
+      
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="name">Name</Label>
+                        <Input id="name" {...register('name')} />
+                        {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
                     </div>
-                  </div>
-                   {errors.imageUrl && <p className="text-destructive text-sm">{errors.imageUrl.message}</p>}
+                     <div>
+                        <Label htmlFor="slug">Slug</Label>
+                        <Input id="slug" {...register('slug')} />
+                        {errors.slug && <p className="text-destructive text-sm">{errors.slug.message}</p>}
+                    </div>
+                    <div>
+                        <Label htmlFor="category">Category</Label>
+                        <Input id="category" {...register('category')} />
+                    </div>
+                    <div>
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea id="description" {...register('description')} className="min-h-[100px]" />
+                    </div>
                 </div>
-                
-                <div className="flex items-center space-x-2 pt-4">
-                     <Controller
-                        name="isActive"
-                        control={control}
-                        render={({ field }) => (
-                            <Switch
-                                id="isActive"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                            />
+                <div className="space-y-4">
+                     <div className="space-y-2">
+                      <Label>Image</Label>
+                      <div className="flex items-center gap-4">
+                        {(imageUrl && imageUrl.trim()) ? (
+                          <Image src={resolveImagePath(imageUrl)} alt="Current image" width={80} height={80} className="rounded-md object-cover aspect-square bg-muted" />
+                        ) : (
+                          <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center">
+                            <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                          </div>
                         )}
-                    />
-                    <Label htmlFor="isActive">Active</Label>
+                        <div className="flex-1 space-y-2">
+                            <Input 
+                                type="text"
+                                placeholder="Image URL"
+                               {...register('imageUrl')}
+                            />
+                            <Dialog open={isImageBrowserOpen} onOpenChange={setImageBrowserOpen}>
+                                <DialogTrigger asChild>
+                                    <Button type="button" variant="outline" className="w-full">
+                                        <Library className="mr-2 h-4 w-4" />
+                                        Browse Library
+                                    </Button>
+                                </DialogTrigger>
+                                <ImageBrowserDialog 
+                                    folder={currentFolder} 
+                                    setFolder={setCurrentFolder} 
+                                    onSelect={(url) => {
+                                        setValue('imageUrl', url, { shouldDirty: true, shouldValidate: true });
+                                        setImageBrowserOpen(false);
+                                    }}
+                                />
+                            </Dialog>
+                        </div>
+                      </div>
+                       {errors.imageUrl && <p className="text-destructive text-sm">{errors.imageUrl.message}</p>}
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 pt-4">
+                         <Controller
+                            name="isActive"
+                            control={control}
+                            render={({ field }) => (
+                                <Switch
+                                    id="isActive"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            )}
+                        />
+                        <Label htmlFor="isActive">Active</Label>
+                    </div>
                 </div>
             </div>
+            {/* Added spacer to ensure last field isn't cut off */}
+            <div className="h-8" />
         </div>
-        <DialogFooter>
+        
+        <DialogFooter className="p-6 pt-4 border-t bg-muted/20">
           <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={isSubmitting}>
              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -522,7 +529,7 @@ function SubProductForm({
     setValue,
   } = useForm<z.infer<typeof subProductSchema>>({
     resolver: zodResolver(subProductSchema),
-    defaultValues: { isActive: true, imageUrl: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [], unitType: 'mm' },
+    defaultValues: { isActive: true, imageUrl: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [], unitType: 'mm', backSideCost: 0 },
   });
   
   const imageUrl = watch('imageUrl');
@@ -538,6 +545,7 @@ function SubProductForm({
           maxPages: subProduct.maxPages ?? 1,
           allowedFoils: subProduct.allowedFoils || [],
           unitType: subProduct.unitType as any || 'mm',
+          backSideCost: Number(subProduct.backSideCost || 0),
       });
     } else {
         reset({
@@ -552,165 +560,171 @@ function SubProductForm({
             maxPages: 1,
             allowedFoils: [],
             unitType: 'mm',
+            backSideCost: 0,
         });
     }
   }, [subProduct, reset]);
 
-
   return (
-     <DialogContent className="sm:max-w-2xl">
-      <DialogHeader>
+     <DialogContent className="sm:max-w-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
+      <DialogHeader className="p-6 pb-4 border-b">
         <DialogTitle>{subProduct ? 'Edit' : 'Add'} Variant / Size</DialogTitle>
       </DialogHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-            <div className="space-y-4">
-                <div>
-                    <Label htmlFor="sp-name">Variant Name</Label>
-                    <Input id="sp-name" {...register('name')} />
-                    {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+      
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
                     <div>
-                        <Label htmlFor="sp-sku">SKU</Label>
-                        <Input id="sp-sku" {...register('sku')} />
+                        <Label htmlFor="sp-name">Variant Name</Label>
+                        <Input id="sp-name" {...register('name')} />
+                        {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="sp-sku">SKU</Label>
+                            <Input id="sp-sku" {...register('sku')} />
+                        </div>
+                        <div>
+                            <Label htmlFor="sp-price">Base Price</Label>
+                            <Input id="sp-price" type="number" step="0.01" {...register('price')} />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                        <div>
+                            <Label htmlFor="sp-backSideCost">Back Side Cost (Add-on)</Label>
+                            <Input id="sp-backSideCost" type="number" step="0.01" placeholder="0.00" {...register('backSideCost')} />
+                            <p className="text-[10px] text-muted-foreground font-medium mt-1 uppercase tracking-widest">Extra cost applied per unit if double-sided is selected.</p>
+                        </div>
                     </div>
                     <div>
-                        <Label htmlFor="sp-price">Base Price</Label>
-                        <Input id="sp-price" type="number" step="0.01" {...register('price')} />
+                        <Label htmlFor="sp-unitType">Unit Type</Label>
+                        <Controller
+                            name="unitType"
+                            control={control}
+                            render={({ field }) => (
+                                <Select value={field.value} onValueChange={field.onChange}>
+                                    <SelectTrigger id="sp-unitType">
+                                        <SelectValue placeholder="Select Unit" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="mm">mm</SelectItem>
+                                        <SelectItem value="inch">inch</SelectItem>
+                                        <SelectItem value="ft">ft</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
                     </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="sp-width">Width</Label>
+                            <Input id="sp-width" type="number" step="0.1" {...register('width')} />
+                            {errors.width && <p className="text-destructive text-sm">{errors.width.message}</p>}
+                        </div>
+                        <div>
+                            <Label htmlFor="sp-height">Height</Label>
+                            <Input id="sp-height" type="number" step="0.1" {...register('height')} />
+                            {errors.height && <p className="text-destructive text-sm">{errors.height.message}</p>}
+                        </div>
+                    </div>
                     <div>
-                        <Label htmlFor="sp-backSideCost">Back Side Cost (Add-on)</Label>
-                        <Input id="sp-backSideCost" type="number" step="0.01" placeholder="0.00" {...register('backSideCost')} />
-                        <p className="text-[10px] text-muted-foreground font-medium mt-1 uppercase tracking-widest">Extra cost applied per unit if double-sided is selected.</p>
+                        <Label htmlFor="sp-max-pages">Max Pages</Label>
+                        <Input id="sp-max-pages" type="number" placeholder="1" {...register('maxPages')} />
+                        {errors.maxPages && <p className="text-destructive text-sm">{errors.maxPages.message}</p>}
                     </div>
                 </div>
-                <div>
-                    <Label htmlFor="sp-unitType">Unit Type</Label>
-                    <Controller
-                        name="unitType"
-                        control={control}
-                        render={({ field }) => (
-                            <Select value={field.value} onValueChange={field.onChange}>
-                                <SelectTrigger id="sp-unitType">
-                                    <SelectValue placeholder="Select Unit" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="mm">mm</SelectItem>
-                                    <SelectItem value="inch">inch</SelectItem>
-                                    <SelectItem value="ft">ft</SelectItem>
-                                </SelectContent>
-                            </Select>
+                <div className="space-y-4">
+                     <div className="space-y-2">
+                      <Label>Image</Label>
+                      <div className="flex items-center gap-4">
+                        {(imageUrl && imageUrl.trim()) ? (
+                          <Image src={resolveImagePath(imageUrl)} alt="Current image" width={80} height={80} className="rounded-md object-cover aspect-square bg-muted" />
+                        ) : (
+                          <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center">
+                            <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                          </div>
                         )}
-                    />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <Label htmlFor="sp-width">Width</Label>
-                        <Input id="sp-width" type="number" step="0.1" {...register('width')} />
-                        {errors.width && <p className="text-destructive text-sm">{errors.width.message}</p>}
-                    </div>
-                    <div>
-                        <Label htmlFor="sp-height">Height</Label>
-                        <Input id="sp-height" type="number" step="0.1" {...register('height')} />
-                        {errors.height && <p className="text-destructive text-sm">{errors.height.message}</p>}
-                    </div>
-                </div>
-                <div>
-                    <Label htmlFor="sp-max-pages">Max Pages</Label>
-                    <Input id="sp-max-pages" type="number" placeholder="1" {...register('maxPages')} />
-                    {errors.maxPages && <p className="text-destructive text-sm">{errors.maxPages.message}</p>}
-                </div>
-            </div>
-            <div className="space-y-4">
-                 <div className="space-y-2">
-                  <Label>Image</Label>
-                  <div className="flex items-center gap-4">
-                    {(imageUrl && imageUrl.trim()) ? (
-                      <Image src={resolveImagePath(imageUrl)} alt="Current image" width={80} height={80} className="rounded-md object-cover aspect-square bg-muted" />
-                    ) : (
-                      <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center">
-                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 space-y-2">
-                        <Input 
-                            type="text"
-                            placeholder="Image URL"
-                           {...register('imageUrl')}
-                        />
-                         <Dialog open={isImageBrowserOpen} onOpenChange={setImageBrowserOpen}>
-                            <DialogTrigger asChild>
-                                <Button type="button" variant="outline">
-                                    <Library className="mr-2 h-4 w-4" />
-                                    Browse Library
-                                </Button>
-                            </DialogTrigger>
-                            <ImageBrowserDialog 
-                                folder={currentFolder} 
-                                setFolder={setCurrentFolder} 
-                                onSelect={(url) => {
-                                    setValue('imageUrl', url, { shouldDirty: true, shouldValidate: true });
-                                    setImageBrowserOpen(false);
-                                }}
+                        <div className="flex-1 space-y-2">
+                            <Input 
+                                type="text"
+                                placeholder="Image URL"
+                               {...register('imageUrl')}
                             />
-                        </Dialog>
-                    </div>
-                  </div>
-                   {errors.imageUrl && <p className="text-destructive text-sm">{errors.imageUrl.message}</p>}
-                </div>
-                
-                <div className="pt-4 space-y-4">
-                    <div className="flex items-center space-x-2">
-                        <Controller
-                            name="isActive"
-                            control={control}
-                            render={({ field }) => (
-                                <Switch
-                                    id="sp-isActive"
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
+                             <Dialog open={isImageBrowserOpen} onOpenChange={setImageBrowserOpen}>
+                                <DialogTrigger asChild>
+                                    <Button type="button" variant="outline" className="w-full">
+                                        <Library className="mr-2 h-4 w-4" />
+                                        Browse Library
+                                    </Button>
+                                </DialogTrigger>
+                                <ImageBrowserDialog 
+                                    folder={currentFolder} 
+                                    setFolder={setCurrentFolder} 
+                                    onSelect={(url) => {
+                                        setValue('imageUrl', url, { shouldDirty: true, shouldValidate: true });
+                                        setImageBrowserOpen(false);
+                                    }}
                                 />
-                            )}
-                        />
-                        <Label htmlFor="sp-isActive">Active</Label>
+                            </Dialog>
+                        </div>
+                      </div>
+                       {errors.imageUrl && <p className="text-destructive text-sm">{errors.imageUrl.message}</p>}
                     </div>
-                     <div className="flex items-center space-x-2">
-                        <Controller
-                            name="spotUvAllowed"
-                            control={control}
-                            render={({ field }) => (
-                                <Switch
-                                    id="sp-spotUvAllowed"
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                            )}
-                        />
-                        <Label htmlFor="sp-spotUvAllowed">Spot UV Allowed</Label>
-                    </div>
-                    {spotUvAllowed && (
-                        <div className="space-y-2 pl-2">
-                            <Label>Allowed Foils</Label>
-                             <Controller
-                                name="allowedFoils"
+                    
+                    <div className="pt-4 space-y-4">
+                        <div className="flex items-center space-x-2">
+                            <Controller
+                                name="isActive"
                                 control={control}
                                 render={({ field }) => (
-                                    <FoilMultiSelect
-                                        foils={foilTypes}
-                                        selected={field.value || []}
-                                        onChange={field.onChange}
+                                    <Switch
+                                        id="sp-isActive"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
                                     />
                                 )}
                             />
+                            <Label htmlFor="sp-isActive">Active</Label>
                         </div>
-                    )}
+                         <div className="flex items-center space-x-2">
+                            <Controller
+                                name="spotUvAllowed"
+                                control={control}
+                                render={({ field }) => (
+                                    <Switch
+                                        id="sp-spotUvAllowed"
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                )}
+                            />
+                            <Label htmlFor="sp-spotUvAllowed">Spot UV Allowed</Label>
+                        </div>
+                        {spotUvAllowed && (
+                            <div className="space-y-2 pl-2">
+                                <Label>Allowed Foils</Label>
+                                 <Controller
+                                    name="allowedFoils"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <FoilMultiSelect
+                                            foils={foilTypes}
+                                            selected={field.value || []}
+                                            onChange={field.onChange}
+                                        />
+                                    )}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+             </div>
+             {/* Added spacer */}
+             <div className="h-8" />
         </div>
-        <DialogFooter>
+        
+        <DialogFooter className="p-6 pt-4 border-t bg-muted/20">
           <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={isSubmitting}>
              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -738,24 +752,28 @@ function FoilMultiSelect({
                     {selected.length > 0 ? `${selected.length} foils selected` : "Select foils..."}
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-[var(--radix-popover-trigger-width)]" align="start">
-                <DropdownMenuLabel>Available Foils</DropdownMenuLabel>
+            <DropdownMenuContent className="w-[var(--radix-popover-trigger-width)] max-h-[300px] flex flex-col p-0" align="start">
+                <DropdownMenuLabel className="p-2">Available Foils</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {foils.map(foil => (
-                    <DropdownMenuCheckboxItem
-                        key={foil.id}
-                        checked={selected.includes(foil.id)}
-                        onSelect={(e) => e.preventDefault()}
-                        onCheckedChange={(checked) => {
-                            const newSelected = checked
-                                ? [...selected, foil.id]
-                                : selected.filter(id => id !== foil.id);
-                            onChange(newSelected);
-                        }}
-                    >
-                        <span>{foil.name}</span>
-                    </DropdownMenuCheckboxItem>
-                ))}
+                <ScrollArea className="flex-1 overflow-y-auto">
+                    <div className="p-1">
+                        {foils.map(foil => (
+                            <DropdownMenuCheckboxItem
+                                key={foil.id}
+                                checked={selected.includes(foil.id)}
+                                onSelect={(e) => e.preventDefault()}
+                                onCheckedChange={(checked) => {
+                                    const newSelected = checked
+                                        ? [...selected, foil.id]
+                                        : selected.filter(id => id !== foil.id);
+                                    onChange(newSelected);
+                                }}
+                            >
+                                <span>{foil.name}</span>
+                            </DropdownMenuCheckboxItem>
+                        ))}
+                    </div>
+                </ScrollArea>
             </DropdownMenuContent>
         </DropdownMenu>
     );

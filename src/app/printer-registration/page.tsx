@@ -217,7 +217,7 @@ export default function PrinterRegistrationPage() {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="px-8 pb-12 md:px-12">
+                    <CardFooter className="px-8 pb-12 md:px-12 flex flex-col gap-6">
                         <Button type="submit" className="w-full h-16 text-lg font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-primary/30" disabled={isLoading}>
                             {isLoading ? (
                                 <Loader2 className="mr-2 h-6 w-6 animate-spin" />
@@ -228,6 +228,14 @@ export default function PrinterRegistrationPage() {
                                 </>
                             )}
                         </Button>
+                        <div className="text-center">
+                            <p className="text-sm text-muted-foreground font-medium">
+                                Already a registered partner?{' '}
+                                <Link href="/printer-login" className="text-primary font-bold hover:underline underline-offset-4">
+                                    Login to Check Status
+                                </Link>
+                            </p>
+                        </div>
                     </CardFooter>
                 </form>
             </Card>
