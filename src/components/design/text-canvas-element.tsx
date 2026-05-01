@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { DesignElement, Product } from '@/lib/types';
-import { cn } from "@/lib/utils";
+import { cn, measureTextDimensions } from "@/lib/utils";
 
 const hexToRgba = (hex: string): { r: number; g: number; b: number; a: number } => {
   if (!hex || !hex.startsWith('#')) return { r: 0, g: 0, b: 0, a: 0 };
@@ -504,7 +504,7 @@ export function TextCanvasElement({
               autoFocus
               style={{
                 width: '100%',
-                height: 'auto', // Let flex container control vertical space
+                height: 'auto',
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
@@ -524,7 +524,15 @@ export function TextCanvasElement({
                 display: 'block'
               }}
               value={element.content}
-              onChange={(e) => onUpdate?.(element.id, { content: e.target.value })}
+              onChange={(e) => {
+                const newContent = e.target.value;
+                const dims = measureTextDimensions(newContent, element, product.width - 40);
+                onUpdate?.(element.id, { 
+                    content: newContent,
+                    width: dims.width,
+                    height: dims.height
+                });
+              }}
               onBlur={() => setEditingId?.(null)}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') setEditingId?.(null);

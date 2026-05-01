@@ -78,7 +78,7 @@ export function Header() {
               key={link.href} 
               href={link.href} 
               className={cn(
-                "text-[13px] font-semibold transition-all duration-200 relative group",
+                "text-[11px] font-bold uppercase tracking-wider transition-all duration-200 relative group",
                 pathname === link.href 
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"
@@ -108,10 +108,10 @@ export function Header() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                    <Button asChild variant="ghost" className="rounded-full text-[12px] font-semibold px-6 h-10 hover:bg-slate-100 transition-all">
+                    <Button asChild variant="ghost" className="rounded-full text-[11px] font-bold uppercase tracking-wider px-6 h-10 hover:bg-slate-100 transition-all">
                         <Link href="/login">Log in</Link>
                     </Button>
-                    <Button asChild className="rounded-full text-[12px] font-semibold px-6 h-10 shadow-lg shadow-primary/20 transition-all active:scale-95">
+                    <Button asChild className="rounded-full text-[11px] font-bold uppercase tracking-wider px-6 h-10 shadow-lg shadow-primary/20 transition-all active:scale-95">
                         <Link href="/register">Join us</Link>
                     </Button>
                 </div>

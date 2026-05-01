@@ -61,7 +61,6 @@ export function Navbar() {
     { href: '/products', label: 'Products' },
     { href: '/templates', label: 'Templates' },
     { href: '/contests', label: 'Contests' },
-    { href: '/client/verifications', label: 'Design Verification' },
     { href: '/about', label: 'About' },
   ];
 
@@ -105,15 +104,19 @@ export function Navbar() {
               key={link.href} 
               href={link.href} 
               className={cn(
-                "px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-200",
+                "px-6 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 relative group",
                 pathname === link.href 
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                  ? "text-primary" 
                   : scrolled || !isHome
-                    ? "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
+                    ? "text-muted-foreground hover:text-foreground"
+                    : "text-white/70 hover:text-white"
               )}
             >
               {link.label}
+              <span className={cn(
+                "absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 bg-primary transition-all duration-300 rounded-full",
+                pathname === link.href ? "w-4" : "w-0 group-hover:w-4"
+              )} />
             </Link>
           ))}
         </div>
@@ -129,13 +132,13 @@ export function Navbar() {
             ) : session ? (
               <>
                 <Button asChild variant="outline" className={cn(
-                    "rounded-full font-bold h-11 px-6 border-2 transition-all",
+                    "rounded-full font-bold h-11 px-6 border-2 transition-all text-[11px] uppercase tracking-wider",
                     scrolled || !isHome
                         ? "hover:bg-primary/5"
                         : "bg-white/5 border-white/10 text-white hover:bg-white/10"
                 )}>
                   <Link href={dashboardUrl}>
-                    <LayoutGrid className="w-4 h-4 mr-2" />
+                    <LayoutGrid className="w-3.5 h-3.5 mr-2" />
                     Workspace
                   </Link>
                 </Button>
@@ -144,14 +147,14 @@ export function Navbar() {
             ) : (
               <>
                 <Button asChild variant="ghost" className={cn(
-                    "rounded-full font-bold px-6 h-11 transition-all",
+                    "rounded-full font-bold px-6 h-11 transition-all text-[11px] uppercase tracking-wider",
                     scrolled || !isHome
                         ? "text-muted-foreground hover:text-foreground"
                         : "text-white/70 hover:text-white hover:bg-white/10"
                 )}>
                   <Link href="/login">Login</Link>
                 </Button>
-                <Button asChild className="rounded-full px-8 h-11 font-black text-sm shadow-xl shadow-primary/30 hover:scale-105 transition-transform active:scale-95 bg-primary hover:bg-primary/90">
+                <Button asChild className="rounded-full px-8 h-11 font-black text-[11px] uppercase tracking-wider shadow-xl shadow-primary/30 hover:scale-105 transition-transform active:scale-95 bg-primary hover:bg-primary/90">
                   <Link href="/products">Get Started</Link>
                 </Button>
               </>
@@ -196,7 +199,7 @@ export function Navbar() {
                       key={link.href} 
                       href={link.href} 
                       className={cn(
-                        "flex items-center justify-between p-5 text-xl font-black rounded-3xl transition-all active:scale-[0.98]",
+                        "flex items-center justify-between p-5 text-sm font-black rounded-3xl transition-all active:scale-[0.98] uppercase tracking-widest",
                         pathname === link.href ? "bg-primary text-primary-foreground" : "bg-muted/40 hover:bg-muted"
                       )}
                       onClick={() => setIsOpen(false)}

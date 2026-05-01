@@ -17,7 +17,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     { href: "/client/designs", label: "My Designs", icon: <PenSquare /> },
     { href: "/client/contests", label: "My Contests", icon: <Trophy /> },
     { href: "/client/my-uploads", label: "My Uploads", icon: <UploadCloud /> },
-    { href: "/client/verifications", label: "Verification", icon: <ShieldCheck /> },
     { href: "/client/payments", label: "Payments", icon: <CreditCard /> },
   ];
 

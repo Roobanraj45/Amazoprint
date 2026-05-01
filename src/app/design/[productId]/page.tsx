@@ -84,11 +84,12 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
   const quantity = searchParams.quantity ? Number(searchParams.quantity) : 100;
   let totalPages = searchParams.pages ? Number(searchParams.pages) : 1;
   
-  const { templateId, verificationId } = searchParams;
+  const { templateId, verificationId, contestId } = searchParams;
   let initialElements: DesignElement[] | DesignElement[][] = [];
   let initialBackground: Background | Background[] | undefined = undefined;
   let initialDesignId: number | null = null;
   let initialDesignName: string | null = null;
+  let isAuthorizedToUpdate = false;
 
   const session = await getSession();
   const adminRoles = ['admin', 'super_admin', 'company_admin', 'designer'];
@@ -111,11 +112,11 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
         productForEditor.width = Math.round(template.width * unitToPx);
         productForEditor.height = Math.round(template.height * unitToPx);
         
-        const canUpdate = (session?.sub && template.userId === session.sub) || isAdmin || (isFreelancer && verificationId);
+        isAuthorizedToUpdate = (session?.sub && template.userId === session.sub) || isAdmin || (isFreelancer && (verificationId || contestId));
         
-        if (canUpdate) {
+        initialDesignName = template.name;
+        if (isAuthorizedToUpdate) {
             initialDesignId = template.id;
-            initialDesignName = template.name;
         }
     }
   }
@@ -144,6 +145,8 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
             availableFoils={availableFoils}
             spotUvAllowed={spotUvAllowedForProduct}
             verificationId={verificationId}
+            contestId={contestId}
+            currentUserId={session?.sub}
             initialUnit={unitType as any}
             initialDesign={template}
         />

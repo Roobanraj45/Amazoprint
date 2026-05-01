@@ -463,14 +463,21 @@ export function PropertiesPanel({
   }
 
   // =================== ELEMENT SELECTED ===================
+  const isImageFilledShape = element?.type === 'shape' && element?.fillType === 'image';
+  
   const elementTypeLabel: Record<string, string> = {
-    text: 'Text', image: 'Image', shape: 'Shape', path: 'Path', qrcode: 'QR Code', group: 'Group',
+    text: 'Text', 
+    image: 'Image', 
+    shape: isImageFilledShape ? 'Image' : 'Shape', 
+    path: 'Path', 
+    qrcode: 'QR Code', 
+    group: 'Group',
   };
 
   const typeIcon: Record<string, React.ReactNode> = {
     text: <Type size={16} />,
     image: <ImageIcon size={16} />,
-    shape: <Square size={16} />,
+    shape: isImageFilledShape ? <ImageIcon size={16} /> : <Square size={16} />,
     path: <Palette size={16} />,
     qrcode: <Grid3X3 size={16} />,
   };
@@ -516,9 +523,11 @@ export function PropertiesPanel({
               maskingElementId={maskingElementId} setMaskingElementId={setMaskingElementId}
               isAdmin={isAdmin} onOpenColorPicker={onOpenColorPicker} />
           )}
-          {element.type === 'shape' && <ShapePropertiesPanel element={element} onUpdate={onUpdate} 
-            maskingElementId={maskingElementId} setMaskingElementId={setMaskingElementId}
-            isAdmin={isAdmin} onOpenColorPicker={onOpenColorPicker} />}
+          {element.type === 'shape' && (
+            <ShapePropertiesPanel element={element} onUpdate={onUpdate} 
+              maskingElementId={maskingElementId} setMaskingElementId={setMaskingElementId}
+              isAdmin={isAdmin} onOpenColorPicker={onOpenColorPicker} />
+          )}
           {element.type === 'path' && <PathPropertiesPanel element={element} onUpdate={onUpdate} onOpenColorPicker={onOpenColorPicker} />}
           {element.type === 'qrcode' && <QrCodePropertiesPanel element={element} onUpdate={onUpdate} isAdmin={isAdmin} onOpenColorPicker={onOpenColorPicker} />}
           {element.type === 'group' && (

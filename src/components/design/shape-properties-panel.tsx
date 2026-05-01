@@ -9,16 +9,20 @@ import type { DesignElement, GradientStop } from "@/lib/types";
 import { CMYKColorPicker as ColorPicker } from "./cmyk-color-picker";
 import { GradientPicker } from "./gradient-picker";
 import { Input } from "../ui/input";
-import { X, ImageIcon, Library, PaintBucket, Edit3, Sparkles, Loader2 } from "lucide-react";
+import { X, ImageIcon, Library, PaintBucket, Edit3, Sparkles, Loader2, Maximize, FlipHorizontal, FlipVertical } from "lucide-react";
 import { removeBackground } from "@imgly/background-removal";
 import { Button } from "../ui/button";
 import { cn, resolveImagePath } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
-import { AssetLibrary } from "./asset-library";
+import { ImageLibrary } from "./image-library";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+
 type ShapePropertiesPanelProps = {
     element: DesignElement;
     onUpdate: (id: string, newProps: Partial<DesignElement>) => void;
+    croppingElementId: string | null;
+    setCroppingElementId: (id: string | null) => void;
     maskingElementId: string | null;
     setMaskingElementId: (id: string | null) => void;
     isAdmin?: boolean;
@@ -26,13 +30,13 @@ type ShapePropertiesPanelProps = {
 };
 
 const PropSlider = ({ label, value, display, min, max, step, onChange }: any) => (
-  <div className="space-y-2 py-1">
-    <div className="flex justify-between items-center">
-      <span className="text-xs font-semibold text-muted-foreground">{label}</span>
-      <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-foreground/80 min-w-[40px] text-center">{display}</span>
+    <div className="space-y-2 py-1">
+        <div className="flex justify-between items-center">
+            <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+            <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-foreground/80 min-w-[40px] text-center">{display}</span>
+        </div>
+        <Slider value={[value]} min={min} max={max} step={step} onValueChange={(v) => onChange(v[0])} />
     </div>
-    <Slider value={[value]} min={min} max={max} step={step} onValueChange={(v) => onChange(v[0])} />
-  </div>
 );
 
 export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setMaskingElementId, isAdmin, onOpenColorPicker }: ShapePropertiesPanelProps) {
@@ -70,7 +74,7 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
             if (!element.steppedGradientStops) {
                 const steps = element.gradientSteps || 2;
                 const stops = element.gradientStops || [];
-                const colors = ['#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#000000','#ffffff','#aaaaaa','#555555'];
+                const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#000000', '#ffffff', '#aaaaaa', '#555555'];
                 newProps.steppedGradientStops = Array.from({ length: steps }, (_, i) => ({
                     id: stops[i]?.id || crypto.randomUUID(), color: stops[i]?.color || colors[i % colors.length],
                     position: 0, weight: stops[i]?.weight || 1,
@@ -87,11 +91,11 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
         const newSteps = Math.max(2, Math.min(10, steps));
         const isStepped = element.fillType === 'stepped-gradient';
         const stops = [...((isStepped ? element.steppedGradientStops : element.gradientStops) || [])];
-        const colors = ['#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#000000','#ffffff','#aaaaaa','#555555'];
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#000000', '#ffffff', '#aaaaaa', '#555555'];
         const newStops = Array.from({ length: newSteps }, (_, i) => ({
             id: stops[i]?.id || crypto.randomUUID(), color: stops[i]?.color || colors[i % colors.length], position: 0, weight: stops[i]?.weight || 1,
         }));
-        
+
         if (isStepped) {
             handleUpdate({ steppedGradientSteps: newSteps, steppedGradientStops: newStops });
         } else {
@@ -103,9 +107,9 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
         const isStepped = element.fillType === 'stepped-gradient';
         const stopsField = isStepped ? 'steppedGradientStops' : 'gradientStops';
         const newStops = [...((element[stopsField] as GradientStop[]) || [])];
-        if (newStops[index]) { 
-            newStops[index] = { ...newStops[index], ...props }; 
-            handleUpdate({ [stopsField]: newStops }); 
+        if (newStops[index]) {
+            newStops[index] = { ...newStops[index], ...props };
+            handleUpdate({ [stopsField]: newStops });
         }
     };
 
@@ -128,11 +132,11 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
             { value: 'stepped', label: 'Stepped', preview: <div className="w-4 h-4 rounded-sm bg-gradient-to-r from-red-500 via-yellow-400 to-green-400" />, realValue: 'stepped-gradient' },
             { value: 'image', label: 'Image', preview: <ImageIcon size={14} /> },
             { value: 'none', label: 'None', preview: <X size={14} /> },
-          ]
+        ]
         : [
             { value: 'solid', label: 'Solid', preview: <div className="w-4 h-4 rounded-sm bg-gray-400 border border-gray-300" /> },
             { value: 'none', label: 'None', preview: <X size={14} /> },
-          ];
+        ];
 
     return (
         <div className="space-y-4">
@@ -169,8 +173,8 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                         {(currentFill === 'solid' || !element.fillType) && (
                             <div className="space-y-1">
                                 <Label className="text-[10px] font-bold text-slate-500 ml-1">Shape color</Label>
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     className="h-9 w-full px-3 justify-start rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all shadow-sm"
                                     onClick={() => onOpenColorPicker("Shape color", element.color || "#cccccc", (color) => handleUpdate({ color }))}
                                 >
@@ -181,20 +185,20 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                         )}
                         {currentFill === 'gradient' && (
                             <div className="space-y-4">
-                                <GradientPicker 
-                                    stops={gradientStops} 
+                                <GradientPicker
+                                    stops={gradientStops}
                                     direction={element.gradientDirection || 0}
                                     gradientType={element.gradientType || 'linear'}
                                     onDirectionChange={(d) => handleUpdate({ gradientDirection: d })}
                                     onTypeChange={(t) => handleUpdate({ gradientType: t })}
                                     onStopsChange={(s) => handleUpdate({ gradientStops: s })}
-                                    onOpenColorPicker={onOpenColorPicker} 
+                                    onOpenColorPicker={onOpenColorPicker}
                                 />
                                 <div className="pt-2 border-t border-border/40 space-y-2">
                                     <div className="space-y-1">
                                         <Label className="text-[10px] font-bold text-muted-foreground/70 ml-1">Overlay tint</Label>
-                                        <Button 
-                                            variant="outline" 
+                                        <Button
+                                            variant="outline"
                                             className="h-9 w-full px-3 justify-start rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all"
                                             onClick={() => onOpenColorPicker("Overlay tint", element.color || "#000000", (c) => handleUpdate({ color: c }))}
                                         >
@@ -209,12 +213,12 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                         {currentFill === 'stepped-gradient' && (
                             <div className="space-y-3 pt-1">
                                 <div className="grid grid-cols-[1fr_auto] gap-2 items-end">
-                                    <PropSlider 
-                                        label="Angle" 
-                                        value={element.steppedGradientDirection ?? element.gradientDirection ?? 0} 
-                                        display={`${element.steppedGradientDirection ?? element.gradientDirection ?? 0}°`} 
-                                        min={0} max={360} step={1} 
-                                        onChange={(v: number) => handleUpdate({ steppedGradientDirection: v })} 
+                                    <PropSlider
+                                        label="Angle"
+                                        value={element.steppedGradientDirection ?? element.gradientDirection ?? 0}
+                                        display={`${element.steppedGradientDirection ?? element.gradientDirection ?? 0}°`}
+                                        min={0} max={360} step={1}
+                                        onChange={(v: number) => handleUpdate({ steppedGradientDirection: v })}
                                     />
                                     <div className="space-y-1 w-14">
                                         <Label className="text-[10px] font-bold text-muted-foreground/60">Steps</Label>
@@ -227,8 +231,8 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                                         <div key={stop.id} className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200 shadow-sm transition-all hover:border-primary/20">
                                             <div className="flex-1 space-y-1">
                                                 <Label className="text-[9px] font-bold text-muted-foreground/50 uppercase ml-1 tracking-widest">Step {i + 1}</Label>
-                                                <Button 
-                                                    variant="outline" 
+                                                <Button
+                                                    variant="outline"
                                                     className="h-8 w-full px-2 justify-start rounded-lg border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all shadow-sm"
                                                     onClick={() => onOpenColorPicker(`Step ${i + 1} color`, stop.color, (c) => handleSteppedStopChange(i, { color: c }))}
                                                 >
@@ -251,64 +255,95 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                         )}
                         {currentFill === 'image' && (
                             <div className="space-y-4 pt-2">
-
-                                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm transition-all hover:border-primary/20">
-                                    <div className="w-12 h-12 bg-slate-50 rounded-lg shrink-0 flex items-center justify-center overflow-hidden border border-slate-200 shadow-inner group relative">
-                                        {element.fillImageSrc ? (
-                                            <Image src={resolveImagePath(element.fillImageSrc)} alt="" width={48} height={48} className="object-cover" />
-                                        ) : (
-                                            <ImageIcon size={18} className="text-slate-300" />
-                                        )}
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors cursor-pointer flex items-center justify-center" onClick={() => setIsAssetLibraryOpen(true)}>
-                                            <Library size={12} className="text-white opacity-0 group-hover:opacity-100" />
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm transition-all hover:border-primary/20">
+                                        <div className="w-12 h-12 bg-slate-50 rounded-lg shrink-0 flex items-center justify-center overflow-hidden border border-slate-200 shadow-inner group relative">
+                                            {element.fillImageSrc ? (
+                                                <Image src={resolveImagePath(element.fillImageSrc)} alt="" width={48} height={48} className="object-cover" />
+                                            ) : (
+                                                <ImageIcon size={18} className="text-slate-300" />
+                                            )}
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors cursor-pointer flex items-center justify-center" onClick={() => setIsAssetLibraryOpen(true)}>
+                                                <Library size={12} className="text-white opacity-0 group-hover:opacity-100" />
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex-1 space-y-2">
-                                        <div className="flex gap-2">
-                                            <Button variant="outline" size="sm" className="h-9 text-[11px] font-bold flex-1 rounded-xl border-slate-200 shadow-sm" onClick={() => setIsAssetLibraryOpen(true)}>
+                                        <div className="flex-1 space-y-2">
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="w-full h-9 text-[11px] font-bold rounded-xl border-slate-200 shadow-sm hover:bg-slate-50 transition-all" 
+                                                onClick={() => setIsAssetLibraryOpen(true)}
+                                            >
                                                 Change Image
                                             </Button>
-                                            <Button variant="default" size="sm" className="h-9 text-[11px] font-bold flex-1 rounded-xl shadow-md active:scale-95 transition-all" onClick={() => setMaskingElementId(element.id)}>
-                                                Visual Adjust
+                                            <Button 
+                                                variant="default" 
+                                                size="sm" 
+                                                className="w-full h-9 text-[11px] font-bold rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2" 
+                                                onClick={() => setMaskingElementId(element.id)}
+                                            >
+                                                <Maximize size={12} />
+                                                Adjust Position
                                             </Button>
                                         </div>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="w-full h-8 gap-2 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all"
-                                            onClick={handleRemoveBackground}
-                                            disabled={isRemovingBackground || !element.fillImageSrc}
-                                        >
-                                            {isRemovingBackground ? (
-                                                <>
-                                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                                    AI Processing...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Sparkles size={12} />
-                                                    AI Remove Background
-                                                </>
-                                            )}
-                                        </Button>
+                                    </div>
+
+                                    <div className="pt-2 border-t border-slate-200 mt-2 space-y-2">
+                                        <Label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider">Transform</Label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className={cn(
+                                                    "h-9 flex-1 gap-1 rounded-lg transition-all text-[11px] font-bold",
+                                                    element.fillImageFlipHorizontal && "bg-primary/10 text-primary border-primary/30"
+                                                )}
+                                                onClick={() => handleUpdate({ fillImageFlipHorizontal: !element.fillImageFlipHorizontal })}
+                                            >
+                                                <FlipHorizontal size={14} />
+                                                Horizontal
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className={cn(
+                                                    "h-9 flex-1 gap-1 rounded-lg transition-all text-[11px] font-bold",
+                                                    element.fillImageFlipVertical && "bg-primary/10 text-primary border-primary/30"
+                                                )}
+                                                onClick={() => handleUpdate({ fillImageFlipVertical: !element.fillImageFlipVertical })}
+                                            >
+                                                <FlipVertical size={14} />
+                                                Vertical
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
-                                
+
                                 <Dialog open={isAssetLibraryOpen} onOpenChange={setIsAssetLibraryOpen}>
                                     <DialogContent className="max-w-4xl h-[80vh]">
                                         <DialogHeader><DialogTitle>Image Library</DialogTitle><DialogDescription>Select an image to use as a fill texture.</DialogDescription></DialogHeader>
-                                        <AssetLibrary onImageSelect={(url) => { 
-                                            handleUpdate({ 
+                                        <ImageLibrary onImageSelect={(url) => {
+                                            handleUpdate({
                                                 fillType: 'image',
                                                 fillImageSrc: url,
                                                 fillImageScale: 1,
                                                 fillImageOffsetX: 0,
                                                 fillImageOffsetY: 0
-                                            }); 
-                                            setIsAssetLibraryOpen(false); 
+                                            });
+                                            setIsAssetLibraryOpen(false);
                                         }} isAdmin={isAdmin} />
                                     </DialogContent>
                                 </Dialog>
+
+                                <div className="pt-2 border-t border-slate-200 mt-2 space-y-3">
+                                    <Label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider">Image Adjustments</Label>
+                                    <div className="space-y-4">
+                                        <PropSlider label="Brightness" value={element.filterBrightness || 1} display={`${Math.round(((element.filterBrightness || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => handleUpdate({ filterBrightness: v })} />
+                                        <PropSlider label="Contrast" value={element.filterContrast || 1} display={`${Math.round(((element.filterContrast || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => handleUpdate({ filterContrast: v })} />
+                                        <PropSlider label="Saturation" value={element.filterSaturate || 1} display={`${Math.round(((element.filterSaturate || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => handleUpdate({ filterSaturate: v })} />
+                                        <PropSlider label="Blur" value={element.filterBlur || 0} display={`${element.filterBlur || 0}px`} min={0} max={20} step={1} onChange={(v: number) => handleUpdate({ filterBlur: v })} />
+                                    </div>
+                                </div>
                             </div>
                         )}
                         {currentFill === 'none' && (
@@ -332,8 +367,8 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                     <div className="rounded-xl bg-muted/20 border border-border/40 p-3 space-y-4">
                         <div className="space-y-1.5">
                             <Label className="text-[10px] font-bold text-muted-foreground/70 ml-1">Stroke color</Label>
-                            <Button 
-                                variant="outline" 
+                            <Button
+                                variant="outline"
                                 className="h-10 w-full px-3 justify-start rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all"
                                 onClick={() => onOpenColorPicker("Stroke color", element.borderColor || "#000000", (c) => handleUpdate({ borderColor: c }))}
                             >

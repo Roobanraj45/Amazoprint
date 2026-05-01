@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { designs, designVerifications } from '@/db/schema';
+import { designs, designVerifications, contestParticipants } from '@/db/schema';
 import { and, eq, desc } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -22,6 +22,7 @@ const designSchema = z.object({
 const updateDesignSchema = designSchema.extend({
   id: z.number(),
   verificationId: z.string().optional().nullable(),
+  contestId: z.string().optional().nullable(),
 });
 
 
@@ -47,10 +48,16 @@ export async function saveDesign(data: z.infer<typeof designSchema>) {
     }
 
     const validated = designSchema.parse(data);
+    
+    // If admin, use the system admin ID (template user ID)
+    const adminRoles = ['admin', 'super_admin', 'company_admin', 'designer'];
+    const saveUserId = (session.role && adminRoles.includes(session.role)) 
+        ? '00000000-0000-0000-0000-000000000000' 
+        : session.sub;
 
     const result = await db.insert(designs).values({
         ...validated,
-        userId: session.sub,
+        userId: saveUserId,
     }).returning();
 
     revalidatePath('/design/*');
@@ -99,6 +106,20 @@ export async function updateDesign(data: z.infer<typeof updateDesignSchema>) {
             )
         });
         if (verification) {
+            isAuthorized = true;
+        }
+    }
+
+    // Case 4: User is a freelancer working on a contest submission.
+    if (!isAuthorized && session.role === 'freelancer' && contestId) {
+        const participant = await db.query.contestParticipants.findFirst({
+            where: and(
+                eq(contestParticipants.contestId, Number(contestId)),
+                eq(contestParticipants.freelancerId, session.sub),
+                eq(contestParticipants.templateUploadId, id)
+            )
+        });
+        if (participant) {
             isAuthorized = true;
         }
     }

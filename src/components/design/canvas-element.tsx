@@ -7,6 +7,59 @@ import { Loader2 } from 'lucide-react';
 import { TextCanvasElement } from './text-canvas-element';
 import { generatePathD, resolveImagePath } from '@/lib/utils';
 import { renderBristleSegment, buildBrushTip, BrushEngineTip, BristleProfile } from '@/lib/brush-engine';
+import { MASK_SHAPES } from '@/lib/mask-shapes';
+
+const getShapePath = (shapeType: string): string | null => {
+    const maskShape = MASK_SHAPES.find(s => s.id === shapeType);
+    if (maskShape) return maskShape.path;
+
+    switch (shapeType) {
+        case 'circle':
+        case 'oval':
+            return "M 50, 50 m -50, 0 a 50,50 0 1,0 100,0 a 50,50 0 1,0 -100,0";
+        case 'triangle':
+            return "M 50,0 L 100,100 L 0,100 Z";
+        case 'star':
+            return "M 50,0 L 61,35 L 98,35 L 68,57 L 79,91 L 50,70 L 21,91 L 32,57 L 2,35 L 39,35 Z";
+        case 'hexagon':
+            return "M 87.5 66.6 V 33.3 A 8.3 8.3 0 0 0 83.3 26.1 L 54.1 9.4 A 8.3 8.3 0 0 0 45.8 9.4 L 16.6 26.1 A 8.3 8.3 0 0 0 12.5 33.3 V 66.6 A 8.3 8.3 0 0 0 16.6 73.8 L 45.8 90.5 A 8.3 8.3 0 0 0 54.1 90.5 L 83.3 73.8 A 8.3 8.3 0 0 0 87.5 66.6 Z";
+        case 'pentagon':
+            return "M 50 2 L 98 38 L 80 98 L 20 98 L 2 38 Z";
+        case 'octagon':
+            return "M 30 2 H 70 L 98 30 V 70 L 70 98 H 30 L 2 70 V 30 Z";
+        case 'heart':
+            return "M 50 90 C 50 90 2 60 2 35 A 23 23 0 0 1 48 35 A 23 23 0 0 1 98 35 C 98 60 50 90 50 90 Z";
+        case 'diamond':
+            return "M 50 2 L 98 50 L 50 98 L 2 50 Z";
+        case 'arrow-right':
+            return "M 2 40 H 70 V 15 L 98 50 L 70 85 V 60 H 2 Z";
+        case 'arrow-left':
+            return "M 98 40 H 30 V 15 L 2 50 L 30 85 V 60 H 98 Z";
+        case 'arrow-up':
+            return "M 40 98 V 30 H 15 L 50 2 L 85 30 H 60 V 98 Z";
+        case 'arrow-down':
+            return "M 40 2 V 70 H 15 L 50 98 L 85 70 H 60 V 2 Z";
+        case 'plus':
+            return "M 35 2 H 65 V 35 H 98 V 65 H 65 V 98 H 35 V 65 H 2 V 35 H 35 Z";
+        case 'x':
+            return "M 20 2 L 50 32 L 80 2 L 98 20 L 68 50 L 98 80 L 80 98 L 50 68 L 20 98 L 2 80 L 32 50 L 2 20 Z";
+        case 'cloud':
+            return "M 25 80 A 20 20 0 0 1 25 40 A 25 25 0 0 1 70 30 A 20 20 0 0 1 85 80 Z";
+        case 'shield':
+            return "M 50 2 C 50 2 98 10 98 45 C 98 80 50 98 50 98 C 50 98 2 80 2 45 C 2 10 50 2 50 2 Z";
+        case 'tag':
+            return "M 20 10 H 90 V 90 H 20 L 2 50 Z M 25 50 A 5 5 0 1 0 35 50 A 5 5 0 1 0 25 50 Z";
+        case 'bookmark':
+            return "M 10 2 H 90 V 98 L 50 75 L 10 98 Z";
+        case 'message-square':
+            return "M 2 10 H 98 V 80 H 30 L 10 98 V 80 H 2 Z";
+        case 'rounded-rect':
+        case 'rectangle':
+            return "M 0 0 H 100 V 100 H 0 Z";
+        default:
+            return null;
+    }
+};
 
 
 const createGradientString = (element: DesignElement, { reversed = false } = {}): string | null => {
@@ -168,6 +221,79 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
           transform={transformStr}
         />
       </pattern>
+    );
+  }
+
+  // Mask support for all shapes (used for independent mask adjustment)
+  if (element.type === 'shape') {
+    const shapePath = getShapePath(element.shapeType);
+    const mScale = element.maskScale ?? 1;
+    const mOffsetX = element.maskOffsetX ?? 0;
+    const mOffsetY = element.maskOffsetY ?? 0;
+    
+    const scaleFactor = mScale * (element.width / 100);
+    const transformStr = `translate(${element.width/2 + (mOffsetX * element.width/1000)}, ${element.height/2 + (mOffsetY * element.height/1000)}) scale(${scaleFactor}) translate(-50, -50)`;
+
+    defs.push(
+      <mask 
+          key={`mask-${element.id}`} 
+          id={`mask-${element.id}`}
+          maskUnits="userSpaceOnUse"
+          x="-5000" y="-5000" width="10000" height="10000"
+      >
+        <rect 
+          x="-5000" y="-5000" width="10000" height="10000" 
+          fill={element.maskInvert ? "white" : "black"} 
+        />
+        {element.shapeType === 'custom-svg' && element.src ? (
+          <image 
+              href={resolveImagePath(element.src)}
+              x="0" y="0" 
+              width={element.width} 
+              height={element.height}
+              preserveAspectRatio="xMidYMid meet"
+              transform={`translate(${(element.maskOffsetX || 0) * element.width/1000}, ${(element.maskOffsetY || 0) * element.height/1000}) scale(${element.maskScale ?? 1})`}
+              transform-origin="center"
+              style={{ filter: element.maskInvert ? 'brightness(0)' : 'brightness(0) invert(1)' }}
+          />
+        ) : (() => {
+          const lucideName = element.shapeType.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
+          const Icon = (lucide as any)[lucideName] || (lucide as any)[element.shapeType.charAt(0).toUpperCase() + element.shapeType.slice(1)];
+          
+          if (shapePath) {
+              return (
+                  <path 
+                      d={shapePath} 
+                      fill={element.maskInvert ? "black" : "white"} 
+                      transform={transformStr} 
+                      shapeRendering="geometricPrecision"
+                  />
+              );
+          }
+          
+          if (Icon) {
+              return (
+                  <g transform={transformStr}>
+                      <Icon 
+                          width="100" 
+                          height="100" 
+                          stroke={element.maskInvert ? "black" : "white"} 
+                          fill={element.maskInvert ? "black" : "white"}
+                          strokeWidth={0}
+                      />
+                  </g>
+              );
+          }
+          
+          return (
+              <path 
+                  d="M 0 0 H 100 V 100 H 0 Z" 
+                  fill={element.maskInvert ? "black" : "white"} 
+                  transform={transformStr} 
+              />
+          );
+        })()}
+      </mask>
     );
   }
 
@@ -610,41 +736,28 @@ export const NonInteractiveContent = memo(({
         );
       }
       case 'shape': {
+        const isColorPop = element.maskColorPop && !isSpotUv;
+        const imageSrc = element.fillImageSrc || element.src;
+
+        const colorPopLayer = isColorPop && imageSrc ? (
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url("${resolveImagePath(imageSrc)}")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                filter: 'grayscale(100%) brightness(0.6)',
+                opacity: 0.8,
+                zIndex: 0
+            }} />
+        ) : null;
+
         const hexToRgba = (hex: string, alpha: number) => {
           if (!hex || !hex.startsWith('#') || hex.length !== 7) return `rgba(0,0,0,${alpha})`;
           const r = parseInt(hex.slice(1, 3), 16);
           const g = parseInt(hex.slice(3, 5), 16);
           const b = parseInt(hex.slice(5, 7), 16);
           return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        };
-      
-        const getBackgroundForDiv = () => {
-          if (isSpotUv) return 'black';
-          if (element.fillType === 'none') return 'transparent';
-
-          if (element.fillType === 'image' && element.fillImageSrc) {
-            const imgLayer = `url("${element.fillImageSrc}") center/cover no-repeat`;
-            if (element.color && (element.tintOpacity ?? 0) > 0) {
-                const tintColor = hexToRgba(element.color, element.tintOpacity!);
-                const tintLayer = `linear-gradient(${tintColor}, ${tintColor})`;
-                return `${tintLayer}, ${imgLayer}`;
-            }
-            return imgLayer;
-          }
-
-          const gradientString = createGradientString(element);
-          if (gradientString) {
-            if (element.color && (element.tintOpacity ?? 0) > 0) {
-              const tintColor = hexToRgba(element.color, element.tintOpacity!);
-              const tintLayer = `linear-gradient(${tintColor}, ${tintColor})`;
-              return `${tintLayer}, ${gradientString}`;
-            }
-            return gradientString;
-          }
-          if (element.fillType === 'solid') {
-            return element.color;
-          }
-          return 'transparent'; // Default for 'none' or other cases
         };
       
         const getFillForSvg = () => {
@@ -662,263 +775,83 @@ export const NonInteractiveContent = memo(({
 
         const showTint = !isSpotUv && (element.fillType === 'gradient' || element.fillType === 'stepped-gradient' || element.fillType === 'image') && element.color && (element.tintOpacity ?? 0) > 0;
         
-        const divStrokeProps = {
-          borderWidth: element.borderWidth || 0,
-          borderColor: isSpotUv ? 'black' : element.borderColor,
-          borderStyle: element.borderStyle,
-        };
-        
         const svgStrokeProps = {
-          stroke: isSpotUv ? 'black' : element.borderColor,
-          strokeWidth: element.borderWidth,
+          stroke: isSpotUv ? 'black' : (element.strokeColor || element.borderColor || element.color),
+          strokeWidth: element.strokeWidth || element.borderWidth || 0,
           strokeDasharray: element.borderStyle === 'dashed' ? '4 2' : (element.borderStyle === 'dotted' ? '1 2' : 'none'),
-        }
+          strokeLinecap: 'round' as const,
+          strokeLinejoin: 'round' as const,
+          vectorEffect: 'non-scaling-stroke' as const
+        };
 
-        switch (element.shapeType) {
-          case 'circle':
-          case 'oval':
-            return (
-              <div style={{ width: '100%', height: '100%' }}>
-                <svg
-                  width="100%"
-                  height="100%"
-                  viewBox={`0 0 ${element.width} ${element.height}`}
-                  preserveAspectRatio="none"
-                  style={{ overflow: 'visible' }}
-                >
-                  {!isSpotUv && <SvgFillDefs element={element} />}
-                  <ellipse
-                    cx={element.width / 2}
-                    cy={element.height / 2}
-                    rx={element.width / 2}
-                    ry={element.height / 2}
-                    fill={getFillForSvg()}
-                    {...svgStrokeProps}
-                  />
-                  {showTint && (
-                    <ellipse
-                      cx={element.width / 2}
-                      cy={element.height / 2}
-                      rx={element.width / 2}
-                      ry={element.height / 2}
-                      fill={element.color}
-                      fillOpacity={element.tintOpacity}
-                    />
-                  )}
-                </svg>
-              </div>
-            );
-          case 'rounded-rect':
-          case 'rectangle':
-             return (
-              <div style={{ width: '100%', height: '100%' }}>
-                <svg
-                  width="100%"
-                  height="100%"
-                  viewBox={`0 0 ${element.width} ${element.height}`}
-                  preserveAspectRatio="none"
-                  style={{ overflow: 'visible' }}
-                >
-                  {!isSpotUv && <SvgFillDefs element={element} />}
-                  <rect
-                    x={0}
-                    y={0}
-                    width={element.width}
-                    height={element.height}
-                    rx={element.shapeType === 'rounded-rect' ? (element.borderRadius || 20) : (element.borderRadius || 0)}
-                    ry={element.shapeType === 'rounded-rect' ? (element.borderRadius || 20) : (element.borderRadius || 0)}
-                    fill={getFillForSvg()}
-                    {...svgStrokeProps}
-                  />
-                  {showTint && (
-                    <rect
-                      x={0}
-                      y={0}
-                      width={element.width}
-                      height={element.height}
-                      rx={element.shapeType === 'rounded-rect' ? (element.borderRadius || 20) : (element.borderRadius || 0)}
-                      ry={element.shapeType === 'rounded-rect' ? (element.borderRadius || 20) : (element.borderRadius || 0)}
-                      fill={element.color}
-                      fillOpacity={element.tintOpacity}
-                    />
-                  )}
-                </svg>
-              </div>
-            );
-          case 'line':
-             return (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: isSpotUv ? 'black' : (element.borderColor || element.color),
-                }}
-              />
-            );
-          case 'triangle':
-            return (
-              <div style={{ width: '100%', height: '100%' }}>
-                <svg
-                  width="100%"
-                  height="100%"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  style={{ overflow: 'visible' }}
-                >
-                  {!isSpotUv && <SvgFillDefs element={element} />}
-                  <polygon points="50,0 100,100 0,100" fill={getFillForSvg()} {...svgStrokeProps} />
-                  {showTint && (
-                     <polygon points="50,0 100,100 0,100" fill={element.color} fillOpacity={element.tintOpacity} />
-                  )}
-                </svg>
-              </div>
-            );
-          case 'star':
-            return (
-              <div style={{ width: '100%', height: '100%' }}>
-                <svg
-                  width="100%"
-                  height="100%"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  style={{ overflow: 'visible' }}
-                >
-                  {!isSpotUv && <SvgFillDefs element={element} />}
-                  <polygon
-                    points="50,0 61,35 98,35 68,57 79,91 50,70 21,91 32,57 2,35 39,35"
-                    fill={getFillForSvg()}
-                    {...svgStrokeProps}
-                  />
-                   {showTint && (
-                    <polygon
-                      points="50,0 61,35 98,35 68,57 79,91 50,70 21,91 32,57 2,35 39,35"
-                      fill={element.color}
-                      fillOpacity={element.tintOpacity}
-                    />
-                  )}
-                </svg>
-              </div>
-            );
-          case 'hexagon':
-            return (
-                <div style={{ width: '100%', height: '100%' }}>
-                    <svg 
-                        width="100%"
-                        height="100%"
-                        viewBox="0 0 24 24"
-                        preserveAspectRatio="none"
-                        style={{ overflow: 'visible' }}
-                    >
-                        {!isSpotUv && <SvgFillDefs element={element} />}
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" fill={getFillForSvg()} {...svgStrokeProps} />
-                        {showTint && (
-                           <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" fill={element.color} fillOpacity={element.tintOpacity} />
-                        )}
-                    </svg>
-                </div>
-            );
+        const maskScale = element.maskScale ?? 1;
+        const maskOffsetX = element.maskOffsetX ?? 0;
+        const maskOffsetY = element.maskOffsetY ?? 0;
+        
+        const centerX = element.width / 2;
+        const centerY = element.height / 2;
+        const scaleFactor = maskScale * (element.width / 100);
+        const transformStr = `translate(${centerX + (maskOffsetX * element.width/1000)}, ${centerY + (maskOffsetY * element.height/1000)}) scale(${scaleFactor}) translate(-50, -50)`;
+        
 
-          case 'custom-svg':
-            return (
-              <div style={{ width: '100%', height: '100%' }}>
-                <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                  {!isSpotUv && <SvgFillDefs element={element} />}
-                  <defs>
-                    {element.borderWidth && element.borderWidth > 0 && (
-                      <filter id={`dilate-${element.id}`} x="-50%" y="-50%" width="200%" height="200%">
-                        <feMorphology in="SourceAlpha" operator="dilate" radius={element.borderWidth} result="dilated" />
-                        <feFlood floodColor={isSpotUv ? 'black' : element.borderColor} />
-                        <feComposite in2="dilated" operator="in" />
-                      </filter>
-                    )}
-                    <filter id={`mask-white-${element.id}`}>
-                      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0" />
-                    </filter>
-                    <mask id={`mask-${element.id}`}>
-                      <image 
-                        href={resolveImagePath(element.src)} 
-                        width="100%" height="100%" 
-                        preserveAspectRatio="xMidYMid meet" 
-                        filter={`url(#mask-white-${element.id})`}
-                      />
-                    </mask>
-                  </defs>
-                  {/* Stroke Layer */}
-                  {element.borderWidth && element.borderWidth > 0 && (
-                    <image 
-                      href={resolveImagePath(element.src)} 
-                      width="100%" height="100%" 
-                      preserveAspectRatio="xMidYMid meet" 
-                      filter={`url(#dilate-${element.id})`} 
-                    />
-                  )}
-                  {/* Fill Layer */}
-                  <rect 
-                    width="100%" height="100%" 
-                    fill={getFillForSvg()} 
-                    mask={`url(#mask-${element.id})`} 
-                  />
-                  {/* Tint Overlay */}
-                  {showTint && (
-                    <rect 
-                      width="100%" height="100%" 
-                      fill={element.color} 
-                      fillOpacity={element.tintOpacity}
-                      mask={`url(#mask-${element.id})`} 
-                    />
-                  )}
-                </svg>
-              </div>
-            );
-          default: {
-            // Fallback for all other shapes to render from lucide-react
-            const shapeNamePascal = element.shapeType
-              ? element.shapeType.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('')
-              : 'Square';
-            
-            const Icon = (lucide as any)[shapeNamePascal];
+        const pathData = getShapePath(element.shapeType);
 
-            if (Icon) {
-              const svgFill = getFillForSvg();
-              return (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="100%" height="100%" viewBox="0 0 24 24" style={{ overflow: 'visible' }}>
+        const shapeContent = (() => {
+            const lucideName = element.shapeType.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
+            const LucideIcon = (lucide as any)[lucideName] || (lucide as any)[element.shapeType.charAt(0).toUpperCase() + element.shapeType.slice(1)];
+
+            return (
+                <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }} shapeRendering="geometricPrecision">
                     {!isSpotUv && <SvgFillDefs element={element} />}
-                    <Icon
-                      width="100%"
-                      height="100%"
-                      stroke={isSpotUv ? 'black' : element.borderColor}
-                      fill={svgFill}
-                      strokeWidth={element.borderWidth}
-                      strokeDasharray={element.borderStyle === 'dashed' ? '4 2' : (element.borderStyle === 'dotted' ? '1 2' : 'none')}
-                    />
-                    {showTint && (
-                        <Icon 
-                           width="100%"
-                           height="100%"
-                           fill={element.color}
-                           fillOpacity={element.tintOpacity}
-                        />
+                    <g mask={`url(#mask-${element.id})`}>
+                        {element.shapeType === 'custom-svg' && element.fillType === 'none' ? (
+                            <image href={resolveImagePath(element.src || '')} width={element.width} height={element.height} preserveAspectRatio="xMidYMid meet" />
+                        ) : (
+                            <>
+                                <rect width={element.width} height={element.height} fill={getFillForSvg()} shapeRendering="geometricPrecision" />
+                                {showTint && (
+                                    <rect width={element.width} height={element.height} fill={element.color} fillOpacity={element.tintOpacity} shapeRendering="geometricPrecision" />
+                                )}
+                            </>
+                        )}
+                    </g>
+                    
+                    {/* Render stroke outside the mask */}
+                    {!element.maskInvert && (
+                        (pathData && element.shapeType !== 'custom-svg') ? (
+                            <path 
+                                d={pathData} 
+                                fill="none" 
+                                {...svgStrokeProps} 
+                                transform={transformStr} 
+                                shapeRendering="geometricPrecision"
+                            />
+                        ) : LucideIcon ? (
+                            <g transform={transformStr}>
+                                <LucideIcon 
+                                    width="100" 
+                                    height="100" 
+                                    stroke={svgStrokeProps.stroke} 
+                                    strokeWidth={svgStrokeProps.strokeWidth}
+                                    strokeDasharray={svgStrokeProps.strokeDasharray}
+                                    fill="none"
+                                    shapeRendering="geometricPrecision"
+                                />
+                            </g>
+                        ) : null
                     )}
-                  </svg>
-                </div>
-              );
-            }
-
-            // If it's not a special shape and not a lucide icon, render a default rectangle
-            return (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  background: getBackgroundForDiv(),
-                  borderRadius: element.borderRadius || 0,
-                  ...divStrokeProps
-                }}
-              />
+                </svg>
             );
-          }
-        }
+        })();
+
+        return (
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                {colorPopLayer}
+                <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
+                    {shapeContent}
+                </div>
+            </div>
+        );
       }
       case 'brush': {
         if (!element.path || element.path.length < 2) return null;
@@ -1221,10 +1154,10 @@ const _CanvasElement = ({
 
     const scaleX = newVisualWidth / visualWidth;
     const scaleY = newVisualHeight / visualHeight;
-    
     const isCornerResize = handle.includes('-');
     const isHorizontalResize = handle === 'left' || handle === 'right';
-
+    const shouldKeepAspect = isCornerResize || e.shiftKey || element.type === 'image';
+    
     let newProps: Partial<DesignElement> = {};
 
     if (element.type === 'text') {
@@ -1250,23 +1183,37 @@ const _CanvasElement = ({
                     radius: (element.textWarp.radius || 100) * scale
                 };
             }
-        }
-    } else if (isCornerResize) { 
+        }    } else if (shouldKeepAspect) { 
         const aspectRatio = visualWidth / visualHeight;
-        if (Math.abs(dx) > Math.abs(dy)) {
+        
+        // Ensure the change is handle-centric (opposite side stays fixed)
+        if (handle === 'right' || handle === 'left') {
             newVisualHeight = newVisualWidth / aspectRatio;
-        } else {
+            if (handle === 'left') newVisualY = (y + visualTop) + (visualHeight - newVisualHeight); // Push top down if growing from left? No, actually simpler:
+        } else if (handle === 'top' || handle === 'bottom') {
             newVisualWidth = newVisualHeight * aspectRatio;
+        } else {
+            // Corner resize - already handle-centric by default logic above
+            if (Math.abs(dx) > Math.abs(dy)) {
+                newVisualHeight = newVisualWidth / aspectRatio;
+            } else {
+                newVisualWidth = newVisualHeight * aspectRatio;
+            }
         }
+
+        // Final coordinate adjustment for aspect ratio consistency based on handle
         if (handle.includes('top')) newVisualY = (y + visualTop) + visualHeight - newVisualHeight;
         if (handle.includes('left')) newVisualX = (x + visualLeft) + visualWidth - newVisualWidth;
 
-        const scale = newVisualWidth / visualWidth;
-        newProps.x = newVisualX - (visualLeft * scale);
-        newProps.y = newVisualY - (visualTop * scale);
-        newProps.width = width * scale;
-        newProps.height = height * scale;
+        const scaleX_final = newVisualWidth / visualWidth;
+        const scaleY_final = newVisualHeight / visualHeight;
+        
+        newProps.x = newVisualX - (visualLeft * scaleX_final);
+        newProps.y = newVisualY - (visualTop * scaleY_final);
+        newProps.width = width * scaleX_final;
+        newProps.height = height * scaleX_final;
     } else {
+
         newProps.x = newVisualX - (visualLeft * scaleX);
         newProps.y = newVisualY - (visualTop * scaleY);
         newProps.width = width * scaleX;

@@ -73,7 +73,7 @@ import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from '@/components/design/load-design-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
+import { cn, measureTextDimensions, resolveImagePath } from '@/lib/utils';
 import { CropDialog } from '@/components/design/crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { AmazoprintLogo } from '@/components/ui/logo';
@@ -102,6 +102,8 @@ type DesignEditorProps = {
   availableFoils?: FoilType[];
   spotUvAllowed?: boolean;
   verificationId?: string | null;
+  contestId?: string | null;
+  currentUserId?: string | null;
   initialDesign?: any;
 };
 
@@ -119,6 +121,8 @@ function DesignEditorInternal({
   availableFoils = [],
   spotUvAllowed = false,
   verificationId,
+  contestId,
+  currentUserId,
 }: DesignEditorProps) {
   const router = useRouter();
   const { setLeftOpen, rightOpen, setRightOpen } = useSidebar();
@@ -132,7 +136,6 @@ function DesignEditorInternal({
   const [isDirty, setIsDirty] = useState(false);
 
   const searchParams = useSearchParams();
-  const contestId = searchParams.get('contestId');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [currentDesignId, setCurrentDesignId] = useState<number | null>(initialDesignId || null);
@@ -993,8 +996,9 @@ function DesignEditorInternal({
     const newElement = { ...defaultTextElement, ...options };
 
     if (newElement.fontSize && !options.width && !options.height) {
-      newElement.width = (newElement.content?.length || 10) * (newElement.fontSize / 1.8) + newElement.fontSize;
-      newElement.height = newElement.fontSize * 1.5;
+      const dims = measureTextDimensions(newElement.content || '', newElement, product.width - 40);
+      newElement.width = dims.width;
+      newElement.height = dims.height;
     }
 
 
@@ -1021,33 +1025,62 @@ function DesignEditorInternal({
       return;
     }
 
-    const size = 400;
-    const { x, y } = getCenterPosition(size, size);
-    const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'image', x, y, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
-      backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-      src, objectFit: 'contain', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
-      content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle',
+    // Load image to get aspect ratio
+    const img = new Image();
+    img.src = resolveImagePath(src);
+    img.onload = () => {
+      const aspectRatio = img.width / img.height;
+      const baseSize = 400;
+      let width = baseSize;
+      let height = baseSize;
+
+      if (aspectRatio > 1) {
+        height = baseSize / aspectRatio;
+      } else {
+        width = baseSize * aspectRatio;
+      }
+
+      const { x, y } = getCenterPosition(width, height);
+      const newElement: DesignElement = {
+        id: crypto.randomUUID(), type: 'image', x, y, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
+        backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+        src, objectFit: 'contain', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+        content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle',
+      };
+      updatePage(currentPage, { elements: [...currentElements, newElement] });
+      setSelectedElementIds([newElement.id]);
+      setMaskingElementId(newElement.id); // Automatically open mask editor
+      if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
     };
-    updatePage(currentPage, { elements: [...currentElements, newElement] });
-    setSelectedElementIds([newElement.id]);
-    setMaskingElementId(newElement.id); // Automatically open mask editor
-    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
   const handleAddImageNoMask = (src: string) => {
-    const size = 400;
-    const { x, y } = getCenterPosition(size, size);
-    const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'image', x, y, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
-      backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-      src, objectFit: 'contain', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
-      content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle',
+    // Load image to get aspect ratio
+    const img = new Image();
+    img.src = resolveImagePath(src);
+    img.onload = () => {
+      const aspectRatio = img.width / img.height;
+      const baseSize = 400;
+      let width = baseSize;
+      let height = baseSize;
+
+      if (aspectRatio > 1) {
+        height = baseSize / aspectRatio;
+      } else {
+        width = baseSize * aspectRatio;
+      }
+
+      const { x, y } = getCenterPosition(width, height);
+      const newElement: DesignElement = {
+        id: crypto.randomUUID(), type: 'image', x, y, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
+        backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+        src, objectFit: 'contain', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+        content: '', fontSize: 0, fontFamily: '', color: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'rectangle',
+      };
+      updatePage(currentPage, { elements: [...currentElements, newElement] });
+      setSelectedElementIds([newElement.id]);
+      if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
     };
-    updatePage(currentPage, { elements: [...currentElements, newElement] });
-    setSelectedElementIds([newElement.id]);
-    // NO MASK EDITOR OPENED
-    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
   const handleAddShape = (shapeType: string) => {
@@ -1067,17 +1100,33 @@ function DesignEditorInternal({
   };
 
   const handleAddSvgShape = (src: string) => {
-    const size = 300;
-    const { x, y } = getCenterPosition(size, size);
-    const newElement: DesignElement = {
-      id: crypto.randomUUID(), type: 'shape', shapeType: 'custom-svg', src, x, y, width: size, height: size, rotation: 0, opacity: 1, visible: true, locked: false,
-      backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
-      color: '#cccccc', fillType: 'solid',
-      content: '', fontSize: 0, fontFamily: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', objectFit: 'contain', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+    // Load image to get aspect ratio
+    const img = new Image();
+    img.src = resolveImagePath(src);
+    img.onload = () => {
+      const aspectRatio = img.width / img.height || 1;
+      const baseSize = 300;
+      let width = baseSize;
+      let height = baseSize;
+
+      if (aspectRatio > 1) {
+        height = baseSize / aspectRatio;
+      } else {
+        width = baseSize * aspectRatio;
+      }
+
+      const { x, y } = getCenterPosition(width, height);
+      const newElement: DesignElement = {
+        id: crypto.randomUUID(), type: 'shape', shapeType: 'custom-svg', x, y, width, height, rotation: 0, opacity: 1, visible: true, locked: false,
+        backgroundColor: 'transparent', boxShadow: 'none', borderWidth: 0, borderColor: '#000000', borderStyle: 'solid',
+        src, objectFit: 'contain', filterBrightness: 1, filterContrast: 1, filterSaturate: 1,
+        color: '#000000', fillType: 'solid',
+        content: '', fontSize: 0, fontFamily: '', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', letterSpacing: 0, lineHeight: 1.2, textAlign: 'left', shapeType: 'custom-svg',
+      };
+      updatePage(currentPage, { elements: [...currentElements, newElement] });
+      setSelectedElementIds([newElement.id]);
+      if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
     };
-    updatePage(currentPage, { elements: [...currentElements, newElement] });
-    setSelectedElementIds([newElement.id]);
-    if (isMobile) { setMobileSheetOpen(false); } else { setLeftOpen(false); }
   };
 
   const handleAddEmoji = (emoji: string) => {
@@ -1190,6 +1239,28 @@ function DesignEditorInternal({
       if (!prev) return prev;
       
       let propsToUpdate = { ...newProps };
+
+      // --- Auto-Resize Logic for Text Elements ---
+      const isSizeAffectingChange = 
+        propsToUpdate.content !== undefined || 
+        propsToUpdate.fontSize !== undefined || 
+        propsToUpdate.fontFamily !== undefined || 
+        propsToUpdate.letterSpacing !== undefined || 
+        propsToUpdate.lineHeight !== undefined;
+
+      if (isSizeAffectingChange && propsToUpdate.width === undefined && propsToUpdate.height === undefined) {
+          const currentElementsForPage = prev.pages[currentPage]?.elements || [];
+          const element = findElementRecursive(currentElementsForPage, id);
+          if (element && element.type === 'text' && (!element.textWarp || element.textWarp.style === 'none')) {
+              const dims = measureTextDimensions(
+                  propsToUpdate.content ?? element.content, 
+                  { ...element, ...propsToUpdate }, 
+                  product.width - 40
+              );
+              propsToUpdate.width = dims.width;
+              propsToUpdate.height = dims.height;
+          }
+      }
       if (snapToGrid) {
         if (propsToUpdate.x) propsToUpdate.x = Math.round(propsToUpdate.x / gridSize) * gridSize;
         if (propsToUpdate.y) propsToUpdate.y = Math.round(propsToUpdate.y / gridSize) * gridSize;
@@ -1251,6 +1322,19 @@ function DesignEditorInternal({
   const onBackgroundChange = (newBackground: Background) => updatePage(currentPage, { background: newBackground });
 
   const handleSave = async () => {
+    if (!currentUserId) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Login Required', 
+        description: 'Redirecting to login. Please log in to save your work.' 
+      });
+      const currentUrl = window.location.pathname + window.location.search;
+      setTimeout(() => {
+        router.push(`/login?redirect_url=${encodeURIComponent(currentUrl)}`);
+      }, 1500);
+      return;
+    }
+
     setIsSaving(true);
     const saveData = {
       productSlug: product.id,
@@ -1264,11 +1348,18 @@ function DesignEditorInternal({
 
     try {
       if (currentDesignId && currentDesignName) {
-        await updateDesign({ id: currentDesignId, name: currentDesignName, verificationId: verificationId || null, ...saveData });
+        await updateDesign({ 
+          id: currentDesignId, 
+          name: currentDesignName, 
+          verificationId: verificationId || null, 
+          contestId: contestId || null,
+          ...saveData 
+        });
         toast({ title: 'Design Updated!' });
         setIsDirty(false);
       } else {
-        const designName = prompt('Enter a name for your design:');
+        const defaultName = initialDesignName ? `${initialDesignName} (Copy)` : '';
+        const designName = prompt('Enter a name for your design:', defaultName);
         if (designName) {
           const savedDesign = await saveDesign({ name: designName, ...saveData });
           setCurrentDesignId(savedDesign.id);

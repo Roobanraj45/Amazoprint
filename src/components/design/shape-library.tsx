@@ -24,6 +24,15 @@ const basicShapes: { name: string; icon: React.ReactNode }[] = [
     { name: 'line', icon: <lucide.Minus className="w-10 h-10" /> },
     { name: 'star', icon: <lucide.Star className="w-10 h-10" /> },
     { name: 'hexagon', icon: <lucide.Hexagon className="w-10 h-10" /> },
+    { name: 'hexagon', icon: <lucide.Hexagon className="w-10 h-10" /> },
+    { name: 'diamond', icon: <lucide.Diamond className="w-10 h-10" /> },
+    { name: 'heart', icon: <lucide.Heart className="w-10 h-10" /> },
+    { name: 'pentagon', icon: <lucide.Pentagon className="w-10 h-10" /> },
+    { name: 'octagon', icon: <lucide.Octagon className="w-10 h-10" /> },
+    { name: 'arrow-right', icon: <lucide.ArrowRight className="w-10 h-10" /> },
+    { name: 'arrow-left', icon: <lucide.ArrowLeft className="w-10 h-10" /> },
+    { name: 'arrow-up', icon: <lucide.ArrowUp className="w-10 h-10" /> },
+    { name: 'arrow-down', icon: <lucide.ArrowDown className="w-10 h-10" /> },
 ];
 
 const lucideShapes: { name: string; icon: React.ReactNode }[] = [

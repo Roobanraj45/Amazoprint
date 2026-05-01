@@ -46,3 +46,67 @@ export function generatePathD(points: PathPoint[], isClosed: boolean, offsetX = 
     
     return d;
 }
+
+export function measureTextDimensions(
+    text: string, 
+    element: { 
+        fontSize: number; 
+        fontFamily: string; 
+        fontWeight?: string | number; 
+        fontStyle?: string; 
+        lineHeight?: number; 
+        letterSpacing?: number; 
+    },
+    maxWidthLimit: number
+) {
+    if (typeof document === 'undefined') return { width: 100, height: 50 };
+    
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) return { width: 100, height: 50 };
+
+    context.font = `${element.fontStyle || 'normal'} ${element.fontWeight || 'normal'} ${element.fontSize || 16}px "${element.fontFamily || 'sans-serif'}"`;
+    if ('letterSpacing' in context) {
+        (context as any).letterSpacing = `${element.letterSpacing || 0}px`;
+    }
+
+    const paragraphs = text.split('\n');
+    let maxLineWidth = 0;
+    let totalLines = 0;
+    const lineHeightPx = (element.lineHeight || 1.2) * (element.fontSize || 16);
+
+    paragraphs.forEach(para => {
+        const words = para.split(' ');
+        let currentLine = "";
+        let paraLines = 0;
+
+        if (words.length === 0 || (words.length === 1 && words[0] === "")) {
+            totalLines += 1;
+            return;
+        }
+
+        words.forEach(word => {
+            const testLine = currentLine ? currentLine + " " + word : word;
+            const testWidth = context.measureText(testLine).width;
+
+            if (testWidth > maxWidthLimit && currentLine) {
+                maxLineWidth = Math.max(maxLineWidth, context.measureText(currentLine).width);
+                paraLines++;
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+                maxLineWidth = Math.max(maxLineWidth, testWidth);
+            }
+        });
+        if (currentLine) {
+            paraLines++;
+            maxLineWidth = Math.max(maxLineWidth, context.measureText(currentLine).width);
+        }
+        totalLines += paraLines;
+    });
+
+    return {
+        width: Math.max(50, Math.min(maxLineWidth + 20, maxWidthLimit)),
+        height: Math.max(element.fontSize * 1.2, totalLines * lineHeightPx + 10)
+    };
+}

@@ -132,6 +132,11 @@ export type DesignElement = {
   removeColor?: string | null;
   colorThreshold?: number;
   overlayMode?: 'tint' | 'background';
+  maskInvert?: boolean;
+  maskColorPop?: boolean;
+  maskScale?: number;
+  maskOffsetX?: number;
+  maskOffsetY?: number;
 
   // Shape specific properties
   shapeType?: string;

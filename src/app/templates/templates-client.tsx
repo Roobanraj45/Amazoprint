@@ -51,22 +51,6 @@ export function TemplatesClient({ templates }: { templates: any[] }) {
       <Navbar />
 
       <main className="flex-1 pt-32 pb-24">
-        {/* Header Section */}
-        <section className="container px-4 mx-auto mb-16 text-center">
-          <motion.div {...FADE_UP} className="max-w-3xl mx-auto space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary font-black uppercase tracking-[0.2em] text-[10px] mb-2">
-              <Sparkles size={14} /> Premium Library
-            </div>
-            <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase font-headline leading-none">
-              Design <span className="text-primary">Templates.</span>
-            </h1>
-            <p className="text-lg text-muted-foreground font-medium max-w-xl mx-auto leading-relaxed">
-              Accelerate your creative workflow with professional, print-verified layouts designed for impact.
-              <br /><span className="text-xs opacity-50">Total designs found: {templates.length}</span>
-            </p>
-          </motion.div>
-        </section>
-
         {/* Filter Bar */}
         <section className="container px-4 mx-auto mb-12">
           <div className="flex flex-col md:flex-row gap-6 items-center justify-between p-6 rounded-[2.5rem] bg-zinc-950 text-white border border-white/5 shadow-2xl">
