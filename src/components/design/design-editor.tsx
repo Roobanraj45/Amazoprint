@@ -1344,6 +1344,8 @@ function DesignEditorInternal({
       quantity,
       width: Math.round(product.width * PX_TO_MM),
       height: Math.round(product.height * PX_TO_MM),
+      productId: product.productId,
+      subProductId: product.subProductId,
     };
 
     try {
@@ -1403,6 +1405,8 @@ function DesignEditorInternal({
             quantity,
             width: Math.round(product.width * PX_TO_MM),
             height: Math.round(product.height * PX_TO_MM),
+            productId: product.productId,
+            subProductId: product.subProductId,
           };
           const savedDesign = await saveDesign(saveData);
           setCurrentDesignId(savedDesign.id);
@@ -1454,6 +1458,10 @@ function DesignEditorInternal({
       width: Math.round(design.width * MM_TO_PX),
       height: Math.round(design.height * MM_TO_PX),
       type: design.productSlug.replace('-', ' '),
+      productId: design.productId || undefined,
+      subProductId: design.subProductId || undefined,
+      subProductName: (design as any).subProduct?.name,
+      categoryName: (design as any).product?.name,
     };
 
     setCurrentDesignId(design.id);

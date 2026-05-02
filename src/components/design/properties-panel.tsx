@@ -20,7 +20,7 @@ import {
   SendToBack, ChevronsUp, ChevronsDown, AlignHorizontalJustifyStart,
   AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd,
   AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
-  Type, Wand2, Settings2, LayoutTemplate, Crop, FlipHorizontal, FlipVertical,
+  Type, Wand2, Settings2, LayoutTemplate, Crop, FlipHorizontal, FlipVertical, Package2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -290,12 +290,35 @@ export function PropertiesPanel({
               </div>
             </div>
 
+            {/* Product Info - Always shown */}
+            <div className="h-px bg-border/40 my-4" />
+            <div className="space-y-3">
+              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Configuration</p>
+              <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/10 space-y-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                    <Package2 size={14} />
+                  </div>
+                  <p className="text-[12px] font-bold text-slate-800 truncate">
+                    {product.categoryName || product.name}
+                  </p>
+                </div>
+                {product.subProductName && (
+                  <div className="flex items-center gap-2 pl-2 border-l-2 border-primary/20 ml-3">
+                    <p className="text-[10px] font-bold text-muted-foreground truncate italic">
+                      {product.subProductName}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {design?.user && (
               <>
                 <div className="h-px bg-border/40 my-4" />
                 <div className="space-y-3">
-                  <p className="text-[11px] font-bold text-muted-foreground">User Information</p>
-                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
+                  <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest ml-1">User Information</p>
+                  <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
                     {design.user.profileImage ? (
                       <img src={design.user.profileImage} alt={design.user.name} className="h-10 w-10 rounded-xl object-cover border border-white shadow-sm" />
                     ) : (

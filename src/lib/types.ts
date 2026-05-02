@@ -193,6 +193,10 @@ export type Product = {
   width: number; // in pixels for canvas
   height: number; // in pixels for canvas
   type: string; // For AI prompt
+  productId?: number;
+  subProductId?: number;
+  subProductName?: string;
+  categoryName?: string;
 };
 
 export type DynamicFile = {

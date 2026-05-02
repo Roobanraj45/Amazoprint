@@ -74,16 +74,18 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
     id: productData.slug,
     name: productData.name,
     description: productData.description || '',
-    imageId: '', 
+    imageId: '',
     width: finalWidth,
     height: finalHeight,
-    type: productData.category || productData.name, 
+    type: productData.category || productData.name,
+    productId: productData.id,
+    subProductId: subProductForDims?.id,
   };
 
 
   const quantity = searchParams.quantity ? Number(searchParams.quantity) : 100;
   let totalPages = searchParams.pages ? Number(searchParams.pages) : 1;
-  
+
   const { templateId, verificationId, contestId } = searchParams;
   let initialElements: DesignElement[] | DesignElement[][] = [];
   let initialBackground: Background | Background[] | undefined = undefined;
@@ -100,56 +102,56 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
   if (templateId) {
     template = await getDesign(Number(templateId));
     if (template) {
-        initialElements = template.elements as DesignElement[] | DesignElement[][];
-        initialBackground = template.background as Background | Background[];
-        
-        if (Array.isArray(initialElements) && initialElements.length > 0 && Array.isArray(initialElements[0])) {
-            totalPages = initialElements.length;
-        } else {
-            totalPages = 1;
-        }
+      initialElements = template.elements as DesignElement[] | DesignElement[][];
+      initialBackground = template.background as Background | Background[];
 
-        productForEditor.width = Math.round(template.width * unitToPx);
-        productForEditor.height = Math.round(template.height * unitToPx);
-        
-        isAuthorizedToUpdate = (session?.sub && template.userId === session.sub) || isAdmin || (isFreelancer && (verificationId || contestId));
-        
-        initialDesignName = template.name;
-        if (isAuthorizedToUpdate) {
-            initialDesignId = template.id;
-        }
+      if (Array.isArray(initialElements) && initialElements.length > 0 && Array.isArray(initialElements[0])) {
+        totalPages = initialElements.length;
+      } else {
+        totalPages = 1;
+      }
+
+      productForEditor.width = Math.round(template.width * unitToPx);
+      productForEditor.height = Math.round(template.height * unitToPx);
+
+      isAuthorizedToUpdate = (session?.sub && template.userId === session.sub) || isAdmin || (isFreelancer && (verificationId || contestId));
+
+      initialDesignName = template.name;
+      if (isAuthorizedToUpdate) {
+        initialDesignId = template.id;
+      }
     }
   }
 
   const allFoilsData = await getFoilTypes();
-  const allFoils: FoilType[] = allFoilsData.map(f => ({...f}));
-  
+  const allFoils: FoilType[] = allFoilsData.map(f => ({ ...f }));
+
   const availableFoils = subProductForDims?.allowedFoils
-      ? allFoils.filter(f => subProductForDims.allowedFoils!.includes(f.id))
-      : [];
+    ? allFoils.filter(f => subProductForDims.allowedFoils!.includes(f.id))
+    : [];
 
   const spotUvAllowedForProduct = subProductForDims?.spotUvAllowed ?? false;
 
   return (
     <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="animate-spin h-8 w-8" /></div>}>
-        <DesignEditor 
-            product={productForEditor} 
-            quantity={quantity} 
-            totalPages={totalPages}
-            initialElements={initialElements}
-            initialBackground={initialBackground}
-            initialDesignId={initialDesignId}
-            initialDesignName={initialDesignName}
-            isAdmin={isAdmin}
-            allFoils={allFoils}
-            availableFoils={availableFoils}
-            spotUvAllowed={spotUvAllowedForProduct}
-            verificationId={verificationId}
-            contestId={contestId}
-            currentUserId={session?.sub}
-            initialUnit={unitType as any}
-            initialDesign={template}
-        />
+      <DesignEditor
+        product={productForEditor}
+        quantity={quantity}
+        totalPages={totalPages}
+        initialElements={initialElements}
+        initialBackground={initialBackground}
+        initialDesignId={initialDesignId}
+        initialDesignName={initialDesignName}
+        isAdmin={isAdmin}
+        allFoils={allFoils}
+        availableFoils={availableFoils}
+        spotUvAllowed={spotUvAllowedForProduct}
+        verificationId={verificationId}
+        contestId={contestId}
+        currentUserId={session?.sub}
+        initialUnit={unitType as any}
+        initialDesign={template}
+      />
     </Suspense>
   );
 }

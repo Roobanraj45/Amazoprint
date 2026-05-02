@@ -38,15 +38,34 @@ export function TemplatesClient({ templates }: { templates: any[] }) {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
+  // Derive dynamic categories from templates
+  const dynamicCategories = ['All', ...Array.from(new Set(templates.map(t => {
+    const slug = t.productSlug || 'Other';
+    return slug.split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  })))];
+
   const filteredTemplates = templates.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase());
     const slug = (t.productSlug || '').toLowerCase().replace(/_/g, '-');
-    const category = selectedCategory.toLowerCase().replace(/[\s_]+/g, '-');
-    const matchesCategory = selectedCategory === 'All' || slug.includes(category);
+    
+    // Convert category back to slug-like for comparison
+    const categorySlug = selectedCategory.toLowerCase().replace(/\s+/g, '-');
+    const matchesCategory = selectedCategory === 'All' || slug === categorySlug;
+    
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ['All', 'Visiting Card', 'T-Shirt', 'Flyer', 'Banner'];
+  // Group by Product Category, then by Sub-Product
+  const groupedTemplates = filteredTemplates.reduce((acc: any, t: any) => {
+    const productKey = (t.productSlug || 'Other').split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    const subProductKey = t.subProduct?.name || 'Standard Variants';
+
+    if (!acc[productKey]) acc[productKey] = {};
+    if (!acc[productKey][subProductKey]) acc[productKey][subProductKey] = [];
+    
+    acc[productKey][subProductKey].push(t);
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -56,16 +75,16 @@ export function TemplatesClient({ templates }: { templates: any[] }) {
         {/* Filter Bar */}
         <section className="container px-4 mx-auto mb-12">
           <div className="flex flex-col md:flex-row gap-6 items-center justify-between p-6 rounded-[2.5rem] bg-zinc-950 text-white border border-white/5 shadow-2xl">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-              {categories.map((cat) => (
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide px-2">
+              {dynamicCategories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
                   className={cn(
-                    "px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border",
+                    "px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border",
                     selectedCategory === cat 
-                      ? "bg-primary border-primary text-white shadow-[0_0_20px_-5px_rgba(var(--primary),0.5)]" 
-                      : "bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white"
+                      ? "bg-primary border-primary text-white shadow-[0_0_30px_-8px_rgba(var(--primary),0.6)] scale-105" 
+                      : "bg-white/5 border-white/5 text-zinc-500 hover:bg-white/10 hover:text-white hover:border-white/10"
                   )}
                 >
                   {cat}
@@ -84,126 +103,144 @@ export function TemplatesClient({ templates }: { templates: any[] }) {
           </div>
         </section>
 
-        {/* Grid Section */}
-        <section className="container px-4 mx-auto">
-          {filteredTemplates.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              <AnimatePresence mode="popLayout">
-                {filteredTemplates.map((template, index) => (
-                  <motion.div
-                    key={template.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                  >
-                    <Link href={`/design/${template.productSlug}?templateId=${template.id}`} className="group block h-full">
-                      <Card className="h-full overflow-hidden rounded-[2rem] border-border/40 bg-card hover:shadow-2xl transition-all duration-500 group-hover:-translate-y-2">
-                        <CardContent className="p-0">
-                          <div className="aspect-[4/5] relative bg-muted overflow-hidden flex items-center justify-center">
-                            {/* Live Design Rendering */}
-                            {(() => {
-                               const widthInPx = Math.round((template.width || 300) * MM_TO_PX);
-                              const heightInPx = Math.round((template.height || 200) * MM_TO_PX);
-                              const productForCanvas: Product = {
-                                id: template.productSlug || 'custom',
-                                name: template.name || 'Untitled',
-                                description: '',
-                                imageId: '',
-                                width: widthInPx,
-                                height: heightInPx,
-                                type: '',
-                              };
-                              const rawElements = typeof template.elements === 'string' ? JSON.parse(template.elements) : (template.elements || []);
-                              const isMultiPage = Array.isArray(rawElements) && rawElements.length > 0 && Array.isArray(rawElements[0]);
-                              const elements: DesignElement[] = (isMultiPage ? rawElements[0] : rawElements) as DesignElement[];
-                              const rawBackground = typeof template.background === 'string' ? JSON.parse(template.background) : (template.background || { type: 'solid', color: '#ffffff' });
-                              const background: Background = (isMultiPage && Array.isArray(rawBackground) ? rawBackground[0] : rawBackground) as Background;
-                              
-                              // Calculate scale to fit aspect-[4/5]
-                              // Max width is roughly 300-400px depending on screen
-                              const containerWidth = 300; 
-                              const containerHeight = (containerWidth * 5) / 4;
-                              const scale = Math.min(containerWidth / widthInPx, containerHeight / heightInPx) * 0.9;
+        {/* Categorized Grid */}
+        <section className="container px-4 mx-auto space-y-32">
+          {Object.keys(groupedTemplates).length > 0 ? (
+            Object.entries(groupedTemplates).map(([productCategory, subProducts]: [string, any], pIdx) => (
+              <div key={productCategory} className="space-y-16">
+                
+                {/* Product Header */}
+                <div className="flex items-center gap-8 group">
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-2">Category</span>
+                        <h2 className="text-4xl font-black text-white tracking-tighter flex items-center gap-4">
+                            {productCategory}
+                            <span className="h-2 w-2 rounded-full bg-primary" />
+                        </h2>
+                    </div>
+                    <div className="h-px flex-1 bg-gradient-to-r from-white/10 via-white/[0.05] to-transparent" />
+                </div>
 
-                              return (
-                                <div className="relative" style={{ width: widthInPx * scale, height: heightInPx * scale }}>
-                                  <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: widthInPx, height: heightInPx }}>
-                                    <DesignCanvas
-                                      product={productForCanvas}
-                                      elements={elements}
-                                      background={background}
-                                      guides={template.guides as Guide[] || []}
-                                      showRulers={false}
-                                      showGrid={false}
-                                      showPrintGuidelines={false}
-                                      gridSize={20}
-                                      bleed={0}
-                                      safetyMargin={0}
-                                      viewState={{ zoom: 1, pan: { x: 0, y: 0 } }}
-                                      isPreview={true}
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                            
-                            {/* Template Badge */}
-                            <div className="absolute top-4 left-4 z-20">
-                              <Badge className="bg-zinc-950/80 backdrop-blur-md text-[9px] uppercase font-black tracking-widest border-white/10">
-                                {template.productSlug.replace('-', ' ')}
-                              </Badge>
-                            </div>
+                {/* Sub-Products Loop */}
+                <div className="space-y-20">
+                  {Object.entries(subProducts).map(([subProduct, items]: [string, any]) => (
+                    <div key={subProduct} className="space-y-8">
+                        <div className="flex items-center gap-4">
+                            <Badge variant="outline" className="bg-white/5 border-white/10 text-zinc-400 font-bold px-4 py-1 rounded-lg text-[10px] uppercase tracking-wider">
+                                {subProduct}
+                            </Badge>
+                            <span className="text-[10px] font-bold text-zinc-600">{items.length} Templates available</span>
+                        </div>
 
-                            {/* Hover Overlay */}
-                            <div className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center z-30">
-                              <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 flex flex-col items-center gap-4">
-                                <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white shadow-xl">
-                                  <Palette size={24} />
-                                </div>
-                                <span className="text-white font-black uppercase text-[10px] tracking-[0.2em]">Customize Template</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="p-6 space-y-4 bg-white dark:bg-zinc-900 border-t">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="space-y-1">
-                                <h3 className="font-black text-lg uppercase font-headline tracking-tight leading-tight group-hover:text-primary transition-colors truncate w-full">
-                                  {template.name}
-                                </h3>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                    {template.width}x{template.height}mm
-                                  </p>
-                                  <span className="w-1 h-1 rounded-full bg-border" />
-                                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest">
-                                    Print Ready
-                                  </p>
-                                </div>
-                              </div>
-                              <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+                            {items.map((template: any) => (
+                                <Link
+                                    key={template.id}
+                                    href={`/design/${template.productSlug || 'other'}?templateId=${template.id}`}
+                                    className="group relative block aspect-[4/3] rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-white/5 transition-all duration-700 hover:border-primary/50 hover:-translate-y-3 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8)]"
+                                >
+                                    {(() => {
+                                      // Unit guard: if width is very large, it's likely already in pixels
+                                      const rawWidth = template.width || 300;
+                                      const rawHeight = template.height || 200;
+                                      const widthInPx = rawWidth > 600 ? rawWidth : Math.round(rawWidth * MM_TO_PX);
+                                      const heightInPx = rawHeight > 600 ? rawHeight : Math.round(rawHeight * MM_TO_PX);
+
+                                      const productForCanvas: Product = {
+                                        id: template.productSlug || 'custom',
+                                        name: template.name || 'Untitled',
+                                        description: '',
+                                        imageId: '',
+                                        width: widthInPx,
+                                        height: heightInPx,
+                                        type: '',
+                                      };
+                                      
+                                      let elements: DesignElement[] = [];
+                                      try {
+                                        const rawElements = typeof template.elements === 'string' ? JSON.parse(template.elements) : (template.elements || []);
+                                        if (Array.isArray(rawElements)) {
+                                          const isMultiPage = rawElements.length > 0 && Array.isArray(rawElements[0]);
+                                          elements = (isMultiPage ? rawElements[0] : rawElements) as DesignElement[];
+                                        }
+                                      } catch (e) {
+                                        console.error('Error parsing elements:', e);
+                                      }
+
+                                      let background: Background = { type: 'solid', color: '#ffffff' };
+                                      try {
+                                        const rawBackground = typeof template.background === 'string' ? JSON.parse(template.background) : (template.background || { type: 'solid', color: '#ffffff' });
+                                        if (Array.isArray(rawBackground) && rawBackground.length > 0) {
+                                          background = rawBackground[0] as Background;
+                                        } else if (rawBackground && typeof rawBackground === 'object' && !Array.isArray(rawBackground)) {
+                                          background = rawBackground as Background;
+                                        }
+                                      } catch (e) {
+                                        console.error('Error parsing background:', e);
+                                      }
+                                      
+                                      const containerWidth = 400; 
+                                      const containerHeight = (containerWidth * 3) / 4;
+                                      const scale = Math.min(containerWidth / widthInPx, containerHeight / heightInPx) * 0.85;
+
+                                      return (
+                                        <div className="absolute inset-0 flex items-center justify-center p-4 bg-zinc-950/50 overflow-hidden group-hover:bg-zinc-950/20 transition-colors duration-700">
+                                          <div style={{ width: widthInPx * scale, height: heightInPx * scale, position: 'relative', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)' }}>
+                                            <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: widthInPx, height: heightInPx }}>
+                                              <DesignCanvas
+                                                product={productForCanvas}
+                                                elements={elements}
+                                                background={background}
+                                                selectedElementIds={[]}
+                                                guides={template.guides as Guide[] || []}
+                                                showRulers={false}
+                                                showGrid={false}
+                                                showPrintGuidelines={false}
+                                                gridSize={20}
+                                                bleed={0}
+                                                safetyMargin={0}
+                                                viewState={{ zoom: 1, pan: { x: 0, y: 0 } }}
+                                                isPreview={true}
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+
+                                    {/* Glass Overlay */}
+                                    <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent translate-y-2 group-hover:translate-y-0 transition-transform duration-700">
+                                        <div className="flex flex-col gap-1.5">
+                                            <h3 className="text-lg font-bold text-white truncate drop-shadow-md">
+                                                {template.name}
+                                            </h3>
+                                            <div className="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+                                                <span className="text-[10px] font-black text-primary uppercase tracking-widest">Customize Now</span>
+                                                <ArrowRight size={14} className="text-primary -translate-x-4 group-hover:translate-x-0 transition-transform duration-500" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Button Pop */}
+                                    <div className="absolute top-6 right-6 h-12 w-12 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100 transition-all duration-500">
+                                        <Sparkles size={18} className="text-white" />
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
           ) : (
-            <div className="text-center py-32 space-y-6">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto">
-                <Search size={32} className="text-muted-foreground" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-black uppercase font-headline">No templates found</h3>
-                <p className="text-muted-foreground font-medium">Try adjusting your search or category filters.</p>
-              </div>
-              <Button variant="outline" onClick={() => { setSearch(''); setSelectedCategory('All'); }} className="rounded-full px-8 uppercase font-bold text-[11px] tracking-widest">
-                Clear all filters
-              </Button>
+            <div className="py-40 text-center border-2 border-dashed border-white/5 rounded-[4rem] bg-white/[0.02]">
+                <LayoutGrid size={64} className="mx-auto mb-8 text-zinc-800" />
+                <h3 className="text-2xl font-black text-white mb-2">No matching masterpieces</h3>
+                <p className="text-zinc-500 font-medium">Try refining your search or browsing another collection.</p>
+                <Button variant="link" className="mt-8 text-primary font-bold uppercase tracking-widest text-[10px]" onClick={() => { setSearch(''); setSelectedCategory('All'); }}>
+                    Clear all filters
+                </Button>
             </div>
           )}
         </section>

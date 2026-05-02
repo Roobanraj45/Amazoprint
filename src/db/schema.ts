@@ -254,9 +254,13 @@ export const designs = pgTable('designs', {
     guides: jsonb('guides'),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
+    productId: integer('product_id').references(() => products.id, { onDelete: 'set null' }),
+    subProductId: integer('sub_product_id').references(() => subProducts.id, { onDelete: 'set null' }),
 }, (table) => {
     return {
         userIdx: index('idx_designs_user_id').on(table.userId),
+        productIdx: index('idx_designs_product_id').on(table.productId),
+        subProductIdx: index('idx_designs_sub_product_id').on(table.subProductId),
     };
 });
 
@@ -538,6 +542,14 @@ export const designsRelations = relations(designs, ({ one }) => ({
   user: one(users, {
     fields: [designs.userId],
     references: [users.id],
+  }),
+  product: one(products, {
+    fields: [designs.productId],
+    references: [products.id],
+  }),
+  subProduct: one(subProducts, {
+    fields: [designs.subProductId],
+    references: [subProducts.id],
   }),
 }));
 

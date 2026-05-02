@@ -3,8 +3,15 @@ import { getTemplatesForProduct } from '@/app/actions/design-actions';
 import { notFound } from 'next/navigation';
 import { TemplateGrid } from './template-grid';
 
-export default async function TemplatesPage({ params }: { params: { productId: string } }) {
+export default async function TemplatesPage({ 
+  params,
+  searchParams: searchParamsPromise 
+}: { 
+  params: { productId: string },
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const { productId: productSlug } = params;
+  const searchParams = await searchParamsPromise;
 
   const product = await getProductBySlug(productSlug);
 
@@ -25,7 +32,7 @@ export default async function TemplatesPage({ params }: { params: { productId: s
             Select a starting point and customize it to perfection in our editor.
           </p>
         </div>
-        <TemplateGrid templates={templates as any[]} product={product} />
+        <TemplateGrid templates={templates as any[]} product={product} searchParams={searchParams} />
       </div>
     </div>
   );

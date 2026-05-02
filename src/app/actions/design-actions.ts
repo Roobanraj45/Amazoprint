@@ -17,6 +17,8 @@ const designSchema = z.object({
   elements: z.any(),
   background: z.any(),
   guides: z.any().optional(),
+  productId: z.number().optional().nullable(),
+  subProductId: z.number().optional().nullable(),
 });
 
 const updateDesignSchema = designSchema.extend({
@@ -58,6 +60,8 @@ export async function saveDesign(data: z.infer<typeof designSchema>) {
     const result = await db.insert(designs).values({
         ...validated,
         userId: saveUserId,
+        productId: validated.productId,
+        subProductId: validated.subProductId,
     }).returning();
 
     revalidatePath('/design/*');
@@ -134,6 +138,8 @@ export async function updateDesign(data: z.infer<typeof updateDesignSchema>) {
             elements,
             background,
             guides,
+            productId: validated.productId,
+            subProductId: validated.subProductId,
             updatedAt: new Date()
         })
         .where(eq(designs.id, id))
@@ -172,23 +178,37 @@ export async function deleteDesign(id: number) {
 }
 
 export async function getTemplatesForProduct(productSlug: string) {
-    const templateUserId = '00000000-0000-0000-0000-000000000000';
     return await db.query.designs.findMany({
-        where: and(
-            eq(designs.userId, templateUserId),
-            eq(designs.productSlug, productSlug)
-        ),
+        where: eq(designs.productSlug, productSlug),
+        with: {
+            subProduct: {
+                columns: {
+                    name: true,
+                }
+            }
+        },
         orderBy: [desc(designs.createdAt)]
     });
 }
 
 export async function getAllTemplates() {
     try {
-        console.log('Fetching all designs for templates...');
         const allDesigns = await db.query.designs.findMany({
+            with: {
+                subProduct: {
+                    columns: {
+                        name: true,
+                        id: true,
+                    }
+                },
+                user: {
+                    columns: {
+                        name: true,
+                    }
+                }
+            },
             orderBy: [desc(designs.createdAt)]
         });
-        console.log('Fetched designs:', allDesigns.length);
         return allDesigns;
     } catch (error) {
         console.error('Error in getAllTemplates:', error);
@@ -206,6 +226,16 @@ export async function getDesign(id: number) {
                     name: true,
                     email: true,
                     profileImage: true,
+                }
+            },
+            product: {
+                columns: {
+                    name: true,
+                }
+            },
+            subProduct: {
+                columns: {
+                    name: true,
                 }
             }
         }
