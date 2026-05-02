@@ -93,7 +93,7 @@ export function ImageMaskEditor({ isOpen, onClose, element, onUpdate }: ImageMas
 
                 if (initialDist > 0) {
                     const newScale = (currentDist / initialDist) * startPos.os;
-                    setMaskScale(Math.max(0.1, Math.min(10, newScale)));
+                    setMaskScale(Math.max(0.3, Math.min(10, newScale)));
                 }
             }
         };
@@ -309,7 +309,7 @@ export function ImageMaskEditor({ isOpen, onClose, element, onUpdate }: ImageMas
                             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">Size</span>
                             <Slider
                                 value={[maskScale]}
-                                min={0.1}
+                                min={0.3}
                                 max={4}
                                 step={0.01}
                                 onValueChange={(v) => setMaskScale(v[0])}

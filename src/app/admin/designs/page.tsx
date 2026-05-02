@@ -82,6 +82,7 @@ function DesignPreviewCard({ design }: { design: DesignWithUser }) {
                                 bleed={0}
                                 safetyMargin={0}
                                 viewState={{ zoom: 1, pan: { x: 0, y: 0 } }}
+                                isPreview={true}
                             />
                         </div>
                     </div>

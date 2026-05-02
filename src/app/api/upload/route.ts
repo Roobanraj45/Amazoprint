@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(bytes);
 
   // Ensure the specific uploads directory exists
-  const uploadsDir = join(process.cwd(), 'public', 'uploads', folderName);
+  const uploadsDir = join(process.cwd(), 'storage', 'uploads', folderName);
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await writeFile(path, buffer);
-    const relativeUrl = `/uploads/${folderName}/${filename}`;
+    const relativeUrl = `/api/media/${folderName}/${filename}`;
     
     return NextResponse.json({ success: true, url: relativeUrl });
   } catch (error) {
@@ -48,22 +48,22 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const urlToDelete = searchParams.get('url');
 
-    if (!urlToDelete || !urlToDelete.startsWith('/uploads/')) {
+    if (!urlToDelete || (!urlToDelete.startsWith('/uploads/') && !urlToDelete.startsWith('/api/media/'))) {
       return NextResponse.json({ success: false, error: 'Invalid URL' }, { status: 400 });
     }
 
     // Sanitize the path to prevent directory traversal
-    const sanitizedPath = urlToDelete.replace(/\.\./g, '').replace(/^\/+/, '');
-    const fullPath = resolve(process.cwd(), 'public', sanitizedPath);
+    const sanitizedPath = urlToDelete.replace('/api/media/', '').replace('/uploads/', '').replace(/\.\./g, '').replace(/^\/+/, '');
     
-    // Ensure the path is strictly within the public/uploads directory
-    const uploadsDir = resolve(process.cwd(), 'public', 'uploads');
-    if (!fullPath.startsWith(uploadsDir)) {
-      return NextResponse.json({ success: false, error: 'Invalid path' }, { status: 400 });
-    }
-
-    if (fs.existsSync(fullPath)) {
-      await unlink(fullPath);
+    // Check both storage and public
+    const storagePath = resolve(process.cwd(), 'storage', 'uploads', sanitizedPath);
+    const publicPath = resolve(process.cwd(), 'public', 'uploads', sanitizedPath);
+    
+    if (fs.existsSync(storagePath)) {
+      await unlink(storagePath);
+      return NextResponse.json({ success: true });
+    } else if (fs.existsSync(publicPath)) {
+      await unlink(publicPath);
       return NextResponse.json({ success: true });
     } else {
       return NextResponse.json({ success: false, error: 'File not found' }, { status: 404 });
