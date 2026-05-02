@@ -162,6 +162,7 @@ function DesignEditorInternal({
   const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
 
   const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
+  const [activeLeftPanel, setActiveLeftPanel] = useState<string>('media');
   const [isDrawing, setIsDrawing] = useState(false);
   const drawingPointsRef = useRef<[number, number][]>([]);
   const bristleTipRef = useRef<BristleProfile>([]);
@@ -179,12 +180,14 @@ function DesignEditorInternal({
     size: number;
     flow: number;
     color: string;
+    cmyk?: { c: number; m: number; y: number; k: number; } | null;
     softness: number;
   }>({
     brushTip: 'chisel' as BrushEngineTip,
     size: 60,
     flow: 0.25,
     color: '#222222',
+    cmyk: { c: 0, m: 0, y: 0, k: 100 },
     softness: 0.8,
   });
 
@@ -200,13 +203,17 @@ function DesignEditorInternal({
   const isMobile = useIsMobile();
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const [activeMobilePanel, setActiveMobilePanel] = useState<string | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  const clipboardRef = useRef<DesignElement[]>([]);
 
   // Advanced Color Picker State
   const [colorPicker, setColorPicker] = useState<{
     isOpen: boolean;
     color: string;
+    cmyk?: { c: number, m: number, y: number, k: number } | null;
     label: string;
-    onChange: (color: string) => void;
+    onChange: (color: string, cmyk?: { c: number, m: number, y: number, k: number } | null) => void;
   }>({
     isOpen: false,
     color: '#ffffff',
@@ -398,9 +405,19 @@ function DesignEditorInternal({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable || target.closest('.cm-editor') !== null;
 
-      if (e.key === 'Escape' && !isInput) {
+      if (isInput) {
+        // Allow undo/redo in inputs but don't trigger our design shortcuts
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          handleSave();
+        }
+        return;
+      }
+
+      // --- ESCAPE ---
+      if (e.key === 'Escape') {
         e.preventDefault();
         if (croppingElementId) {
           setCroppingElementId(null);
@@ -415,68 +432,170 @@ function DesignEditorInternal({
         }
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key === 'x' && !isInput) {
-        // Remove last point from live path (while drawing)
-        if (activeTool === 'pen' && livePath) {
-          e.preventDefault();
-          setLivePath(prev => {
-            if (!prev || prev.length <= 1) return null;
-            const next = prev.slice(0, -1);
-            livePathRef.current = next;
-            return next;
-          });
+      // --- TOOLS ---
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (e.key.toLowerCase() === 'p') { 
+          e.preventDefault(); 
+          if (activeTool === 'pen') {
+            finalizePath();
+          } else { 
+            setActiveTool('pen'); 
+            setActiveLeftPanel('pen');
+            setLeftOpen(false); 
+          } 
         }
-        // Remove last point from a finalized path element being edited
-        if (pathEditingElementId) {
-          e.preventDefault();
-          const editingEl = findElementRecursive(currentElements, pathEditingElementId);
-          if (editingEl?.pathPoints) {
-            if (editingEl.pathPoints.length <= 2) {
-              // Too few points — delete the element entirely
-              updatePage(currentPage, {
-                elements: currentElements.filter(el => el.id !== pathEditingElementId)
-              });
-              setPathEditingElementId(null);
-              setSelectedElementIds([]);
-            } else {
-              const newPoints = editingEl.pathPoints.slice(0, -1);
-              // Open the path so it no longer auto-joins to the first point
-              updateElement(pathEditingElementId, { pathPoints: newPoints, isPathClosed: false });
-            }
-          }
+        if (e.key.toLowerCase() === 't') { 
+            e.preventDefault(); 
+            setActiveLeftPanel('elements');
+            setLeftOpen(true);
+            setActiveTool('select');
+        }
+        if (e.key.toLowerCase() === 'a') { 
+            e.preventDefault(); 
+            setActiveLeftPanel('ai');
+            setLeftOpen(true);
+            setActiveTool('select');
+        }
+        if (e.key.toLowerCase() === 'd') { 
+            e.preventDefault(); 
+            setActiveLeftPanel('brush');
+            setActiveTool('brush');
+            setLeftOpen(true);
+        }
+        if (e.key.toLowerCase() === 'q') { 
+            e.preventDefault(); 
+            setActiveLeftPanel('qrcode');
+            setLeftOpen(true);
+            setActiveTool('select');
         }
       }
 
+      // --- HELP ---
+      if (e.key === 'F1') {
+        e.preventDefault();
+        setIsHelpOpen(true);
+      }
+
+      // --- EDIT & CLIPBOARD ---
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'a') { e.preventDefault(); setSelectedElementIds(currentElements.map(el => el.id)); }
+        if (e.key === 'd') { e.preventDefault(); handleDuplicateElement(); }
+        if (e.key === 'c') {
+            if (selectedElements.length > 0) {
+                e.preventDefault();
+                clipboardRef.current = JSON.parse(JSON.stringify(selectedElements));
+                toast({ title: 'Copied to clipboard' });
+            }
+        }
+        if (e.key === 'x') {
+            if (selectedElements.length > 0) {
+                e.preventDefault();
+                clipboardRef.current = JSON.parse(JSON.stringify(selectedElements));
+                handleDeleteElement();
+                toast({ title: 'Cut to clipboard' });
+            }
+        }
+        if (e.key === 'v') {
+            if (clipboardRef.current.length > 0) {
+                e.preventDefault();
+                const newElements = clipboardRef.current.map(el => ({
+                    ...el,
+                    id: crypto.randomUUID(),
+                    x: el.x + 20,
+                    y: el.y + 20
+                }));
+                updatePage(currentPage, { elements: [...currentElements, ...newElements] });
+                setSelectedElementIds(newElements.map(el => el.id));
+                toast({ title: 'Pasted elements' });
+            }
+        }
+      }
+
+      // --- LAYERS & ARRANGE ---
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'g') {
+          e.preventDefault();
+          if (e.shiftKey) handleUngroup();
+          else handleGroup();
+        }
+        if (e.key === '[') { e.preventDefault(); moveLayer(e.shiftKey ? 'back' : 'backward'); }
+        if (e.key === ']') { e.preventDefault(); moveLayer(e.shiftKey ? 'front' : 'forward'); }
+        if (e.key === '\\') { e.preventDefault(); setRightOpen(!rightOpen); }
+        if (e.ctrlKey || e.metaKey) {
+            if (e.altKey && e.key.toLowerCase() === 'm') {
+                e.preventDefault();
+                if (selectedElement) setMaskingElementId(selectedElement.id);
+            }
+        }
+      }
+
+      // --- DELETE ---
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!isInput && selectedElementIds.length > 0) {
+          e.preventDefault();
+          handleDeleteElement();
+        }
+      }
+
+      // --- FILE ---
+      if ((e.ctrlKey || e.metaKey)) {
+        if (e.key === 's') { e.preventDefault(); handleSave(); }
+        if (e.shiftKey && e.key.toLowerCase() === 'p') { e.preventDefault(); handlePreview(); }
+      }
+
+      // --- HISTORY ---
+      if ((e.ctrlKey || e.metaKey)) {
+        if (e.key === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) redo();
+          else undo();
+        }
+        if (e.key === 'y') { e.preventDefault(); redo(); }
+      }
+
+      // --- VIEW (Zoom) ---
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '=' || e.key === '+') { e.preventDefault(); handleZoomIn(); }
+        if (e.key === '-' || e.key === '_') { e.preventDefault(); handleZoomOut(); }
+        if (e.key === '0') { e.preventDefault(); resetView(); }
+      }
+
+      // --- NAVIGATION (Layers) ---
+      if (e.key === 'Tab') {
+          if (!isInput && currentElements.length > 0) {
+              e.preventDefault();
+              const currentIndex = selectedElementIds.length === 1 
+                ? currentElements.findIndex(el => el.id === selectedElementIds[0])
+                : -1;
+              const nextIndex = (currentIndex + 1) % currentElements.length;
+              setSelectedElementIds([currentElements[nextIndex].id]);
+          }
+      }
+
+      // --- MOVEMENT ---
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        if (!isInput && selectedElements.length > 0) {
+          e.preventDefault();
+          const step = e.shiftKey ? 10 : 1;
+          beginTransaction();
+          selectedElements.forEach(el => {
+            let dx = 0, dy = 0;
+            if (e.key === 'ArrowLeft') dx = -step;
+            if (e.key === 'ArrowRight') dx = step;
+            if (e.key === 'ArrowUp') dy = -step;
+            if (e.key === 'ArrowDown') dy = step;
+            updateElement(el.id, { x: el.x + dx, y: el.y + dy });
+          });
+          endTransaction();
+        }
+      }
+
+      // --- PANNING ---
       if (e.key === ' ' && !e.repeat && !isInput) {
         e.preventDefault();
         setIsSpacePressed(true);
         if (mainCanvasRef.current) {
           mainCanvasRef.current.style.cursor = 'grab';
-        }
-      }
-
-      if (e.key.toLowerCase() === 'p' && !isInput) {
-        e.preventDefault();
-        if (activeTool === 'pen') {
-          finalizePath();
-        } else {
-          setActiveTool('pen');
-          setLeftOpen(false);
-        }
-      }
-
-      if (e.key === 'Enter' && activeTool === 'pen' && !isInput) {
-        e.preventDefault();
-        finalizePath();
-      }
-
-      if ((e.ctrlKey || e.metaKey) && !isInput) {
-        if (e.key === 'z' && !e.shiftKey) {
-          e.preventDefault();
-          undo();
-        } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
-          e.preventDefault();
-          redo();
         }
       }
     };
@@ -1506,22 +1625,38 @@ function DesignEditorInternal({
   const handleSetSpecialFinish = (active: boolean, foil?: FoilType | null) => {
     if (selectedElementIds.length !== 1) return;
     const selectedId = selectedElementIds[0];
+    const props = active ? { spotUv: true, foilId: foil?.id } : { spotUv: false, foilId: undefined };
 
-    if (!active) {
-      updateElement(selectedId, { spotUv: false, foilId: undefined });
-    } else {
-      if (foil) {
-        updateElement(selectedId, {
-          spotUv: true,
-          foilId: foil.id,
-        });
-      } else {
-        updateElement(selectedId, {
-          spotUv: true,
-          foilId: undefined,
-        });
+    const applyRecursive = (el: DesignElement): DesignElement => {
+      const updated = { ...el, ...props };
+      if (updated.type === 'group' && updated.children) {
+        updated.children = updated.children.map(applyRecursive);
       }
-    }
+      return updated;
+    };
+
+    setIsDirty(true);
+    setState(prev => {
+      if (!prev) return prev;
+      
+      const recursiveUpdateWithChildren = (els: DesignElement[], targetId: string): DesignElement[] => {
+        return els.map(el => {
+          if (el.id === targetId) return applyRecursive(el);
+          if (el.type === 'group' && el.children) {
+            const newChildren = recursiveUpdateWithChildren(el.children, targetId);
+            if (newChildren !== el.children) return { ...el, children: newChildren };
+          }
+          return el;
+        });
+      };
+
+      const currentElementsForPage = prev.pages[currentPage]?.elements || [];
+      const newPageElements = recursiveUpdateWithChildren(currentElementsForPage, selectedId);
+      
+      const newPages = [...prev.pages];
+      newPages[currentPage] = { ...newPages[currentPage], elements: newPageElements };
+      return { ...prev, pages: newPages };
+    });
   };
 
   const handleDuplicateElement = () => {
@@ -1741,7 +1876,7 @@ function DesignEditorInternal({
             setCroppingElementId={setCroppingElementId}
             isAdmin={isAdmin}
             onMoveLayer={moveLayer}
-            onOpenColorPicker={(label, color, onChange) => setColorPicker({ isOpen: true, label, color, onChange })}
+            onOpenColorPicker={(label, color, onChange, cmyk) => setColorPicker({ isOpen: true, label, color, onChange, cmyk })}
           />
         </div>
       );
@@ -1819,6 +1954,8 @@ function DesignEditorInternal({
           <EditorSidebarLeft
             activeTool={activeTool}
             setActiveTool={setActiveTool}
+            activePanel={activeLeftPanel}
+            setActivePanel={setActiveLeftPanel}
             isAdmin={isAdmin}
             onAddImage={handleAddImageFromLibrary}
             onAddImageNoMask={handleAddImageNoMask}
@@ -1844,7 +1981,7 @@ function DesignEditorInternal({
             setBrushOptions={setBrushOptions}
             onClearBrush={handleClearBrushStrokes}
             finalizePath={finalizePath}
-            onOpenColorPicker={(label, color, onChange) => setColorPicker({ isOpen: true, label, color, onChange })}
+            onOpenColorPicker={(label, color, onChange, cmyk) => setColorPicker({ isOpen: true, label, color, onChange, cmyk })}
             product={product}
             canvasWidth={product.width}
             canvasHeight={product.height}
@@ -1917,7 +2054,7 @@ function DesignEditorInternal({
                       setMaskingElementId={setMaskingElementId}
                       isAdmin={isAdmin}
                       onMoveLayer={moveLayer}
-                      onOpenColorPicker={(label, color, onChange) => setColorPicker({ isOpen: true, label, color, onChange })}
+                      onOpenColorPicker={(label, color, onChange, cmyk) => setColorPicker({ isOpen: true, label, color, onChange, cmyk })}
                       design={initialDesign}
                     />
                   </div>
@@ -1978,6 +2115,67 @@ function DesignEditorInternal({
         </div>
       </div>
       <LoadDesignDialog isOpen={isLoadDialogOpen} onOpenChange={setIsLoadDialogOpen} onLoad={handleLoadDesign} />
+      
+      <Sheet open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+          <SheetContent side="right" className="w-[400px] sm:w-[540px] overflow-y-auto">
+              <SheetHeader className="mb-6">
+                  <SheetTitle className="text-2xl font-bold flex items-center gap-2">
+                      <AmazoprintLogo className="h-6 w-auto" /> Keyboard Shortcuts
+                  </SheetTitle>
+              </SheetHeader>
+              <div className="space-y-8 pr-4">
+                  <ShortcutSection title="🎨 Tools" shortcuts={[
+                      { key: 'P', desc: 'Pen Tool' },
+                      { key: 'T', desc: 'Text Tool' },
+                      { key: 'A', desc: 'AI Tool' },
+                      { key: 'D', desc: 'Draw Tool' },
+                      { key: 'Q', desc: 'QR Tool' },
+                  ]} />
+                  <ShortcutSection title="📦 Layers" shortcuts={[
+                      { key: 'Ctrl + G', desc: 'Group Elements' },
+                      { key: 'Ctrl + Shift + G', desc: 'Ungroup Elements' },
+                      { key: 'Delete', desc: 'Delete Selection' },
+                      { key: 'Ctrl + Alt + M', desc: 'Mask Layer' },
+                  ]} />
+                  <ShortcutSection title="✂️ Edit" shortcuts={[
+                      { key: 'Ctrl + X', desc: 'Cut' },
+                      { key: 'Ctrl + C', desc: 'Copy' },
+                      { key: 'Ctrl + V', desc: 'Paste' },
+                      { key: 'Ctrl + A', desc: 'Select All' },
+                      { key: 'Ctrl + D', desc: 'Duplicate' },
+                  ]} />
+                  <ShortcutSection title="💾 File" shortcuts={[
+                      { key: 'Ctrl + S', desc: 'Save Design' },
+                      { key: 'Ctrl + Shift + P', desc: 'Preview' },
+                  ]} />
+                  <ShortcutSection title="🔄 History" shortcuts={[
+                      { key: 'Ctrl + Z', desc: 'Undo' },
+                      { key: 'Ctrl + Shift + Z', desc: 'Redo' },
+                  ]} />
+                  <ShortcutSection title="🔍 View" shortcuts={[
+                      { key: 'Ctrl + +', desc: 'Zoom In' },
+                      { key: 'Ctrl + -', desc: 'Zoom Out' },
+                      { key: 'Ctrl + 0', desc: 'Reset Zoom' },
+                  ]} />
+                  <ShortcutSection title="🧭 Navigation" shortcuts={[
+                      { key: 'Tab', desc: 'Next Element' },
+                      { key: 'Ctrl + \\', desc: 'Toggle Panels' },
+                      { key: 'F1', desc: 'Open Help' },
+                  ]} />
+                  <ShortcutSection title="🎯 Movement" shortcuts={[
+                      { key: 'Arrows', desc: 'Move (1px)' },
+                      { key: 'Shift + Arrows', desc: 'Move (10px)' },
+                  ]} />
+                  <ShortcutSection title="📐 Arrange" shortcuts={[
+                      { key: 'Ctrl + ]', desc: 'Bring Forward' },
+                      { key: 'Ctrl + [', desc: 'Send Backward' },
+                      { key: 'Ctrl + Shift + ]', desc: 'Bring to Front' },
+                      { key: 'Ctrl + Shift + [', desc: 'Send to Back' },
+                  ]} />
+              </div>
+          </SheetContent>
+      </Sheet>
+
       {elementToCrop && (
         <CropDialog
           element={elementToCrop}
@@ -2028,9 +2226,10 @@ function DesignEditorInternal({
           <AdvancedColorPicker
             label={colorPicker.label}
             color={colorPicker.color}
-            onChange={(newColor) => {
-              setColorPicker(prev => ({ ...prev, color: newColor }));
-              colorPicker.onChange(newColor);
+            cmyk={colorPicker.cmyk}
+            onChange={(newColor, newCmyk) => {
+              setColorPicker(prev => ({ ...prev, color: newColor, cmyk: newCmyk }));
+              colorPicker.onChange(newColor, newCmyk);
             }}
             onClose={() => setColorPicker(prev => ({ ...prev, isOpen: false }))}
           />
@@ -2038,6 +2237,24 @@ function DesignEditorInternal({
       </AnimatePresence>
     </>
   );
+}
+
+function ShortcutSection({ title, shortcuts }: { title: string, shortcuts: { key: string, desc: string }[] }) {
+    return (
+        <div className="space-y-3">
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">{title}</h3>
+            <div className="grid gap-2">
+                {shortcuts.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between group">
+                        <span className="text-sm text-foreground/80">{s.desc}</span>
+                        <kbd className="pointer-events-none inline-flex h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                            {s.key}
+                        </kbd>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 }
 
 export function DesignEditor(props: DesignEditorProps) {

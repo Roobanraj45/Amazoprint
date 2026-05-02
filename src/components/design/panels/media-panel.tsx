@@ -124,7 +124,7 @@ export const MediaPanel = ({ onImageSelect, onAddShape, onEmojiSelect, onAddSvgS
                   <div className="grid grid-cols-3 gap-2">
                     {searchResults.assets.map((asset, index) => (
                       <div key={`search-asset-${index}`} className="cursor-pointer aspect-square relative overflow-hidden rounded-md group bg-muted hover:bg-accent" onClick={() => onImageSelect(asset)}>
-                        <Image src={asset} alt={`User asset ${index + 1}`} fill className="object-contain p-2"/>
+                        <img src={asset} alt={`User asset ${index + 1}`} className="object-contain w-full h-full p-2"/>
                       </div>
                     ))}
                   </div>

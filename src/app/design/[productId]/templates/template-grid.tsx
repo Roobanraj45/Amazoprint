@@ -80,11 +80,9 @@ export function TemplateGrid({ templates, product, searchParams }: { templates: 
                 <Card className="h-full overflow-hidden border-border/40 bg-card/40 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-2 group">
                   <CardHeader className="p-0 relative aspect-video bg-muted/30 overflow-hidden border-b border-border/40">
                     {(() => {
-                        // Unit guard: if width is very large, it's likely already in pixels
-                        const rawWidth = template.width || 300;
-                        const rawHeight = template.height || 200;
-                        const widthInPx = rawWidth > 600 ? rawWidth : Math.round(rawWidth * MM_TO_PX);
-                        const heightInPx = rawHeight > 600 ? rawHeight : Math.round(rawHeight * MM_TO_PX);
+                        // Designs are always saved in mm in the database
+                        const widthInPx = Math.round((template.width || 300) * MM_TO_PX);
+                        const heightInPx = Math.round((template.height || 200) * MM_TO_PX);
 
                         const productForCanvas: Product = {
                           id: template.productSlug || 'custom',
@@ -119,29 +117,44 @@ export function TemplateGrid({ templates, product, searchParams }: { templates: 
                           console.error('Error parsing background:', e);
                         }
                         
-                        const containerWidth = 400; 
-                        const containerHeight = (containerWidth * 9) / 16;
-                        const scale = Math.min(containerWidth / widthInPx, containerHeight / heightInPx) * 0.85;
+                        // Responsive fit calculation
+                        const baseSize = 1000;
+                        const scale = Math.min(baseSize / widthInPx, (baseSize * 0.5625) / heightInPx) * 0.95;
 
                         return (
-                          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/40 overflow-hidden">
-                            <div style={{ width: widthInPx * scale, height: heightInPx * scale, position: 'relative', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.4)' }}>
-                              <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: widthInPx, height: heightInPx }}>
-                                <DesignCanvas
-                                  product={productForCanvas}
-                                  elements={elements}
-                                  background={background}
-                                  selectedElementIds={[]}
-                                  guides={template.guides as Guide[] || []}
-                                  showRulers={false}
-                                  showGrid={false}
-                                  showPrintGuidelines={false}
-                                  gridSize={20}
-                                  bleed={0}
-                                  safetyMargin={0}
-                                  viewState={{ zoom: 1, pan: { x: 0, y: 0 } }}
-                                  isPreview={true}
-                                />
+                          <div className="absolute inset-0 flex items-center justify-center p-4 bg-zinc-950/40 overflow-hidden">
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div style={{ 
+                                width: widthInPx * scale, 
+                                height: heightInPx * scale, 
+                                position: 'relative', 
+                                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+                                transform: `scale(${1 / (baseSize / 350)})`
+                              }} className="scale-[0.35] transition-transform duration-700 group-hover:scale-[0.37]">
+                                <div style={{ 
+                                  transform: `scale(${scale})`, 
+                                  transformOrigin: 'top left', 
+                                  width: widthInPx, 
+                                  height: heightInPx,
+                                  position: 'relative',
+                                  overflow: 'hidden'
+                                }}>
+                                  <DesignCanvas
+                                    product={productForCanvas}
+                                    elements={elements}
+                                    background={background}
+                                    selectedElementIds={[]}
+                                    guides={template.guides as Guide[] || []}
+                                    showRulers={false}
+                                    showGrid={false}
+                                    showPrintGuidelines={false}
+                                    gridSize={20}
+                                    bleed={18}
+                                    safetyMargin={18}
+                                    viewState={{ zoom: 1, pan: { x: 0, y: 0 } }}
+                                    isPreview={true}
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>

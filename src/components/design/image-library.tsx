@@ -160,11 +160,10 @@ export function ImageLibrary({ onImageSelect, isAdmin = false }: ImageLibraryPro
             className="cursor-pointer aspect-square relative overflow-hidden rounded-md group bg-muted border border-border/20 shadow-sm"
             onClick={() => onImageSelect(url)}
           >
-             <Image
+             <img
               src={url}
               alt=""
-              fill
-              className="object-contain p-1 transition-transform group-hover:scale-105"
+              className="object-contain w-full h-full p-1 transition-transform group-hover:scale-105"
               loading="lazy"
             />
             <div className="absolute inset-0 bg-black/5 group-hover:bg-black/15 transition-colors" />

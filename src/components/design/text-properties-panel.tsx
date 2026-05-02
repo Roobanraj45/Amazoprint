@@ -32,7 +32,7 @@ type TextPropertiesPanelProps = {
     onUpdate: (id: string, newProps: Partial<DesignElement>) => void;
     product: Product;
     isAdmin?: boolean;
-    onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
+    onOpenColorPicker: (label: string, color: string, onChange: (color: string, cmyk?: { c: number, m: number, y: number, k: number } | null) => void, cmyk?: { c: number, m: number, y: number, k: number } | null) => void;
 };
 
 const GOOGLE_FONTS = [
@@ -344,7 +344,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin, onOpe
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Text color</Label>
                                     <Button variant="outline" className="h-9 w-full px-2 justify-start rounded-lg border-slate-200 bg-white hover:bg-slate-50 transition-all shadow-sm"
-                                        onClick={() => onOpenColorPicker("Text color", element.color || "#000000", (color) => handleUpdate({ color }))}>
+                                        onClick={() => onOpenColorPicker("Text color", element.color || "#000000", (color, cmyk) => handleUpdate({ color, cmyk }), element.cmyk)}>
                                         <div className="w-4 h-4 rounded-md border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: element.color || "#000000" }} />
                                         <span className="text-[10px] font-mono text-slate-700">{element.color || "#000000"}</span>
                                     </Button>
@@ -371,7 +371,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin, onOpe
                                                 <div className="flex-1 space-y-1">
                                                     <Label className="text-[9px] font-bold text-slate-500 uppercase ml-1 tracking-widest">Step {i + 1}</Label>
                                                     <Button variant="outline" className="h-8 w-full px-2 justify-start rounded-lg border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all shadow-sm"
-                                                        onClick={() => onOpenColorPicker(`Step ${i + 1} color`, stop.color, (c) => handleSteppedStopChange(i, { color: c }))}>
+                                                        onClick={() => onOpenColorPicker(`Step ${i + 1} color`, stop.color, (c, cmyk) => handleSteppedStopChange(i, { color: c, cmyk }))}>
                                                         <div className="w-3.5 h-3.5 rounded-sm border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: stop.color }} />
                                                         <span className="text-[10px] font-mono text-slate-700">{stop.color}</span>
                                                     </Button>
@@ -397,7 +397,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin, onOpe
                             <div className="space-y-1.5">
                                 <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Stroke color</Label>
                                 <Button variant="outline" className="h-9 w-full px-2 justify-start rounded-lg border-slate-200 bg-white hover:bg-slate-100 transition-all shadow-sm"
-                                    onClick={() => onOpenColorPicker("Stroke color", element.textStrokeColor || "#000000", (c) => handleUpdate({ textStrokeColor: c }))}>
+                                    onClick={() => onOpenColorPicker("Stroke color", element.textStrokeColor || "#000000", (c, cmyk) => handleUpdate({ textStrokeColor: c, textStrokeCmyk: cmyk }), element.textStrokeCmyk)}>
                                     <div className="w-4 h-4 rounded-md border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: element.textStrokeColor || "#000000" }} />
                                     <span className="text-[10px] font-mono text-slate-700">{element.textStrokeColor || "#000000"}</span>
                                 </Button>
@@ -423,7 +423,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin, onOpe
                                 <div className="space-y-1.5">
                                     <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Shadow color</Label>
                                     <Button variant="outline" className="h-9 w-full px-2 justify-start rounded-lg border-slate-200 bg-white hover:bg-slate-50 transition-all shadow-sm"
-                                        onClick={() => onOpenColorPicker("Shadow color", firstShadow?.color || "#00000080", (c) => handleShadowChange({ color: c }))}>
+                                        onClick={() => onOpenColorPicker("Shadow color", firstShadow?.color || "#00000080", (c, cmyk) => handleShadowChange({ color: c, cmyk }), firstShadow?.cmyk)}>
                                         <div className="w-4 h-4 rounded-md border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: firstShadow?.color || "#00000080" }} />
                                         <span className="text-[10px] font-mono text-slate-700">{firstShadow?.color || "#00000080"}</span>
                                     </Button>

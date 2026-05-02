@@ -15,7 +15,7 @@ type GradientPickerProps = {
   onDirectionChange: (direction: number) => void;
   onTypeChange?: (type: 'linear' | 'radial') => void;
   gradientType?: 'linear' | 'radial';
-  onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
+  onOpenColorPicker: (label: string, color: string, onChange: (color: string, cmyk?: { c: number, m: number, y: number, k: number } | null) => void, cmyk?: { c: number, m: number, y: number, k: number } | null) => void;
 };
 
 export function GradientPicker({ 
@@ -93,7 +93,7 @@ export function GradientPicker({
                         <Button 
                             variant="ghost" 
                             className="h-7 w-full px-1.5 justify-start rounded-md bg-slate-50 hover:bg-slate-100 border border-slate-100 transition-all group-hover:border-primary/10"
-                            onClick={() => onOpenColorPicker(`Stop ${index + 1}`, stop.color, (color) => handleStopChange(index, { color }))}
+                            onClick={() => onOpenColorPicker(`Stop ${index + 1}`, stop.color, (color, cmyk) => handleStopChange(index, { color, cmyk }), stop.cmyk)}
                         >
                             <div className="w-3.5 h-3.5 rounded-sm border border-slate-200 shadow-sm mr-2 shrink-0" style={{ backgroundColor: stop.color }} />
                             <div className="flex items-center gap-2">

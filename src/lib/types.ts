@@ -13,6 +13,7 @@ export type FoilType = {
 export type GradientStop = {
   id: string;
   color: string;
+  cmyk?: { c: number; m: number; y: number; k: number; } | null;
   position: number; // 0 to 1
   weight?: number;
 };
@@ -23,6 +24,7 @@ export type Shadow = {
   offsetY: number;
   blur: number;
   color: string;
+  cmyk?: { c: number; m: number; y: number; k: number; } | null;
 };
 
 export type TextWarp = {
@@ -55,6 +57,7 @@ export type Background = {
   steppedGradientStops?: GradientStop[];
   steppedGradientDirection?: number;
   steppedGradientType?: 'linear' | 'radial';
+  cmyk?: { c: number; m: number; y: number; k: number; } | null;
   crop?: {
     top: number;
     right: number;
@@ -84,9 +87,11 @@ export type DesignElement = {
 
   // Generic styles
   backgroundColor?: string;
+  backgroundColorCmyk?: { c: number; m: number; y: number; k: number; } | null;
   boxShadow?: string; // CSS box-shadow string
   borderWidth?: number;
   borderColor?: string;
+  borderColorCmyk?: { c: number; m: number; y: number; k: number; } | null;
   borderStyle?: 'solid' | 'dashed' | 'dotted';
   skewX?: number;
   skewY?: number;
@@ -98,6 +103,7 @@ export type DesignElement = {
   color?: string; // For 'text' color, 'shape' solid fill or gradient tint, and 'image' tint.
   fontWeight?: 'normal' | 'bold';
   fontStyle?: 'normal' | 'italic';
+  cmyk?: { c: number; m: number; y: number; k: number; } | null;
   textDecoration?: 'none' | 'underline' | 'line-through';
   textShadows?: Shadow[];
   letterSpacing?: number; // in px
@@ -107,6 +113,7 @@ export type DesignElement = {
   verticalAlign?: 'top' | 'middle' | 'bottom';
   textStrokeWidth?: number;
   textStrokeColor?: string;
+  textStrokeCmyk?: { c: number; m: number; y: number; k: number; } | null;
   textWarp?: TextWarp;
   gradientDirectionMode?: 'angle' | 'horizontal' | 'vertical'; // For SVG text gradients
 
@@ -174,7 +181,9 @@ export type DesignElement = {
   // QR Code specific properties
   qrValue?: string;
   qrColor?: string;
+  qrColorCmyk?: { c: number; m: number; y: number; k: number; } | null;
   qrBgColor?: string;
+  qrBgColorCmyk?: { c: number; m: number; y: number; k: number; } | null;
   qrLevel?: 'L' | 'M' | 'Q' | 'H';
   qrIconSrc?: string;
   qrIconSize?: number; // as a percentage of QR code size

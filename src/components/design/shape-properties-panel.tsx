@@ -26,7 +26,7 @@ type ShapePropertiesPanelProps = {
     maskingElementId: string | null;
     setMaskingElementId: (id: string | null) => void;
     isAdmin?: boolean;
-    onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
+    onOpenColorPicker: (label: string, color: string, onChange: (color: string, cmyk?: { c: number, m: number, y: number, k: number } | null) => void, cmyk?: { c: number, m: number, y: number, k: number } | null) => void;
 };
 
 const PropSlider = ({ label, value, display, min, max, step, onChange }: any) => (
@@ -176,7 +176,7 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                                 <Button
                                     variant="outline"
                                     className="h-9 w-full px-3 justify-start rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all shadow-sm"
-                                    onClick={() => onOpenColorPicker("Shape color", element.color || "#cccccc", (color) => handleUpdate({ color }))}
+                                    onClick={() => onOpenColorPicker("Shape color", element.color || "#cccccc", (color, cmyk) => handleUpdate({ color, cmyk }), element.cmyk)}
                                 >
                                     <div className="w-4 h-4 rounded-md border border-slate-200 shadow-sm mr-3" style={{ backgroundColor: element.color || "#cccccc" }} />
                                     <span className="text-[11px] font-mono leading-none tracking-tight text-slate-700">{element.color || "#cccccc"}</span>
@@ -200,7 +200,7 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                                         <Button
                                             variant="outline"
                                             className="h-9 w-full px-3 justify-start rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all"
-                                            onClick={() => onOpenColorPicker("Overlay tint", element.color || "#000000", (c) => handleUpdate({ color: c }))}
+                                            onClick={() => onOpenColorPicker("Overlay tint", element.color || "#000000", (c, cmyk) => handleUpdate({ color: c, cmyk }), element.cmyk)}
                                         >
                                             <div className="w-4 h-4 rounded-md border border-white/20 shadow-sm mr-3" style={{ backgroundColor: element.color || "#000000" }} />
                                             <span className="text-[11px] font-mono leading-none tracking-tight">{element.color || "#000000"}</span>
@@ -234,7 +234,7 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                                                 <Button
                                                     variant="outline"
                                                     className="h-8 w-full px-2 justify-start rounded-lg border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all shadow-sm"
-                                                    onClick={() => onOpenColorPicker(`Step ${i + 1} color`, stop.color, (c) => handleSteppedStopChange(i, { color: c }))}
+                                                    onClick={() => onOpenColorPicker(`Step ${i + 1} color`, stop.color, (c, cmyk) => handleSteppedStopChange(i, { color: c, cmyk }), stop.cmyk)}
                                                 >
                                                     <div className="w-3.5 h-3.5 rounded-sm border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: stop.color }} />
                                                     <span className="text-[10px] font-mono leading-none text-slate-700">{stop.color}</span>
@@ -370,7 +370,7 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                             <Button
                                 variant="outline"
                                 className="h-10 w-full px-3 justify-start rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all"
-                                onClick={() => onOpenColorPicker("Stroke color", element.borderColor || "#000000", (c) => handleUpdate({ borderColor: c }))}
+                                onClick={() => onOpenColorPicker("Stroke color", element.borderColor || "#000000", (c, cmyk) => handleUpdate({ borderColor: c, borderColorCmyk: cmyk }), element.borderColorCmyk)}
                             >
                                 <div className="w-5 h-5 rounded-md border border-white/20 shadow-sm mr-3" style={{ backgroundColor: element.borderColor || "#000000" }} />
                                 <span className="text-xs font-mono">{element.borderColor || "#000000"}</span>

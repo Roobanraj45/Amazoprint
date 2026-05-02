@@ -64,7 +64,7 @@ type PropertiesPanelProps = {
   setMaskingElementId: (id: string | null) => void;
   isAdmin?: boolean;
   onMoveLayer: (direction: 'front' | 'back' | 'forward' | 'backward') => void;
-  onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
+  onOpenColorPicker: (label: string, color: string, onChange: (color: string, cmyk?: { c: number, m: number, y: number, k: number } | null) => void, cmyk?: { c: number, m: number, y: number, k: number } | null) => void;
   design?: any;
 };
 
@@ -365,7 +365,7 @@ export function PropertiesPanel({
                   <Button 
                     variant="outline" 
                     className="h-10 w-full px-3 justify-start rounded-xl border-slate-200 bg-white hover:bg-slate-100 transition-all shadow-sm"
-                    onClick={() => onOpenColorPicker("Background color", background.color || "#ffffff", (color) => handleBg({ color }))}
+                    onClick={() => onOpenColorPicker("Background color", background.color || "#ffffff", (color, cmyk) => handleBg({ color, cmyk }), background.cmyk)}
                   >
                     <div className="w-5 h-5 rounded-md border border-slate-200 shadow-sm mr-3" style={{ backgroundColor: background.color || "#ffffff" }} />
                     <span className="text-[11px] font-mono text-slate-700">{background.color || "#ffffff"}</span>
@@ -413,10 +413,10 @@ export function PropertiesPanel({
                           <Button 
                             variant="outline" 
                             className="h-8 w-full px-2 justify-start rounded-lg border-slate-200 bg-slate-50/50 hover:bg-slate-100 transition-all shadow-sm"
-                            onClick={() => onOpenColorPicker(`Step ${i + 1} color`, stop.color, (c) => {
+                            onClick={() => onOpenColorPicker(`Step ${i + 1} color`, stop.color, (c, cmyk) => {
                               const newStops = [...bgSteppedStops];
-                              if (newStops[i]) { newStops[i] = { ...newStops[i], color: c }; handleBg({ steppedGradientStops: newStops }); }
-                            })}
+                              if (newStops[i]) { newStops[i] = { ...newStops[i], color: c, cmyk }; handleBg({ steppedGradientStops: newStops }); }
+                            }, stop.cmyk)}
                           >
                             <div className="w-3.5 h-3.5 rounded-sm border border-slate-200 shadow-sm mr-2" style={{ backgroundColor: stop.color }} />
                             <span className="text-[10px] font-mono text-slate-700">{stop.color}</span>
@@ -648,7 +648,7 @@ export function PropertiesPanel({
                     <Button 
                       variant="outline" 
                       className="h-10 w-full px-3 justify-start rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all"
-                      onClick={() => onOpenColorPicker("Container background", element.backgroundColor || "transparent", (color) => onUpdate(element.id, { backgroundColor: color }))}
+                      onClick={() => onOpenColorPicker("Container background", element.backgroundColor || "transparent", (color, cmyk) => onUpdate(element.id, { backgroundColor: color, cmyk }), element.cmyk)}
                     >
                       <div 
                         className="w-5 h-5 rounded-md border border-white/20 shadow-sm mr-3" 

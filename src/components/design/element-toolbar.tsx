@@ -75,7 +75,7 @@ export function ElementToolbar({
   
   const element = selectedElements[0];
   const isSingleElementSelected = selectedElements.length === 1;
-  const canHaveSpotUv = isSingleElementSelected && ['shape', 'text', 'brush', 'image', 'qrcode', 'path'].includes(element.type);
+  const canHaveSpotUv = isSingleElementSelected && ['shape', 'text', 'brush', 'image', 'qrcode', 'path', 'group'].includes(element.type);
   const spotUvIsEnabled = !!element.spotUv;
 
   const handleSpotUvClick = () => {

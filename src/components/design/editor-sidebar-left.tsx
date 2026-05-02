@@ -43,6 +43,8 @@ const BrushToolPanel = lazy(() => import('./brush-tool-panel').then(m => ({ defa
 type EditorSidebarLeftProps = {
     activeTool: 'select' | 'pen' | 'brush';
     setActiveTool: (tool: 'select' | 'pen' | 'brush') => void;
+    activePanel: string;
+    setActivePanel: (panel: string) => void;
     isAdmin?: boolean;
     onAddImage: (src: string) => void;
     onAddImageNoMask: (src: string) => void;
@@ -86,8 +88,9 @@ export function EditorSidebarLeft({
     canvasHeight,
     onAddAIElements,
     currentElements,
+    activePanel,
+    setActivePanel,
 }: EditorSidebarLeftProps) {
-    const [activePanel, setActivePanel] = React.useState('upload');
     const [highlightedTab, setHighlightedTab] = React.useState<string | null>(null);
     const { setLeftOpen, leftOpen } = useSidebar();
 

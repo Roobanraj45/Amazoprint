@@ -63,19 +63,34 @@ const cmykToRgb = (c: number, m: number, y: number, k: number) => {
 
 interface AdvancedColorPickerProps {
     color: string
-    onChange: (color: string) => void
+    cmyk?: { c: number, m: number, y: number, k: number } | null
+    onChange: (color: string, cmyk?: { c: number, m: number, y: number, k: number } | null) => void
     onClose: () => void
     label?: string
 }
 
-export function AdvancedColorPicker({ color, onChange, onClose, label }: AdvancedColorPickerProps) {
+export function AdvancedColorPicker({ color, cmyk, onChange, onClose, label }: AdvancedColorPickerProps) {
     const { toast } = useToast();
     const [copied, setCopied] = React.useState(false);
     const isTransparent = color === 'transparent' || !color;
     const workingColor = isTransparent ? '#ffffff' : color;
-    const rgb = hexToRgb(workingColor);
-    const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
-    const cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+    
+    const initialRgb = hexToRgb(workingColor);
+    const [localRgb, setLocalRgb] = React.useState(initialRgb);
+    const [localCmyk, setLocalCmyk] = React.useState(cmyk || rgbToCmyk(initialRgb.r, initialRgb.g, initialRgb.b));
+    const [localHsv, setLocalHsv] = React.useState(rgbToHsv(initialRgb.r, initialRgb.g, initialRgb.b));
+    const [localHex, setLocalHex] = React.useState(workingColor);
+
+    // Sync only when external color or cmyk changes
+    React.useEffect(() => {
+        if (color !== 'transparent' && color !== localHex) {
+            const rgb = hexToRgb(color);
+            setLocalHex(color);
+            setLocalRgb(rgb);
+            setLocalCmyk(cmyk || rgbToCmyk(rgb.r, rgb.g, rgb.b));
+            setLocalHsv(rgbToHsv(rgb.r, rgb.g, rgb.b));
+        }
+    }, [color, cmyk]);
 
     const palette = [
         '#FFFFFF', '#000000', '#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6', '#A855F7',
@@ -83,8 +98,35 @@ export function AdvancedColorPicker({ color, onChange, onClose, label }: Advance
     ];
 
     const updateHsv = (h: number, s: number, v: number) => {
-        const next = hsvToRgb(h, s, v);
-        onChange(rgbToHex(next.r, next.g, next.b));
+        const rgb = hsvToRgb(h, s, v);
+        const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+        const nextCmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+        setLocalHsv({ h, s, v });
+        setLocalHex(hex);
+        setLocalRgb(rgb);
+        setLocalCmyk(nextCmyk);
+        onChange(hex, nextCmyk);
+    };
+
+    const updateRgb = (r: number, g: number, b: number) => {
+        const hex = rgbToHex(r, g, b);
+        const nextCmyk = rgbToCmyk(r, g, b);
+        setLocalRgb({ r, g, b });
+        setLocalHex(hex);
+        setLocalCmyk(nextCmyk);
+        setLocalHsv(rgbToHsv(r, g, b));
+        onChange(hex, nextCmyk);
+    };
+
+    const updateCmykValue = (key: string, value: number) => {
+        const next = { ...localCmyk, [key]: value };
+        setLocalCmyk(next);
+        const rgb = cmykToRgb(next.c, next.m, next.y, next.k);
+        const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+        setLocalHex(hex);
+        setLocalRgb(rgb);
+        setLocalHsv(rgbToHsv(rgb.r, rgb.g, rgb.b));
+        onChange(hex, next);
     };
 
     const handleCopy = () => {
@@ -103,7 +145,14 @@ export function AdvancedColorPicker({ color, onChange, onClose, label }: Advance
             // @ts-ignore
             const eyeDropper = new window.EyeDropper();
             const result = await eyeDropper.open();
-            onChange(result.sRGBHex);
+            const hex = result.sRGBHex;
+            const rgb = hexToRgb(hex);
+            const nextCmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+            setLocalHex(hex);
+            setLocalRgb(rgb);
+            setLocalCmyk(nextCmyk);
+            setLocalHsv(rgbToHsv(rgb.r, rgb.g, rgb.b));
+            onChange(hex, nextCmyk);
         } catch (e) {
             console.error(e);
         }
@@ -139,13 +188,13 @@ export function AdvancedColorPicker({ color, onChange, onClose, label }: Advance
                 {/* SV Canvas */}
                 <div
                     className="relative h-28 w-full rounded-xl border border-white/5 shadow-inner overflow-hidden cursor-crosshair"
-                    style={{ backgroundColor: `hsl(${hsv.h}, 100%, 50%)` }}
+                    style={{ backgroundColor: `hsl(${localHsv.h}, 100%, 50%)` }}
                     onMouseDown={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
                         const move = (mE: MouseEvent) => {
                             const s = Math.min(100, Math.max(0, ((mE.clientX - rect.left) / rect.width) * 100));
                             const v = Math.min(100, Math.max(0, (1 - (mE.clientY - rect.top) / rect.height) * 100));
-                            updateHsv(hsv.h, s, v);
+                            updateHsv(localHsv.h, s, v);
                         };
                         move(e.nativeEvent);
                         window.addEventListener('mousemove', move);
@@ -156,7 +205,7 @@ export function AdvancedColorPicker({ color, onChange, onClose, label }: Advance
                     <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
                     <motion.div 
                         className="absolute w-5 h-5 border-2 border-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] -translate-x-1/2 translate-y-1/2 z-10 pointer-events-none" 
-                        animate={{ left: `${hsv.s}%`, bottom: `${hsv.v}%` }}
+                        animate={{ left: `${localHsv.s}%`, bottom: `${localHsv.v}%` }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                     >
                         <div className="absolute inset-0.5 rounded-full border border-black/20" />
@@ -167,10 +216,10 @@ export function AdvancedColorPicker({ color, onChange, onClose, label }: Advance
                     {/* Hue Slider */}
                     <div className="flex-1 relative h-2.5 flex items-center">
                         <input
-                            type="range" min="0" max="360" value={hsv.h}
+                            type="range" min="0" max="360" value={localHsv.h}
                             className="w-full h-2 rounded-full appearance-none cursor-pointer shadow-sm hue-range z-10"
                             style={{ background: 'linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)' }}
-                            onChange={(e) => updateHsv(Number(e.target.value), hsv.s, hsv.v)}
+                            onChange={(e) => updateHsv(Number(e.target.value), localHsv.s, localHsv.v)}
                         />
                     </div>
                     
@@ -191,8 +240,15 @@ export function AdvancedColorPicker({ color, onChange, onClose, label }: Advance
                     <div className="relative flex-1">
                         <Hash size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
                         <Input 
-                            value={workingColor.replace('#', '')} 
-                            onChange={(e) => onChange(`#${e.target.value}`)} 
+                            value={localHex.replace('#', '')} 
+                            onChange={(e) => {
+                                const val = `#${e.target.value}`;
+                                setLocalHex(val);
+                                if (/^#[0-9A-F]{6}$/i.test(val)) {
+                                    const nextRgb = hexToRgb(val);
+                                    updateRgb(nextRgb.r, nextRgb.g, nextRgb.b);
+                                }
+                            }} 
                             className="h-8 pl-6 pr-2 text-[10px] font-mono rounded-lg bg-white/5 border-white/10 focus-visible:ring-1"
                             placeholder="FFFFFF"
                         />
@@ -211,7 +267,7 @@ export function AdvancedColorPicker({ color, onChange, onClose, label }: Advance
                 <div className="grid grid-cols-8 gap-1 pt-0.5">
                     {palette.map(c => {
                         const isTrans = c === 'transparent';
-                        const isActive = color === c;
+                        const isActive = localHex === c;
                         return (
                             <button
                                 key={c}
@@ -224,7 +280,14 @@ export function AdvancedColorPicker({ color, onChange, onClose, label }: Advance
                                     backgroundImage: isTrans ? 'repeating-conic-gradient(#ddd 0% 25%, transparent 0% 50%)' : undefined,
                                     backgroundSize: '4px 4px'
                                 }}
-                                onClick={() => onChange(c)}
+                                onClick={() => {
+                                    if (isTrans) {
+                                        onChange('transparent', null);
+                                    } else {
+                                        const nextRgb = hexToRgb(c);
+                                        updateRgb(nextRgb.r, nextRgb.g, nextRgb.b);
+                                    }
+                                }}
                             />
                         );
                     })}
@@ -237,15 +300,15 @@ export function AdvancedColorPicker({ color, onChange, onClose, label }: Advance
                         <TabsTrigger value="cmyk" className="text-[9px] font-bold rounded-md h-6">CMYK</TabsTrigger>
                     </TabsList>
                     <TabsContent value="rgb" className="pt-2 grid grid-cols-3 gap-1.5">
-                        <NumberField label="R" value={rgb.r} max={255} onChange={(v) => onChange(rgbToHex(v, rgb.g, rgb.b))} />
-                        <NumberField label="G" value={rgb.g} max={255} onChange={(v) => onChange(rgbToHex(rgb.r, v, rgb.b))} />
-                        <NumberField label="B" value={rgb.b} max={255} onChange={(v) => onChange(rgbToHex(rgb.r, rgb.g, v))} />
+                        <NumberField label="R" value={localRgb.r} max={255} onChange={(v) => updateRgb(v, localRgb.g, localRgb.b)} />
+                        <NumberField label="G" value={localRgb.g} max={255} onChange={(v) => updateRgb(localRgb.r, v, localRgb.b)} />
+                        <NumberField label="B" value={localRgb.b} max={255} onChange={(v) => updateRgb(localRgb.r, localRgb.g, v)} />
                     </TabsContent>
                     <TabsContent value="cmyk" className="pt-2 grid grid-cols-4 gap-1.5">
-                        <NumberField label="C" value={cmyk.c} max={100} onChange={(v) => { const r = cmykToRgb(v, cmyk.m, cmyk.y, cmyk.k); onChange(rgbToHex(r.r, r.g, r.b)); }} />
-                        <NumberField label="M" value={cmyk.m} max={100} onChange={(v) => { const r = cmykToRgb(cmyk.c, v, cmyk.y, cmyk.k); onChange(rgbToHex(r.r, r.g, r.b)); }} />
-                        <NumberField label="Y" value={cmyk.y} max={100} onChange={(v) => { const r = cmykToRgb(cmyk.c, cmyk.m, v, cmyk.k); onChange(rgbToHex(r.r, r.g, r.b)); }} />
-                        <NumberField label="K" value={cmyk.k} max={100} onChange={(v) => { const r = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, v); onChange(rgbToHex(r.r, r.g, r.b)); }} />
+                        <NumberField label="C" value={localCmyk.c} max={100} onChange={(v) => updateCmykValue('c', v)} />
+                        <NumberField label="M" value={localCmyk.m} max={100} onChange={(v) => updateCmykValue('m', v)} />
+                        <NumberField label="Y" value={localCmyk.y} max={100} onChange={(v) => updateCmykValue('y', v)} />
+                        <NumberField label="K" value={localCmyk.k} max={100} onChange={(v) => updateCmykValue('k', v)} />
                     </TabsContent>
                 </Tabs>
             </div>

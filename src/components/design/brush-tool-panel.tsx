@@ -14,6 +14,7 @@ type BrushOptions = {
     size: number;
     flow: number;
     color: string;
+    cmyk?: { c: number; m: number; y: number; k: number; } | null;
     softness: number;
 };
 
@@ -21,7 +22,7 @@ type BrushToolPanelProps = {
     options: BrushOptions;
     setOptions: React.Dispatch<React.SetStateAction<BrushOptions>>;
     onClear: () => void;
-    onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
+    onOpenColorPicker: (label: string, color: string, onChange: (color: string, cmyk?: { c: number, m: number, y: number, k: number } | null) => void, cmyk?: { c: number, m: number, y: number, k: number } | null) => void;
 };
 
 export function BrushToolPanel({ options, setOptions, onClear, onOpenColorPicker }: BrushToolPanelProps) {
@@ -130,7 +131,10 @@ export function BrushToolPanel({ options, setOptions, onClear, onOpenColorPicker
                     <Button 
                         variant="outline" 
                         className="h-10 w-full px-3 justify-start rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all"
-                        onClick={() => onOpenColorPicker("Brush color", options.color, (color) => update('color', color))}
+                        onClick={() => onOpenColorPicker("Brush color", options.color, (color, cmyk) => {
+                            update('color', color);
+                            update('cmyk', cmyk);
+                        }, options.cmyk)}
                     >
                         <div className="w-5 h-5 rounded-md border border-white/20 shadow-sm mr-3" style={{ backgroundColor: options.color }} />
                         <span className="text-xs font-mono">{options.color}</span>
