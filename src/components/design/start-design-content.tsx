@@ -10,11 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase } from 'lucide-react';
+import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle } from 'lucide-react';
+import { getFoilTypes } from '@/app/actions/foil-actions';
+import { FoilType } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
-import { resolveImagePath } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { resolveImagePath, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +48,11 @@ export function StartDesignContent() {
   const [pages, setPages] = useState('1');
   const [spotUv, setSpotUv] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
+  const [foilTypes, setFoilTypes] = useState<FoilType[]>([]);
+
+  useEffect(() => {
+    getFoilTypes().then(setFoilTypes);
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -275,42 +281,6 @@ export function StartDesignContent() {
               </aside>
 
               <div className="lg:col-span-7 space-y-12">
-
-              {discountRules.length > 0 && (
-                        <Card className="border shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
-                            <CardHeader className="bg-amber-50/50 dark:bg-amber-900/10 border-b py-3">
-                                <CardTitle className="text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                                    <Sparkles className="w-4 h-4" />
-                                    Exclusive Offers
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-3">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                    {discountRules.map(rule => {
-                                        const qty = parseInt(quantity, 10);
-                                        const isActive = !isNaN(qty) && qty >= (rule.minQuantity || 1) && (!rule.maxQuantity || qty <= rule.maxQuantity);
-                                        const discountText = rule.discountType === 'percentage'
-                                            ? `${rule.discountValue}% OFF`
-                                            : `₹${rule.discountValue} OFF`;
-                                        return (
-                                            <div key={rule.id} className={cn(
-                                                "p-2 rounded-lg border text-center transition-all", 
-                                                isActive 
-                                                    ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm" 
-                                                    : "bg-muted/30 border-slate-100 dark:border-slate-800"
-                                            )}>
-                                                <p className="font-semibold text-[11px] text-muted-foreground">
-                                                    {rule.minQuantity || 1}{rule.maxQuantity ? ` - ${rule.maxQuantity}` : '+'} qty
-                                                </p>
-                                                <p className={cn("font-bold text-xs", isActive ? "text-primary" : "text-foreground")}>{discountText}</p>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-
               <div className="space-y-6">
                     <Card className="border shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
                       <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x dark:divide-slate-800">
@@ -404,6 +374,41 @@ export function StartDesignContent() {
                                 })}
                             </div>
                         </div>
+                    )}
+
+                    {discountRules.length > 0 && (
+                        <Card className="border shadow-sm bg-white dark:bg-slate-900 overflow-hidden mb-6">
+                            <CardHeader className="bg-amber-50/50 dark:bg-amber-900/10 border-b py-3">
+                                <CardTitle className="text-xs flex items-center gap-2 text-amber-700 dark:text-amber-400 uppercase tracking-widest font-black">
+                                    <Sparkles className="w-4 h-4" />
+                                    Volume Discounts
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {discountRules.map(rule => {
+                                        const qty = parseInt(quantity, 10);
+                                        const isActive = !isNaN(qty) && qty >= (rule.minQuantity || 1) && (!rule.maxQuantity || qty <= rule.maxQuantity);
+                                        const discountText = rule.discountType === 'percentage'
+                                            ? `${rule.discountValue}% OFF`
+                                            : `₹${rule.discountValue} OFF`;
+                                        return (
+                                            <div key={rule.id} className={cn(
+                                                "p-2 rounded-lg border text-center transition-all", 
+                                                isActive 
+                                                    ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm" 
+                                                    : "bg-muted/30 border-slate-100 dark:border-slate-800"
+                                            )}>
+                                                <p className="font-semibold text-[10px] text-muted-foreground leading-none mb-1">
+                                                    {rule.minQuantity || 1}{rule.maxQuantity ? `-${rule.maxQuantity}` : '+'} qty
+                                                </p>
+                                                <p className={cn("font-bold text-[11px]", isActive ? "text-primary" : "text-foreground")}>{discountText}</p>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </CardContent>
+                        </Card>
                     )}
 
                     <Card className="border-2 border-primary/20 shadow-xl bg-primary/[0.02] dark:bg-slate-900 overflow-hidden">
@@ -528,19 +533,19 @@ export function StartDesignContent() {
             </div>
 
             {/* NEW: Formal Product Intelligence Section */}
-            <div className="mt-32 space-y-32 border-t border-slate-100 dark:border-slate-800 pt-32 pb-20">
+            <div className="mt-16 space-y-16 border-t border-slate-100 dark:border-slate-800 pt-16 pb-12">
                 
-                {/* 1. Feature Arsenal - Formal Grid */}
-                <div className="space-y-12">
-                    <div className="flex flex-col items-center text-center space-y-4 max-w-3xl mx-auto">
-                        <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-6 py-2 text-[11px] font-bold rounded-full">Capability matrix</Badge>
-                        <h2 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">Industrial feature arsenal</h2>
-                        <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                {/* 1. Feature Arsenal */}
+                <div className="space-y-10">
+                    <div className="flex flex-col items-center text-center space-y-3 max-w-3xl mx-auto">
+                        <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-5 py-1.5 text-[10px] font-bold rounded-full">Capability matrix</Badge>
+                        <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">Industrial feature arsenal</h2>
+                        <p className="text-xs text-slate-500 font-medium leading-relaxed">
                             Explore the technical capabilities and premium finishes engineered into every unit of {product.name}.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {[
                             { 
                                 icon: Sparkles, 
@@ -558,16 +563,18 @@ export function StartDesignContent() {
                                 features: ["Next-Day Dispatch", "Live Tracking", "Safe-Transit Packing", "Volume Scaling"] 
                             },
                         ].map((group, i) => (
-                            <div key={i} className="p-8 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 transition-all duration-500 group">
-                                <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-primary mb-8 shadow-sm group-hover:scale-110 transition-transform">
-                                    <group.icon size={24} />
+                            <div key={i} className="p-6 rounded-[1.5rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 transition-all duration-500 group">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
+                                        <group.icon size={20} />
+                                    </div>
                                 </div>
-                                <h3 className="text-lg font-bold mb-6 text-slate-800 dark:text-slate-100">{group.title}</h3>
-                                <ul className="space-y-4">
+                                <h3 className="text-md font-bold mb-4 text-slate-800 dark:text-slate-100">{group.title}</h3>
+                                <ul className="space-y-3">
                                     {group.features.map((feature, j) => (
-                                        <li key={j} className="flex items-center gap-3">
-                                            <CheckCircle2 size={14} className="text-primary/60 shrink-0" />
-                                            <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-400">{feature}</span>
+                                        <li key={j} className="flex items-center gap-2.5">
+                                            <CheckCircle2 size={12} className="text-primary/60 shrink-0" />
+                                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{feature}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -576,19 +583,19 @@ export function StartDesignContent() {
                     </div>
                 </div>
 
-                {/* 2. Technical Specs & Interactive Variant Matrix */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+                {/* 2. Technical Specs & Variant Matrix */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                     {/* Left: Deep Specs */}
-                    <div className="lg:col-span-7 space-y-10">
-                        <div className="space-y-4">
-                            <h3 className="text-2xl font-bold flex items-center gap-4 text-slate-800 dark:text-slate-100">
-                                <div className="w-2 h-8 bg-primary rounded-full" />
+                    <div className="lg:col-span-7 space-y-8">
+                        <div className="space-y-3">
+                            <h3 className="text-xl font-bold flex items-center gap-3 text-slate-800 dark:text-slate-100">
+                                <div className="w-1.5 h-6 bg-primary rounded-full" />
                                 Technical blueprint
                             </h3>
-                            <p className="text-sm text-slate-500 font-medium">Standard industrial parameters for {subProduct.width}x{subProduct.height} {subProduct.unitType} production.</p>
+                            <p className="text-[11px] text-slate-500 font-medium">Standard industrial parameters for {subProduct.width}x{subProduct.height} {subProduct.unitType} production.</p>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {[
                                 { label: 'Paper Stock', value: subProduct.priceType === 'per_sqft' ? 'Industrial Flex' : '350 GSM Silk' },
                                 { label: 'Coating System', value: spotUv ? 'Spot UV + Matte' : 'Industrial Aqueous' },
@@ -597,21 +604,21 @@ export function StartDesignContent() {
                                 { label: 'Margins', value: '3.0mm Safety' },
                                 { label: 'Resolution', value: '300 DPI Min' },
                             ].map((spec, i) => (
-                                <div key={i} className="flex flex-col gap-2 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:shadow-md transition-all">
-                                    <span className="text-[11px] font-bold text-slate-400">{spec.label}</span>
-                                    <span className="text-sm font-semibold text-slate-900 dark:text-white">{spec.value}</span>
+                                <div key={i} className="flex flex-col gap-1.5 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:shadow-sm transition-all">
+                                    <span className="text-[10px] font-bold text-slate-400">{spec.label}</span>
+                                    <span className="text-[11px] font-semibold text-slate-900 dark:text-white">{spec.value}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     {/* Right: Interactive Variant Selector */}
-                    <div className="lg:col-span-5 space-y-8">
-                        <div className="space-y-4">
-                            <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Variant matrix</h3>
-                            <p className="text-sm text-slate-500 font-medium text-center lg:text-left">Switch between available dimensions.</p>
+                    <div className="lg:col-span-5 space-y-6">
+                        <div className="space-y-3">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Variant matrix</h3>
+                            <p className="text-[11px] text-slate-500 font-medium text-center lg:text-left">Switch between available dimensions.</p>
                         </div>
-                        <div className="grid gap-3">
+                        <div className="grid gap-2">
                             {product.subProducts.map((sp) => (
                                 <button 
                                     key={sp.id} 
@@ -622,37 +629,42 @@ export function StartDesignContent() {
                                         window.scrollTo({ top: 0, behavior: 'smooth' });
                                     }}
                                     className={cn(
-                                        "w-full flex items-center justify-between p-5 rounded-2xl border-2 transition-all group text-left",
+                                        "w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all group text-left",
                                         subProduct.id === sp.id 
-                                            ? "bg-primary text-white border-primary shadow-xl shadow-primary/20" 
-                                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-primary/30"
+                                            ? "bg-primary text-white border-primary shadow-lg shadow-primary/10" 
+                                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-primary/20"
                                     )}
                                 >
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-3">
                                         <div className={cn(
-                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                                            "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
                                             subProduct.id === sp.id ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:text-primary"
                                         )}>
-                                            <Square size={18} />
+                                            <Square size={14} />
                                         </div>
                                         <div>
-                                            <p className={cn("text-sm font-bold", subProduct.id === sp.id ? "text-white" : "text-slate-900 dark:text-white")}>
+                                            <p className={cn("text-xs font-bold", subProduct.id === sp.id ? "text-white" : "text-slate-900 dark:text-white")}>
                                                 {sp.width}x{sp.height} {sp.unitType}
                                             </p>
-                                            <p className={cn("text-[11px] font-semibold", subProduct.id === sp.id ? "text-white/70" : "text-slate-400")}>
+                                            <p className={cn("text-[10px] font-semibold", subProduct.id === sp.id ? "text-white/70" : "text-slate-400")}>
                                                 Standard format
                                             </p>
                                         </div>
                                     </div>
                                     {subProduct.id === sp.id ? (
-                                        <CheckCircle2 size={18} className="text-white" />
+                                        <CheckCircle2 size={16} className="text-white" />
                                     ) : (
-                                        <ArrowRight size={16} className="text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                                        <ArrowRight size={14} className="text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                     )}
                                 </button>
                             ))}
                         </div>
                     </div>
+                </div>
+
+                {/* Finishing Guide Inline */}
+                <div className="pt-8 border-t border-slate-100 dark:border-slate-800">
+                    <FinishingGuide foilTypes={foilTypes} />
                 </div>
 
                 {/* 3. Formal Use Case Showcase */}
@@ -684,7 +696,7 @@ export function StartDesignContent() {
                         <div className="grid grid-cols-2 gap-4">
                             {[
                                 { title: 'Durability', val: '100%' },
-                                { title: 'Color Match', val: '∆E < 2' },
+                                { title: 'Color Match', val: '∆E &lt; 2' },
                                 { title: 'Eco-Friendly', val: 'FSC' },
                                 { title: 'Finish', val: 'HD' },
                             ].map((stat, i) => (
@@ -701,4 +713,96 @@ export function StartDesignContent() {
         </div>
       </main>
   );
+}
+
+function FinishingGuide({ foilTypes }: { foilTypes: FoilType[] }) {
+    return (
+        <div className="space-y-12">
+            <div className="space-y-4">
+                <h3 className="text-2xl font-bold flex items-center gap-4 text-slate-800 dark:text-slate-100">
+                    <div className="w-2 h-8 bg-amber-500 rounded-full" />
+                    Premium Finishing Guide
+                </h3>
+                <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                    Elevate your design with our high-end professional finishes. These options are available for application directly within our editor.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                {/* Spot UV Section */}
+                <div className="flex flex-col sm:flex-row gap-6 items-start">
+                    <div className="w-full sm:w-1/2 aspect-video bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
+                        <div className="relative w-full h-full bg-slate-900 flex flex-col items-center justify-center">
+                            <div className="text-white/10 text-3xl font-black tracking-widest uppercase select-none">MATTE</div>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-24 h-24 bg-amber-400/10 rounded-full blur-3xl" />
+                                <div className="w-16 h-16 bg-amber-400/90 rounded-full shadow-[0_0_40px_rgba(251,191,36,0.6)] border-2 border-amber-300 flex items-center justify-center transform -rotate-12">
+                                    <span className="text-amber-950 font-black text-sm tracking-tighter">GLOSS</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <Sparkle className="w-4 h-4 text-amber-600" />
+                            <h4 className="text-md font-bold text-slate-800 dark:text-slate-100">Spot UV</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                            A clear, glossy liquid coating that creates a beautiful contrast against matte surfaces. Perfect for logos and highlight text.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            <Badge variant="outline" className="text-[9px] py-0 border-emerald-500/30 text-emerald-600">Raised Texture</Badge>
+                            <Badge variant="outline" className="text-[9px] py-0 border-emerald-500/30 text-emerald-600">Matte Contrast</Badge>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Foils Section */}
+                <div className="flex flex-col sm:flex-row gap-6 items-start">
+                    <div className="w-full sm:w-1/2 aspect-video bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
+                        <div className="relative w-full h-full bg-slate-950 flex flex-col items-center justify-center overflow-hidden">
+                            <div className="grid grid-cols-3 gap-2 relative z-10">
+                                {foilTypes.length > 0 ? (
+                                    foilTypes.slice(0, 3).map((foil, i) => (
+                                        <div key={i} className="w-8 h-8 rounded-full border border-white/20 shadow-lg" style={{ background: foil.colorCode || '#ffd700' }} />
+                                    ))
+                                ) : (
+                                    ['#FFD700', '#C0C0C0', '#B87333'].map((color, i) => (
+                                        <div key={i} className="w-8 h-8 rounded-full border border-white/20 shadow-lg" style={{ backgroundColor: color }} />
+                                    ))
+                                )}
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-50" />
+                        </div>
+                    </div>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <Layers className="w-4 h-4 text-indigo-600" />
+                            <h4 className="text-md font-bold text-slate-800 dark:text-slate-100">Metallic Foil</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                            True metallic layers stamped onto your design. Offers a mirror-like brilliance that standard inks can&apos;t replicate.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            <Badge variant="outline" className="text-[9px] py-0 border-indigo-500/30 text-indigo-600">Mirror Shine</Badge>
+                            <Badge variant="outline" className="text-[9px] py-0 border-indigo-500/30 text-indigo-600">Multi-Color</Badge>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <Info size={18} />
+                </div>
+                <div className="flex-1">
+                    <p className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Application Insight</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Select any element in the editor and toggle <strong>Spot UV</strong> or <strong>Foil</strong> in the toolbar.</p>
+                </div>
+                <Button variant="outline" size="sm" className="text-[10px] h-8 rounded-lg" asChild>
+                    <Link href={`/design/${foilTypes[0]?.name ? 'guide' : '#'}`}>View Full Guide</Link>
+                </Button>
+            </div>
+        </div>
+    );
 }

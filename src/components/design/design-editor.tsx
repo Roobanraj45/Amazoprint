@@ -206,6 +206,10 @@ function DesignEditorInternal({
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const clipboardRef = useRef<DesignElement[]>([]);
+  const currentElementsRef = useRef<DesignElement[]>([]);
+  const selectedElementIdsRef = useRef<string[]>([]);
+  const currentPageRef = useRef(0);
+
 
   // Advanced Color Picker State
   const [colorPicker, setColorPicker] = useState<{
@@ -251,6 +255,12 @@ function DesignEditorInternal({
   const { pages, guides, product, quantity } = currentState;
   const currentElements = pages[currentPage]?.elements || [];
   const currentBackground = pages[currentPage]?.background || { type: 'solid', color: '#ffffff' };
+
+  useEffect(() => {
+    currentElementsRef.current = currentElements;
+    selectedElementIdsRef.current = selectedElementIds;
+    currentPageRef.current = currentPage;
+  }, [currentElements, selectedElementIds, currentPage]);
 
   const [viewState, setViewState] = useState<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
@@ -402,219 +412,6 @@ function DesignEditorInternal({
   }, [resetView, product.width, product.height]);
 
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable || target.closest('.cm-editor') !== null;
-
-      if (isInput) {
-        // Allow undo/redo in inputs but don't trigger our design shortcuts
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-          e.preventDefault();
-          handleSave();
-        }
-        return;
-      }
-
-      // --- ESCAPE ---
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        if (croppingElementId) {
-          setCroppingElementId(null);
-        } else if (activeTool === 'pen') {
-          finalizePath();
-        } else if (pathEditingElementId) {
-          setPathEditingElementId(null);
-          setDraggingPoint(null);
-        } else {
-          setSelectedElementIds([]);
-          setActiveTool('select');
-        }
-      }
-
-      // --- TOOLS ---
-      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-        if (e.key.toLowerCase() === 'p') { 
-          e.preventDefault(); 
-          if (activeTool === 'pen') {
-            finalizePath();
-          } else { 
-            setActiveTool('pen'); 
-            setActiveLeftPanel('pen');
-            setLeftOpen(false); 
-          } 
-        }
-        if (e.key.toLowerCase() === 't') { 
-            e.preventDefault(); 
-            setActiveLeftPanel('elements');
-            setLeftOpen(true);
-            setActiveTool('select');
-        }
-        if (e.key.toLowerCase() === 'a') { 
-            e.preventDefault(); 
-            setActiveLeftPanel('ai');
-            setLeftOpen(true);
-            setActiveTool('select');
-        }
-        if (e.key.toLowerCase() === 'd') { 
-            e.preventDefault(); 
-            setActiveLeftPanel('brush');
-            setActiveTool('brush');
-            setLeftOpen(true);
-        }
-        if (e.key.toLowerCase() === 'q') { 
-            e.preventDefault(); 
-            setActiveLeftPanel('qrcode');
-            setLeftOpen(true);
-            setActiveTool('select');
-        }
-      }
-
-      // --- HELP ---
-      if (e.key === 'F1') {
-        e.preventDefault();
-        setIsHelpOpen(true);
-      }
-
-      // --- EDIT & CLIPBOARD ---
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'a') { e.preventDefault(); setSelectedElementIds(currentElements.map(el => el.id)); }
-        if (e.key === 'd') { e.preventDefault(); handleDuplicateElement(); }
-        if (e.key === 'c') {
-            if (selectedElements.length > 0) {
-                e.preventDefault();
-                clipboardRef.current = JSON.parse(JSON.stringify(selectedElements));
-                toast({ title: 'Copied to clipboard' });
-            }
-        }
-        if (e.key === 'x') {
-            if (selectedElements.length > 0) {
-                e.preventDefault();
-                clipboardRef.current = JSON.parse(JSON.stringify(selectedElements));
-                handleDeleteElement();
-                toast({ title: 'Cut to clipboard' });
-            }
-        }
-        if (e.key === 'v') {
-            if (clipboardRef.current.length > 0) {
-                e.preventDefault();
-                const newElements = clipboardRef.current.map(el => ({
-                    ...el,
-                    id: crypto.randomUUID(),
-                    x: el.x + 20,
-                    y: el.y + 20
-                }));
-                updatePage(currentPage, { elements: [...currentElements, ...newElements] });
-                setSelectedElementIds(newElements.map(el => el.id));
-                toast({ title: 'Pasted elements' });
-            }
-        }
-      }
-
-      // --- LAYERS & ARRANGE ---
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'g') {
-          e.preventDefault();
-          if (e.shiftKey) handleUngroup();
-          else handleGroup();
-        }
-        if (e.key === '[') { e.preventDefault(); moveLayer(e.shiftKey ? 'back' : 'backward'); }
-        if (e.key === ']') { e.preventDefault(); moveLayer(e.shiftKey ? 'front' : 'forward'); }
-        if (e.key === '\\') { e.preventDefault(); setRightOpen(!rightOpen); }
-        if (e.ctrlKey || e.metaKey) {
-            if (e.altKey && e.key.toLowerCase() === 'm') {
-                e.preventDefault();
-                if (selectedElement) setMaskingElementId(selectedElement.id);
-            }
-        }
-      }
-
-      // --- DELETE ---
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (!isInput && selectedElementIds.length > 0) {
-          e.preventDefault();
-          handleDeleteElement();
-        }
-      }
-
-      // --- FILE ---
-      if ((e.ctrlKey || e.metaKey)) {
-        if (e.key === 's') { e.preventDefault(); handleSave(); }
-        if (e.shiftKey && e.key.toLowerCase() === 'p') { e.preventDefault(); handlePreview(); }
-      }
-
-      // --- HISTORY ---
-      if ((e.ctrlKey || e.metaKey)) {
-        if (e.key === 'z') {
-          e.preventDefault();
-          if (e.shiftKey) redo();
-          else undo();
-        }
-        if (e.key === 'y') { e.preventDefault(); redo(); }
-      }
-
-      // --- VIEW (Zoom) ---
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === '=' || e.key === '+') { e.preventDefault(); handleZoomIn(); }
-        if (e.key === '-' || e.key === '_') { e.preventDefault(); handleZoomOut(); }
-        if (e.key === '0') { e.preventDefault(); resetView(); }
-      }
-
-      // --- NAVIGATION (Layers) ---
-      if (e.key === 'Tab') {
-          if (!isInput && currentElements.length > 0) {
-              e.preventDefault();
-              const currentIndex = selectedElementIds.length === 1 
-                ? currentElements.findIndex(el => el.id === selectedElementIds[0])
-                : -1;
-              const nextIndex = (currentIndex + 1) % currentElements.length;
-              setSelectedElementIds([currentElements[nextIndex].id]);
-          }
-      }
-
-      // --- MOVEMENT ---
-      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-        if (!isInput && selectedElements.length > 0) {
-          e.preventDefault();
-          const step = e.shiftKey ? 10 : 1;
-          beginTransaction();
-          selectedElements.forEach(el => {
-            let dx = 0, dy = 0;
-            if (e.key === 'ArrowLeft') dx = -step;
-            if (e.key === 'ArrowRight') dx = step;
-            if (e.key === 'ArrowUp') dy = -step;
-            if (e.key === 'ArrowDown') dy = step;
-            updateElement(el.id, { x: el.x + dx, y: el.y + dy });
-          });
-          endTransaction();
-        }
-      }
-
-      // --- PANNING ---
-      if (e.key === ' ' && !e.repeat && !isInput) {
-        e.preventDefault();
-        setIsSpacePressed(true);
-        if (mainCanvasRef.current) {
-          mainCanvasRef.current.style.cursor = 'grab';
-        }
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === ' ') {
-        setIsSpacePressed(false);
-        if (mainCanvasRef.current && !isPanning.current) {
-          mainCanvasRef.current.style.cursor = '';
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [undo, redo, activeTool, finalizePath, croppingElementId, setLeftOpen]);
 
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -1652,7 +1449,6 @@ function DesignEditorInternal({
 
       const currentElementsForPage = prev.pages[currentPage]?.elements || [];
       const newPageElements = recursiveUpdateWithChildren(currentElementsForPage, selectedId);
-      
       const newPages = [...prev.pages];
       newPages[currentPage] = { ...newPages[currentPage], elements: newPageElements };
       return { ...prev, pages: newPages };
@@ -1660,7 +1456,8 @@ function DesignEditorInternal({
   };
 
   const handleDuplicateElement = () => {
-    if (selectedElements.length === 0) return;
+    const selecteds = selectedElementIdsRef.current.map(id => findElementRecursive(currentElementsRef.current, id)).filter((el): el is DesignElement => !!el);
+    if (selecteds.length === 0) return;
     
     const duplicateRecursive = (element: DesignElement): DesignElement => {
       const newEl = { ...element, id: crypto.randomUUID(), x: element.x + 10, y: element.y + 10, locked: false, visible: true };
@@ -1670,7 +1467,7 @@ function DesignEditorInternal({
       return newEl;
     }
 
-    const newElementsToPush = selectedElements.map(element => duplicateRecursive(element));
+    const newElementsToPush = selecteds.map(element => duplicateRecursive(element));
     
     setIsDirty(true);
     setState(prev => {
@@ -1685,6 +1482,27 @@ function DesignEditorInternal({
     });
     
     setSelectedElementIds(newElementsToPush.map(el => el.id));
+  };
+
+  const handleDeleteElement = () => {
+    const idsToDelete = selectedElementIdsRef.current;
+    if (idsToDelete.length === 0) return;
+    
+    const recursiveDelete = (els: DesignElement[], targetIds: string[]): DesignElement[] => {
+      const filtered = els.filter(el => !targetIds.includes(el.id));
+      return filtered.map(el => {
+        if (el.type === 'group' && el.children) {
+          return { ...el, children: recursiveDelete(el.children, targetIds) };
+        }
+        return el;
+      });
+    };
+
+    beginTransaction();
+    const newElements = recursiveDelete(currentElementsRef.current, idsToDelete);
+    updatePage(currentPageRef.current, { elements: newElements });
+    setSelectedElementIds([]);
+    endTransaction();
   };
 
   const handleDuplicateLayer = (id: string) => {
@@ -1720,10 +1538,6 @@ function DesignEditorInternal({
     });
   };
 
-  const handleDeleteElement = () => {
-    if (selectedElementIds.length === 0) return;
-    handleDeleteLayer(selectedElementIds[0]);
-  };
 
   const handleDeleteLayer = (id: string) => {
     const recursiveDelete = (els: DesignElement[], idToRemove: string): DesignElement[] => {
@@ -1892,6 +1706,228 @@ function DesignEditorInternal({
     ? { id: 'background', type: 'image', src: currentBackground.imageSrc, crop: currentBackground.crop } as any
     : (croppingElementId ? findElementRecursive(currentElements, croppingElementId) : undefined);
   const elementToMask = maskingElementId ? findElementRecursive(currentElements, maskingElementId) : undefined;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable || target.closest('.cm-editor') !== null;
+
+      if (isInput) {
+        // Allow undo/redo in inputs but don't trigger our design shortcuts
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          handleSave();
+        }
+        return;
+      }
+
+      // --- ESCAPE ---
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (croppingElementId) {
+          setCroppingElementId(null);
+        } else if (activeTool === 'pen') {
+          finalizePath();
+        } else if (pathEditingElementId) {
+          setPathEditingElementId(null);
+          setDraggingPoint(null);
+        } else {
+          setSelectedElementIds([]);
+          setActiveTool('select');
+        }
+      }
+
+      // --- TOOLS ---
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (e.key.toLowerCase() === 'p') { 
+          e.preventDefault(); 
+          if (activeTool === 'pen') {
+            finalizePath();
+          } else { 
+            setActiveTool('pen'); 
+            setActiveLeftPanel('pen');
+            setLeftOpen(false); 
+          } 
+        }
+        if (e.key.toLowerCase() === 't') { 
+            e.preventDefault(); 
+            setActiveLeftPanel('elements');
+            setLeftOpen(true);
+            setActiveTool('select');
+        }
+        if (e.key.toLowerCase() === 'a') { 
+            e.preventDefault(); 
+            setActiveLeftPanel('ai');
+            setLeftOpen(true);
+            setActiveTool('select');
+        }
+        if (e.key.toLowerCase() === 'd') { 
+            e.preventDefault(); 
+            setActiveLeftPanel('brush');
+            setActiveTool('brush');
+            setLeftOpen(true);
+        }
+        if (e.key.toLowerCase() === 'q') { 
+            e.preventDefault(); 
+            setActiveLeftPanel('qrcode');
+            setLeftOpen(true);
+            setActiveTool('select');
+        }
+      }
+
+      // --- HELP ---
+      if (e.key === 'F1') {
+        e.preventDefault();
+        setIsHelpOpen(true);
+      }
+
+      // --- EDIT & CLIPBOARD ---
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'a') { 
+            e.preventDefault(); 
+            setSelectedElementIds(currentElementsRef.current.map(el => el.id)); 
+        }
+        if (e.key === 'd') { 
+            e.preventDefault(); 
+            handleDuplicateElement(); 
+        }
+        if (e.key === 'c') {
+            const selecteds = selectedElementIdsRef.current.map(id => findElementRecursive(currentElementsRef.current, id)).filter((el): el is DesignElement => !!el);
+            if (selecteds.length > 0) {
+                e.preventDefault();
+                clipboardRef.current = JSON.parse(JSON.stringify(selecteds));
+                toast({ title: 'Copied to clipboard' });
+            }
+        }
+        if (e.key === 'x') {
+            const selecteds = selectedElementIdsRef.current.map(id => findElementRecursive(currentElementsRef.current, id)).filter((el): el is DesignElement => !!el);
+            if (selecteds.length > 0) {
+                e.preventDefault();
+                clipboardRef.current = JSON.parse(JSON.stringify(selecteds));
+                handleDeleteElement();
+                toast({ title: 'Cut to clipboard' });
+            }
+        }
+        if (e.key === 'v') {
+            if (clipboardRef.current.length > 0) {
+                e.preventDefault();
+                const newElements = clipboardRef.current.map(el => ({
+                    ...el,
+                    id: crypto.randomUUID(),
+                    x: el.x + 20,
+                    y: el.y + 20
+                }));
+                updatePage(currentPageRef.current, { elements: [...currentElementsRef.current, ...newElements] });
+                setSelectedElementIds(newElements.map(el => el.id));
+                toast({ title: `Pasted ${newElements.length} elements` });
+            }
+        }
+      }
+
+      // --- LAYERS & ARRANGE ---
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'g') {
+          e.preventDefault();
+          if (e.shiftKey) handleUngroup();
+          else handleGroup();
+        }
+        if (e.key === '[') { e.preventDefault(); moveLayer(e.shiftKey ? 'back' : 'backward'); }
+        if (e.key === ']') { e.preventDefault(); moveLayer(e.shiftKey ? 'front' : 'forward'); }
+        if (e.key === '\\') { e.preventDefault(); setRightOpen(!rightOpen); }
+        if (e.ctrlKey || e.metaKey) {
+            if (e.altKey && e.key.toLowerCase() === 'm') {
+                e.preventDefault();
+                if (selectedElement) setMaskingElementId(selectedElement.id);
+            }
+        }
+      }
+
+      // --- DELETE ---
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!isInput && selectedElementIds.length > 0) {
+          e.preventDefault();
+          handleDeleteElement();
+        }
+      }
+
+      // --- FILE ---
+      if ((e.ctrlKey || e.metaKey)) {
+        if (e.key === 's') { e.preventDefault(); handleSave(); }
+        if (e.shiftKey && e.key.toLowerCase() === 'p') { e.preventDefault(); handlePreview(); }
+      }
+
+      // --- HISTORY ---
+      if ((e.ctrlKey || e.metaKey)) {
+        if (e.key === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) redo();
+          else undo();
+        }
+        if (e.key === 'y') { e.preventDefault(); redo(); }
+      }
+
+      // --- VIEW (Zoom) ---
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '=' || e.key === '+') { e.preventDefault(); handleZoomIn(); }
+        if (e.key === '-' || e.key === '_') { e.preventDefault(); handleZoomOut(); }
+        if (e.key === '0') { e.preventDefault(); resetView(); }
+      }
+
+      // --- NAVIGATION (Layers) ---
+      if (e.key === 'Tab') {
+          if (!isInput && currentElements.length > 0) {
+              e.preventDefault();
+              const currentIndex = selectedElementIds.length === 1 
+                ? currentElements.findIndex(el => el.id === selectedElementIds[0])
+                : -1;
+              const nextIndex = (currentIndex + 1) % currentElements.length;
+              setSelectedElementIds([currentElements[nextIndex].id]);
+          }
+      }
+
+      // --- MOVEMENT ---
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        if (!isInput && selectedElements.length > 0) {
+          e.preventDefault();
+          const step = e.shiftKey ? 10 : 1;
+          beginTransaction();
+          selectedElements.forEach(el => {
+            let dx = 0, dy = 0;
+            if (e.key === 'ArrowLeft') dx = -step;
+            if (e.key === 'ArrowRight') dx = step;
+            if (e.key === 'ArrowUp') dy = -step;
+            if (e.key === 'ArrowDown') dy = step;
+            updateElement(el.id, { x: el.x + dx, y: el.y + dy });
+          });
+          endTransaction();
+        }
+      }
+
+      // --- PANNING ---
+      if (e.key === ' ' && !e.repeat && !isInput) {
+        e.preventDefault();
+        setIsSpacePressed(true);
+        if (mainCanvasRef.current) {
+          mainCanvasRef.current.style.cursor = 'grab';
+        }
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === ' ') {
+        setIsSpacePressed(false);
+        if (mainCanvasRef.current && !isPanning.current) {
+          mainCanvasRef.current.style.cursor = '';
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [undo, redo, activeTool, finalizePath, croppingElementId, setLeftOpen, handleSave, handleDeleteElement, handleDuplicateElement, moveLayer]);
 
   return (
     <>
