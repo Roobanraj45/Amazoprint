@@ -357,12 +357,14 @@ export function EditorHeader(props: any) {
                     <span className={labelClass}>Ungroup</span>
                 </Button>
 
-                <Separator orientation="vertical" className="h-5 mx-0.5 shrink-0" />
+                <div className="w-2 shrink-0" />
 
                 <Button onClick={onRotateCanvas} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50/50 shrink-0">
                     {product.width > product.height ? <RectangleVertical className={iconClass} /> : <RectangleHorizontal className={iconClass} />}
                     <span className={labelClass}>{product.width > product.height ? 'Portrait' : 'Landscape'}</span>
                 </Button>
+
+                <div className="w-2 shrink-0" />
 
                 <Button variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group text-red-500 hover:text-red-600 hover:bg-red-50/50 shrink-0">
                     <PlayCircle className={iconClass} />

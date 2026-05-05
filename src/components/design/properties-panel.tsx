@@ -65,6 +65,14 @@ type PropertiesPanelProps = {
   isAdmin?: boolean;
   onMoveLayer: (direction: 'front' | 'back' | 'forward' | 'backward') => void;
   onOpenColorPicker: (label: string, color: string, onChange: (color: string, cmyk?: { c: number, m: number, y: number, k: number } | null) => void, cmyk?: { c: number, m: number, y: number, k: number } | null) => void;
+  activeTool?: 'select' | 'brush' | 'pen' | 'eraser';
+  setActiveTool?: (tool: 'select' | 'brush' | 'pen' | 'eraser') => void;
+  eraserOptions?: {
+    size: number;
+    brushTip: 'soft_round' | 'hard_round' | 'square';
+    opacity: number;
+  };
+  setEraserOptions?: (options: any) => void;
   design?: any;
 };
 
@@ -112,6 +120,7 @@ export function PropertiesPanel({
   element, onUpdate, product, onProductUpdate, quantity, onQuantityChange,
   background, onBackgroundChange, canvasSettings, croppingElementId,
   setCroppingElementId, maskingElementId, setMaskingElementId, isAdmin, onMoveLayer, onOpenColorPicker,
+  activeTool, setActiveTool, eraserOptions, setEraserOptions,
   design,
 }: PropertiesPanelProps) {
 
@@ -544,7 +553,10 @@ export function PropertiesPanel({
             <ImagePropertiesPanel element={element} onUpdate={onUpdate}
               croppingElementId={croppingElementId} setCroppingElementId={setCroppingElementId}
               maskingElementId={maskingElementId} setMaskingElementId={setMaskingElementId}
-              isAdmin={isAdmin} onOpenColorPicker={onOpenColorPicker} />
+              isAdmin={isAdmin} onOpenColorPicker={onOpenColorPicker}
+              activeTool={activeTool} setActiveTool={setActiveTool}
+              eraserOptions={eraserOptions} setEraserOptions={setEraserOptions}
+            />
           )}
           {element.type === 'shape' && (
             <ShapePropertiesPanel element={element} onUpdate={onUpdate} 

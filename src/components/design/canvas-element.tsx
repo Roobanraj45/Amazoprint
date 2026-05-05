@@ -195,12 +195,25 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
     const offsetX = element.fillImageOffsetX || 0;
     const offsetY = element.fillImageOffsetY || 0;
     
-    // When using objectBoundingBox:
+    const filter = [
+      `brightness(${element.filterBrightness || 1})`,
+      `contrast(${element.filterContrast || 1})`,
+      `saturate(${element.filterSaturate || 1})`,
+      `grayscale(${element.filterGrayscale || 0})`,
+      `sepia(${element.filterSepia || 0})`,
+      `invert(${element.filterInvert || 0})`,
+      `hue-rotate(${element.filterHueRotate || 0}deg)`,
+      `blur(${element.filterBlur || 0}px)`,
+    ].join(' ');
+
+    const flipX = element.fillImageFlipHorizontal ? -1 : 1;
+    const flipY = element.fillImageFlipVertical ? -1 : 1;
+
     const relativeOffsetX = offsetX / element.width;
     const relativeOffsetY = offsetY / element.height;
 
     // Scale around the center (0.5, 0.5)
-    const transformStr = `translate(${0.5 + relativeOffsetX}, ${0.5 + relativeOffsetY}) scale(${scaleX}, ${scaleY}) translate(-0.5, -0.5)`;
+    const transformStr = `translate(${0.5 + relativeOffsetX}, ${0.5 + relativeOffsetY}) scale(${scaleX * flipX}, ${scaleY * flipY}) translate(-0.5, -0.5)`;
     
     defs.push(
       <pattern 
@@ -635,56 +648,91 @@ export const NonInteractiveContent = memo(({
             }} />
         ) : null;
 
-        if (hasCrop) {
-            const crop = element.crop!;
-            const cropWidthRatio = 1 - crop.left - crop.right;
-            const cropHeightRatio = 1 - crop.top - crop.bottom;
-            
-            const imageWrapperStyle: React.CSSProperties = {
-                width: '100%',
-                height: '100%',
-                overflow: 'hidden',
-                position: 'relative',
-            };
-    
-            const imageStyle: React.CSSProperties = {
-                position: 'absolute',
-                width: `${100 / cropWidthRatio}%`,
-                height: `${100 / cropHeightRatio}%`,
-                left: `${-100 * crop.left / cropWidthRatio}%`,
-                top: `${-100 * crop.top / cropHeightRatio}%`,
-                maxWidth: 'none',
-                maxHeight: 'none',
-                filter: filters,
-                transform: transforms,
-                zIndex: 1
-            };
-    
-            return (
-                <div style={imageWrapperStyle}>
-                    {backgroundOverlay}
-                    <img src={element.src} alt={element.id} style={imageStyle} />
-                </div>
-            );
-        }
+        const eraserMaskId = `eraser-mask-${element.id}`;
+        const eraserPaths = element.eraserPaths || [];
         
-        const imageStyle: React.CSSProperties = {
-          width: '100%',
-          height: '100%',
-          objectFit: element.objectFit,
-          filter: filters,
-          transform: transforms,
-          position: 'relative',
-          zIndex: 1
-        };
-        
+        const eraserMask = eraserPaths.length ? (
+            <mask id={eraserMaskId} maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x="-50%" y="-50%" width="200%" height="200%">
+                <rect x="-50%" y="-50%" width="200%" height="200%" fill="white" />
+                {eraserPaths.map((ep, i) => {
+                    const pointsStr = ep.points.map(([px, py]) => `${px},${py}`).join(' ');
+                    const isSoft = ep.brushTip === 'soft_round';
+                    const filterId = isSoft ? `eraser-blur-${element.id}-${i}` : undefined;
+                    
+                    return (
+                        <React.Fragment key={i}>
+                            <polyline
+                                points={pointsStr}
+                                fill="none"
+                                stroke="black"
+                                strokeWidth={ep.strokeWidth}
+                                strokeLinecap={ep.brushTip === 'square' ? 'square' : 'round'}
+                                strokeLinejoin="round"
+                                filter={filterId ? `url(#${filterId})` : undefined}
+                                opacity={ep.opacity ?? 1}
+                            />
+                            {ep.points.length === 1 && (
+                                <circle 
+                                    cx={ep.points[0][0]} 
+                                    cy={ep.points[0][1]} 
+                                    r={ep.strokeWidth / 2} 
+                                    fill="black"
+                                    filter={filterId ? `url(#${filterId})` : undefined}
+                                    opacity={ep.opacity ?? 1}
+                                />
+                            )}
+                        </React.Fragment>
+                    );
+                })}
+            </mask>
+        ) : null;
+
+        const crop = element.crop || { left: 0, top: 0, right: 0, bottom: 0 };
+        const cropWidthRatio = 1 - crop.left - crop.right;
+        const cropHeightRatio = 1 - crop.top - crop.bottom;
+
+        const fullWidth = element.width / cropWidthRatio;
+        const fullHeight = element.height / cropHeightRatio;
+        const offsetX = -fullWidth * crop.left;
+        const offsetY = -fullHeight * crop.top;
+
         return (
-          <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             {backgroundOverlay}
-            <img src={element.src} alt={element.id} style={imageStyle} />
+            <svg 
+                width="100%" 
+                height="100%" 
+                viewBox={`0 0 ${element.width} ${element.height}`} 
+                preserveAspectRatio="none"
+                style={{ 
+                    display: 'block',
+                    filter: filters,
+                    zIndex: 1,
+                    overflow: 'visible' // Allow mask blur to bleed slightly if needed
+                }}
+            >
+                <defs>
+                    {eraserPaths.map((ep, i) => ep.brushTip === 'soft_round' && (
+                        <filter key={`filter-${i}`} id={`eraser-blur-${element.id}-${i}`} x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation={ep.strokeWidth * 0.25} />
+                        </filter>
+                    ))}
+                    {eraserMask}
+                </defs>
+                <g mask={eraserPaths.length ? `url(#${eraserMaskId})` : undefined}>
+                    <image 
+                        href={element.src} 
+                        x={offsetX}
+                        y={offsetY}
+                        width={fullWidth} 
+                        height={fullHeight} 
+                        preserveAspectRatio={element.objectFit === 'cover' ? 'xMidYMid slice' : (element.objectFit === 'contain' ? 'xMidYMid meet' : 'none')}
+                    />
+                </g>
+            </svg>
           </div>
         );
-      }
+    }
       case 'qrcode': {
         if (isSpotUv) {
           return <div style={{ width: '100%', height: '100%', backgroundColor: 'black' }} />;
@@ -721,23 +769,36 @@ export const NonInteractiveContent = memo(({
           ...(isPreview ? {} : { vectorEffect: 'non-scaling-stroke' as const })
         }
 
+        const filters = [
+          `brightness(${element.filterBrightness || 1})`,
+          `contrast(${element.filterContrast || 1})`,
+          `saturate(${element.filterSaturate || 1})`,
+          `grayscale(${element.filterGrayscale || 0})`,
+          `sepia(${element.filterSepia || 0})`,
+          `invert(${element.filterInvert || 0})`,
+          `hue-rotate(${element.filterHueRotate || 0}deg)`,
+          `blur(${element.filterBlur || 0}px)`,
+        ].join(' ');
+
         return (
           <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }} preserveAspectRatio="none">
             {!isSpotUv && <SvgFillDefs element={element} />}
-            <path
-              d={pathData}
-              fill={getFillForSvg()}
-              {...svgStrokeProps}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {showTint && (
+            <g style={{ filter: element.fillType === 'image' ? filters : undefined }}>
               <path
                 d={pathData}
-                fill={element.color}
-                fillOpacity={element.tintOpacity}
+                fill={getFillForSvg()}
+                {...svgStrokeProps}
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
-            )}
+              {showTint && (
+                <path
+                  d={pathData}
+                  fill={element.color}
+                  fillOpacity={element.tintOpacity}
+                />
+              )}
+            </g>
           </svg>
         );
       }
@@ -812,14 +873,27 @@ export const NonInteractiveContent = memo(({
                     <g mask={`url(#mask-${element.id})`}>
                         {element.shapeType === 'custom-svg' && element.fillType === 'none' ? (
                             <image href={resolveImagePath(element.src || '')} width={element.width} height={element.height} preserveAspectRatio="xMidYMid meet" />
-                        ) : (
-                            <>
-                                <rect width={element.width} height={element.height} fill={getFillForSvg()} shapeRendering="geometricPrecision" />
-                                {showTint && (
-                                    <rect width={element.width} height={element.height} fill={element.color} fillOpacity={element.tintOpacity} shapeRendering="geometricPrecision" />
-                                )}
-                            </>
-                        )}
+                        ) : (() => {
+                            const filters = [
+                                `brightness(${element.filterBrightness || 1})`,
+                                `contrast(${element.filterContrast || 1})`,
+                                `saturate(${element.filterSaturate || 1})`,
+                                `grayscale(${element.filterGrayscale || 0})`,
+                                `sepia(${element.filterSepia || 0})`,
+                                `invert(${element.filterInvert || 0})`,
+                                `hue-rotate(${element.filterHueRotate || 0}deg)`,
+                                `blur(${element.filterBlur || 0}px)`,
+                            ].join(' ');
+
+                            return (
+                                <g style={{ filter: element.fillType === 'image' ? filters : undefined }}>
+                                    <rect width={element.width} height={element.height} fill={getFillForSvg()} shapeRendering="geometricPrecision" />
+                                    {showTint && (
+                                        <rect width={element.width} height={element.height} fill={element.color} fillOpacity={element.tintOpacity} shapeRendering="geometricPrecision" />
+                                    )}
+                                </g>
+                            );
+                        })()}
                     </g>
                     
                     {/* Render stroke outside the mask */}

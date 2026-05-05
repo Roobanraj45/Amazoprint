@@ -161,7 +161,7 @@ function DesignEditorInternal({
 
   const [mousePos, setMousePos] = useState<{ x: number, y: number, screenX?: number, screenY?: number } | null>(null);
 
-  const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen'>('select');
+  const [activeTool, setActiveTool] = useState<'select' | 'brush' | 'pen' | 'eraser'>('select');
   const [activeLeftPanel, setActiveLeftPanel] = useState<string>('media');
   const [isDrawing, setIsDrawing] = useState(false);
   const drawingPointsRef = useRef<[number, number][]>([]);
@@ -190,6 +190,17 @@ function DesignEditorInternal({
     cmyk: { c: 0, m: 0, y: 0, k: 100 },
     softness: 0.8,
   });
+
+  const [eraserOptions, setEraserOptions] = useState<{
+    size: number;
+    brushTip: 'soft_round' | 'hard_round' | 'square';
+    opacity: number;
+  }>({
+    size: 40,
+    brushTip: 'soft_round',
+    opacity: 1,
+  });
+  const [liveEraserPath, setLiveEraserPath] = useState<[number, number][] | null>(null);
 
   // Pen Tool States
   const [livePath, setLivePath] = useState<PathPoint[] | null>(null);
@@ -448,7 +459,40 @@ function DesignEditorInternal({
     return [x, y];
   };
 
+  const getPointInElementSpace = (canvasX: number, canvasY: number, element: DesignElement): [number, number] => {
+    // Rotation is around the center
+    const cx = element.x + element.width / 2;
+    const cy = element.y + element.height / 2;
+
+    const rad = (-element.rotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    // Relative to center
+    const dx = canvasX - cx;
+    const dy = canvasY - cy;
+
+    // Un-rotate
+    const ux = dx * cos - dy * sin;
+    const uy = dx * sin + dy * cos;
+
+    // Relative to top-left of element
+    return [ux + element.width / 2, uy + element.height / 2];
+  };
+
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (activeTool === 'eraser') {
+      const selectedEl = selectedElements[0];
+      if (selectedEl?.type === 'image' || selectedEl?.type === 'shape') {
+        e.stopPropagation();
+        beginTransaction();
+        setIsDrawing(true);
+        const [x, y] = getPointInCanvas(e);
+        drawingPointsRef.current = [[x, y]];
+        setLiveEraserPath([[x, y]]);
+      }
+      return;
+    }
     if (activeTool === 'brush') {
       e.stopPropagation();
       beginTransaction();
@@ -630,6 +674,19 @@ function DesignEditorInternal({
     const [x, y] = getPointInCanvas(e);
     setMousePos({ x, y, screenX: e.clientX, screenY: e.clientY });
 
+    if (isDrawing && activeTool === 'eraser') {
+        const points = drawingPointsRef.current;
+        const lastPoint = points[points.length - 1];
+        if (!lastPoint) return;
+
+        const dist = Math.hypot(x - lastPoint[0], y - lastPoint[1]);
+        if (dist > 1) {
+            points.push([x, y]);
+            setLiveEraserPath([...points]);
+        }
+        return;
+    }
+
     if (isDrawing && activeTool === 'brush') {
       const points = drawingPointsRef.current;
       const lastPoint = points[points.length - 1];
@@ -737,6 +794,35 @@ function DesignEditorInternal({
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isDrawing && activeTool === 'eraser') {
+        setIsDrawing(false);
+        setLiveEraserPath(null);
+        endTransaction();
+
+        const selectedEl = selectedElements[0];
+        if (selectedEl?.type === 'image' || selectedEl?.type === 'shape') {
+            const points = drawingPointsRef.current;
+            if (points.length >= 1) {
+                // Convert to element-local coordinates (accounting for rotation)
+                const localPoints: [number, number][] = points.map(([px, py]) => 
+                    getPointInElementSpace(px, py, selectedEl)
+                );
+
+                const newEraserPath = {
+                    points: localPoints,
+                    brushTip: eraserOptions.brushTip,
+                    strokeWidth: eraserOptions.size,
+                    opacity: eraserOptions.opacity,
+                };
+
+                const updatedEraserPaths = [...(selectedEl.eraserPaths || []), newEraserPath];
+                updateElement(selectedEl.id, { eraserPaths: updatedEraserPaths });
+            }
+        }
+        drawingPointsRef.current = [];
+        return;
+    }
+
     if (isDrawing && activeTool === 'brush') {
       setIsDrawing(false);
       setLivePencilPath(null);
@@ -1737,6 +1823,43 @@ function DesignEditorInternal({
         }
       }
 
+      // --- PEN TOOL DRAWING ---
+      if (activeTool === 'pen' && livePath && livePath.length > 0) {
+        if (e.altKey && e.key.toLowerCase() === 'x') {
+          e.preventDefault();
+          setLivePath(prev => {
+            if (!prev || prev.length === 0) return null;
+            const newPath = prev.slice(0, -1);
+            if (newPath.length === 0) {
+              livePathRef.current = null;
+              return null;
+            }
+            livePathRef.current = newPath;
+            return newPath;
+          });
+          return;
+        }
+      }
+
+      // --- PATH EDITING ---
+      if (pathEditingElementId) {
+        if (e.altKey && e.key.toLowerCase() === 'x') {
+          e.preventDefault();
+          const editingEl = findElementRecursive(currentElementsRef.current, pathEditingElementId);
+          if (editingEl?.pathPoints) {
+            if (editingEl.isPathClosed) {
+              // If the path is closed, Alt+x "un-closes" it (removes the closing segment)
+              updateElement(pathEditingElementId, { isPathClosed: false, fillType: 'none' });
+            } else if (editingEl.pathPoints.length > 2) {
+              // If the path is open, remove the last point
+              const newPoints = editingEl.pathPoints.slice(0, -1);
+              updateElement(pathEditingElementId, { pathPoints: newPoints });
+            }
+          }
+          return;
+        }
+      }
+
       // --- TOOLS ---
       if (!e.ctrlKey && !e.metaKey && !e.altKey) {
         if (e.key.toLowerCase() === 'p') { 
@@ -2029,7 +2152,7 @@ function DesignEditorInternal({
             <div
               ref={mainCanvasRef}
               className="flex-1 overflow-hidden p-0 relative"
-              style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'pen' || pathEditingElementId) ? PEN_CURSOR : (activeTool === 'brush' ? 'crosshair' : 'default'), backgroundColor: 'hsl(var(--muted))' }}
+              style={{ cursor: isSpacePressed ? 'grab' : (activeTool === 'pen' || pathEditingElementId) ? PEN_CURSOR : (activeTool === 'brush' || activeTool === 'eraser' ? 'crosshair' : 'default'), backgroundColor: 'hsl(var(--muted))' }}
               onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
             >
 
@@ -2054,6 +2177,8 @@ function DesignEditorInternal({
                 unit={canvasUnit}
                 onInteractionStart={beginTransaction} onInteractionEnd={endTransaction}
                 livePencilPath={livePencilPath}
+                liveEraserPath={liveEraserPath}
+                eraserOptions={eraserOptions}
                 livePath={livePath}
                 mousePos={mousePos}
                 activeTool={activeTool}
@@ -2091,6 +2216,8 @@ function DesignEditorInternal({
                       isAdmin={isAdmin}
                       onMoveLayer={moveLayer}
                       onOpenColorPicker={(label, color, onChange, cmyk) => setColorPicker({ isOpen: true, label, color, onChange, cmyk })}
+                      activeTool={activeTool} setActiveTool={setActiveTool}
+                      eraserOptions={eraserOptions} setEraserOptions={setEraserOptions}
                       design={initialDesign}
                     />
                   </div>

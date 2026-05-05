@@ -23,6 +23,9 @@ import {
   Crop as CropIcon,
   Sparkles,
   Loader2,
+  Eraser,
+  Circle,
+  Square,
 } from "lucide-react";
 import { removeBackground } from "@imgly/background-removal";
 import { CMYKColorPicker as ColorPicker } from "./cmyk-color-picker";
@@ -40,6 +43,14 @@ type Props = {
   setMaskingElementId: (id: string | null) => void;
   isAdmin?: boolean;
   onOpenColorPicker: (label: string, color: string, onChange: (color: string) => void) => void;
+  activeTool?: 'select' | 'brush' | 'pen' | 'eraser';
+  setActiveTool?: (tool: 'select' | 'brush' | 'pen' | 'eraser') => void;
+  eraserOptions?: {
+    size: number;
+    brushTip: 'soft_round' | 'hard_round' | 'square';
+    opacity: number;
+  };
+  setEraserOptions?: (options: any) => void;
 };
 
 const SectionCard = ({ title, icon, children, ...props }: any) => (
@@ -55,7 +66,10 @@ const SectionCard = ({ title, icon, children, ...props }: any) => (
 );
 
 
-export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, setCroppingElementId, maskingElementId, setMaskingElementId, onOpenColorPicker }: Props) {
+export function ImagePropertiesPanel({ 
+    element, onUpdate, croppingElementId, setCroppingElementId, maskingElementId, setMaskingElementId, onOpenColorPicker,
+    activeTool, setActiveTool, eraserOptions, setEraserOptions 
+}: Props) {
   const update = (props: Partial<DesignElement>) =>
     onUpdate(element.id, props);
 
@@ -303,6 +317,73 @@ export function ImagePropertiesPanel({ element, onUpdate, croppingElementId, set
                         </>
                     )}
                 </Button>
+            </div>
+        </SectionCard>
+
+        {/* MANUAL REFINEMENT SECTION */}
+        <SectionCard title="Manual Refinement" icon={<Eraser size={12} />} className="p-3">
+            <div className="space-y-4">
+                <div className="flex gap-2">
+                    <Button
+                        variant={activeTool === 'eraser' ? 'selected' : 'outline'}
+                        className="flex-1 gap-2 h-10 text-xs font-bold rounded-xl transition-all"
+                        onClick={() => setActiveTool?.(activeTool === 'eraser' ? 'select' : 'eraser')}
+                    >
+                        <Eraser size={14} />
+                        Eraser Tool
+                    </Button>
+                    <Button
+                        variant="outline"
+                        className="h-10 px-3 text-xs font-bold rounded-xl border-red-200 text-red-500 hover:bg-red-50"
+                        onClick={() => update({ eraserPaths: [] })}
+                        disabled={!element.eraserPaths?.length}
+                    >
+                        Reset
+                    </Button>
+                </div>
+
+                {activeTool === 'eraser' && eraserOptions && (
+                    <div className="space-y-4 pt-2 border-t border-slate-100 animate-in fade-in slide-in-from-top-2">
+                        <PropertyRow 
+                            label="Brush Size" 
+                            value={eraserOptions.size} 
+                            display={`${eraserOptions.size}px`} 
+                            min={2} max={200} step={1} 
+                            onChange={(v: number) => setEraserOptions?.({ ...eraserOptions, size: v })} 
+                        />
+                        
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                Tip Shape
+                            </Label>
+                            <div className="flex gap-2">
+                                {[
+                                    { id: 'soft_round', icon: <Circle size={14} className="opacity-40" />, label: 'Soft' },
+                                    { id: 'hard_round', icon: <Circle size={14} />, label: 'Hard' },
+                                    { id: 'square', icon: <Square size={14} />, label: 'Square' },
+                                ].map((tip) => (
+                                    <Button
+                                        key={tip.id}
+                                        variant={eraserOptions.brushTip === tip.id ? 'selected' : 'outline'}
+                                        className="flex-1 h-9 gap-1.5 rounded-lg p-0"
+                                        onClick={() => setEraserOptions?.({ ...eraserOptions, brushTip: tip.id })}
+                                    >
+                                        {tip.icon}
+                                        <span className="text-[10px]">{tip.label}</span>
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <PropertyRow 
+                            label="Opacity" 
+                            value={eraserOptions.opacity} 
+                            display={`${Math.round(eraserOptions.opacity * 100)}%`} 
+                            min={0.1} max={1} step={0.05} 
+                            onChange={(v: number) => setEraserOptions?.({ ...eraserOptions, opacity: v })} 
+                        />
+                    </div>
+                )}
             </div>
         </SectionCard>
         

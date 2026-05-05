@@ -192,6 +192,14 @@ export type DesignElement = {
   // Path specific properties
   pathPoints?: PathPoint[];
   isPathClosed?: boolean;
+
+  // Eraser specific properties
+  eraserPaths?: {
+    points: [number, number][];
+    brushTip: 'soft_round' | 'hard_round' | 'square';
+    strokeWidth: number;
+    opacity: number;
+  }[];
 };
 
 export type Product = {

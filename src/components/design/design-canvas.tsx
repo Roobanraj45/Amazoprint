@@ -236,7 +236,7 @@ type DesignCanvasProps = {
   highlightSpotUv?: boolean;
   livePath?: PathPoint[] | null;
   mousePos?: { x: number, y: number } | null;
-  activeTool?: 'select' | 'pen' | 'brush' | 'spray';
+  activeTool?: 'select' | 'pen' | 'brush' | 'spray' | 'eraser';
   livePencilPath?: {
     path: [number, number][];
     strokeColor: string;
@@ -245,6 +245,12 @@ type DesignCanvasProps = {
     brushTip: BrushEngineTip;
     bristleTipData: BristleProfile;
   } | null;
+  liveEraserPath?: [number, number][] | null;
+  eraserOptions?: {
+    size: number;
+    brushTip: 'soft_round' | 'hard_round' | 'square';
+    opacity: number;
+  };
   croppingElementId?: string | null;
   setCroppingElementId?: (id: string | null) => void;
   /** When set, shows an interactive node-editing overlay for this finalized path element */
@@ -285,6 +291,8 @@ export function DesignCanvas({
   mousePos,
   activeTool = 'select',
   livePencilPath,
+  liveEraserPath,
+  eraserOptions,
   croppingElementId,
   setCroppingElementId,
   pathEditingElement,
@@ -297,6 +305,67 @@ export function DesignCanvas({
   const { zoom, pan } = viewState;
   
   useCustomFonts(); // Load custom fonts globally
+
+  // --- ERASER OVERLAY RENDERER ---
+  const renderLiveEraser = () => {
+    if (!liveEraserPath || liveEraserPath.length < 2 || activeTool !== 'eraser' || !eraserOptions) return null;
+
+    const pointsStr = liveEraserPath.map(([x, y]) => `${x + safetyMargin},${y + safetyMargin}`).join(' ');
+    const isSoft = eraserOptions.brushTip === 'soft_round';
+    const filterId = 'live-eraser-blur';
+
+    return (
+      <svg
+        width="100%"
+        height="100%"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          pointerEvents: 'none',
+          zIndex: 1001,
+        }}
+      >
+        {isSoft && (
+          <defs>
+            <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation={eraserOptions.size * 0.25} />
+            </filter>
+          </defs>
+        )}
+        <polyline
+          points={pointsStr}
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.5)" // Semi-transparent white to show where we are erasing
+          strokeWidth={eraserOptions.size}
+          strokeLinecap={eraserOptions.brushTip === 'square' ? 'square' : 'round'}
+          strokeLinejoin="round"
+          filter={isSoft ? `url(#${filterId})` : undefined}
+          style={{ mixBlendMode: 'difference' }}
+        />
+        {liveEraserPath.length === 1 && (
+            <circle 
+                cx={liveEraserPath[0][0] + safetyMargin}
+                cy={liveEraserPath[0][1] + safetyMargin}
+                r={eraserOptions.size / 2}
+                fill="rgba(255, 255, 255, 0.5)"
+                filter={isSoft ? `url(#${filterId})` : undefined}
+                style={{ mixBlendMode: 'difference' }}
+            />
+        )}
+        {/* Helper outline */}
+        <polyline
+          points={pointsStr}
+          fill="none"
+          stroke="rgba(0, 0, 0, 0.3)"
+          strokeWidth={eraserOptions.size}
+          strokeLinecap={eraserOptions.brushTip === 'square' ? 'square' : 'round'}
+          strokeLinejoin="round"
+          strokeDasharray="4 4"
+        />
+      </svg>
+    );
+  };
 
   // Draw live brush preview onto overlay canvas
   useEffect(() => {
@@ -604,6 +673,8 @@ export function DesignCanvas({
           </div>
           
           <PenToolCanvas livePath={livePath || null} mousePos={mousePos || null} zoom={zoom} safetyMargin={safetyMargin} />
+          
+          {renderLiveEraser()}
 
           {/* Node editing overlay for an already-finalized path element */}
           {pathEditingElement?.pathPoints && pathEditingElement.pathPoints.length > 0 && (() => {

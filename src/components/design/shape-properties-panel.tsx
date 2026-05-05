@@ -9,7 +9,7 @@ import type { DesignElement, GradientStop } from "@/lib/types";
 import { CMYKColorPicker as ColorPicker } from "./cmyk-color-picker";
 import { GradientPicker } from "./gradient-picker";
 import { Input } from "../ui/input";
-import { X, ImageIcon, Library, PaintBucket, Edit3, Sparkles, Loader2, Maximize, FlipHorizontal, FlipVertical } from "lucide-react";
+import { X, ImageIcon, Library, PaintBucket, Edit3, Sparkles, Loader2, Maximize, FlipHorizontal, FlipVertical, SlidersHorizontal } from "lucide-react";
 import { removeBackground } from "@imgly/background-removal";
 import { Button } from "../ui/button";
 import { cn, resolveImagePath } from "@/lib/utils";
@@ -317,6 +317,31 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                                             </Button>
                                         </div>
                                     </div>
+
+                                    <div className="pt-2 border-t border-slate-200 mt-2 space-y-3 bg-indigo-50/30 p-2 rounded-xl border border-indigo-100/50">
+                                        <div className="flex items-center gap-1.5 mb-1.5">
+                                            <Sparkles size={12} className="text-indigo-600" />
+                                            <Label className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">AI Tools</Label>
+                                        </div>
+                                        <Button 
+                                            variant="default"
+                                            className="w-full gap-2 h-9 text-[11px] font-bold rounded-xl shadow-md bg-indigo-600 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-70"
+                                            onClick={handleRemoveBackground}
+                                            disabled={isRemovingBackground || !element.fillImageSrc}
+                                        >
+                                            {isRemovingBackground ? (
+                                                <>
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                    Processing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles size={12} />
+                                                    Remove Background
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
                                 </div>
 
                                 <Dialog open={isAssetLibraryOpen} onOpenChange={setIsAssetLibraryOpen}>
@@ -336,13 +361,35 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                                 </Dialog>
 
                                 <div className="pt-2 border-t border-slate-200 mt-2 space-y-3">
-                                    <Label className="text-[10px] font-bold text-slate-500 ml-1 uppercase tracking-wider">Image Adjustments</Label>
-                                    <div className="space-y-4">
-                                        <PropSlider label="Brightness" value={element.filterBrightness || 1} display={`${Math.round(((element.filterBrightness || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => handleUpdate({ filterBrightness: v })} />
-                                        <PropSlider label="Contrast" value={element.filterContrast || 1} display={`${Math.round(((element.filterContrast || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => handleUpdate({ filterContrast: v })} />
-                                        <PropSlider label="Saturation" value={element.filterSaturate || 1} display={`${Math.round(((element.filterSaturate || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => handleUpdate({ filterSaturate: v })} />
-                                        <PropSlider label="Blur" value={element.filterBlur || 0} display={`${element.filterBlur || 0}px`} min={0} max={20} step={1} onChange={(v: number) => handleUpdate({ filterBlur: v })} />
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <SlidersHorizontal size={12} className="text-slate-500" />
+                                        <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Image Adjustments</Label>
                                     </div>
+                                    
+                                    <Tabs defaultValue="basic" className="w-full">
+                                        <TabsList className="grid w-full grid-cols-3 h-8 bg-slate-100/50 p-1 rounded-lg">
+                                            <TabsTrigger value="basic" className="text-[10px] font-bold h-6 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Basic</TabsTrigger>
+                                            <TabsTrigger value="effects" className="text-[10px] font-bold h-6 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Effects</TabsTrigger>
+                                            <TabsTrigger value="advanced" className="text-[10px] font-bold h-6 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Advanced</TabsTrigger>
+                                        </TabsList>
+                                        
+                                        <TabsContent value="basic" className="mt-4 space-y-4">
+                                            <PropSlider label="Brightness" value={element.filterBrightness || 1} display={`${Math.round(((element.filterBrightness || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => handleUpdate({ filterBrightness: v })} />
+                                            <PropSlider label="Contrast" value={element.filterContrast || 1} display={`${Math.round(((element.filterContrast || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => handleUpdate({ filterContrast: v })} />
+                                            <PropSlider label="Saturation" value={element.filterSaturate || 1} display={`${Math.round(((element.filterSaturate || 1) - 1) * 100)}%`} min={0} max={2} step={0.05} onChange={(v: number) => handleUpdate({ filterSaturate: v })} />
+                                        </TabsContent>
+                                        
+                                        <TabsContent value="effects" className="mt-4 space-y-4">
+                                            <PropSlider label="Grayscale" value={element.filterGrayscale || 0} display={`${Math.round((element.filterGrayscale || 0) * 100)}%`} min={0} max={1} step={0.05} onChange={(v: number) => handleUpdate({ filterGrayscale: v })} />
+                                            <PropSlider label="Sepia" value={element.filterSepia || 0} display={`${Math.round((element.filterSepia || 0) * 100)}%`} min={0} max={1} step={0.05} onChange={(v: number) => handleUpdate({ filterSepia: v })} />
+                                            <PropSlider label="Invert" value={element.filterInvert || 0} display={`${Math.round((element.filterInvert || 0) * 100)}%`} min={0} max={1} step={0.05} onChange={(v: number) => handleUpdate({ filterInvert: v })} />
+                                        </TabsContent>
+                                        
+                                        <TabsContent value="advanced" className="mt-4 space-y-4">
+                                            <PropSlider label="Blur" value={element.filterBlur || 0} display={`${element.filterBlur || 0}px`} min={0} max={20} step={1} onChange={(v: number) => handleUpdate({ filterBlur: v })} />
+                                            <PropSlider label="Hue Rotate" value={element.filterHueRotate || 0} display={`${element.filterHueRotate || 0}°`} min={0} max={360} step={1} onChange={(v: number) => handleUpdate({ filterHueRotate: v })} />
+                                        </TabsContent>
+                                    </Tabs>
                                 </div>
                             </div>
                         )}

@@ -366,30 +366,47 @@ export function TextCanvasElement({
             {shadowFilterDef}
         </defs>
         
-        <g 
-            filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}
-            fill={isSmoothGradient ? getSvgFill() : undefined}
-        >
-          {charData.map((data, i) => (
-            <text 
-                key={i}
-                style={{
-                    ...textStyle,
-                    paintOrder: 'stroke fill',
-                }} 
-                textAnchor="middle" 
-                dominantBaseline="middle"
-                transform={`translate(${data.x}, ${data.y}) rotate(${data.rotation})`}
-                stroke={!isSpotUv && element.textStrokeWidth ? (element.textStrokeColor || '#000000') : 'none'}
-                strokeWidth={!isSpotUv ? (element.textStrokeWidth || 0) : 0}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                fill={isSmoothGradient ? 'inherit' : getSvgFill()}
-            >
-                {data.char}
-            </text>
-          ))}
-        </g>
+        {(() => {
+          const filters = [
+            `brightness(${element.filterBrightness || 1})`,
+            `contrast(${element.filterContrast || 1})`,
+            `saturate(${element.filterSaturate || 1})`,
+            `grayscale(${element.filterGrayscale || 0})`,
+            `sepia(${element.filterSepia || 0})`,
+            `invert(${element.filterInvert || 0})`,
+            `hue-rotate(${element.filterHueRotate || 0}deg)`,
+            `blur(${element.filterBlur || 0}px)`,
+          ].join(' ');
+
+          return (
+            <g style={{ filter: element.fillType === 'image' ? filters : undefined }}>
+              <g 
+                  filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}
+                  fill={isSmoothGradient ? getSvgFill() : undefined}
+              >
+                {charData.map((data, i) => (
+                  <text 
+                      key={i}
+                      style={{
+                          ...textStyle,
+                          paintOrder: 'stroke fill',
+                      }} 
+                      textAnchor="middle" 
+                      dominantBaseline="middle"
+                      transform={`translate(${data.x}, ${data.y}) rotate(${data.rotation})`}
+                      stroke={!isSpotUv && element.textStrokeWidth ? (element.textStrokeColor || '#000000') : 'none'}
+                      strokeWidth={!isSpotUv ? (element.textStrokeWidth || 0) : 0}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      fill={isSmoothGradient ? 'inherit' : getSvgFill()}
+                  >
+                      {data.char}
+                  </text>
+                ))}
+              </g>
+            </g>
+          );
+        })()}
       </svg>
     );
   }
@@ -458,14 +475,24 @@ export function TextCanvasElement({
                 const offsetX = element.fillImageOffsetX || 0;
                 const offsetY = element.fillImageOffsetY || 0;
                 
-                // When using objectBoundingBox:
-                // 1.0 = 100% of the element's width/height
-                // We normalize offset to be relative (0.5 = center)
                 const relativeOffsetX = offsetX / element.width;
                 const relativeOffsetY = offsetY / element.height;
                 
-                // Scale around the center (0.5, 0.5)
-                const transformStr = `translate(${0.5 + relativeOffsetX}, ${0.5 + relativeOffsetY}) scale(${scaleX}, ${scaleY}) translate(-0.5, -0.5)`;
+                const filter = [
+                    `brightness(${element.filterBrightness || 1})`,
+                    `contrast(${element.filterContrast || 1})`,
+                    `saturate(${element.filterSaturate || 1})`,
+                    `grayscale(${element.filterGrayscale || 0})`,
+                    `sepia(${element.filterSepia || 0})`,
+                    `invert(${element.filterInvert || 0})`,
+                    `hue-rotate(${element.filterHueRotate || 0}deg)`,
+                    `blur(${element.filterBlur || 0}px)`,
+                ].join(' ');
+
+                const flipX = element.fillImageFlipHorizontal ? -1 : 1;
+                const flipY = element.fillImageFlipVertical ? -1 : 1;
+
+                const transformStr = `translate(${0.5 + relativeOffsetX}, ${0.5 + relativeOffsetY}) scale(${scaleX * flipX}, ${scaleY * flipY}) translate(-0.5, -0.5)`;
                 
                 return (
                     <pattern 
@@ -482,6 +509,7 @@ export function TextCanvasElement({
                             height="1" 
                             preserveAspectRatio="none"
                             transform={transformStr}
+                            style={{ filter: undefined }}
                         />
                     </pattern>
                 );
@@ -541,45 +569,60 @@ export function TextCanvasElement({
             />
           </div>
         </foreignObject>
-      ) : (
-        <g 
-          filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}
-          fill={isGradient ? getSvgFill() : undefined}
-        >
-          {lineData.map((line, lineIdx) => {
-              let x = 0;
-              if (element.textAlign === 'center') x = element.width / 2;
-              else if (element.textAlign === 'right') x = element.width;
-              
-              const textAlignMap = {
-                  left: 'start',
-                  center: 'middle',
-                  right: 'end',
-                  justify: 'start'
-              };
+      ) : (() => {
+        const filters = [
+          `brightness(${element.filterBrightness || 1})`,
+          `contrast(${element.filterContrast || 1})`,
+          `saturate(${element.filterSaturate || 1})`,
+          `grayscale(${element.filterGrayscale || 0})`,
+          `sepia(${element.filterSepia || 0})`,
+          `invert(${element.filterInvert || 0})`,
+          `hue-rotate(${element.filterHueRotate || 0}deg)`,
+          `blur(${element.filterBlur || 0}px)`,
+        ].join(' ');
 
-              return (
-                  <text 
-                    key={lineIdx} 
-                    style={{
-                        ...textStyle,
-                        paintOrder: 'stroke fill',
-                    }} 
-                    x={x}
-                    y={line.y}
-                    textAnchor={textAlignMap[element.textAlign || 'left'] as any}
-                    stroke={!isSpotUv && element.textStrokeWidth ? (element.textStrokeColor || '#000000') : 'none'}
-                    strokeWidth={!isSpotUv ? (element.textStrokeWidth || 0) : 0}
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                    fill={isGradient ? 'inherit' : getSvgFill()}
-                  >
-                    {line.text}
-                  </text>
-              );
-          })}
-      </g>
-      )}
+        return (
+          <g style={{ filter: element.fillType === 'image' ? filters : undefined }}>
+            <g 
+              filter={shadowFilterDef ? `url(#shadow-${element.id})` : undefined}
+              fill={isGradient ? getSvgFill() : undefined}
+            >
+              {lineData.map((line, lineIdx) => {
+                  let x = 0;
+                  if (element.textAlign === 'center') x = element.width / 2;
+                  else if (element.textAlign === 'right') x = element.width;
+                  
+                  const textAlignMap = {
+                      left: 'start',
+                      center: 'middle',
+                      right: 'end',
+                      justify: 'start'
+                  };
+
+                  return (
+                      <text 
+                        key={lineIdx} 
+                        style={{
+                            ...textStyle,
+                            paintOrder: 'stroke fill',
+                        }} 
+                        x={x}
+                        y={line.y}
+                        textAnchor={textAlignMap[element.textAlign || 'left'] as any}
+                        stroke={!isSpotUv && element.textStrokeWidth ? (element.textStrokeColor || '#000000') : 'none'}
+                        strokeWidth={!isSpotUv ? (element.textStrokeWidth || 0) : 0}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        fill={isGradient ? 'inherit' : getSvgFill()}
+                      >
+                        {line.text}
+                      </text>
+                  );
+              })}
+            </g>
+          </g>
+        );
+      })()}
     </svg>
   );
 }
