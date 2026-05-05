@@ -63,8 +63,12 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
   else if (unitType === 'ft') unitToPx = DPI * 12;
 
   // Use explicit width/height from URL if provided, otherwise use sub-product dimensions, or fallback to a default.
-  const finalWidthUnits = searchParams.width ? Number(searchParams.width) : (subProductForDims ? Number(subProductForDims.width) : 85);
-  const finalHeightUnits = searchParams.height ? Number(searchParams.height) : (subProductForDims ? Number(subProductForDims.height) : 55);
+  let finalWidthUnits = searchParams.width ? Number(searchParams.width) : (subProductForDims ? Number(subProductForDims.width) : 85);
+  let finalHeightUnits = searchParams.height ? Number(searchParams.height) : (subProductForDims ? Number(subProductForDims.height) : 55);
+
+  // If sub-product is 0x0 (custom) and no URL params provided, use a default starting size
+  if (finalWidthUnits === 0) finalWidthUnits = 85;
+  if (finalHeightUnits === 0) finalHeightUnits = 55;
 
   const finalWidth = Math.round(finalWidthUnits * unitToPx);
   const finalHeight = Math.round(finalHeightUnits * unitToPx);

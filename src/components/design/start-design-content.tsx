@@ -19,6 +19,7 @@ import { resolveImagePath, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 type ProductWithSubProducts = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
 type SubProductData = ProductWithSubProducts['subProducts'][0];
@@ -49,6 +50,8 @@ export function StartDesignContent() {
   const [spotUv, setSpotUv] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
   const [foilTypes, setFoilTypes] = useState<FoilType[]>([]);
+  const [customWidth, setCustomWidth] = useState(searchParams.get('width') || '');
+  const [customHeight, setCustomHeight] = useState(searchParams.get('height') || '');
 
   useEffect(() => {
     getFoilTypes().then(setFoilTypes);
@@ -196,8 +199,14 @@ export function StartDesignContent() {
     } else {
       newParams.delete('addons');
     }
+    
+    if (subProduct?.width === 0 && subProduct?.height === 0) {
+      if (customWidth) newParams.set('width', customWidth);
+      if (customHeight) newParams.set('height', customHeight);
+    }
+
     return newParams.toString();
-  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons]);
+  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, customWidth, customHeight]);
 
   if (loading) {
     return (
@@ -273,11 +282,53 @@ export function StartDesignContent() {
                       </div>
                       <div className="rounded-xl border bg-muted/30 p-3.5 dark:border-slate-800">
                           <p className="text-[11px] font-bold text-muted-foreground">Dimensions</p>
-                          <p className="text-sm font-semibold">{subProduct.width} x {subProduct.height} {subProduct.unitType || 'mm'}</p>
+                          <p className="text-sm font-semibold">
+                            {subProduct.width === 0 && subProduct.height === 0 
+                              ? 'Custom Size' 
+                              : `${subProduct.width} x ${subProduct.height} ${subProduct.unitType || 'mm'}`}
+                          </p>
                         </div>
                     </div>
                   </div>
                 </Card>
+
+                {subProduct.width === 0 && subProduct.height === 0 && (
+                  <Card className="border shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+                    <CardHeader className="p-4 border-b">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <Square className="w-4 h-4 text-primary" />
+                        Enter Custom Size
+                      </CardTitle>
+                      <CardDescription className="text-[10px]">
+                        Specify the dimensions for your project in {subProduct.unitType || 'mm'}.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div className="space-y-2">
+                          <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Width ({subProduct.unitType || 'mm'})</Label>
+                          <Input 
+                            type="number" 
+                            placeholder="e.g. 100" 
+                            value={customWidth} 
+                            onChange={(e) => setCustomWidth(e.target.value)}
+                            className="font-bold"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Height ({subProduct.unitType || 'mm'})</Label>
+                          <Input 
+                            type="number" 
+                            placeholder="e.g. 100" 
+                            value={customHeight} 
+                            onChange={(e) => setCustomHeight(e.target.value)}
+                            className="font-bold"
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </aside>
 
               <div className="lg:col-span-7 space-y-12">
@@ -592,7 +643,11 @@ export function StartDesignContent() {
                                 <div className="w-1.5 h-6 bg-primary rounded-full" />
                                 Technical blueprint
                             </h3>
-                            <p className="text-[11px] text-slate-500 font-medium">Standard industrial parameters for {subProduct.width}x{subProduct.height} {subProduct.unitType} production.</p>
+                            <p className="text-[11px] text-slate-500 font-medium">
+                                {subProduct.width === 0 && subProduct.height === 0 
+                                    ? 'Custom size project initialization' 
+                                    : `Standard industrial parameters for ${subProduct.width}x${subProduct.height} ${subProduct.unitType} production.`}
+                            </p>
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -644,7 +699,7 @@ export function StartDesignContent() {
                                         </div>
                                         <div>
                                             <p className={cn("text-xs font-bold", subProduct.id === sp.id ? "text-white" : "text-slate-900 dark:text-white")}>
-                                                {sp.width}x{sp.height} {sp.unitType}
+                                                {sp.width === 0 && sp.height === 0 ? 'Custom Size' : `${sp.width}x${sp.height} ${sp.unitType}`}
                                             </p>
                                             <p className={cn("text-[10px] font-semibold", subProduct.id === sp.id ? "text-white/70" : "text-slate-400")}>
                                                 Standard format
