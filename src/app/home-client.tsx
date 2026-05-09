@@ -40,6 +40,14 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { Progress } from '@/components/ui/progress';
 import { formatDistanceToNowStrict } from 'date-fns';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 
 // --- Animation Variants ---
 const FADE_UP = {
@@ -127,25 +135,25 @@ export function HomeClient({
                 transition={{ duration: 0.8, ease: "easeOut" }}
                 className="max-w-2xl"
               >
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-primary font-black uppercase tracking-[0.2em] text-[10px] mb-8 backdrop-blur-md">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-primary font-bold tracking-tight text-[11px] mb-8 backdrop-blur-md">
                   <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
                   The Future of Custom Print
                 </div>
-                <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black tracking-tighter leading-[1.05] mb-8 font-headline uppercase">
+                <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black tracking-tighter leading-[1.05] mb-8 font-headline">
                   Design. <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-violet-400 to-primary bg-300% animate-gradient">Print.</span> <br />
                   Earn.
                 </h1>
-                <p className="text-lg md:text-xl text-zinc-400 mb-10 leading-relaxed font-medium max-w-lg">
+                <p className="text-lg md:text-xl text-zinc-200 mb-10 leading-relaxed font-medium max-w-lg">
                   An immersive 3D-powered ecosystem connecting creative freelancers, global brands, and industrial printing presses.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center gap-4">
-                  <Button size="lg" asChild className="w-full sm:w-auto h-14 px-8 rounded-2xl text-sm font-black uppercase tracking-widest group shadow-[0_0_40px_-10px_hsl(var(--primary))] bg-primary hover:bg-primary/90 text-white">
+                  <Button size="lg" asChild className="w-full sm:w-auto h-14 px-8 rounded-2xl text-sm font-bold tracking-tight group shadow-[0_0_40px_-10px_hsl(var(--primary))] bg-primary hover:bg-primary/90 text-white">
                     <Link href="/products" className="flex items-center justify-center gap-2">
                       Start Designing <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                     </Link>
                   </Button>
-                  <Button variant="outline" size="lg" asChild className="w-full sm:w-auto h-14 px-8 rounded-2xl text-sm font-black uppercase tracking-widest bg-white/5 border-white/10 hover:bg-white/10 text-white transition-all backdrop-blur-sm">
+                  <Button variant="outline" size="lg" asChild className="w-full sm:w-auto h-14 px-8 rounded-2xl text-sm font-bold tracking-tight bg-white/5 border-white/10 hover:bg-white/10 text-white transition-all backdrop-blur-sm">
                     <Link href="#ecosystem">
                       Explore Ecosystem
                     </Link>
@@ -189,7 +197,7 @@ export function HomeClient({
                           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Print Quality</p>
+                          <p className="text-[10px] font-bold tracking-tight text-zinc-300">Print Quality</p>
                           <p className="text-sm font-black text-white">Verified 300 DPI</p>
                         </div>
                       </div>
@@ -205,7 +213,7 @@ export function HomeClient({
                           <IndianRupee className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Order Dispatched</p>
+                          <p className="text-[10px] font-bold tracking-tight text-zinc-300">Order Dispatched</p>
                           <p className="text-sm font-black text-white">+ ₹4,500 Earned</p>
                         </div>
                       </div>
@@ -224,6 +232,80 @@ export function HomeClient({
           </div>
         </section>
 
+        {/* --- 1.5 FEATURED SLIDER --- */}
+        <section className="py-20 bg-background overflow-hidden">
+          <div className="container px-4 mx-auto">
+            <div className="flex items-center justify-between mb-12">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary font-bold text-[11px] tracking-tight">
+                  <Sparkles className="w-3 h-3" /> Popular Categories
+                </div>
+                <h2 className="text-3xl md:text-5xl font-black tracking-tighter font-headline">Explore <span className="text-primary">Featured</span> Products</h2>
+              </div>
+              <div className="hidden md:flex items-center gap-2">
+                <Button variant="ghost" size="sm" asChild className="text-[11px] font-bold tracking-tight">
+                  <Link href="/products">View All Products <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                </Button>
+              </div>
+            </div>
+
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              plugins={[
+                Autoplay({
+                  delay: 4000,
+                }),
+              ]}
+              className="w-full"
+            >
+              <CarouselContent className="-ml-4 md:-ml-6">
+                {[
+                  { title: "Premium Business Cards", image: "https://images.unsplash.com/photo-1589118949245-7d38baf380d6?w=800&auto=format&fit=crop&q=60", category: "Stationery" },
+                  { title: "Luxury Packaging", image: "https://images.unsplash.com/photo-1512418490979-92798cedec3d?w=800&auto=format&fit=crop&q=60", category: "Box & Packing" },
+                  { title: "Industrial Signage", image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&auto=format&fit=crop&q=60", category: "Marketing" },
+                  { title: "Custom Apparels", image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&auto=format&fit=crop&q=60", category: "Branding" },
+                  { title: "Promotional Flyers", image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&auto=format&fit=crop&q=60", category: "Stationery" },
+                  { title: "Bespoke Invitations", image: "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=800&auto=format&fit=crop&q=60", category: "Events" }
+                ].map((item, index) => (
+                  <CarouselItem key={index} className="pl-4 md:pl-6 md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                    <TiltCard>
+                      <div className="relative group cursor-pointer overflow-hidden rounded-[2rem] bg-card border border-border/40 shadow-xl transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10">
+                        <div className="aspect-[4/5] relative">
+                          <Image
+                            src={item.image}
+                            alt={item.title}
+                            fill
+                            className="object-cover transition-transform duration-700 group-hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                          <div className="absolute top-4 left-4">
+                            <Badge className="bg-white/90 backdrop-blur-md text-primary hover:bg-white text-[9px] font-bold px-2 py-0.5 tracking-tight border-none">
+                              {item.category}
+                            </Badge>
+                          </div>
+                          <div className="absolute bottom-6 left-6 right-6">
+                            <h3 className="text-white text-xl font-black font-headline tracking-tight leading-tight group-hover:translate-y-[-4px] transition-transform">
+                              {item.title}
+                            </h3>
+                            <div className="h-px w-0 group-hover:w-full bg-primary mt-2 transition-all duration-300" />
+                          </div>
+                        </div>
+                      </div>
+                    </TiltCard>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <div className="flex items-center justify-center gap-4 mt-12">
+                <CarouselPrevious className="static translate-y-0 h-12 w-12 border-2 hover:bg-primary hover:text-white transition-colors" />
+                <CarouselNext className="static translate-y-0 h-12 w-12 border-2 hover:bg-primary hover:text-white transition-colors" />
+              </div>
+            </Carousel>
+          </div>
+        </section>
+
         {/* --- 2. ECOSYSTEM OVERVIEW (Three Pillars) --- */}
         <section id="ecosystem" className="py-32 bg-background relative overflow-hidden">
           <div className="absolute top-0 right-0 w-1/3 h-1/2 bg-primary/5 blur-[150px] rounded-full pointer-events-none" />
@@ -238,10 +320,10 @@ export function HomeClient({
               }}
               className="text-center mb-20"
             >
-              <motion.div variants={FADE_UP} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-primary font-black uppercase tracking-[0.2em] text-[10px] mb-6">
+              <motion.div variants={FADE_UP} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-primary font-bold tracking-tight text-[11px] mb-6">
                 <Globe className="w-3 h-3" /> A Connected Network
               </motion.div>
-              <motion.h2 variants={FADE_UP} className="text-4xl md:text-5xl font-black tracking-tighter uppercase font-headline">
+              <motion.h2 variants={FADE_UP} className="text-4xl md:text-5xl font-black tracking-tighter font-headline">
                 The AmazoPrint <span className="text-primary">Ecosystem</span>
               </motion.h2>
             </motion.div>
@@ -291,10 +373,10 @@ export function HomeClient({
                       {pillar.icon}
                     </div>
                     <div className="flex-1 space-y-3">
-                      <h3 className="text-2xl font-black uppercase font-headline">{pillar.title}</h3>
-                      <p className="text-muted-foreground font-medium leading-relaxed">{pillar.desc}</p>
+                      <h3 className="text-2xl font-black font-headline">{pillar.title}</h3>
+                      <p className="text-zinc-600 font-medium leading-relaxed">{pillar.desc}</p>
                     </div>
-                    <Button variant="ghost" asChild className="group/btn p-0 hover:bg-transparent h-auto mt-4 font-bold uppercase tracking-widest text-[11px]">
+                    <Button variant="ghost" asChild className="group/btn p-0 hover:bg-transparent h-auto mt-4 font-bold tracking-tight text-[11px]">
                       <Link href={pillar.link} className="flex items-center gap-2">
                         {pillar.btnText} <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
                       </Link>
@@ -303,6 +385,106 @@ export function HomeClient({
                 </TiltCard>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* --- 2.5 AI STUDIO HIGHLIGHT --- */}
+        <section className="py-24 relative overflow-hidden bg-background">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
+          <div className="container px-4 mx-auto relative z-10">
+            <TiltCard>
+              <div className="relative overflow-hidden rounded-[3.5rem] bg-zinc-950 text-white p-10 md:p-16 border border-primary/20 shadow-[0_0_50px_-12px_hsl(var(--primary)/0.3)]">
+                {/* Futuristic background patterns */}
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
+                <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-primary/20 via-transparent to-violet-500/20 pointer-events-none" />
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
+                  <div className="space-y-8">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold tracking-tight text-[11px]">
+                      <Zap className="w-4 h-4 animate-pulse" /> AI Powered Creative Studio
+                    </div>
+                    <h2 className="text-4xl md:text-6xl font-black tracking-tighter font-headline leading-tight">
+                      Your Imagination, <br />
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-violet-400 to-emerald-400 animate-gradient bg-300%">AI-Generated.</span>
+                    </h2>
+                    <p className="text-lg text-zinc-400 font-medium leading-relaxed max-w-xl">
+                      Experience the next frontier of print design. Our integrated AI engine helps you generate stunning assets, remove backgrounds instantly, and optimize layouts for industrial-grade printing.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        { title: "Generative Art", desc: "Create unique assets from text prompts", icon: <Sparkles className="w-5 h-5" /> },
+                        { title: "Smart Eraser", desc: "Neural background removal in seconds", icon: <Zap className="w-5 h-5" /> },
+                        { title: "Auto Layout", desc: "AI-optimized placement for print", icon: <LayoutGrid className="w-5 h-5" /> },
+                        { title: "Resolution Upscale", desc: "Enhance low-res images for 300 DPI", icon: <ShieldCheck className="w-5 h-5" /> }
+                      ].map((feature, i) => (
+                        <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group">
+                          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                            {feature.icon}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-sm tracking-tight">{feature.title}</h4>
+                            <p className="text-xs text-zinc-500">{feature.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="pt-4 flex flex-col sm:flex-row gap-4">
+                      <Button size="lg" asChild className="rounded-2xl h-14 px-8 font-bold tracking-tight bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 group">
+                        <Link href="/products" className="flex items-center justify-center gap-2">
+                          Launch AI Studio <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    {/* Visual representation of AI generation */}
+                    <div className="relative w-full aspect-square max-w-md mx-auto">
+                      <motion.div
+                        animate={{ 
+                          rotate: [0, 360],
+                        }}
+                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-0 rounded-full border-2 border-dashed border-primary/30"
+                      />
+                      <div className="absolute inset-4 rounded-[2.5rem] bg-gradient-to-br from-zinc-800 to-zinc-950 border border-white/10 overflow-hidden shadow-2xl flex items-center justify-center">
+                        <Image 
+                          src="https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&auto=format&fit=crop&q=60" 
+                          alt="AI Design Preview" 
+                          fill 
+                          className="object-cover opacity-40 mix-blend-overlay"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-center space-y-4">
+                            <div className="relative inline-block">
+                              <Sparkles className="w-16 h-16 text-primary animate-pulse" />
+                              <div className="absolute inset-0 blur-xl bg-primary/50 -z-10" />
+                            </div>
+                            <div className="px-4 py-2 rounded-lg bg-black/50 backdrop-blur-md border border-white/10">
+                              <p className="text-[10px] font-mono text-emerald-400">Processing Neural Prompt...</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Floating UI tooltips */}
+                      <motion.div
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute -right-4 top-1/4 glass-card bg-white/10 backdrop-blur-xl border border-white/20 p-3 rounded-xl shadow-2xl z-20"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                          <span className="text-[10px] font-bold text-white tracking-tight">Generating Assets...</span>
+                        </div>
+                      </motion.div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TiltCard>
           </div>
         </section>
 
@@ -317,17 +499,17 @@ export function HomeClient({
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
                   <div className="space-y-8">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-primary font-black uppercase tracking-widest text-[10px]">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-primary font-bold tracking-tight text-[11px]">
                       <LayoutGrid size={14} /> Design Ready
                     </div>
-                    <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase font-headline leading-[1.1]">
+                    <h2 className="text-4xl md:text-6xl font-black tracking-tighter font-headline leading-[1.1]">
                       Don't Start from <br /><span className="text-primary">Scratch.</span>
                     </h2>
                     <p className="text-lg text-zinc-400 font-medium leading-relaxed max-w-md">
                       Browse our library of premium, print-verified templates crafted by elite designers. Just swap your details and you're production-ready.
                     </p>
                     <div className="pt-4">
-                      <Button size="lg" asChild className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 group">
+                      <Button size="lg" asChild className="rounded-2xl h-14 px-8 font-bold tracking-tight bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 group">
                         <Link href="/templates" className="flex items-center justify-center gap-2">
                           Explore Library <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </Link>
@@ -369,10 +551,10 @@ export function HomeClient({
           <div className="container px-4 mx-auto relative z-10">
             {/* Section header */}
             <motion.div {...FADE_UP} className="text-center mb-16 space-y-4">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 text-primary border border-white/10 text-[10px] font-black uppercase tracking-widest">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 text-primary border border-white/10 text-[11px] font-bold tracking-tight">
                 <IndianRupee className="w-3 h-3" /> Join &amp; Earn
               </div>
-              <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase font-headline">
+              <h2 className="text-4xl md:text-6xl font-black tracking-tighter font-headline">
                 Turn Your Talent <br className="hidden md:block" />
                 into <span className="text-primary">Income.</span>
               </h2>
@@ -395,11 +577,11 @@ export function HomeClient({
                       </div>
                       <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Live Quests</span>
+                        <span className="text-[10px] font-bold text-emerald-400 tracking-tight">Live Quests</span>
                       </div>
                     </div>
                     <div className="flex-1 space-y-3">
-                      <h3 className="text-3xl md:text-4xl font-black tracking-tighter uppercase font-headline leading-tight">Design <br /> Contests</h3>
+                      <h3 className="text-3xl md:text-4xl font-black tracking-tighter font-headline leading-tight">Design <br /> Contests</h3>
                       <p className="text-zinc-400 font-medium leading-relaxed text-sm">Compete in live design quests posted by real brands. Submit your best work, win prize money, and build a verified portfolio — all from one platform.</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -411,11 +593,11 @@ export function HomeClient({
                       ].map((item, i) => (
                         <div key={i} className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/5">
                           <span className="text-primary">{item.icon}</span>
-                          <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">{item.text}</span>
+                          <span className="text-[10px] font-bold text-zinc-100 tracking-tight">{item.text}</span>
                         </div>
                       ))}
                     </div>
-                    <Button asChild size="lg" className="w-full rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-[12px] uppercase tracking-widest group/btn shadow-lg shadow-primary/20">
+                    <Button asChild size="lg" className="w-full rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-[12px] tracking-tight group/btn shadow-lg shadow-primary/20">
                       <Link href="/contests" className="flex items-center justify-center gap-2">Browse Active Contests <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" /></Link>
                     </Button>
                   </div>
@@ -433,11 +615,11 @@ export function HomeClient({
                       </div>
                       <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20">
                         <Briefcase className="w-3 h-3 text-violet-400" />
-                        <span className="text-[9px] font-black text-violet-400 uppercase tracking-widest">Steady Income</span>
+                        <span className="text-[10px] font-bold text-violet-400 tracking-tight">Steady Income</span>
                       </div>
                     </div>
                     <div className="flex-1 space-y-3">
-                      <h3 className="text-3xl md:text-4xl font-black tracking-tighter uppercase font-headline leading-tight">Verification <br /> Jobs</h3>
+                      <h3 className="text-3xl md:text-4xl font-black tracking-tighter font-headline leading-tight">Verification <br /> Jobs</h3>
                       <p className="text-zinc-400 font-medium leading-relaxed text-sm">Review and approve customer designs before they go to print. Earn per job, work at your own pace — perfect for designers who want consistent, flexible income.</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -449,11 +631,11 @@ export function HomeClient({
                       ].map((item, i) => (
                         <div key={i} className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/5">
                           <span className="text-violet-400">{item.icon}</span>
-                          <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">{item.text}</span>
+                          <span className="text-[10px] font-bold text-zinc-100 tracking-tight">{item.text}</span>
                         </div>
                       ))}
                     </div>
-                    <Button asChild size="lg" className="w-full rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-[12px] uppercase tracking-widest group/btn shadow-lg shadow-violet-500/20">
+                    <Button asChild size="lg" className="w-full rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-[12px] tracking-tight group/btn shadow-lg shadow-violet-500/20">
                       <Link href="/freelancer/verifications" className="flex items-center justify-center gap-2">Start Verifying Designs <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" /></Link>
                     </Button>
                   </div>
@@ -471,13 +653,13 @@ export function HomeClient({
             <div className="container px-4 mx-auto relative z-10">
               <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-6">
                 <div className="space-y-4">
-                  <Badge variant="outline" className="bg-muted text-foreground border-border font-bold uppercase text-[10px] px-3 py-1.5">
+                  <Badge variant="outline" className="bg-muted text-zinc-900 border-border font-bold text-[11px] px-3 py-1.5">
                     Verified Material Specs
                   </Badge>
-                  <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase font-headline">Industrial <br /><span className="text-primary">Canvas.</span></h2>
+                  <h2 className="text-4xl md:text-6xl font-black tracking-tighter font-headline">Industrial <br /><span className="text-primary">Canvas.</span></h2>
                   <p className="text-lg text-muted-foreground font-medium max-w-xl leading-snug">Elite material specifications optimized for professional brand deployments. Start creating on premium stock.</p>
                 </div>
-                <Button asChild className="rounded-full h-12 px-6 font-bold uppercase tracking-widest group shadow-[0_10px_30px_-10px_hsl(var(--primary))]">
+                <Button asChild className="rounded-full h-12 px-6 font-bold tracking-tight group shadow-[0_10px_30px_-10px_hsl(var(--primary))]">
                   <Link href="/products" className="flex items-center gap-2">
                     View Enterprise Catalog <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
@@ -519,18 +701,18 @@ export function HomeClient({
                               </div>
 
                               <div className="absolute inset-x-0 bottom-0 p-6 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                                <Button className="w-full rounded-2xl bg-white text-primary hover:bg-zinc-100 font-bold uppercase text-[10px] tracking-widest shadow-xl">
+                                <Button className="w-full rounded-2xl bg-white text-primary hover:bg-zinc-100 font-bold text-[11px] tracking-tight shadow-xl">
                                   Select Material
                                 </Button>
                               </div>
                             </CardHeader>
                             <CardContent className="p-6 flex-grow space-y-4 relative bg-card border-t z-10">
                               <div className="space-y-1">
-                                <h3 className="font-black text-xl group-hover:text-primary transition-colors uppercase font-headline tracking-tight leading-tight">{subProduct.name}</h3>
-                                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.1em]">{subProduct.productName}</p>
+                                <h3 className="font-black text-xl group-hover:text-primary transition-colors font-headline tracking-tight leading-tight">{subProduct.name}</h3>
+                                <p className="text-[11px] font-bold text-zinc-600 tracking-tight">{subProduct.productName}</p>
                               </div>
                               <div className="flex flex-wrap gap-2">
-                                <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 text-[9px] font-black px-2 py-0.5 uppercase tracking-widest">CMYK NATIVE</Badge>
+                                <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 text-[10px] font-bold px-2 py-0.5 tracking-tight">CMYK Native</Badge>
                               </div>
                             </CardContent>
                           </Card>
@@ -549,10 +731,10 @@ export function HomeClient({
         <section className="py-24 bg-zinc-900 text-white relative">
           <div className="container px-4 mx-auto relative z-10">
             <div className="max-w-3xl mb-20 space-y-4">
-              <div className="inline-flex items-center gap-2 text-primary font-black uppercase tracking-[0.3em] text-[9px]">
+              <div className="inline-flex items-center gap-2 text-primary font-bold tracking-tight text-[11px]">
                 <ShieldCheck size={14} /> Technology Stack
               </div>
-              <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-tight uppercase font-headline">Engineered for <span className="text-primary">Scale.</span></h2>
+              <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-tight font-headline">Engineered for <span className="text-primary">Scale.</span></h2>
               <p className="text-lg text-zinc-400 font-medium max-w-xl leading-relaxed">Industrial-grade precision meets cloud-native efficiency. Designed for zero-loss output at any production scale.</p>
             </div>
 
@@ -562,8 +744,8 @@ export function HomeClient({
                   <Palette size={32} />
                 </div>
                 <div>
-                  <h3 className="text-4xl font-black mb-6 font-headline uppercase leading-none">Vector-Native <br />Design Engine</h3>
-                  <p className="text-zinc-400 text-lg max-w-md font-medium leading-relaxed">Precision studio built for raw asset fidelity. Full typography control and CMYK management.</p>
+                  <h3 className="text-4xl font-black mb-6 font-headline leading-none">Vector-Native <br />Design Engine</h3>
+                  <p className="text-zinc-300 text-lg max-w-md font-medium leading-relaxed">Precision studio built for raw asset fidelity. Full typography control and CMYK management.</p>
                 </div>
               </motion.div>
 
@@ -572,8 +754,8 @@ export function HomeClient({
                   <Sparkles size={32} />
                 </div>
                 <div>
-                  <h3 className="text-3xl font-black mb-4 font-headline uppercase leading-tight">Neural <br />Proofing</h3>
-                  <p className="text-zinc-400 font-medium text-sm leading-relaxed">Automated high-res scaling and isolated background removal powered by AI.</p>
+                  <h3 className="text-3xl font-black mb-4 font-headline leading-tight">Neural <br />Proofing</h3>
+                  <p className="text-zinc-300 font-medium text-sm leading-relaxed">Automated high-res scaling and isolated background removal powered by AI.</p>
                 </div>
               </motion.div>
 
@@ -582,15 +764,15 @@ export function HomeClient({
                   <FileCheck size={28} />
                 </div>
                 <div>
-                  <h4 className="text-2xl font-black mb-3 font-headline uppercase">Manual Audit</h4>
-                  <p className="text-zinc-400 font-medium text-sm leading-relaxed">Pre-press checks by senior industrial designers for guaranteed output quality.</p>
+                  <h4 className="text-2xl font-black mb-3 font-headline">Manual Audit</h4>
+                  <p className="text-zinc-300 font-medium text-sm leading-relaxed">Pre-press checks by senior industrial designers for guaranteed output quality.</p>
                 </div>
               </motion.div>
 
               <motion.div {...FADE_UP} className="md:col-span-8 glass-card bg-primary/5 border-white/5 rounded-[2.5rem] p-12 flex flex-col md:flex-row gap-12 items-center">
                 <div className="flex-1 space-y-6">
-                  <h4 className="text-3xl font-black font-headline uppercase">Global Routing</h4>
-                  <p className="text-zinc-400 text-lg font-medium leading-relaxed">Real-time routing to optimal production hubs for zero-latency regional delivery.</p>
+                  <h4 className="text-3xl font-black font-headline">Global Routing</h4>
+                  <p className="text-zinc-300 text-lg font-medium leading-relaxed">Real-time routing to optimal production hubs for zero-latency regional delivery.</p>
                 </div>
                 <div className="flex-shrink-0 w-32 h-32 bg-white/5 rounded-full flex items-center justify-center shadow-2xl border border-white/5">
                   <Globe className="w-16 h-16 text-primary" />
@@ -615,13 +797,13 @@ export function HomeClient({
                 className="space-y-6 order-2 lg:order-1"
               >
                 <motion.div variants={FADE_UP}>
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-bold uppercase text-[10px] px-3 py-1.5">
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 font-bold text-[11px] px-3 py-1.5">
                     Printing Press Partner
                   </Badge>
                 </motion.div>
-                <motion.h2 variants={FADE_UP} className="text-4xl md:text-6xl font-black tracking-tighter uppercase font-headline leading-[1.1]">
+                <motion.h2 variants={FADE_UP} className="text-4xl md:text-6xl font-black tracking-tighter font-headline leading-[1.1]">
                   Fill Your <br />
-                  <span className="text-emerald-500">Production</span> Capacity.
+                  <span className="text-emerald-600">Production</span> Capacity.
                 </motion.h2>
                 <motion.p variants={FADE_UP} className="text-lg text-muted-foreground font-medium max-w-xl leading-relaxed">
                   Transform your printing press into a global fulfillment node. Get ready-to-print verified files sent directly to your dashboard and get paid instantly.
@@ -635,9 +817,9 @@ export function HomeClient({
                     { title: "Industrial Scale", desc: "API workflow integrations" }
                   ].map((item, i) => (
                     <div key={i} className="flex gap-3">
-                      <CheckCircle2 className="text-emerald-500 w-5 h-5 flex-shrink-0" />
+                      <CheckCircle2 className="text-emerald-600 w-5 h-5 flex-shrink-0" />
                       <div>
-                        <h4 className="font-black text-sm uppercase">{item.title}</h4>
+                        <h4 className="font-bold text-sm">{item.title}</h4>
                         <p className="text-xs text-muted-foreground font-medium">{item.desc}</p>
                       </div>
                     </div>
@@ -645,7 +827,7 @@ export function HomeClient({
                 </motion.div>
 
                 <motion.div variants={FADE_UP} className="pt-6">
-                  <Button size="lg" asChild className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 group">
+                  <Button size="lg" asChild className="rounded-2xl h-14 px-8 font-bold tracking-tight bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 group">
                     <Link href="/printer-registration" className="flex items-center gap-2">
                       Join Printing Network <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </Link>
@@ -670,11 +852,11 @@ export function HomeClient({
                           <Building2 className="w-4 h-4 text-emerald-400" />
                         </div>
                         <div>
-                          <p className="text-[9px] text-zinc-400 uppercase font-black tracking-widest">Active Partner</p>
+                          <p className="text-[10px] text-zinc-300 font-bold tracking-tight">Active Partner</p>
                           <p className="text-sm font-bold text-white">Press Dashboard</p>
                         </div>
                       </div>
-                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] uppercase">Online</Badge>
+                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">Online</Badge>
                     </div>
 
                     {/* Dashboard Content */}
@@ -690,12 +872,12 @@ export function HomeClient({
                         <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-[9px] uppercase px-2 py-0 mb-2">New Order</Badge>
+                            <Badge className="bg-emerald-600 hover:bg-emerald-700 text-[10px] px-2 py-0 mb-2">New Order</Badge>
                             <p className="text-white font-black text-lg">500x Premium Cards</p>
                           </div>
                           <p className="text-emerald-400 font-black text-xl">₹2,400</p>
                         </div>
-                        <div className="flex items-center gap-4 text-zinc-400 text-[10px] font-bold uppercase tracking-wider">
+                        <div className="flex items-center gap-4 text-zinc-300 text-[11px] font-bold tracking-tight">
                           <span className="flex items-center gap-1"><FileCheck className="w-3 h-3" /> Pre-verified</span>
                           <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Due in 24h</span>
                         </div>
@@ -704,7 +886,7 @@ export function HomeClient({
                       {/* Mock Stats */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                          <p className="text-zinc-500 text-[9px] uppercase font-black tracking-widest mb-1">Today's Earnings</p>
+                          <p className="text-zinc-400 text-[10px] font-bold tracking-tight mb-1">Today's Earnings</p>
                           <motion.p
                             initial={{ opacity: 0 }}
                             whileInView={{ opacity: 1 }}
@@ -714,7 +896,7 @@ export function HomeClient({
                           >₹18,500</motion.p>
                         </div>
                         <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                          <p className="text-zinc-500 text-[9px] uppercase font-black tracking-widest mb-1">Orders Queued</p>
+                          <p className="text-zinc-400 text-[10px] font-bold tracking-tight mb-1">Orders Queued</p>
                           <motion.p
                             initial={{ opacity: 0 }}
                             whileInView={{ opacity: 1 }}
@@ -736,7 +918,7 @@ export function HomeClient({
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest">Receiving Files...</span>
+                      <span className="text-[11px] font-bold text-white tracking-tight">Receiving Files...</span>
                     </div>
                   </motion.div>
                 </TiltCard>
@@ -751,10 +933,10 @@ export function HomeClient({
             <div className="rounded-[4rem] p-16 md:p-32 text-center text-white relative overflow-hidden bg-zinc-950 shadow-2xl">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,hsl(var(--primary)/0.15),transparent_70%)]"></div>
               <div className="relative z-10 max-w-3xl mx-auto space-y-12">
-                <h2 className="text-5xl md:text-8xl font-black leading-[0.9] tracking-tighter uppercase font-headline">Ready to <br /><span className="text-primary">Deploy?</span></h2>
+                <h2 className="text-5xl md:text-8xl font-black leading-[0.9] tracking-tighter font-headline">Ready to <br /><span className="text-primary">Deploy?</span></h2>
                 <p className="text-xl md:text-2xl opacity-80 font-medium tracking-tight leading-relaxed">Join the network of brands redefining the industrial print landscape.</p>
                 <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                  <Button size="xl" asChild className="h-16 px-12 rounded-full text-xl font-bold bg-white text-primary hover:bg-zinc-100 transition-all uppercase font-headline">
+                  <Button size="xl" asChild className="h-16 px-12 rounded-full text-xl font-bold bg-white text-primary hover:bg-zinc-100 transition-all font-headline">
                     <Link href="/register">Initialize Account</Link>
                   </Button>
                 </div>

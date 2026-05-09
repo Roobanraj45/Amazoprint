@@ -158,7 +158,7 @@ const SvgGradientDefs = ({ element, product }: { element: DesignElement; product
   );
 };
 
-export function TextCanvasElement({ 
+export const TextCanvasElement = React.memo(({ 
   element, 
   product, 
   renderMode,
@@ -172,7 +172,7 @@ export function TextCanvasElement({
   isEditing?: boolean;
   setEditingId?: (id: string | null) => void;
   onUpdate?: (id: string, updates: Partial<DesignElement>) => void;
-}) {
+}) => {
   const [fontsLoaded, setFontsLoaded] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
@@ -244,8 +244,8 @@ export function TextCanvasElement({
     const { radius = 100, value: rotation = 0, reverse = false, bend = 50 } = warp || {};
     const fontSize = element.fontSize || 16;
     
-    const centerX = element.width / 2;
-    const centerY = element.height / 2;
+    const centerX = Math.round(element.width / 2);
+    const centerY = Math.round(element.height / 2);
 
     let contentToWrap = element.content || '';
     if (element.textTransform === 'uppercase') contentToWrap = contentToWrap.toUpperCase();
@@ -278,9 +278,9 @@ export function TextCanvasElement({
                 const angleInRadians = (midAngle - 90) * Math.PI / 180;
                 return {
                     char,
-                    x: centerX + (effectiveRadius * Math.cos(angleInRadians)),
-                    y: centerY + (effectiveRadius * Math.sin(angleInRadians)),
-                    rotation: midAngle + (reverse ? 180 : 0)
+                    x: Number((centerX + (effectiveRadius * Math.cos(angleInRadians))).toFixed(2)),
+                    y: Number((centerY + (effectiveRadius * Math.sin(angleInRadians))).toFixed(2)),
+                    rotation: Number((midAngle + (reverse ? 180 : 0)).toFixed(2))
                 };
             });
         }
@@ -345,9 +345,9 @@ export function TextCanvasElement({
 
             return {
                 char,
-                x,
-                y,
-                rotation: charRotation
+                x: Number(x.toFixed(2)),
+                y: Number(y.toFixed(2)),
+                rotation: Number(charRotation.toFixed(2))
             };
         });
     }, [contentToWrap, element.fontStyle, element.fontWeight, element.fontSize, element.fontFamily, element.letterSpacing, radius, rotation, reverse, bend, warpStyle, centerX, centerY, fontsLoaded, element.width, element.height]);
@@ -360,6 +360,7 @@ export function TextCanvasElement({
         height="100%" 
         viewBox={`0 0 ${element.width} ${element.height}`} 
         style={{ overflow: 'visible' }}
+        textRendering="geometricPrecision"
       >
         <defs>
             {!isSpotUv && <SvgGradientDefs element={element} product={product} />}
@@ -625,4 +626,4 @@ export function TextCanvasElement({
       })()}
     </svg>
   );
-}
+});

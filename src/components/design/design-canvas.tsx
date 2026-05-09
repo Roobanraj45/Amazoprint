@@ -308,10 +308,11 @@ export function DesignCanvas({
 
   // --- ERASER OVERLAY RENDERER ---
   const renderLiveEraser = () => {
-    if (!liveEraserPath || liveEraserPath.length < 2 || activeTool !== 'eraser' || !eraserOptions) return null;
+    if (!liveEraserPath || liveEraserPath.length < 1 || activeTool !== 'eraser' || !eraserOptions) return null;
 
     const pointsStr = liveEraserPath.map(([x, y]) => `${x + safetyMargin},${y + safetyMargin}`).join(' ');
     const isSoft = eraserOptions.brushTip === 'soft_round';
+    const isSquare = eraserOptions.brushTip === 'square';
     const filterId = 'live-eraser-blur';
 
     return (
@@ -333,36 +334,50 @@ export function DesignCanvas({
             </filter>
           </defs>
         )}
-        <polyline
-          points={pointsStr}
-          fill="none"
-          stroke="rgba(255, 255, 255, 0.5)" // Semi-transparent white to show where we are erasing
-          strokeWidth={eraserOptions.size}
-          strokeLinecap={eraserOptions.brushTip === 'square' ? 'square' : 'round'}
-          strokeLinejoin="round"
-          filter={isSoft ? `url(#${filterId})` : undefined}
-          style={{ mixBlendMode: 'difference' }}
-        />
-        {liveEraserPath.length === 1 && (
-            <circle 
-                cx={liveEraserPath[0][0] + safetyMargin}
-                cy={liveEraserPath[0][1] + safetyMargin}
-                r={eraserOptions.size / 2}
-                fill="rgba(255, 255, 255, 0.5)"
-                filter={isSoft ? `url(#${filterId})` : undefined}
-                style={{ mixBlendMode: 'difference' }}
+        {liveEraserPath.length > 1 ? (
+          <>
+            <polyline
+              points={pointsStr}
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.5)"
+              strokeWidth={eraserOptions.size}
+              strokeLinecap={isSquare ? 'square' : 'round'}
+              strokeLinejoin="round"
+              filter={isSoft ? `url(#${filterId})` : undefined}
+              style={{ mixBlendMode: 'difference' }}
             />
+            {/* Helper outline */}
+            <polyline
+              points={pointsStr}
+              fill="none"
+              stroke="rgba(0, 0, 0, 0.3)"
+              strokeWidth={eraserOptions.size}
+              strokeLinecap={isSquare ? 'square' : 'round'}
+              strokeLinejoin="round"
+              strokeDasharray="4 4"
+            />
+          </>
+        ) : (
+          isSquare ? (
+            <rect
+              x={liveEraserPath[0][0] + safetyMargin - eraserOptions.size / 2}
+              y={liveEraserPath[0][1] + safetyMargin - eraserOptions.size / 2}
+              width={eraserOptions.size}
+              height={eraserOptions.size}
+              fill="rgba(255, 255, 255, 0.5)"
+              style={{ mixBlendMode: 'difference' }}
+            />
+          ) : (
+            <circle 
+              cx={liveEraserPath[0][0] + safetyMargin}
+              cy={liveEraserPath[0][1] + safetyMargin}
+              r={eraserOptions.size / 2}
+              fill="rgba(255, 255, 255, 0.5)"
+              filter={isSoft ? `url(#${filterId})` : undefined}
+              style={{ mixBlendMode: 'difference' }}
+            />
+          )
         )}
-        {/* Helper outline */}
-        <polyline
-          points={pointsStr}
-          fill="none"
-          stroke="rgba(0, 0, 0, 0.3)"
-          strokeWidth={eraserOptions.size}
-          strokeLinecap={eraserOptions.brushTip === 'square' ? 'square' : 'round'}
-          strokeLinejoin="round"
-          strokeDasharray="4 4"
-        />
       </svg>
     );
   };
@@ -672,9 +687,29 @@ export function DesignCanvas({
             ))}
           </div>
           
-          <PenToolCanvas livePath={livePath || null} mousePos={mousePos || null} zoom={zoom} safetyMargin={safetyMargin} />
-          
           {renderLiveEraser()}
+
+          {/* Brush/Eraser Cursor */}
+          {(activeTool === 'eraser' || activeTool === 'brush') && mousePos && (
+            <div
+              style={{
+                position: 'absolute',
+                left: mousePos.x + safetyMargin,
+                top: mousePos.y + safetyMargin,
+                width: (activeTool === 'eraser' ? (eraserOptions?.size || 20) : (livePencilPath?.bristleTipData?.size || 20)),
+                height: (activeTool === 'eraser' ? (eraserOptions?.size || 20) : (livePencilPath?.bristleTipData?.size || 20)),
+                borderRadius: (activeTool === 'eraser' && eraserOptions?.brushTip === 'square') ? '0' : '50%',
+                border: '1px solid rgba(255, 255, 255, 0.8)',
+                boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.5)',
+                transform: 'translate(-50%, -50%)',
+                pointerEvents: 'none',
+                zIndex: 2000,
+                mixBlendMode: 'difference'
+              }}
+            />
+          )}
+
+          <PenToolCanvas livePath={livePath || null} mousePos={mousePos || null} zoom={zoom} safetyMargin={safetyMargin} />
 
           {/* Node editing overlay for an already-finalized path element */}
           {pathEditingElement?.pathPoints && pathEditingElement.pathPoints.length > 0 && (() => {

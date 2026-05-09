@@ -19,7 +19,9 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CartSheet } from '@/components/cart/cart-sheet';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { cn, resolveImagePath } from '@/lib/utils';
+import { getProducts } from '@/app/actions/product-actions';
+import Image from 'next/image';
 
 type Session = Awaited<ReturnType<typeof getSession>>;
 
@@ -28,12 +30,19 @@ export function Navbar() {
   const [session, setSession] = React.useState<Session | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [scrolled, setScrolled] = React.useState(false);
+  const [productsData, setProductsData] = React.useState<any[]>([]);
+  const [isProductsHovered, setIsProductsHovered] = React.useState(false);
+  const [activeProductIndex, setActiveProductIndex] = React.useState(0);
   const pathname = usePathname();
 
   React.useEffect(() => {
     getSession().then(s => {
       setSession(s);
       setLoading(false);
+    });
+
+    getProducts().then(data => {
+      setProductsData(data.filter(p => p.isActive));
     });
 
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -99,26 +108,164 @@ export function Navbar() {
                     ? "bg-white/10 border-white/20 backdrop-blur-md" 
                     : "bg-muted/30 border-border/40"
         )}>
-          {navLinks.map((link) => (
-            <Link 
-              key={link.href} 
-              href={link.href} 
-              className={cn(
-                "px-6 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 relative group",
-                pathname === link.href 
-                  ? "text-primary" 
-                  : scrolled || !isHome
-                    ? "text-muted-foreground hover:text-foreground"
-                    : "text-white/70 hover:text-white"
-              )}
-            >
-              {link.label}
-              <span className={cn(
-                "absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 bg-primary transition-all duration-300 rounded-full",
-                pathname === link.href ? "w-4" : "w-0 group-hover:w-4"
-              )} />
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const isProducts = link.label === 'Products';
+            return (
+              <div 
+                key={link.href}
+                className="relative"
+                onMouseEnter={() => isProducts && setIsProductsHovered(true)}
+                onMouseLeave={() => isProducts && setIsProductsHovered(false)}
+              >
+                <Link 
+                  href={link.href} 
+                  className={cn(
+                    "px-6 py-2.5 text-[11px] font-bold tracking-tight transition-all duration-200 relative group flex items-center gap-1",
+                    pathname === link.href 
+                      ? "text-primary" 
+                      : scrolled || !isHome
+                        ? "text-muted-foreground hover:text-foreground"
+                        : "text-white/70 hover:text-white"
+                  )}
+                >
+                  {link.label}
+                  <span className={cn(
+                    "absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 bg-primary transition-all duration-300 rounded-full",
+                    pathname === link.href ? "w-4" : "w-0 group-hover:w-4"
+                  )} />
+                </Link>
+
+                {isProducts && (
+                  <AnimatePresence>
+                    {isProductsHovered && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute top-full left-1/2 -translate-x-1/2 pt-4 w-[600px] z-50"
+                      >
+                        <div className="bg-background/95 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl overflow-hidden">
+                          <div className="flex min-h-[350px]">
+                            {/* Left Pane: Products */}
+                            <div className="w-1/3 bg-muted/30 border-r border-border/50 p-3">
+                              <p className="text-[10px] font-bold tracking-tight text-muted-foreground px-3 mb-3">Categories</p>
+                              <div className="space-y-1">
+                                {productsData.map((product, idx) => (
+                                  <div 
+                                    key={product.id}
+                                    onMouseEnter={() => setActiveProductIndex(idx)}
+                                    className={cn(
+                                      "flex items-center justify-between px-4 py-3 rounded-2xl cursor-pointer transition-all group/item",
+                                      activeProductIndex === idx ? "bg-background shadow-md border border-border/50" : "hover:bg-background/50"
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div className={cn(
+                                        "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                                        activeProductIndex === idx ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground group-hover/item:text-primary"
+                                      )}>
+                                        <LayoutGrid className="w-4 h-4" />
+                                      </div>
+                                      <span className={cn(
+                                        "text-xs font-bold transition-colors tracking-tight",
+                                        activeProductIndex === idx ? "text-foreground" : "text-muted-foreground group-hover/item:text-foreground"
+                                      )}>
+                                        {product.name}
+                                      </span>
+                                    </div>
+                                    <ChevronRight className={cn(
+                                      "w-3 h-3 transition-all",
+                                      activeProductIndex === idx ? "text-primary translate-x-0" : "text-muted-foreground opacity-0 -translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0"
+                                    )} />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Right Pane: Sub-Products */}
+                            <div className="flex-1 p-6 bg-background/50">
+                              <AnimatePresence mode="wait">
+                                <motion.div
+                                  key={activeProductIndex}
+                                  initial={{ opacity: 0, x: 10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -10 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="h-full flex flex-col"
+                                >
+                                  <div className="flex items-center justify-between mb-6">
+                                    <div>
+                                      <h4 className="text-xl font-black tracking-tighter text-foreground font-headline">
+                                        {productsData[activeProductIndex]?.name}
+                                      </h4>
+                                      <p className="text-[10px] font-bold text-muted-foreground tracking-tight mt-1">Available Materials & Specs</p>
+                                    </div>
+                                    <Link 
+                                      href={`/design/${productsData[activeProductIndex]?.slug}`}
+                                      className="text-[10px] font-bold text-primary tracking-tight hover:underline"
+                                      onClick={() => setIsProductsHovered(false)}
+                                    >
+                                      View All
+                                    </Link>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-3">
+                                    {productsData[activeProductIndex]?.subProducts?.filter((sp: any) => sp.isActive).map((sp: any) => (
+                                      <Link
+                                        key={sp.id}
+                                        href={`/design/${productsData[activeProductIndex]?.slug}/start?subProductId=${sp.id}`}
+                                        className="group/sub relative p-4 rounded-2xl bg-muted/40 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all"
+                                        onClick={() => setIsProductsHovered(false)}
+                                      >
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-xs font-black text-foreground group-hover/sub:text-primary transition-colors">{sp.name}</span>
+                                          <ArrowRight className="w-3 h-3 text-primary opacity-0 -translate-x-2 group-hover/sub:opacity-100 group-hover/sub:translate-x-0 transition-all" />
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <span className="text-[9px] font-bold text-muted-foreground bg-background/50 px-1.5 py-0.5 rounded border border-border/50">
+                                            {sp.width}x{sp.height}{sp.unitType}
+                                          </span>
+                                          {sp.spotUvAllowed && (
+                                            <span className="text-[9px] font-bold text-violet-500">UV</span>
+                                          )}
+                                        </div>
+                                      </Link>
+                                    ))}
+                                  </div>
+
+                                  {(!productsData[activeProductIndex]?.subProducts || productsData[activeProductIndex]?.subProducts.length === 0) && (
+                                    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40">
+                                      <LayoutGrid className="w-12 h-12 mb-4 text-muted-foreground" />
+                                      <p className="text-xs font-bold text-muted-foreground tracking-tight">No materials added yet</p>
+                                    </div>
+                                  )}
+                                </motion.div>
+                              </AnimatePresence>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-primary/5 p-4 border-t border-border/50 flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                              <p className="text-[10px] font-bold text-muted-foreground">Industrial-grade precision for every design.</p>
+                            </div>
+                            <Link 
+                              href="/products" 
+                              className="text-[10px] font-bold text-primary tracking-tight flex items-center gap-1 hover:gap-2 transition-all"
+                              onClick={() => setIsProductsHovered(false)}
+                            >
+                              Explore Catalog <ArrowRight className="w-3 h-3" />
+                            </Link>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Action Buttons */}
@@ -132,7 +279,7 @@ export function Navbar() {
             ) : session ? (
               <>
                 <Button asChild variant="outline" className={cn(
-                    "rounded-full font-bold h-11 px-6 border-2 transition-all text-[11px] uppercase tracking-wider",
+                    "rounded-full font-bold h-11 px-6 border-2 transition-all text-[11px] tracking-tight",
                     scrolled || !isHome
                         ? "hover:bg-primary/5"
                         : "bg-white/5 border-white/10 text-white hover:bg-white/10"
@@ -147,14 +294,14 @@ export function Navbar() {
             ) : (
               <>
                 <Button asChild variant="ghost" className={cn(
-                    "rounded-full font-bold px-6 h-11 transition-all text-[11px] uppercase tracking-wider",
+                    "rounded-full font-bold px-6 h-11 transition-all text-[11px] tracking-tight",
                     scrolled || !isHome
                         ? "text-muted-foreground hover:text-foreground"
                         : "text-white/70 hover:text-white hover:bg-white/10"
                 )}>
                   <Link href="/login">Login</Link>
                 </Button>
-                <Button asChild className="rounded-full px-8 h-11 font-black text-[11px] uppercase tracking-wider shadow-xl shadow-primary/30 hover:scale-105 transition-transform active:scale-95 bg-primary hover:bg-primary/90">
+                <Button asChild className="rounded-full px-8 h-11 font-bold text-[11px] tracking-tight shadow-xl shadow-primary/30 hover:scale-105 transition-transform active:scale-95 bg-primary hover:bg-primary/90">
                   <Link href="/products">Get Started</Link>
                 </Button>
               </>
@@ -193,13 +340,13 @@ export function Navbar() {
             >
               <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
                 <div className="grid grid-cols-1 gap-2">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground px-4 mb-2">Navigation</p>
+                  <p className="text-[10px] font-bold tracking-tight text-muted-foreground px-4 mb-2">Navigation</p>
                   {navLinks.map((link) => (
                     <Link 
                       key={link.href} 
                       href={link.href} 
                       className={cn(
-                        "flex items-center justify-between p-5 text-sm font-black rounded-3xl transition-all active:scale-[0.98] uppercase tracking-widest",
+                        "flex items-center justify-between p-5 text-sm font-black rounded-3xl transition-all active:scale-[0.98] tracking-tight",
                         pathname === link.href ? "bg-primary text-primary-foreground" : "bg-muted/40 hover:bg-muted"
                       )}
                       onClick={() => setIsOpen(false)}

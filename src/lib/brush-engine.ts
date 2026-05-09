@@ -27,15 +27,18 @@ function getSoftDab(color: string, edgeColor?: string): HTMLCanvasElement {
     const ctx = canvas.getContext('2d');
     if (!ctx) return canvas;
 
+    const rgbaColor = color.startsWith('#') ? hexToRgba(color, 1) : color;
+    const rgbaTransparent = color.startsWith('#') ? hexToRgba(color, 0) : 'rgba(255,255,255,0)';
+
     const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-    grad.addColorStop(0, color);
+    grad.addColorStop(0, rgbaColor);
     
     if (edgeColor) {
-        grad.addColorStop(0.3, color);
+        grad.addColorStop(0.3, rgbaColor);
         grad.addColorStop(1, edgeColor);
     } else {
-        grad.addColorStop(0.5, color); // Keep center dense
-        grad.addColorStop(1, 'transparent');
+        grad.addColorStop(0.2, rgbaColor); // Keep center dense
+        grad.addColorStop(1, rgbaTransparent);
     }
 
     ctx.fillStyle = grad;
@@ -94,17 +97,18 @@ export function buildBrushTip(type: BrushEngineTip, size: number): BristleProfil
             const isFog = Math.random() > 0.3;
             bristleTip.push({
                 dx: x, dy: y,
-                length: isFog ? size * (0.4 + Math.random() * 0.6) : Math.random() * 3 + 1,
-                thickness: isFog ? size * (0.4 + Math.random() * 0.6) : Math.random() * 3 + 1,
-                opacity: isFog ? (Math.random() * 0.02 + 0.01) : (Math.random() * 0.1 + 0.05)
+                length: isFog ? size * 0.2 * Math.random() : Math.random() * 3 + 1,
+                thickness: isFog ? size * 0.2 * Math.random() : Math.random() * 3 + 1,
+                opacity: isFog ? (Math.random() * 0.05 + 0.01) : (Math.random() * 0.1 + 0.05)
             });
         } else {
+            const sprayParticleSize = Math.random() * (size / 8) + 1;
             bristleTip.push({
                 dx: x, dy: y,
-                length: (type === 'spray') ? Math.random() * (size / 2) + 10 : Math.random() * 6 + 2,
-                thickness: (type === 'spray') ? Math.random() * (size / 2) + 10 : Math.random() * 2 + 0.5,
+                length: (type === 'spray') ? sprayParticleSize : Math.random() * 6 + 2,
+                thickness: (type === 'spray') ? sprayParticleSize : Math.random() * 2 + 0.5,
                 opacity: (type === 'spray')
-                    ? Math.pow(1 - (Math.hypot(x, y) / (size / 2)), 2) * 0.15 // Cubic falloff
+                    ? Math.pow(1 - (Math.hypot(x, y) / (size / 2)), 2) * 0.4 // Stronger center
                     : Math.random() * 0.4 + 0.1
             });
         }
@@ -139,7 +143,7 @@ export function renderBristleSegment(
     const pressure = 1 - (velocity * 0.4);
 
     // High-resolution interpolation (no dots!)
-    const step = type === 'mist' ? 6 : ((type === 'spray') ? 5 : 0.8);
+    const step = (type === 'mist' || type === 'spray') ? 2 : 0.8;
     for (let i = 0; i < dist; i += step) {
         const cx = x1 + Math.cos(angle) * i;
         const cy = y1 + Math.sin(angle) * i;
@@ -154,6 +158,8 @@ export function renderBristleSegment(
             // Paper Texture Grain (skipping random bristles)
             let skip = 0.95;
             if (type === 'charcoal') skip = 0.8;
+            if (type === 'spray' || type === 'mist') skip = 0.85; // Draw more particles but keep performance high
+            
             if (Math.random() > skip) return;
 
             ctx.globalAlpha = b.opacity * flow * pressure;

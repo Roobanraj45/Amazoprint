@@ -197,7 +197,7 @@ function DesignEditorInternal({
     opacity: number;
   }>({
     size: 40,
-    brushTip: 'soft_round',
+    brushTip: 'hard_round',
     opacity: 1,
   });
   const [liveEraserPath, setLiveEraserPath] = useState<[number, number][] | null>(null);

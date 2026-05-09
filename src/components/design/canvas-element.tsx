@@ -672,14 +672,26 @@ export const NonInteractiveContent = memo(({
                                 opacity={ep.opacity ?? 1}
                             />
                             {ep.points.length === 1 && (
-                                <circle 
-                                    cx={ep.points[0][0]} 
-                                    cy={ep.points[0][1]} 
-                                    r={ep.strokeWidth / 2} 
-                                    fill="black"
-                                    filter={filterId ? `url(#${filterId})` : undefined}
-                                    opacity={ep.opacity ?? 1}
-                                />
+                                ep.brushTip === 'square' ? (
+                                    <rect 
+                                        x={ep.points[0][0] - ep.strokeWidth / 2} 
+                                        y={ep.points[0][1] - ep.strokeWidth / 2} 
+                                        width={ep.strokeWidth} 
+                                        height={ep.strokeWidth} 
+                                        fill="black"
+                                        filter={filterId ? `url(#${filterId})` : undefined}
+                                        opacity={ep.opacity ?? 1}
+                                    />
+                                ) : (
+                                    <circle 
+                                        cx={ep.points[0][0]} 
+                                        cy={ep.points[0][1]} 
+                                        r={ep.strokeWidth / 2} 
+                                        fill="black"
+                                        filter={filterId ? `url(#${filterId})` : undefined}
+                                        opacity={ep.opacity ?? 1}
+                                    />
+                                )
                             )}
                         </React.Fragment>
                     );
@@ -1018,6 +1030,7 @@ const _CanvasElement = ({
   
   const resizeRef = useRef<ResizeHandle | null>(null);
   const dragRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
 
   const startRef = useRef({
     mouseX: 0,
@@ -1059,6 +1072,7 @@ const _CanvasElement = ({
   }, [element.type, element.width, element.height, element.textWarp, element.fontSize]);
 
   const handleMouseUp = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
     dragRef.current = false;
     resizeRef.current = null;
 
@@ -1070,6 +1084,10 @@ const _CanvasElement = ({
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (activeTool === 'eraser' || activeTool === 'brush' || activeTool === 'spray') {
+      onSelect?.(e.shiftKey);
+      return; // Let bubble to DesignEditor to start drawing
+    }
     e.stopPropagation();
     onInteractionStart?.();
     onSelect?.(e.shiftKey);
@@ -1102,6 +1120,7 @@ const _CanvasElement = ({
   const handleDragMove = (e: MouseEvent) => {
     if (!dragRef.current) return;
 
+    // newX/newY are the logical element positions (element.x / element.y)
     let newX = startRef.current.x + (e.clientX - startRef.current.mouseX) / zoom;
     let newY = startRef.current.y + (e.clientY - startRef.current.mouseY) / zoom;
     
@@ -1109,10 +1128,12 @@ const _CanvasElement = ({
     const activeSmartGuides: Guide[] = [];
 
     const { visualLeft, visualTop, visualWidth, visualHeight } = startRef.current;
-    let visualX = newX + visualLeft;
-    let visualY = newY + visualTop;
+    // visualX/Y = the canvas-space position of the visible bounding box's top-left corner
+    const visualX = newX + visualLeft;
+    const visualY = newY + visualTop;
 
     // --- Smart Guides Logic ---
+    // Snap points are in canvas (visual) space
     const elementSnapPoints = {
         v: [visualX, visualX + visualWidth / 2, visualX + visualWidth],
         h: [visualY, visualY + visualHeight / 2, visualY + visualHeight]
@@ -1137,29 +1158,31 @@ const _CanvasElement = ({
       }
     });
 
-    let bestSnapX = { dist: Infinity, newPos: newX, guidePos: 0 };
-    let bestSnapY = { dist: Infinity, newPos: newY, guidePos: 0 };
+    // bestSnapX/Y store corrected newX/newY (logical element positions)
+    let bestSnapX = { dist: Infinity, newLogicalX: newX, guidePos: 0 };
+    let bestSnapY = { dist: Infinity, newLogicalY: newY, guidePos: 0 };
 
-    elementSnapPoints.v.forEach((elementPoint, i) => {
+    elementSnapPoints.v.forEach((elementVisualPoint) => {
         targetSnapPoints.v.forEach(targetPoint => {
-            const dist = Math.abs(elementPoint - targetPoint);
+            const dist = Math.abs(elementVisualPoint - targetPoint);
             if (dist < snapThreshold && dist < bestSnapX.dist) {
+                // To align elementVisualPoint to targetPoint, shift newX by the same delta
                 bestSnapX = {
                     dist,
-                    newPos: newX - (elementPoint - targetPoint),
+                    newLogicalX: newX - (elementVisualPoint - targetPoint),
                     guidePos: targetPoint,
                 };
             }
         });
     });
 
-    elementSnapPoints.h.forEach((elementPoint) => {
+    elementSnapPoints.h.forEach((elementVisualPoint) => {
         targetSnapPoints.h.forEach(targetPoint => {
-            const dist = Math.abs(elementPoint - targetPoint);
+            const dist = Math.abs(elementVisualPoint - targetPoint);
             if (dist < snapThreshold && dist < bestSnapY.dist) {
                 bestSnapY = {
                     dist,
-                    newPos: newY - (elementPoint - targetPoint),
+                    newLogicalY: newY - (elementVisualPoint - targetPoint),
                     guidePos: targetPoint,
                 };
             }
@@ -1167,18 +1190,19 @@ const _CanvasElement = ({
     });
 
     if (bestSnapX.dist < Infinity) {
-        visualX = bestSnapX.newPos;
-        newX = visualX - visualLeft;
+        newX = bestSnapX.newLogicalX;
         activeSmartGuides.push({ id: `smart-guide-v-${bestSnapX.guidePos}`, orientation: 'vertical', position: bestSnapX.guidePos });
     }
     if (bestSnapY.dist < Infinity) {
-        visualY = bestSnapY.newPos;
-        newY = visualY - visualTop;
+        newY = bestSnapY.newLogicalY;
         activeSmartGuides.push({ id: `smart-guide-h-${bestSnapY.guidePos}`, orientation: 'horizontal', position: bestSnapY.guidePos });
     }
     
-    onSmartGuidesChange?.(activeSmartGuides);
-    onUpdate?.(element.id, { x: newX, y: newY });
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+        onSmartGuidesChange?.(activeSmartGuides);
+        onUpdate?.(element.id, { x: newX, y: newY });
+    });
   };
 
   const handleResizeMouseDown = (
@@ -1335,7 +1359,10 @@ const _CanvasElement = ({
       }
     }
 
-    onUpdate?.(element.id, newProps);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+        onUpdate?.(element.id, newProps);
+    });
   };
   
   const existingShadow = element.boxShadow && element.boxShadow !== 'none' ? `${element.boxShadow}` : 'none';
@@ -1343,12 +1370,13 @@ const _CanvasElement = ({
 
   const elementStyle: React.CSSProperties = {
     position: 'absolute',
-    left: element.x + visualBounds.left,
-    top: element.y + visualBounds.top,
+    left: visualBounds.left,
+    top: visualBounds.top,
     width: visualBounds.width,
     height: visualBounds.height,
-    transform: `rotate(${element.rotation}deg) skewX(${element.skewX || 0}deg) skewY(${element.skewY || 0}deg)`,
-    pointerEvents: isInteractive && !isEditingPath ? 'auto' : 'none',
+    transform: `translate(${element.x}px, ${element.y}px) rotate(${element.rotation}deg) skewX(${element.skewX || 0}deg) skewY(${element.skewY || 0}deg)`,
+    willChange: 'transform',
+    pointerEvents: (isInteractive || activeTool === 'eraser' || activeTool === 'brush' || activeTool === 'spray') && !isEditingPath ? 'auto' : 'none',
     userSelect: 'none',
     boxShadow: (renderMode === 'spotuv' || renderMode === 'foil') ? 'none' : (element.spotUv ? `0 0 8px 2px hsla(var(--accent), 0.8), ${existingShadow}` : existingShadow),
     backgroundColor: (renderMode === 'spotuv' || renderMode === 'foil') ? 'transparent' : ((element.type === 'text' || element.type === 'group') ? element.backgroundColor : 'transparent'),

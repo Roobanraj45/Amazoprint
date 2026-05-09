@@ -358,7 +358,6 @@ export function ImagePropertiesPanel({
                             </Label>
                             <div className="flex gap-2">
                                 {[
-                                    { id: 'soft_round', icon: <Circle size={14} className="opacity-40" />, label: 'Soft' },
                                     { id: 'hard_round', icon: <Circle size={14} />, label: 'Hard' },
                                     { id: 'square', icon: <Square size={14} />, label: 'Square' },
                                 ].map((tip) => (

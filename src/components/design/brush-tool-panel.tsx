@@ -35,7 +35,6 @@ export function BrushToolPanel({ options, setOptions, onClear, onOpenColorPicker
         { id: 'spray',       label: 'Classic Spray' },
         { id: 'mist',        label: 'Mist Spray (White Glow)' },
         { id: 'airbrush',    label: 'Airbrush (Mist)' },
-        { id: 'soft_round',  label: 'Soft Round' },
         { id: 'hard_round',  label: 'Hard Round' },
         { id: 'glow',        label: 'Glow Brush' },
         { id: 'eraser',      label: 'Eraser' },
