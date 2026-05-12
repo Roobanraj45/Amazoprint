@@ -24,6 +24,7 @@ const pricingRuleSchema = z.object({
   // Add-on fields
   addonPriceAmount: z.coerce.number().optional().nullable(),
   addonName: z.string().optional().nullable(),
+  addonImageUrl: z.string().optional().nullable(),
   isAddon: z.boolean().default(false),
 });
 

@@ -15,12 +15,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Edit, Trash2, Tag, IndianRupee, Users, ShieldCheck, Plus } from 'lucide-react';
+import { Loader2, PlusCircle, Edit, Trash2, Tag, IndianRupee, Users, ShieldCheck, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { cn, resolveImagePath } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DialogClose } from '@radix-ui/react-dialog';
 
 const pricingRuleSchema = z.object({
   minQuantity: z.coerce.number().optional().nullable(),
@@ -39,6 +41,7 @@ const pricingRuleSchema = z.object({
   // Add-on fields
   addonPriceAmount: z.coerce.number().optional().nullable(),
   addonName: z.string().optional().nullable(),
+  addonImageUrl: z.string().optional().nullable(),
   isAddon: z.boolean().default(false),
 });
 
@@ -196,7 +199,16 @@ function PricingRulesTable({ rules, onEdit, onDelete }: { rules: PricingRule[], 
                         </TableCell>
                         <TableCell>
                             {rule.isContest ? `${rule.minParticipants || '...'} - ${rule.maxParticipants || '...'}` : 
-                             rule.isAddon ? <span className="font-medium">{rule.addonName || 'Unnamed Add-on'}</span> :
+                             rule.isAddon ? (
+                                <div className="flex items-center gap-3">
+                                    {rule.addonImageUrl && (
+                                        <div className="relative h-10 w-10 rounded overflow-hidden border">
+                                            <Image src={rule.addonImageUrl} alt={rule.addonName || ''} fill className="object-cover" />
+                                        </div>
+                                    )}
+                                    <span className="font-medium">{rule.addonName || 'Unnamed Add-on'}</span>
+                                </div>
+                             ) :
                              `${rule.minQuantity || '1'} - ${rule.maxQuantity || '...'}`}
                         </TableCell>
                         <TableCell>
@@ -233,6 +245,10 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
     const isVerification = watch('isVerification');
     const isDiscount = watch('isDiscount');
     const isAddon = watch('isAddon');
+    const addonImageUrl = watch('addonImageUrl');
+
+    const [isImageBrowserOpen, setIsImageBrowserOpen] = useState(false);
+    const [imageFolder, setImageFolder] = useState('addons');
 
     // Handle mutual exclusivity with a single source of truth logic
     const handleToggle = (name: 'isContest' | 'isVerification' | 'isDiscount' | 'isAddon', checked: boolean) => {
@@ -258,26 +274,27 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
                 discountValue: rule.discountValue ? Number(rule.discountValue) : null, 
                 designVerificationFee: rule.designVerificationFee ? Number(rule.designVerificationFee) : null,
                 addonPriceAmount: rule.addonPriceAmount ? Number(rule.addonPriceAmount) : null,
-                addonName: rule.addonName || null
+                addonName: rule.addonName || null,
+                addonImageUrl: rule.addonImageUrl || null
             });
         } else {
             reset({
                 minQuantity: 1, maxQuantity: null, unitPrice: null, minParticipants: null, maxParticipants: null,
                 contestPrice: null, discountType: null, discountValue: null, designVerificationFee: null,
                 isContest: false, isVerification: false, isDiscount: false, isAddon: false, isActive: true,
-                addonPriceAmount: null, addonName: null
+                addonPriceAmount: null, addonName: null, addonImageUrl: null
             });
         }
     }, [rule, reset]);
 
     return (
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl h-[90vh] flex flex-col">
             <DialogHeader>
                 <DialogTitle>{rule ? 'Edit' : 'Add'} Pricing Rule</DialogTitle>
                 <DialogDescription>Define a specific pricing scenario. Selecting one type will disable others.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)}>
-                <ScrollArea className="max-h-[60vh] p-1">
+            <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+                <ScrollArea className="flex-1 p-1">
                 <div className="space-y-6 p-4">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="flex items-center space-x-2">
@@ -361,13 +378,47 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
 
                             {isAddon && (
                                 <div className="space-y-4">
-                                    <Label className="font-bold">Add-on Price</Label>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        <div className="space-y-1.5"><Label>Add-on Name</Label><Input placeholder="e.g. Gold Foil, Premium Lamination" {...register('addonName')} /></div>
-                                        <div className="space-y-1.5"><Label>Price Amount (₹)</Label><Input type="number" step="0.01" {...register('addonPriceAmount')} /></div>
-                                    </div>
-                                </div>
-                            )}
+                                     <Label className="font-bold">Add-on Price & Image</Label>
+                                     <div className="grid grid-cols-1 gap-4">
+                                         <div className="space-y-1.5"><Label>Add-on Name</Label><Input placeholder="e.g. Gold Foil, Premium Lamination" {...register('addonName')} /></div>
+                                         <div className="space-y-1.5"><Label>Price Amount (₹)</Label><Input type="number" step="0.01" {...register('addonPriceAmount')} /></div>
+                                         
+                                         <div className="space-y-2">
+                                             <Label>Add-on Image</Label>
+                                             <div className="flex items-center gap-4">
+                                                 <div className="relative h-24 w-24 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center overflow-hidden bg-muted">
+                                                     {addonImageUrl ? (
+                                                         <Image src={addonImageUrl} alt="Add-on" fill className="object-cover" />
+                                                     ) : (
+                                                         <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                                                     )}
+                                                 </div>
+                                                 <div className="flex flex-col gap-2">
+                                                     <Dialog open={isImageBrowserOpen} onOpenChange={setIsImageBrowserOpen}>
+                                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsImageBrowserOpen(true)}>
+                                                             <PlusCircle className="mr-2 h-4 w-4" />
+                                                             {addonImageUrl ? 'Change Image' : 'Select Image'}
+                                                         </Button>
+                                                         <ImageBrowserDialog 
+                                                             onSelect={(url) => {
+                                                                 setValue('addonImageUrl', url);
+                                                                 setIsImageBrowserOpen(false);
+                                                             }} 
+                                                             folder={imageFolder} 
+                                                             setFolder={setImageFolder} 
+                                                         />
+                                                     </Dialog>
+                                                     {addonImageUrl && (
+                                                         <Button type="button" variant="ghost" size="sm" className="text-destructive h-8" onClick={() => setValue('addonImageUrl', null)}>
+                                                             Remove Image
+                                                         </Button>
+                                                     )}
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             )}
                         </CardContent>
                     </Card>
                     <div className="flex items-center space-x-2 pt-2"><Controller name="isActive" control={control} render={({ field }) => <Switch id="isActive" checked={field.value} onCheckedChange={field.onChange} />} /><Label htmlFor="isActive">Rule is Active</Label></div>
@@ -383,4 +434,161 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
             </form>
         </DialogContent>
     )
+}
+
+interface Folder {
+  name: string;
+  files: string[];
+}
+
+function ImageBrowserDialog({ onSelect, folder, setFolder }: { onSelect: (url: string) => void, folder: string, setFolder: (folder: string) => void }) {
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const fetchAssets = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/uploads/list');
+      const data = await response.json();
+      if (data.success) {
+        setFolders(data.folders);
+        if (data.folders.length > 0 && !folder) {
+          setFolder(data.folders[0].name);
+        }
+      } else {
+        throw new Error(data.error || 'Failed to fetch assets');
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Loading Error',
+        description: 'Could not load uploaded assets.',
+      });
+      setFolders([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast, folder, setFolder]);
+
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
+  
+  const handleFileUpload = async () => {
+    if (!fileToUpload) {
+      toast({ variant: 'destructive', title: 'No file selected' });
+      return;
+    }
+    if (!folder) {
+        toast({ variant: 'destructive', title: 'Folder name is required' });
+        return;
+    }
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    formData.append('folder', folder);
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      
+      onSelect(result.url); // Select the newly uploaded image
+      await fetchAssets(); // Refresh the list
+      toast({ title: 'Image uploaded successfully.' });
+      setFileToUpload(null); // Reset file input
+      
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Upload failed', description: error.message });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+
+  return (
+    <DialogContent className="max-w-4xl h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Image Library</DialogTitle>
+          <DialogDescription>Select an existing image or upload a new one.</DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 flex min-h-0">
+          <Tabs defaultValue="browse" className="w-full flex flex-col">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="browse">Browse Existing</TabsTrigger>
+              <TabsTrigger value="upload">Upload New</TabsTrigger>
+            </TabsList>
+            <TabsContent value="browse" className="flex-1 overflow-auto mt-2">
+              {isLoading ? (
+                  <div className="flex justify-center items-center h-full">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : folders.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">No images found.</div>
+                ) : (
+                  <div className="flex h-full">
+                      <ScrollArea className="w-48 border-r">
+                          <div className="p-2">
+                              {folders.map(f => (
+                                <Button 
+                                  key={f.name} 
+                                  variant={folder === f.name ? 'secondary' : 'ghost'} 
+                                  className="w-full justify-start capitalize"
+                                  onClick={() => setFolder(f.name)}
+                                >
+                                  {f.name}
+                                </Button>
+                              ))}
+                          </div>
+                      </ScrollArea>
+                      <ScrollArea className="flex-1 p-4">
+                          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
+                              {folders.find(f => f.name === folder)?.files.map((fileUrl) => (
+                                <DialogClose asChild key={fileUrl}>
+                                  <button onClick={() => onSelect(fileUrl)} className="aspect-square relative rounded-md overflow-hidden ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                      <Image src={fileUrl} alt="" fill className="object-cover" />
+                                  </button>
+                                </DialogClose>
+                              ))}
+                          </div>
+                      </ScrollArea>
+                  </div>
+              )}
+            </TabsContent>
+            <TabsContent value="upload" className="mt-4">
+               <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="folder-name-upload">Folder Name</Label>
+                      <p className="text-sm text-muted-foreground">The current folder is <span className="font-semibold capitalize">{folder || 'N/A'}</span>. You can create a new folder by typing its name below.</p>
+                      <Input
+                          id="folder-name-upload"
+                          placeholder="e.g., products, banners"
+                          value={folder}
+                          onChange={(e) => setFolder(e.target.value)}
+                      />
+                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="file-upload-dialog">File</Label>
+                      <Input
+                          id="file-upload-dialog"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setFileToUpload(e.target.files?.[0] || null)}
+                      />
+                  </div>
+                  <Button onClick={handleFileUpload} disabled={!fileToUpload || !folder || isUploading}>
+                      {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                      Upload and Select
+                  </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+    </DialogContent>
+  )
 }

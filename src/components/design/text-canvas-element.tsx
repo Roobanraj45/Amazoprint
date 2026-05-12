@@ -3,6 +3,7 @@
 import React from 'react';
 import type { DesignElement, Product } from '@/lib/types';
 import { cn, measureTextDimensions } from "@/lib/utils";
+import { unicodeToBamini, isBaminiFont } from '@/lib/tamil-converter';
 
 const hexToRgba = (hex: string): { r: number; g: number; b: number; a: number } => {
   if (!hex || !hex.startsWith('#')) return { r: 0, g: 0, b: 0, a: 0 };
@@ -176,6 +177,9 @@ export const TextCanvasElement = React.memo(({
   const [fontsLoaded, setFontsLoaded] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
+  const isBamini = isBaminiFont(element.fontFamily || '');
+  const displayContent = isBamini ? unicodeToBamini(element.content || '') : (element.content || '');
+
   React.useEffect(() => {
     if (isEditing && textareaRef.current) {
       const length = textareaRef.current.value.length;
@@ -247,7 +251,7 @@ export const TextCanvasElement = React.memo(({
     const centerX = Math.round(element.width / 2);
     const centerY = Math.round(element.height / 2);
 
-    let contentToWrap = element.content || '';
+    let contentToWrap = displayContent || '';
     if (element.textTransform === 'uppercase') contentToWrap = contentToWrap.toUpperCase();
     else if (element.textTransform === 'lowercase') contentToWrap = contentToWrap.toLowerCase();
     else if (element.textTransform === 'capitalize') contentToWrap = contentToWrap.replace(/\b\w/g, char => char.toUpperCase());
@@ -423,7 +427,7 @@ export const TextCanvasElement = React.memo(({
     context.font = `${element.fontStyle || 'normal'} ${element.fontWeight || 'normal'} ${element.fontSize || 16}px "${element.fontFamily || 'sans-serif'}"`;
     context.letterSpacing = `${element.letterSpacing || 0}px`;
 
-    let contentToWrap = element.content;
+    let contentToWrap = displayContent;
     if (element.textTransform === 'uppercase') contentToWrap = contentToWrap.toUpperCase();
     else if (element.textTransform === 'lowercase') contentToWrap = contentToWrap.toLowerCase();
     else if (element.textTransform === 'capitalize') contentToWrap = contentToWrap.replace(/\b\w/g, char => char.toUpperCase());
@@ -462,7 +466,7 @@ export const TextCanvasElement = React.memo(({
         ...line,
         y: startY + i * lineHeightPx
     }));
-  }, [element, element.content, element.width, element.height, element.textAlign, element.verticalAlign, fontsLoaded]);
+  }, [element, displayContent, element.width, element.height, element.textAlign, element.verticalAlign, fontsLoaded]);
 
   const isGradient = element.fillType === 'gradient' || element.fillType === 'stepped-gradient';
 
@@ -539,7 +543,7 @@ export const TextCanvasElement = React.memo(({
                 outline: 'none',
                 resize: 'none',
                 color: element.color,
-                fontFamily: element.fontFamily,
+                fontFamily: isBamini ? 'sans-serif' : element.fontFamily,
                 fontSize: `${element.fontSize}px`,
                 textAlign: element.textAlign,
                 fontWeight: element.fontWeight,
@@ -555,7 +559,8 @@ export const TextCanvasElement = React.memo(({
               value={element.content}
               onChange={(e) => {
                 const newContent = e.target.value;
-                const dims = measureTextDimensions(newContent, element, product.width * 2);
+                const measurementContent = isBamini ? unicodeToBamini(newContent) : newContent;
+                const dims = measureTextDimensions(measurementContent, element, product.width * 2);
                 onUpdate?.(element.id, { 
                     content: newContent,
                     width: dims.width,

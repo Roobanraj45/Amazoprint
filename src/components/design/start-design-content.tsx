@@ -411,10 +411,14 @@ export function StartDesignContent() {
                                             )}
                                         >
                                             <div className={cn(
-                                                "w-7 h-7 rounded-full flex items-center justify-center",
-                                                isSelected ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                                                "w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden relative",
+                                                isSelected ? "bg-primary/20 text-primary border-2 border-primary" : "bg-muted text-muted-foreground border border-transparent"
                                             )}>
-                                                {isCurved ? <Square className="w-3.5 h-3.5 rounded-sm" /> : <PlusCircle className="w-3.5 h-3.5" />}
+                                                {rule.addonImageUrl ? (
+                                                    <Image src={rule.addonImageUrl} alt={rule.addonName} fill className="object-cover" />
+                                                ) : (
+                                                    isCurved ? <Square className="w-5 h-5 rounded-sm" /> : <PlusCircle className="w-5 h-5" />
+                                                )}
                                             </div>
                                             <div>
                                                 <p className="text-[11px] font-bold leading-none mb-1 text-slate-800 dark:text-slate-100">{rule.addonName}</p>

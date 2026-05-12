@@ -16,6 +16,7 @@ import {
     AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
     Type, Palette, WandSparkles, UploadCloud, Loader2, Trash2, Settings2
 } from "lucide-react";
+import { isBaminiFont } from '@/lib/tamil-converter';
 import { CMYKColorPicker as ColorPicker } from "./cmyk-color-picker";
 import { GradientPicker } from "./gradient-picker";
 import { Switch } from "../ui/switch";
@@ -211,6 +212,7 @@ export function TextPropertiesPanel({ element, onUpdate, product, isAdmin, onOpe
                 <Textarea 
                     value={element.content} 
                     className="min-h-[60px] bg-white border-slate-200 rounded-lg shadow-sm resize-none text-xs focus-visible:ring-1 ring-primary/30"
+                    style={{ fontFamily: isBaminiFont(element.fontFamily || '') ? 'sans-serif' : element.fontFamily }}
                     onChange={(e) => handleUpdate({ content: e.target.value })} 
                     placeholder="Type something..." 
                 />

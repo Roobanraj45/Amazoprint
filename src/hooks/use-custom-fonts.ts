@@ -1,87 +1,103 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export type CustomFont = { name: string; url: string; };
 
 export function useCustomFonts() {
   const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadFonts = async () => {
-      try {
-        const res = await fetch('/api/uploads/list');
-        const data = await res.json();
-        
-        if (data.success) {
-          const fontsFolder = data.folders.find((f: any) => f.name === 'fonts');
-          
-          if (fontsFolder && fontsFolder.files) {
-            const loadedFonts: CustomFont[] = [];
-            const styleId = 'custom-fonts-style';
-            let styleEl = document.getElementById(styleId) as HTMLStyleElement;
+  const loadFonts = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    
+    setIsRefreshing(true);
+    try {
+      const res = await fetch('/api/uploads/list');
+      const data = await res.json();
+
+      if (data.success) {
+        const fontsFolder = data.folders.find((f: any) => f.name === 'fonts');
+        if (fontsFolder && fontsFolder.files) {
+          const styleId = 'custom-fonts-style';
+          let styleEl = document.getElementById(styleId) as HTMLStyleElement;
+          if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = styleId;
+            document.head.appendChild(styleEl);
+          }
+
+          // Group fonts by name to handle priority (newest first)
+          // The API returns them newest first already
+          const uniqueFonts = new Map<string, string>(); // name -> url
+          const fontList: CustomFont[] = [];
+
+          fontsFolder.files.forEach((url: string) => {
+            const parts = url.split('/');
+            const filenameWithExt = parts[parts.length - 1];
+            const filename = filenameWithExt.substring(0, filenameWithExt.lastIndexOf('.')) || filenameWithExt;
             
-            if (!styleEl) {
-              styleEl = document.createElement('style');
-              styleEl.id = styleId;
-              document.head.appendChild(styleEl);
+            const nameParts = filename.split('-');
+            let fontName = filename;
+            if (nameParts.length > 1 && !isNaN(parseInt(nameParts[0]))) {
+              fontName = nameParts.slice(1).join('-');
             }
+            
+            fontName = fontName.replace(/_/g, ' ');
 
-            let cssRules = '';
+            if (!uniqueFonts.has(fontName)) {
+              uniqueFonts.set(fontName, url);
+              fontList.push({ name: fontName, url });
+            }
+          });
 
-            fontsFolder.files.forEach((url: string) => {
-              // Extract original font name, removing timestamp prefix
-              const parts = url.split('/');
-              const filenameWithExt = parts[parts.length - 1];
-              const filename = filenameWithExt.substring(0, filenameWithExt.lastIndexOf('.')) || filenameWithExt;
-              
-              const nameParts = filename.split('-');
-              let fontName = filename;
-              if (nameParts.length > 1 && !isNaN(parseInt(nameParts[0]))) {
-                fontName = nameParts.slice(1).join('-');
-              }
-              
-              fontName = fontName.replace(/_/g, ' ');
+          setCustomFonts(fontList);
 
-              loadedFonts.push({ name: fontName, url });
-              
-              const absoluteUrl = typeof window !== 'undefined' ? `${window.location.origin}${url}` : url;
-              
-              // Define font-face with absolute URL first (acts as fallback and initial render)
-              cssRules += `
-                @font-face {
-                  font-family: '${fontName}';
-                  src: url('${absoluteUrl}');
-                  font-weight: normal;
-                  font-style: normal;
-                }
-              `;
+          // Generate initial CSS with URLs (fast)
+          let cssRules = '';
+          uniqueFonts.forEach((url, name) => {
+            const absoluteUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+            cssRules += `
+              @font-face {
+                font-family: '${name}';
+                src: url('${absoluteUrl}');
+                font-weight: normal;
+                font-style: normal;
+                font-display: swap;
+              }\n`;
+          });
+          styleEl.innerHTML = cssRules;
 
-              // Async fetch and swap to base64 for html2canvas compatibility
-              if (typeof window !== 'undefined') {
-                fetch(absoluteUrl)
-                  .then(res => res.blob())
-                  .then(blob => {
+          // Background task: Convert to base64 for html2canvas/export compatibility
+          // We do this one by one to avoid race conditions on innerHTML
+          for (const [name, url] of uniqueFonts.entries()) {
+            const absoluteUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+            try {
+                const response = await fetch(absoluteUrl);
+                if (response.ok) {
+                    const blob = await response.blob();
                     const reader = new FileReader();
-                    reader.onloadend = () => {
-                      const base64 = reader.result as string;
-                      if (styleEl) {
-                        styleEl.innerHTML = styleEl.innerHTML.replace(`url('${absoluteUrl}')`, `url('${base64}')`);
-                      }
-                    };
-                    reader.readAsDataURL(blob);
-                  })
-                  .catch(e => console.error("Base64 font fetch failed", e));
-              }
-            });
-
-            styleEl.innerHTML = cssRules;
-            setCustomFonts(loadedFonts);
-          } else {
-            setCustomFonts([]);
+                    const base64Promise = new Promise<string>((resolve) => {
+                        reader.onloadend = () => resolve(reader.result as string);
+                        reader.readAsDataURL(blob);
+                    });
+                    const base64 = await base64Promise;
+                    
+                    const currentStyle = document.getElementById(styleId);
+                    if (currentStyle) {
+                        currentStyle.innerHTML = currentStyle.innerHTML.replace(`url('${absoluteUrl}')`, `url('${base64}')`);
+                    }
+                }
+            } catch (err) {
+                console.warn(`Failed to base64 encode font ${name}:`, err);
+            }
           }
         }
-      } catch (e) {
-        console.error('Failed to load custom fonts', e);
       }
-  };
+    } catch (error) {
+      console.error('Error loading custom fonts:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
   
   useEffect(() => {
     // Load Google Fonts

@@ -188,6 +188,7 @@ export const subProductPricing = pgTable('sub_product_pricing', {
     addonPriceAmount: numeric('addon_price_amount', { precision: 10, scale: 2 }).default('0.00'),
     addonName: text('addon_name'),
     isAddon: boolean('is_addon').default(false),
+    addonImageUrl: text('addon_image_url'),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => ({
