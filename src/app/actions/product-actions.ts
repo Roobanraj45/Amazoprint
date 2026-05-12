@@ -64,6 +64,8 @@ export async function createProduct(data: z.infer<typeof productSchema>) {
   const validated = productSchema.parse(data);
   const result = await db.insert(products).values(validated).returning();
   revalidatePath('/admin/products');
+  revalidatePath('/products');
+  revalidatePath('/');
   return result[0];
 }
 
@@ -71,18 +73,24 @@ export async function updateProduct(id: number, data: z.infer<typeof productSche
   const validated = productSchema.parse(data);
   const result = await db.update(products).set({ ...validated, updatedAt: new Date() }).where(eq(products.id, id)).returning();
   revalidatePath('/admin/products');
+  revalidatePath('/products');
+  revalidatePath('/');
   return result[0];
 }
 
 export async function deleteProduct(id: number) {
   await db.delete(products).where(eq(products.id, id));
   revalidatePath('/admin/products');
+  revalidatePath('/products');
+  revalidatePath('/');
 }
 
 export async function createSubProduct(data: z.infer<typeof subProductSchema>) {
   const validated = subProductSchema.parse(data);
   const result = await db.insert(subProducts).values(validated).returning();
   revalidatePath('/admin/products');
+  revalidatePath('/products');
+  revalidatePath('/');
   return result[0];
 }
 
@@ -90,10 +98,14 @@ export async function updateSubProduct(id: number, data: Omit<z.infer<typeof sub
     const validated = subProductSchema.omit({productId: true}).parse(data);
     const result = await db.update(subProducts).set({ ...validated, updatedAt: new Date() }).where(eq(subProducts.id, id)).returning();
     revalidatePath('/admin/products');
+    revalidatePath('/products');
+    revalidatePath('/');
     return result[0];
 }
 
 export async function deleteSubProduct(id: number) {
     await db.delete(subProducts).where(eq(subProducts.id, id));
     revalidatePath('/admin/products');
+    revalidatePath('/products');
+    revalidatePath('/');
 }

@@ -141,9 +141,10 @@ export function PropertiesPanel({
       
       if (fillType === 'stepped-gradient') {
         if (!background.steppedGradientStops) {
-            const steps = background.gradientSteps || 2;
+            const steps = background.gradientSteps || 3;
             const stops = background.gradientStops || [];
-            const colors = ['#3b82f6','#8b5cf6','#ec4899','#f43f5e','#f97316','#eab308','#22c55e','#06b6d4','#6366f1','#64748b'];
+            // Stepped default: Red, Green, Blue (Industrial/Distinct)
+            const colors = ['#ef4444','#22c55e','#3b82f6','#eab308','#8b5cf6','#ec4899','#f97316','#06b6d4','#6366f1','#64748b'];
             newProps.steppedGradientStops = Array.from({ length: steps }, (_, i) => ({
               id: stops[i]?.id || crypto.randomUUID(), 
               color: stops[i]?.color || colors[i % colors.length], 
@@ -155,9 +156,10 @@ export function PropertiesPanel({
             newProps.steppedGradientType = background.gradientType ?? 'linear';
         }
       } else if (fillType === 'gradient' && (!background.gradientStops || background.gradientStops.length === 0)) {
+        // Smooth gradient default: Indigo to Pink (Modern/Smooth)
         newProps.gradientStops = [
-          { id: crypto.randomUUID(), color: background.color || '#3b82f6', position: 0, weight: 1 },
-          { id: crypto.randomUUID(), color: '#ffffff', position: 1, weight: 1 }
+          { id: crypto.randomUUID(), color: '#6366f1', position: 0, weight: 1 },
+          { id: crypto.randomUUID(), color: '#ec4899', position: 1, weight: 1 }
         ];
         newProps.gradientType = 'linear';
         newProps.gradientDirection = 180;
@@ -444,6 +446,23 @@ export function PropertiesPanel({
                       </div>
                     ))}
                   </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full h-8 text-[11px] font-bold text-primary hover:bg-primary/5 uppercase tracking-wider" 
+                    onClick={() => {
+                      const currentSteps = background.steppedGradientSteps || background.gradientSteps || 2;
+                      const nextSteps = Math.min(10, currentSteps + 1);
+                      if (nextSteps === currentSteps) return;
+                      
+                      const stops = [...bgSteppedStops];
+                      const colors = ['#ef4444','#22c55e','#3b82f6','#eab308','#8b5cf6','#ec4899','#f97316','#06b6d4','#6366f1','#64748b'];
+                      const newStops = Array.from({ length: nextSteps }, (_, i) => stops[i] || { id: crypto.randomUUID(), color: colors[i % colors.length], position: 0, weight: 1 });
+                      handleBg({ steppedGradientSteps: nextSteps, steppedGradientStops: newStops });
+                    }}
+                  >
+                    + Add Step
+                  </Button>
                 </div>
               )}
               {background.type === 'image' && (

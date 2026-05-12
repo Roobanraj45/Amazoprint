@@ -72,9 +72,10 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
         const newProps: Partial<DesignElement> = { fillType };
         if (fillType === 'stepped-gradient') {
             if (!element.steppedGradientStops) {
-                const steps = element.gradientSteps || 2;
+                const steps = element.gradientSteps || 3;
                 const stops = element.gradientStops || [];
-                const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#000000', '#ffffff', '#aaaaaa', '#555555'];
+                // Stepped default: Red, Green, Blue
+                const colors = ['#ef4444','#22c55e','#3b82f6','#eab308','#8b5cf6','#ec4899','#f97316','#06b6d4','#6366f1','#64748b'];
                 newProps.steppedGradientStops = Array.from({ length: steps }, (_, i) => ({
                     id: stops[i]?.id || crypto.randomUUID(), color: stops[i]?.color || colors[i % colors.length],
                     position: 0, weight: stops[i]?.weight || 1,
@@ -83,6 +84,14 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                 newProps.steppedGradientDirection = element.gradientDirection ?? 180;
                 newProps.steppedGradientType = element.gradientType ?? 'linear';
             }
+        } else if (fillType === 'gradient' && (!element.gradientStops || element.gradientStops.length === 0)) {
+            // Smooth gradient default: Indigo to Pink
+            newProps.gradientStops = [
+                { id: crypto.randomUUID(), color: '#6366f1', position: 0, weight: 1 },
+                { id: crypto.randomUUID(), color: '#ec4899', position: 1, weight: 1 }
+            ];
+            newProps.gradientType = 'linear';
+            newProps.gradientDirection = 180;
         }
         handleUpdate(newProps);
     };
@@ -117,11 +126,15 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
 
     const gradientStops = element.gradientStops?.length
         ? element.gradientStops
-        : [{ id: crypto.randomUUID(), color: '#000000', position: 0 }, { id: crypto.randomUUID(), color: '#ffffff', position: 1 }];
+        : [{ id: crypto.randomUUID(), color: '#6366f1', position: 0 }, { id: crypto.randomUUID(), color: '#ec4899', position: 1 }];
 
     const steppedStops = element.steppedGradientStops?.length
         ? element.steppedGradientStops
-        : [{ id: crypto.randomUUID(), color: '#000000', position: 0, weight: 1 }, { id: crypto.randomUUID(), color: '#ffffff', position: 1, weight: 1 }];
+        : [
+            { id: crypto.randomUUID(), color: '#ef4444', position: 0, weight: 1 }, 
+            { id: crypto.randomUUID(), color: '#22c55e', position: 1, weight: 1 },
+            { id: crypto.randomUUID(), color: '#3b82f6', position: 2, weight: 1 }
+        ];
 
     const currentFill = element.fillType || 'solid';
 
@@ -250,7 +263,7 @@ export function ShapePropertiesPanel({ element, onUpdate, maskingElementId, setM
                                         </div>
                                     ))}
                                 </div>
-                                <Button variant="outline" size="sm" className="w-full h-8 text-[11px] font-bold uppercase tracking-wider" onClick={() => handleGradientStepsChange((element.steppedGradientSteps || element.gradientSteps || 2) + 1)}>+ Add Step</Button>
+                                <Button variant="ghost" size="sm" className="w-full h-8 text-[11px] font-bold text-primary hover:bg-primary/5 uppercase tracking-wider" onClick={() => handleGradientStepsChange((element.steppedGradientSteps || element.gradientSteps || 2) + 1)}>+ Add Step</Button>
                             </div>
                         )}
                         {currentFill === 'image' && (

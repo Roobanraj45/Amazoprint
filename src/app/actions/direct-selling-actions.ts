@@ -70,6 +70,7 @@ export async function createDirectSellingProduct(data: z.infer<typeof formSchema
       tags: validatedData.tags ? validatedData.tags.split(',').map(s => s.trim()).filter(Boolean) : [],
     }).returning();
     revalidatePath('/admin/direct-selling');
+    revalidatePath('/');
     return result[0];
 }
 
@@ -86,6 +87,7 @@ export async function updateDirectSellingProduct(id: number, data: z.infer<typeo
         .where(eq(directSellingProducts.id, id))
         .returning();
     revalidatePath('/admin/direct-selling');
+    revalidatePath('/');
     return result[0];
 }
 
@@ -93,6 +95,7 @@ export async function deleteDirectSellingProduct(id: number) {
     await verifyAdmin();
     await db.delete(directSellingProducts).where(eq(directSellingProducts.id, id));
     revalidatePath('/admin/direct-selling');
+    revalidatePath('/');
 }
 
 export async function getPublicDirectSellingProducts() {
