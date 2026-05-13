@@ -143,6 +143,23 @@ export const products = pgTable('products', {
   };
 });
 
+export const dieCuts = pgTable('die_cuts', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  imageUrl: text('image_url'),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
+  allowedSubProductIds: integer('allowed_sub_product_ids').array(),
+  description: text('description'),
+  amount: numeric('amount', { precision: 10, scale: 2 }).default('0.00'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => {
+  return {
+    allowedSubProductsIdx: index('idx_die_cuts_allowed_sub_products').on(table.allowedSubProductIds),
+  };
+});
+
 export const subProducts = pgTable('sub_products', {
   id: serial('id').primaryKey(),
   productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
@@ -156,6 +173,7 @@ export const subProducts = pgTable('sub_products', {
   maxPages: integer('max_pages').default(1).notNull(),
   spotUvAllowed: boolean('spot_uv_allowed').default(false).notNull(),
   allowedFoils: integer('allowed_foils').array(),
+  allowedDieCuts: integer('allowed_die_cuts').array(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   unitType: varchar('unit_type', { length: 10 }).default('mm').notNull(),
@@ -165,6 +183,7 @@ export const subProducts = pgTable('sub_products', {
     productIdx: index('idx_sub_products_product').on(table.productId),
     activeSubIdx: index('idx_sub_products_active').on(table.isActive),
     skuIdx: index('idx_sub_products_sku').on(table.sku),
+    allowedDieCutsIdx: index('idx_sub_products_allowed_die_cuts').on(table.allowedDieCuts),
   };
 });
 

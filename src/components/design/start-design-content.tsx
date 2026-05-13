@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle } from 'lucide-react';
+import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors } from 'lucide-react';
 import { getFoilTypes } from '@/app/actions/foil-actions';
+import { getDieCuts } from '@/app/actions/die-cut-actions';
 import { FoilType } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -52,9 +53,12 @@ export function StartDesignContent() {
   const [foilTypes, setFoilTypes] = useState<FoilType[]>([]);
   const [customWidth, setCustomWidth] = useState(searchParams.get('width') || '');
   const [customHeight, setCustomHeight] = useState(searchParams.get('height') || '');
+  const [selectedDie, setSelectedDie] = useState<number | null>(null);
+  const [dieCuts, setDieCuts] = useState<any[]>([]);
 
   useEffect(() => {
     getFoilTypes().then(setFoilTypes);
+    getDieCuts().then(setDieCuts);
   }, []);
 
   useEffect(() => {
@@ -100,6 +104,11 @@ export function StartDesignContent() {
 
     fetchData();
   }, [params, searchParams, router]);
+
+  const availableDieCuts = useMemo(() => {
+    if (!subProduct || !(subProduct as any).allowedDieCuts || !(subProduct as any).allowedDieCuts.length) return [];
+    return dieCuts.filter(dc => (subProduct as any).allowedDieCuts.includes(dc.id) && dc.isActive);
+  }, [subProduct, dieCuts]);
 
   const discountRules = useMemo(() => {
     return pricingRules
@@ -175,6 +184,18 @@ export function StartDesignContent() {
         }
     });
 
+    if (selectedDie) {
+        const die = dieCuts.find(d => d.id === selectedDie);
+        if (die && die.amount) {
+            const amount = Number(die.amount);
+            addonTotalPerUnit += amount;
+            addonBreakdown.push({
+                name: `Die Cut: ${die.name}`,
+                totalAmount: amount * qty
+            });
+        }
+    }
+
     setCalculatedPrice({
         original: (basePrice + addonTotalPerUnit) * qty,
         final: (finalPrice + addonTotalPerUnit) * qty,
@@ -183,7 +204,7 @@ export function StartDesignContent() {
         addons: addonBreakdown,
     });
 
-  }, [quantity, subProduct, pricingRules, selectedAddons, pages]);
+  }, [quantity, subProduct, pricingRules, selectedAddons, pages, selectedDie, dieCuts]);
 
   const constructedQuery = useMemo(() => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -199,6 +220,11 @@ export function StartDesignContent() {
     } else {
       newParams.delete('addons');
     }
+    if (selectedDie) {
+      newParams.set('dieCut', String(selectedDie));
+    } else {
+      newParams.delete('dieCut');
+    }
     
     if (subProduct?.width === 0 && subProduct?.height === 0) {
       if (customWidth) newParams.set('width', customWidth);
@@ -206,7 +232,7 @@ export function StartDesignContent() {
     }
 
     return newParams.toString();
-  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, customWidth, customHeight]);
+  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, customWidth, customHeight, selectedDie]);
 
   if (loading) {
     return (
@@ -237,20 +263,20 @@ export function StartDesignContent() {
       badge: 'Fast',
     },
     {
-      title: 'Start Blank',
+      title: 'Start blank',
       description: 'Build your vision from zero in our editor.',
       href: `/design/${product.slug}?${constructedQuery}`,
       icon: <PenSquare className="w-5 h-5 text-purple-600" />,
       badge: 'Popular',
     },
     {
-      title: 'Upload File',
+      title: 'Upload file',
       description: 'Send us your print-ready file. We will take care!.',
       href: isLoggedIn ? `/design/${product.slug}/upload?${constructedQuery}` : `/login?redirect_url=/design/${product.slug}/upload%3F${constructedQuery}`,
       icon: <ImagePlus className="w-5 h-5 text-emerald-600" />,
     },
     {
-      title: 'Hire Expert',
+      title: 'Hire expert',
       description: 'Get custom designs from our top designers.',
       href: `/client/contests/create?productId=${product.id}&subProductId=${subProduct.id}`,
       icon: <Trophy className="w-5 h-5 text-amber-500" />,
@@ -306,7 +332,7 @@ export function StartDesignContent() {
                     <CardContent className="p-4 pt-0">
                       <div className="grid grid-cols-2 gap-4 mt-4">
                         <div className="space-y-2">
-                          <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Width ({subProduct.unitType || 'mm'})</Label>
+                          <Label className="text-[11px] font-bold text-muted-foreground">Width ({subProduct.unitType || 'mm'})</Label>
                           <Input 
                             type="number" 
                             placeholder="e.g. 100" 
@@ -316,7 +342,7 @@ export function StartDesignContent() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Height ({subProduct.unitType || 'mm'})</Label>
+                          <Label className="text-[11px] font-bold text-muted-foreground">Height ({subProduct.unitType || 'mm'})</Label>
                           <Input 
                             type="number" 
                             placeholder="e.g. 100" 
@@ -337,14 +363,17 @@ export function StartDesignContent() {
                       <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x dark:divide-slate-800">
                         <div className="p-4 space-y-3">
                           <Label className="text-[11px] font-bold text-muted-foreground">Select quantity</Label>
-                          <Select value={quantity} onValueChange={setQuantity}>
-                            <SelectTrigger className="w-full h-10 font-semibold"><SelectValue/></SelectTrigger>
-                            <SelectContent>
-                              {[100, 250, 500, 1000, 2500, 5000].map(q => (
-                                <SelectItem key={q} value={String(q)}>{q} pieces</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Input 
+                            type="number" 
+                            min="1" 
+                            value={quantity} 
+                            onChange={(e) => setQuantity(e.target.value)}
+                            onBlur={() => {
+                                const val = parseInt(quantity, 10);
+                                if (isNaN(val) || val < 1) setQuantity('1');
+                            }}
+                            className="w-full h-10 font-semibold"
+                          />
                         </div>
 
                         {subProduct.maxPages > 1 && (
@@ -354,47 +383,138 @@ export function StartDesignContent() {
                               <button 
                                   onClick={() => setPages('1')}
                                   className={cn(
-                                      "flex-1 py-2 px-3 rounded-lg border text-xs font-semibold transition-all",
+                                      "flex-1 py-2 px-3 rounded-lg border text-[11px] font-bold transition-all flex items-center justify-center gap-2",
                                       pages === '1' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
                                   )}
-                              >Front only</button>
+                              >
+                                  <Square size={14} className={pages === '1' ? "fill-primary/20" : ""} />
+                                  Front only
+                              </button>
                               <button 
                                   onClick={() => setPages('2')}
                                   className={cn(
-                                      "flex-1 py-2 px-3 rounded-lg border text-xs font-semibold transition-all",
+                                      "flex-1 py-2 px-3 rounded-lg border text-[11px] font-bold transition-all flex items-center justify-center gap-2",
                                       pages === '2' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
                                   )}
-                              >Front & back</button>
+                              >
+                                  <Layers size={14} className={pages === '2' ? "fill-primary/20" : ""} />
+                                  Front & back
+                              </button>
                             </div>
                           </div>
                         )}
+                        {subProduct.maxPages > 2 && (
+                          <div className="p-4 space-y-3">
+                            <Label className="text-[11px] font-bold text-muted-foreground">Multiple pages</Label>
+                            <Select value={pages} onValueChange={setPages}>
+                              <SelectTrigger className="w-full h-10 font-semibold"><SelectValue/></SelectTrigger>
+                              <SelectContent>
+                                {Array.from({length: subProduct.maxPages}, (_, i) => String(i + 1)).map(p => (
+                                  <SelectItem key={p} value={p}>{p} pages</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
                       </div>
-                      
-                      {subProduct.spotUvAllowed && (
-                        <div className="bg-slate-50/50 dark:bg-slate-800/30 border-t dark:border-slate-800 px-4 py-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100">Premium spot UV</p>
-                                    <p className="text-[10px] text-muted-foreground font-semibold">Add glossy raised texture</p>
-                                </div>
-                            </div>
-                            <Switch checked={spotUv} onCheckedChange={setSpotUv} className="data-[state=checked]:bg-amber-500" />
-                        </div>
-                      )}
                     </Card>
 
-                    {addonRules.length > 0 && (
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between px-1">
-                                <h3 className="text-[12px] font-bold text-muted-foreground flex items-center gap-2">
-                                    <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                                    Enhancements
+                    {(subProduct.spotUvAllowed || addonRules.length > 0 || true) && (
+                        <div className="space-y-4">
+                            <div className="flex flex-col gap-1 px-1">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-indigo-500 fill-indigo-500/20" />
+                                    Premium enhancements
                                 </h3>
+                                <p className="text-[11px] text-muted-foreground font-medium">Elevate your design with special finishes and cuts</p>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                                {/* Spot UV (Integrated) */}
+                                {subProduct.spotUvAllowed && (
+                                    <div 
+                                        onClick={() => setSpotUv(!spotUv)}
+                                        className={cn(
+                                            "group relative p-3 rounded-2xl border flex flex-col items-center gap-2 text-center transition-all duration-300 cursor-pointer overflow-hidden",
+                                            spotUv 
+                                                ? "border-amber-400 bg-amber-50/50 dark:bg-amber-900/10 ring-1 ring-amber-400 shadow-lg shadow-amber-500/10" 
+                                                : "border-slate-100 dark:border-slate-800 hover:border-slate-200 hover:bg-slate-50/50"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300",
+                                            spotUv ? "bg-amber-100 text-amber-600 dark:bg-amber-900/40" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:scale-110"
+                                        )}>
+                                            <Zap className={cn("w-6 h-6", spotUv ? "fill-amber-500" : "")} />
+                                        </div>
+                                        <div className="space-y-0.5">
+                                            <p className="text-[10px] font-bold text-slate-900 dark:text-white">Spot UV</p>
+                                            <p className="text-[9px] text-amber-600 dark:text-amber-400 font-bold">Premium</p>
+                                        </div>
+                                        {spotUv && (
+                                            <div className="absolute top-1.5 right-1.5">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-amber-500 fill-white dark:fill-slate-900" />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                 {/* Die Cut Option (Redesigned) */}
+                                {availableDieCuts.length > 0 && (
+                                    <div 
+                                        className={cn(
+                                            "group relative p-3 rounded-2xl border flex flex-col items-center gap-2 text-center transition-all duration-300 cursor-pointer overflow-hidden",
+                                            selectedDie
+                                                ? "border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10 ring-1 ring-indigo-400 shadow-lg shadow-indigo-500/10" 
+                                                : "border-slate-100 dark:border-slate-800 hover:border-slate-200 hover:bg-slate-50/50"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300",
+                                            selectedDie ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:scale-110"
+                                        )}>
+                                            <Layers className={cn("w-6 h-6", selectedDie ? "fill-indigo-500" : "")} />
+                                        </div>
+                                        <div className="w-full space-y-1">
+                                            <p className="text-[10px] font-bold text-slate-900 dark:text-white">Die cut</p>
+                                            <Select 
+                                                value={selectedDie ? String(selectedDie) : "none"} 
+                                                onValueChange={(val) => setSelectedDie(val === "none" ? null : parseInt(val, 10))}
+                                            >
+                                                <SelectTrigger className="h-6 w-full text-[11px] font-bold border border-indigo-100 dark:border-indigo-900/50 bg-white/50 dark:bg-black/20 rounded-lg px-2 flex justify-between gap-1 focus:ring-0 text-indigo-600 dark:text-indigo-400">
+                                                    <SelectValue placeholder="None" />
+                                                </SelectTrigger>
+                                                <SelectContent className="min-w-[160px]">
+                                                    <SelectItem value="none">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[11px] font-bold">No die cut</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    {availableDieCuts.map(die => (
+                                                        <SelectItem key={die.id} value={String(die.id)}>
+                                                            <div className="flex items-center gap-2">
+                                                                {die.imageUrl ? (
+                                                                    <div className="w-4 h-4 relative">
+                                                                        <Image src={resolveImagePath(die.imageUrl)} alt={die.name} fill className="object-contain" />
+                                                                    </div>
+                                                                ) : (
+                                                                    <Square className="w-3.5 h-3.5 text-indigo-500" />
+                                                                )}
+                                                                <span className="text-[11px] font-bold">{die.name}</span>
+                                                            </div>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        {selectedDie && (
+                                            <div className="absolute top-1.5 right-1.5">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500 fill-white dark:fill-slate-900" />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+
                                 {addonRules.map(rule => {
                                     const isSelected = selectedAddons.includes(rule.id);
                                     const isCurved = rule.addonName?.toLowerCase().includes('curved') || rule.addonName?.toLowerCase().includes('round');
@@ -404,26 +524,31 @@ export function StartDesignContent() {
                                             key={rule.id}
                                             onClick={() => toggleAddon(rule.id)}
                                             className={cn(
-                                                "p-2.5 rounded-xl border flex flex-col items-center gap-1.5 text-center transition-all cursor-pointer",
+                                                "group relative p-3 rounded-2xl border flex flex-col items-center gap-2 text-center transition-all duration-300 cursor-pointer overflow-hidden",
                                                 isSelected 
-                                                    ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm" 
-                                                    : "border-slate-100 dark:border-slate-800 hover:border-slate-200"
+                                                    ? "border-primary bg-primary/5 ring-1 ring-primary shadow-lg shadow-primary/10" 
+                                                    : "border-slate-100 dark:border-slate-800 hover:border-slate-200 hover:bg-slate-50/50"
                                             )}
                                         >
                                             <div className={cn(
-                                                "w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden relative",
-                                                isSelected ? "bg-primary/20 text-primary border-2 border-primary" : "bg-muted text-muted-foreground border border-transparent"
+                                                "w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden relative transition-all duration-300",
+                                                isSelected ? "bg-primary/10 text-primary" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:scale-110"
                                             )}>
                                                 {rule.addonImageUrl ? (
                                                     <Image src={rule.addonImageUrl} alt={rule.addonName} fill className="object-cover" />
                                                 ) : (
-                                                    isCurved ? <Square className="w-5 h-5 rounded-sm" /> : <PlusCircle className="w-5 h-5" />
+                                                    isCurved ? <Square className="w-6 h-6 rounded-sm" /> : <PlusCircle className="w-6 h-6" />
                                                 )}
                                             </div>
-                                            <div>
-                                                <p className="text-[11px] font-bold leading-none mb-1 text-slate-800 dark:text-slate-100">{rule.addonName}</p>
-                                                <p className="text-[10px] text-muted-foreground font-semibold">₹{Number(rule.addonPriceAmount)}</p>
+                                            <div className="space-y-0.5">
+                                                <p className="text-[10px] font-bold text-slate-900 dark:text-white line-clamp-1">{rule.addonName}</p>
+                                                <p className="text-[9px] text-primary font-bold">₹{Number(rule.addonPriceAmount)}</p>
                                             </div>
+                                            {isSelected && (
+                                                <div className="absolute top-1.5 right-1.5">
+                                                    <CheckCircle2 className="w-3.5 h-3.5 text-primary fill-white dark:fill-slate-900" />
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })}
@@ -434,9 +559,9 @@ export function StartDesignContent() {
                     {discountRules.length > 0 && (
                         <Card className="border shadow-sm bg-white dark:bg-slate-900 overflow-hidden mb-6">
                             <CardHeader className="bg-amber-50/50 dark:bg-amber-900/10 border-b py-3">
-                                <CardTitle className="text-xs flex items-center gap-2 text-amber-700 dark:text-amber-400 uppercase tracking-widest font-black">
+                                <CardTitle className="text-xs flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold">
                                     <Sparkles className="w-4 h-4" />
-                                    Volume Discounts
+                                    Volume discounts
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-3">
@@ -604,18 +729,18 @@ export function StartDesignContent() {
                         {[
                             { 
                                 icon: Sparkles, 
-                                title: "Premium Finishing", 
-                                features: ["Spot UV Varnish", "Soft-Touch Lamination", "Metallic Foil Accents", "Embossed Textures"] 
+                                title: "Premium finishing", 
+                                features: ["Spot UV varnish", "Soft-touch lamination", "Metallic foil accents", "Embossed textures"] 
                             },
                             { 
                                 icon: ShieldCheck, 
-                                title: "Production Rigor", 
-                                features: ["G7 Certified Color", "Precision Die-Cutting", "300+ DPI Clarity", "Structural Stress Tested"] 
+                                title: "Production rigor", 
+                                features: ["G7 Certified color", "Precision die-cutting", "300+ DPI clarity", "Structural stress tested"] 
                             },
                             { 
                                 icon: Zap, 
-                                title: "Rapid Fulfillment", 
-                                features: ["Next-Day Dispatch", "Live Tracking", "Safe-Transit Packing", "Volume Scaling"] 
+                                title: "Rapid fulfillment", 
+                                features: ["Next-day dispatch", "Live tracking", "Safe-transit packing", "Volume scaling"] 
                             },
                         ].map((group, i) => (
                             <div key={i} className="p-6 rounded-[1.5rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 transition-all duration-500 group">

@@ -15,6 +15,7 @@ import {
   deleteSubProduct,
 } from '@/app/actions/product-actions';
 import { getFoilTypes } from '@/app/actions/foil-actions';
+import { getDieCuts } from '@/app/actions/die-cut-actions';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -92,6 +93,7 @@ const subProductSchema = z.object({
   maxPages: z.preprocess((val) => (val === '' || val === null || val === undefined ? 1 : val), z.coerce.number().min(1)),
   spotUvAllowed: z.boolean().default(false),
   allowedFoils: z.array(z.coerce.number()).optional(),
+  allowedDieCuts: z.array(z.coerce.number()).optional(),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
   backSideCost: z.coerce.number().optional().default(0),
 });
@@ -99,6 +101,7 @@ const subProductSchema = z.object({
 type Product = Awaited<ReturnType<typeof getProducts>>[0];
 type SubProduct = Product['subProducts'][0];
 type FoilType = Awaited<ReturnType<typeof getFoilTypes>>[0];
+type DieCut = Awaited<ReturnType<typeof getDieCuts>>[0];
 
 type Folder = {
   name: string;
@@ -109,6 +112,7 @@ type Folder = {
 export default function ProductsPage() {
   const [products, setProducts] = useState<Awaited<ReturnType<typeof getProducts>>>([]);
   const [foilTypes, setFoilTypes] = useState<FoilType[]>([]);
+  const [dieCuts, setDieCuts] = useState<DieCut[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProductFormOpen, setProductFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -118,9 +122,10 @@ export default function ProductsPage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [prods, foils] = await Promise.all([getProducts(), getFoilTypes()]);
+      const [prods, foils, cuts] = await Promise.all([getProducts(), getFoilTypes(), getDieCuts()]);
       setProducts(prods);
       setFoilTypes(foils);
+      setDieCuts(cuts);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to load data.' });
     } finally {
@@ -230,7 +235,7 @@ export default function ProductsPage() {
                       </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <SubProductsManager product={product} onUpdate={loadData} foilTypes={foilTypes} />
+                    <SubProductsManager product={product} onUpdate={loadData} foilTypes={foilTypes} dieCuts={dieCuts} />
                   </AccordionContent>
                 </AccordionItem>
               ))}
@@ -378,7 +383,7 @@ function ProductForm({
 }
 
 // SubProducts Manager Component
-function SubProductsManager({ product, onUpdate, foilTypes }: { product: Product; onUpdate: () => void; foilTypes: FoilType[] }) {
+function SubProductsManager({ product, onUpdate, foilTypes, dieCuts }: { product: Product; onUpdate: () => void; foilTypes: FoilType[]; dieCuts: DieCut[] }) {
   const [isFormOpen, setFormOpen] = useState(false);
   const [editingSubProduct, setEditingSubProduct] = useState<SubProduct | null>(null);
   const { toast } = useToast();
@@ -433,6 +438,7 @@ function SubProductsManager({ product, onUpdate, foilTypes }: { product: Product
             subProduct={editingSubProduct}
             onClose={() => setFormOpen(false)}
             foilTypes={foilTypes}
+            dieCuts={dieCuts}
           />
         </Dialog>
       </div>
@@ -510,11 +516,13 @@ function SubProductForm({
   subProduct,
   onClose,
   foilTypes,
+  dieCuts,
 }: {
   onSubmit: (data: z.infer<typeof subProductSchema>) => void;
   subProduct: SubProduct | null;
   onClose: () => void;
   foilTypes: FoilType[];
+  dieCuts: DieCut[];
 }) {
   const [isImageBrowserOpen, setImageBrowserOpen] = useState(false);
   const [currentFolder, setCurrentFolder] = useState('products');
@@ -529,7 +537,7 @@ function SubProductForm({
     setValue,
   } = useForm<z.infer<typeof subProductSchema>>({
     resolver: zodResolver(subProductSchema),
-    defaultValues: { isActive: true, imageUrl: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [], unitType: 'mm', backSideCost: 0 },
+    defaultValues: { isActive: true, imageUrl: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [], allowedDieCuts: [], unitType: 'mm', backSideCost: 0 },
   });
   
   const imageUrl = watch('imageUrl');
@@ -544,6 +552,7 @@ function SubProductForm({
           height: Number(subProduct.height),
           maxPages: subProduct.maxPages ?? 1,
           allowedFoils: subProduct.allowedFoils || [],
+          allowedDieCuts: subProduct.allowedDieCuts || [],
           unitType: subProduct.unitType as any || 'mm',
           backSideCost: Number(subProduct.backSideCost || 0),
       });
@@ -559,6 +568,7 @@ function SubProductForm({
             spotUvAllowed: false,
             maxPages: 1,
             allowedFoils: [],
+            allowedDieCuts: [],
             unitType: 'mm',
             backSideCost: 0,
         });
@@ -708,15 +718,31 @@ function SubProductForm({
                                     name="allowedFoils"
                                     control={control}
                                     render={({ field }) => (
-                                        <FoilMultiSelect
-                                            foils={foilTypes}
+                                        <MultiSelect
+                                            items={foilTypes}
                                             selected={field.value || []}
                                             onChange={field.onChange}
+                                            placeholder="Select foils..."
                                         />
                                     )}
                                 />
                             </div>
                         )}
+                        <div className="space-y-2 pl-2">
+                            <Label>Allowed Die Cuts</Label>
+                             <Controller
+                                name="allowedDieCuts"
+                                control={control}
+                                render={({ field }) => (
+                                    <MultiSelect
+                                        items={dieCuts}
+                                        selected={field.value || []}
+                                        onChange={field.onChange}
+                                        placeholder="Select die cuts..."
+                                    />
+                                )}
+                            />
+                        </div>
                     </div>
                 </div>
              </div>
@@ -736,40 +762,41 @@ function SubProductForm({
   );
 }
 
-function FoilMultiSelect({
-    foils,
+function MultiSelect({
+    items,
     selected,
     onChange,
+    placeholder
 }: {
-    foils: FoilType[];
+    items: { id: number; name: string }[];
     selected: number[];
     onChange: (selected: number[]) => void;
+    placeholder?: string;
 }) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="w-full justify-start font-normal">
-                    {selected.length > 0 ? `${selected.length} foils selected` : "Select foils..."}
+                    {selected.length > 0 ? `${selected.length} items selected` : (placeholder || "Select items...")}
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-[var(--radix-popover-trigger-width)] max-h-[300px] flex flex-col p-0" align="start">
-                <DropdownMenuLabel className="p-2">Available Foils</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <ScrollArea className="flex-1 overflow-y-auto">
                     <div className="p-1">
-                        {foils.map(foil => (
+                        {items.map(item => (
                             <DropdownMenuCheckboxItem
-                                key={foil.id}
-                                checked={selected.includes(foil.id)}
+                                key={item.id}
+                                checked={selected.includes(item.id)}
                                 onSelect={(e) => e.preventDefault()}
                                 onCheckedChange={(checked) => {
                                     const newSelected = checked
-                                        ? [...selected, foil.id]
-                                        : selected.filter(id => id !== foil.id);
+                                        ? [...selected, item.id]
+                                        : selected.filter(id => id !== item.id);
                                     onChange(newSelected);
                                 }}
                             >
-                                <span>{foil.name}</span>
+                                <span>{item.name}</span>
                             </DropdownMenuCheckboxItem>
                         ))}
                     </div>

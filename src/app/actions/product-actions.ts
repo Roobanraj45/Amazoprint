@@ -29,6 +29,7 @@ const subProductSchema = z.object({
   maxPages: z.preprocess((val) => (val === '' || val === null || val === undefined ? 1 : val), z.coerce.number().min(1)),
   spotUvAllowed: z.boolean().default(false),
   allowedFoils: z.array(z.coerce.number()).optional(),
+  allowedDieCuts: z.array(z.coerce.number()).optional(),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
   backSideCost: z.coerce.number().optional().default(0),
 });
