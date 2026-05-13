@@ -480,10 +480,10 @@ export function StartDesignContent() {
                                                 value={selectedDie ? String(selectedDie) : "none"} 
                                                 onValueChange={(val) => setSelectedDie(val === "none" ? null : parseInt(val, 10))}
                                             >
-                                                <SelectTrigger className="h-6 w-full text-[11px] font-bold border border-indigo-100 dark:border-indigo-900/50 bg-white/50 dark:bg-black/20 rounded-lg px-2 flex justify-between gap-1 focus:ring-0 text-indigo-600 dark:text-indigo-400">
+                                                <SelectTrigger className="h-8 w-full text-[12px] font-bold border border-indigo-100 dark:border-indigo-900/50 bg-white/50 dark:bg-black/20 rounded-lg px-3 flex justify-between gap-1 focus:ring-0 text-indigo-600 dark:text-indigo-400">
                                                     <SelectValue placeholder="None" />
                                                 </SelectTrigger>
-                                                <SelectContent className="min-w-[160px]">
+                                                <SelectContent className="min-w-[180px]">
                                                     <SelectItem value="none">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-[11px] font-bold">No die cut</span>
@@ -491,15 +491,18 @@ export function StartDesignContent() {
                                                     </SelectItem>
                                                     {availableDieCuts.map(die => (
                                                         <SelectItem key={die.id} value={String(die.id)}>
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-4 py-1">
                                                                 {die.imageUrl ? (
-                                                                    <div className="w-4 h-4 relative">
+                                                                    <div className="w-8 h-8 relative shrink-0">
                                                                         <Image src={resolveImagePath(die.imageUrl)} alt={die.name} fill className="object-contain" />
                                                                     </div>
                                                                 ) : (
-                                                                    <Square className="w-3.5 h-3.5 text-indigo-500" />
+                                                                    <Square className="w-6 h-6 text-indigo-500 shrink-0" />
                                                                 )}
-                                                                <span className="text-[11px] font-bold">{die.name}</span>
+                                                                <div className="flex flex-col items-start leading-none gap-1">
+                                                                    <span className="text-[12px] font-bold text-slate-900 dark:text-white">{die.name}</span>
+                                                                    <span className="text-[10px] font-bold text-indigo-500">+₹{Number(die.amount).toFixed(2)}</span>
+                                                                </div>
                                                             </div>
                                                         </SelectItem>
                                                     ))}
