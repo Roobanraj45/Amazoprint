@@ -186,8 +186,10 @@ export function StartDesignContent() {
 
     if (selectedDie) {
         const die = dieCuts.find(d => d.id === selectedDie);
-        if (die && die.amount) {
-            const amount = Number(die.amount);
+        if (die) {
+            const customPrices = (subProduct as any).dieCutPrices || {};
+            const amount = Number(customPrices[selectedDie] || 0);
+                
             addonTotalPerUnit += amount;
             addonBreakdown.push({
                 name: `Die Cut: ${die.name}`,
@@ -501,7 +503,9 @@ export function StartDesignContent() {
                                                                 )}
                                                                 <div className="flex flex-col items-start leading-none gap-1">
                                                                     <span className="text-[12px] font-bold text-slate-900 dark:text-white">{die.name}</span>
-                                                                    <span className="text-[10px] font-bold text-indigo-500">+₹{Number(die.amount).toFixed(2)}</span>
+                                                                    <span className="text-[10px] font-bold text-indigo-500">
+                                                                        +₹{Number(((subProduct as any).dieCutPrices || {})[die.id] || 0).toFixed(2)}
+                                                                    </span>
                                                                 </div>
                                                             </div>
                                                         </SelectItem>

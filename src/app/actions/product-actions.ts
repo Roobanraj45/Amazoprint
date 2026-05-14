@@ -30,6 +30,7 @@ const subProductSchema = z.object({
   spotUvAllowed: z.boolean().default(false),
   allowedFoils: z.array(z.coerce.number()).optional(),
   allowedDieCuts: z.array(z.coerce.number()).optional(),
+  dieCutPrices: z.record(z.string(), z.coerce.number()).optional().default({}),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
   backSideCost: z.coerce.number().optional().default(0),
 });
@@ -88,7 +89,10 @@ export async function deleteProduct(id: number) {
 
 export async function createSubProduct(data: z.infer<typeof subProductSchema>) {
   const validated = subProductSchema.parse(data);
-  const result = await db.insert(subProducts).values(validated).returning();
+  const result = await db.insert(subProducts).values({
+    ...validated,
+    dieCutPrices: validated.dieCutPrices || {},
+  }).returning();
   revalidatePath('/admin/products');
   revalidatePath('/products');
   revalidatePath('/');
@@ -97,7 +101,14 @@ export async function createSubProduct(data: z.infer<typeof subProductSchema>) {
 
 export async function updateSubProduct(id: number, data: Omit<z.infer<typeof subProductSchema>, 'productId'>) {
     const validated = subProductSchema.omit({productId: true}).parse(data);
-    const result = await db.update(subProducts).set({ ...validated, updatedAt: new Date() }).where(eq(subProducts.id, id)).returning();
+    const result = await db.update(subProducts)
+        .set({ 
+            ...validated, 
+            dieCutPrices: validated.dieCutPrices || {},
+            updatedAt: new Date() 
+        })
+        .where(eq(subProducts.id, id))
+        .returning();
     revalidatePath('/admin/products');
     revalidatePath('/products');
     revalidatePath('/');

@@ -174,6 +174,7 @@ export const subProducts = pgTable('sub_products', {
   spotUvAllowed: boolean('spot_uv_allowed').default(false).notNull(),
   allowedFoils: integer('allowed_foils').array(),
   allowedDieCuts: integer('allowed_die_cuts').array(),
+  dieCutPrices: jsonb('die_cut_prices').$type<Record<string, number>>().default({}),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   unitType: varchar('unit_type', { length: 10 }).default('mm').notNull(),

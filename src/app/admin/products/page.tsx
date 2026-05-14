@@ -17,6 +17,7 @@ import {
 import { getFoilTypes } from '@/app/actions/foil-actions';
 import { getDieCuts } from '@/app/actions/die-cut-actions';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
@@ -481,26 +482,47 @@ function SubProductsManager({ product, onUpdate, foilTypes, dieCuts }: { product
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-sm">
-                    <div>
-                        <Label className="text-xs text-muted-foreground">Price</Label>
-                        <p className="font-medium">₹{sp.price}</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-6 text-sm">
+                    <div className="space-y-1">
+                        <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Base Price</Label>
+                        <p className="font-bold text-slate-900 dark:text-white text-base">₹{sp.price}</p>
                     </div>
-                    <div>
-                        <Label className="text-xs text-muted-foreground">Dimensions</Label>
-                        <p className="font-medium">{sp.width} x {sp.height} {sp.unitType || 'mm'}</p>
+                    <div className="space-y-1">
+                        <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Dimensions</Label>
+                        <p className="font-bold">{sp.width} x {sp.height} <span className="text-[10px] text-muted-foreground">{sp.unitType || 'mm'}</span></p>
                     </div>
-                    <div>
-                        <Label className="text-xs text-muted-foreground">Max Pages</Label>
-                        <p className="font-medium">{sp.maxPages ?? 'N/A'}</p>
+                    <div className="space-y-1">
+                        <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Enhancements</Label>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                            {sp.spotUvAllowed && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800 text-[9px] h-4 font-bold px-1.5">UV</Badge>
+                            )}
+                            {(sp.allowedFoils?.length ?? 0) > 0 && (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800 text-[9px] h-4 font-bold px-1.5">FOIL ({sp.allowedFoils?.length})</Badge>
+                            )}
+                            {(sp.allowedDieCuts?.length ?? 0) > 0 && (
+                                <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-800 text-[9px] h-4 font-bold px-1.5">DIE ({sp.allowedDieCuts?.length})</Badge>
+                            )}
+                            {!sp.spotUvAllowed && !sp.allowedFoils?.length && !sp.allowedDieCuts?.length && (
+                                <span className="text-[10px] text-muted-foreground font-medium italic">No enhancements</span>
+                            )}
+                        </div>
                     </div>
-                     <div>
-                        <Label className="text-xs text-muted-foreground">Spot UV</Label>
-                        <p className="font-medium">{sp.spotUvAllowed ? 'Yes' : 'No'}</p>
+                    <div className="space-y-1">
+                        <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Pages</Label>
+                        <p className="font-bold">{sp.maxPages ?? 1} Side{(sp.maxPages ?? 1) > 1 ? 's' : ''}</p>
                     </div>
-                     <div>
-                        <Label className="text-xs text-muted-foreground">Active</Label>
-                        <p className="font-medium">{sp.isActive ? 'Yes' : 'No'}</p>
+                    <div className="space-y-1">
+                        <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Back Side</Label>
+                        <p className="font-bold">₹{sp.backSideCost || '0.00'}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Status</Label>
+                        <div>
+                            <Badge variant={sp.isActive ? 'default' : 'destructive'} className="h-5 text-[10px] font-bold">
+                                {sp.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                        </div>
                     </div>
                 </div>
             </CardContent>
@@ -537,11 +559,15 @@ function SubProductForm({
     setValue,
   } = useForm<z.infer<typeof subProductSchema>>({
     resolver: zodResolver(subProductSchema),
-    defaultValues: { isActive: true, imageUrl: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [], allowedDieCuts: [], unitType: 'mm', backSideCost: 0 },
+    defaultValues: { isActive: true, imageUrl: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [], allowedDieCuts: [], dieCutPrices: {}, unitType: 'mm', backSideCost: 0 },
   });
   
   const imageUrl = watch('imageUrl');
   const spotUvAllowed = watch('spotUvAllowed');
+
+  useEffect(() => {
+    register('dieCutPrices');
+  }, [register]);
 
   useEffect(() => {
     if (subProduct) {
@@ -553,6 +579,7 @@ function SubProductForm({
           maxPages: subProduct.maxPages ?? 1,
           allowedFoils: subProduct.allowedFoils || [],
           allowedDieCuts: subProduct.allowedDieCuts || [],
+          dieCutPrices: (subProduct as any).dieCutPrices || {},
           unitType: subProduct.unitType as any || 'mm',
           backSideCost: Number(subProduct.backSideCost || 0),
       });
@@ -569,6 +596,7 @@ function SubProductForm({
             maxPages: 1,
             allowedFoils: [],
             allowedDieCuts: [],
+            dieCutPrices: {},
             unitType: 'mm',
             backSideCost: 0,
         });
@@ -581,7 +609,12 @@ function SubProductForm({
         <DialogTitle>{subProduct ? 'Edit' : 'Add'} Variant / Size</DialogTitle>
       </DialogHeader>
       
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+      <form onSubmit={handleSubmit((data) => {
+          onSubmit({
+              ...data,
+              dieCutPrices: watch('dieCutPrices') || {}
+          });
+      })} className="flex flex-col flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
@@ -728,8 +761,8 @@ function SubProductForm({
                                 />
                             </div>
                         )}
-                        <div className="space-y-2 pl-2">
-                            <Label>Allowed Die Cuts</Label>
+                        <div className="space-y-4 pl-2">
+                            <Label className="text-sm font-bold">Allowed Die Cuts & Pricing</Label>
                              <Controller
                                 name="allowedDieCuts"
                                 control={control}
@@ -737,11 +770,58 @@ function SubProductForm({
                                     <MultiSelect
                                         items={dieCuts}
                                         selected={field.value || []}
-                                        onChange={field.onChange}
+                                        onChange={(newSelected) => {
+                                            field.onChange(newSelected);
+                                            // Initialize prices for new selections
+                                            const currentPrices = watch('dieCutPrices') || {};
+                                            const newPrices = { ...currentPrices };
+                                            newSelected.forEach(id => {
+                                                if (newPrices[id] === undefined) {
+                                                    const dc = dieCuts.find(d => d.id === id);
+                                                    newPrices[id] = Number(dc?.amount || 0);
+                                                }
+                                            });
+                                            setValue('dieCutPrices', newPrices, { shouldDirty: true });
+                                        }}
                                         placeholder="Select die cuts..."
                                     />
                                 )}
                             />
+                            
+                            {/* Price configuration for selected die cuts */}
+                            {(watch('allowedDieCuts') || []).length > 0 && (
+                                <div className="space-y-2 border rounded-lg p-3 bg-slate-50 dark:bg-slate-900/50">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Per-card pricing</p>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {(watch('allowedDieCuts') || []).map(id => {
+                                            const dc = dieCuts.find(d => d.id === id);
+                                            if (!dc) return null;
+                                            const currentPrices = watch('dieCutPrices') || {};
+                                            return (
+                                                <div key={id} className="flex items-center justify-between gap-4 p-2 bg-white dark:bg-slate-800 rounded-md border border-slate-100 dark:border-slate-700 shadow-sm">
+                                                    <span className="text-xs font-bold truncate">{dc.name}</span>
+                                                    <div className="flex items-center gap-2 w-24">
+                                                        <span className="text-[10px] text-muted-foreground">₹</span>
+                                                        <Input 
+                                                            type="number" 
+                                                            step="0.01" 
+                                                            className="h-7 text-xs font-bold px-2"
+                                                            value={currentPrices[id] ?? Number(dc.amount || 0)}
+                                                            onChange={(e) => {
+                                                                const val = parseFloat(e.target.value) || 0;
+                                                                setValue('dieCutPrices', {
+                                                                    ...currentPrices,
+                                                                    [id]: val
+                                                                }, { shouldDirty: true });
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
