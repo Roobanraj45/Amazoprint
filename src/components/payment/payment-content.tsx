@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { createRazorpayOrder, captureAndVerifyPayment } from '@/app/actions/payment-actions';
+import { createRazorpayOrder, captureAndVerifyPayment, processDummyPayment } from '@/app/actions/payment-actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -117,6 +117,28 @@ export function PaymentContent() {
         rzp.open();
     };
 
+    const handleDummyPayment = async () => {
+        if (!orderPayload) return;
+        setIsProcessing(true);
+        try {
+            const result = await processDummyPayment({
+                amount: orderPayload.amount,
+                orderType: orderType,
+                orderData: orderPayload.orderData
+            });
+
+            if (result.success) {
+                toast({ title: 'Success', description: 'Order placed using Dummy PG.' });
+                router.push('/client/orders');
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Dummy payment failed.' });
+            setIsProcessing(false);
+        }
+    };
+
     if (!orderPayload) {
         return (
              <div className="flex h-[80vh] items-center justify-center">
@@ -166,6 +188,14 @@ export function PaymentContent() {
                         ) : (
                            'Pay Now'
                         )}
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        className="w-full border-dashed" 
+                        onClick={handleDummyPayment}
+                        disabled={isLoading || isProcessing}
+                    >
+                        Skip to Dummy PG (Testing)
                     </Button>
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                         <ShieldCheck size={14}/> Securely processed by Razorpay

@@ -101,6 +101,11 @@ type DesignEditorProps = {
   allFoils?: FoilType[];
   availableFoils?: FoilType[];
   spotUvAllowed?: boolean;
+  spotUv?: boolean;
+  selectedAddons?: number[];
+  selectedDie?: number | null;
+  pricingRules?: any[];
+  dieCuts?: any[];
   verificationId?: string | null;
   contestId?: string | null;
   currentUserId?: string | null;
@@ -120,6 +125,11 @@ function DesignEditorInternal({
   allFoils = [],
   availableFoils = [],
   spotUvAllowed = false,
+  spotUv: initialSpotUv = false,
+  selectedAddons: initialSelectedAddons = [],
+  selectedDie: initialSelectedDie = null,
+  pricingRules = [],
+  dieCuts = [],
   verificationId,
   contestId,
   currentUserId,
@@ -266,6 +276,101 @@ function DesignEditorInternal({
   const { pages, guides, product, quantity } = currentState;
   const currentElements = pages[currentPage]?.elements || [];
   const currentBackground = pages[currentPage]?.background || { type: 'solid', color: '#ffffff' };
+
+  // Pricing State
+  const [calculatedPrice, setCalculatedPrice] = useState<{ 
+    original: number; 
+    final: number; 
+    discount: number; 
+    description: string | null;
+    addons: { name: string; totalAmount: number }[];
+  } | null>(null);
+
+  useEffect(() => {
+    if (!initialProduct || !pricingRules) return;
+
+    const qty = quantity;
+    const subProduct = initialProduct; 
+    
+    let basePrice = 0;
+    const standardRule = pricingRules.find((r: any) => !r.isDiscount && !r.isContest && !r.isVerification && qty >= (r.minQuantity || 1) && (!r.maxQuantity || qty <= r.maxQuantity));
+    if (standardRule && standardRule.unitPrice) {
+        basePrice = Number(standardRule.unitPrice);
+    } else {
+        basePrice = Number((subProduct as any).price || 0);
+    }
+
+    let finalPrice = basePrice;
+    let discount = 0;
+    let discountDescription: string | null = null;
+
+    const discountRule = pricingRules.find((r: any) => r.isDiscount && qty >= (r.minQuantity || 1) && (!r.maxQuantity || qty <= r.maxQuantity));
+    if (discountRule && discountRule.discountValue) {
+        if (discountRule.discountType === 'percentage') {
+            discount = basePrice * (Number(discountRule.discountValue) / 100);
+            discountDescription = `${discountRule.discountValue}% off`;
+        } else if (discountRule.discountType === 'fixed') {
+            discount = Number(discountRule.discountValue);
+            discountDescription = `₹${discountRule.discountValue} off`;
+        }
+        finalPrice = basePrice - discount;
+    }
+
+    let addonTotalPerUnit = 0;
+    const addonBreakdown: { name: string; totalAmount: number }[] = [];
+
+    // Double sided check
+    if (totalPages > 1 && (subProduct as any).backSideCost) {
+        const amount = Number((subProduct as any).backSideCost);
+        addonTotalPerUnit += amount;
+        addonBreakdown.push({
+            name: 'Double Sided Printing',
+            totalAmount: amount * qty
+        });
+    }
+
+    if (initialSpotUv) {
+        addonBreakdown.push({
+            name: 'Spot UV',
+            totalAmount: 0
+        });
+    }
+
+    initialSelectedAddons.forEach(id => {
+        const rule = pricingRules.find((r: any) => r.id === id);
+        if (rule && rule.addonPriceAmount) {
+            const amount = Number(rule.addonPriceAmount);
+            addonTotalPerUnit += amount;
+            addonBreakdown.push({
+                name: rule.addonName || 'Extra Add-on',
+                totalAmount: amount * qty
+            });
+        }
+    });
+
+    if (initialSelectedDie) {
+        const die = dieCuts.find((d: any) => d.id === initialSelectedDie);
+        if (die) {
+            const customPrices = (subProduct as any).dieCutPrices || {};
+            const amount = Number(customPrices[initialSelectedDie] || 0);
+            
+            addonTotalPerUnit += amount;
+            addonBreakdown.push({
+                name: `Die Cut: ${die.name}`,
+                totalAmount: amount * qty
+            });
+        }
+    }
+
+    setCalculatedPrice({
+        original: (basePrice + addonTotalPerUnit) * qty,
+        final: (finalPrice + addonTotalPerUnit) * qty,
+        discount: discount * qty,
+        description: discountDescription,
+        addons: addonBreakdown,
+    });
+
+  }, [quantity, initialProduct, pricingRules, initialSelectedAddons, totalPages, initialSelectedDie, dieCuts, initialSpotUv]);
 
   useEffect(() => {
     currentElementsRef.current = currentElements;
@@ -1338,6 +1443,14 @@ function DesignEditorInternal({
     }
 
     setIsSaving(true);
+    const customisation = JSON.parse(JSON.stringify({
+        spotUv: initialSpotUv,
+        addons: initialSelectedAddons,
+        dieCut: initialSelectedDie,
+        priceBreakup: calculatedPrice,
+        pages: totalPages
+    }));
+
     const saveData = {
       productSlug: product.id,
       elements: pages.map(p => p.elements),
@@ -1348,6 +1461,7 @@ function DesignEditorInternal({
       height: Math.round(product.height * PX_TO_MM),
       productId: product.productId,
       subProductId: product.subProductId,
+      customisation
     };
 
     try {
@@ -1398,6 +1512,14 @@ function DesignEditorInternal({
       const designName = currentDesignName || prompt('Please name your design to proceed to order:');
       if (designName) {
         try {
+          const customisation = JSON.parse(JSON.stringify({
+            spotUv: initialSpotUv,
+            addons: initialSelectedAddons,
+            dieCut: initialSelectedDie,
+            priceBreakup: calculatedPrice,
+            pages: totalPages
+          }));
+
           const saveData = {
             name: designName,
             productSlug: product.id,
@@ -1409,6 +1531,7 @@ function DesignEditorInternal({
             height: Math.round(product.height * PX_TO_MM),
             productId: product.productId,
             subProductId: product.subProductId,
+            customisation
           };
           const savedDesign = await saveDesign(saveData);
           setCurrentDesignId(savedDesign.id);
@@ -1426,6 +1549,39 @@ function DesignEditorInternal({
         setIsOrdering(false);
         return;
       }
+    } else {
+        // Update the design with latest customisation before ordering
+        try {
+            const customisation = JSON.parse(JSON.stringify({
+                spotUv: initialSpotUv,
+                addons: initialSelectedAddons,
+                dieCut: initialSelectedDie,
+                priceBreakup: calculatedPrice,
+                pages: totalPages
+            }));
+
+            const saveData = {
+                productSlug: product.id,
+                elements: pages.map(p => p.elements),
+                background: pages.map(p => p.background),
+                guides,
+                quantity,
+                width: Math.round(product.width * PX_TO_MM),
+                height: Math.round(product.height * PX_TO_MM),
+                productId: product.productId,
+                subProductId: product.subProductId,
+                customisation
+            };
+            await updateDesign({ 
+                id: designId, 
+                name: currentDesignName!, 
+                verificationId: verificationId || null, 
+                contestId: contestId || null,
+                ...saveData 
+            });
+        } catch (error) {
+            console.error("Failed to update design before order", error);
+        }
     }
 
     if (designId) {

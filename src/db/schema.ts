@@ -28,7 +28,8 @@ export const paymentStatusEnum = pgEnum('payment_status', [
 export const paymentProviderEnum = pgEnum('payment_provider', [
     'razorpay',
     'stripe',
-    'paypal'
+    'paypal',
+    'dummy'
 ]);
 
 export const printerStatusEnum = pgEnum('printer_status', ['pending', 'approved', 'rejected']);
@@ -277,6 +278,7 @@ export const designs = pgTable('designs', {
     updatedAt: timestamp('updated_at').defaultNow(),
     productId: integer('product_id').references(() => products.id, { onDelete: 'set null' }),
     subProductId: integer('sub_product_id').references(() => subProducts.id, { onDelete: 'set null' }),
+    customisation: jsonb('customisation').default({}),
 }, (table) => {
     return {
         userIdx: index('idx_designs_user_id').on(table.userId),
@@ -463,6 +465,7 @@ export const directSellingProducts = pgTable('direct_selling_products', {
   isActive: boolean('is_active').default(true),
   supplierInfo: jsonb('supplier_info'),
   shippingInfo: jsonb('shipping_info'),
+  textAllowed: boolean('text_allowed').default(false),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => ({

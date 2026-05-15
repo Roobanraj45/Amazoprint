@@ -1,27 +1,26 @@
-import { getAdminOrderDetails } from "@/app/actions/order-actions";
+import { getMyOrderDetails } from "@/app/actions/order-actions";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { IndianRupee, User, Package, Truck, CreditCard, Hash, FileText, Download } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { IndianRupee, Package, Truck, CreditCard, Hash, FileText, Download, ArrowLeft } from "lucide-react";
 import Image from 'next/image';
 import { resolveImagePath } from "@/lib/utils";
 import { DesignCanvas } from "@/components/design/design-canvas";
-import type { Product, DesignElement, Background, Guide, RenderData } from "@/lib/types";
-import { PrintPreviewButton } from "./PrintPreviewButton";
+import type { Product, DesignElement, Background } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const DPI = 300;
 const MM_TO_PX = DPI / 25.4;
 
-export default async function AdminOrderDetailsPage({ params }: { params: { orderId: string } }) {
+export default async function ClientOrderDetailsPage({ params }: { params: { orderId: string } }) {
     const orderId = parseInt(params.orderId, 10);
     if (isNaN(orderId)) {
         notFound();
     }
 
-    const order = await getAdminOrderDetails(orderId);
+    const order = await getMyOrderDetails(orderId);
 
     if (!order) {
         notFound();
@@ -76,10 +75,18 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
 
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="container mx-auto p-4 md:p-8 space-y-6">
+            <div className="flex items-center gap-4">
+                <Button asChild variant="ghost" size="sm">
+                    <Link href="/client/orders">
+                        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Orders
+                    </Link>
+                </Button>
+            </div>
+
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Order #{order.id}</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Order #{order.id}</h1>
                     <p className="text-muted-foreground">
                         Placed on {format(new Date(order.createdAt), 'PPP p')}
                     </p>
@@ -112,11 +119,11 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                         </div>
                                         <div>
                                             <p className="text-xs text-muted-foreground">Unit Price</p>
-                                            <p className="font-medium flex items-center"><IndianRupee size={12} className="mr-0.5" />{order.unitPrice}</p>
+                                            <p className="font-medium flex items-center"><IndianRupee size={12} className="mr-0.5" />{parseFloat(order.unitPrice).toLocaleString('en-IN', {minimumFractionDigits: 2})}</p>
                                         </div>
                                         <div className="col-span-2">
                                             <p className="text-xs text-muted-foreground">Total Amount</p>
-                                            <p className="font-bold text-lg flex items-center"><IndianRupee size={16} className="mr-0.5" />{order.totalAmount}</p>
+                                            <p className="font-bold text-lg flex items-center"><IndianRupee size={16} className="mr-0.5" />{parseFloat(order.totalAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})}</p>
                                         </div>
                                     </div>
 
@@ -145,12 +152,18 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                         </div>
                                     )}
 
-                                    <div className="pt-4 border-t">
-                                        {isDesignOrder && <PrintPreviewButton order={order} />}
+                                    <div className="pt-4 border-t flex flex-wrap gap-3">
+                                        {isDesignOrder && (
+                                            <Button asChild variant="secondary">
+                                                <Link href={`/design/${order.design.productSlug}?templateId=${order.design.id}`} target="_blank">
+                                                    <FileText className="mr-2 h-4 w-4"/> View & Edit Design
+                                                </Link>
+                                            </Button>
+                                        )}
                                         {isUploadOrder && (
                                             <Button asChild variant="secondary">
                                                 <a href={resolveImagePath(order.designUpload.filePath)} download>
-                                                    <Download className="mr-2 h-4 w-4"/> Download Original File
+                                                    <Download className="mr-2 h-4 w-4"/> Download Your File
                                                 </a>
                                             </Button>
                                         )}
@@ -190,27 +203,11 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                      </div>
                 </div>
                 <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><User className="h-5 w-5 text-primary" /> Customer</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="flex items-center gap-4">
-                                <Avatar>
-                                    <AvatarFallback>{order.user.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <p className="font-semibold">{order.user.name}</p>
-                                    <p className="text-sm text-muted-foreground">{order.user.email}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
                      <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Hash className="h-5 w-5 text-primary" /> Payment & Status</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2 text-sm">
+                        <CardContent className="space-y-4 text-sm">
                              <div className="flex justify-between">
                                 <span className="text-muted-foreground">Payment Status:</span>
                                 <Badge variant={order.paymentStatus === 'paid' ? 'default' : 'destructive'} className="capitalize">{order.paymentStatus}</Badge>
@@ -219,6 +216,19 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                 <span className="text-muted-foreground">Payment Method:</span>
                                 <span className="font-medium">{order.paymentMethod}</span>
                             </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Tracking Number:</span>
+                                <span className="font-medium">{order.trackingNumber || 'Pending'}</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-primary/5 border-primary/20">
+                        <CardHeader>
+                            <CardTitle className="text-sm font-bold uppercase tracking-widest text-primary">Need Help?</CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-xs text-muted-foreground">
+                            If you have any questions regarding this order, please contact our support team with your Order ID.
                         </CardContent>
                     </Card>
                 </div>

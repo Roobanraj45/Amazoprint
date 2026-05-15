@@ -12,9 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, File } from 'lucide-react';
+import { Loader2, ArrowRight, File, CreditCard } from 'lucide-react';
+import { processDummyPayment } from '@/app/actions/payment-actions';
 import Image from 'next/image';
+import { useToast } from '@/hooks/use-toast';
 import { resolveImagePath } from '@/lib/utils';
 import { DesignCanvas } from '@/components/design/design-canvas';
 import type { DesignElement, Product, Background } from '@/lib/types';
@@ -166,6 +167,34 @@ export function CheckoutContent() {
         }
     };
 
+    const handleDummyPayment = async (data: CheckoutFormValues) => {
+        if (!details) return;
+        setIsPlacingOrder(true);
+        try {
+            const result = await processDummyPayment({
+                amount: details.total,
+                orderType: 'design',
+                orderData: {
+                    designId: details.design?.id,
+                    uploadId: details.upload?.id,
+                    quantity: details.quantity,
+                    ...data,
+                }
+            });
+
+            if (result.success) {
+                toast({ title: 'Success', description: 'Order placed using Dummy PG.' });
+                router.push('/client/orders');
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Dummy payment failed.' });
+        } finally {
+            setIsPlacingOrder(false);
+        }
+    };
+
     if (isLoading) {
         return <div className="flex justify-center items-center h-[calc(100vh-4rem)]"><Loader2 className="h-10 w-10 animate-spin" /></div>;
     }
@@ -235,10 +264,23 @@ export function CheckoutContent() {
                                     <CardContent><AddressForm type="billingAddress" register={register} errors={errors} /></CardContent>
                                 </Card>
                             )}
-                            <Button type="submit" size="lg" className="w-full" disabled={isPlacingOrder}>
-                                {isPlacingOrder && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Proceed to Payment <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <Button type="submit" size="lg" className="flex-1" disabled={isPlacingOrder}>
+                                    {isPlacingOrder && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Proceed to Payment <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="lg" 
+                                    className="flex-1 border-dashed border-primary/50 text-primary hover:bg-primary/5" 
+                                    disabled={isPlacingOrder}
+                                    onClick={handleSubmit(handleDummyPayment)}
+                                >
+                                    <CreditCard className="mr-2 h-4 w-4" />
+                                    Dummy PG (Fast)
+                                </Button>
+                            </div>
                         </form>
                     </FormProvider>
                 </div>
@@ -260,22 +302,33 @@ export function CheckoutContent() {
                             <Separator />
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                    <span>Subtotal</span>
-                                    <span>₹{details.originalTotal.toFixed(2)}</span>
+                                    <span className="text-muted-foreground">Standard printing</span>
+                                    <span className="font-medium text-slate-700 dark:text-slate-200">₹{(details.originalTotal - ((details as any).customisation?.priceBreakup?.addons?.reduce((acc: number, addon: any) => acc + addon.totalAmount, 0) || 0)).toFixed(2)}</span>
                                 </div>
+                                
+                                {(details as any).customisation?.priceBreakup?.addons?.map((addon: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between text-xs items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
+                                            <span className="text-slate-600 dark:text-slate-400 font-semibold">{addon.name}</span>
+                                        </div>
+                                        <span className="font-bold text-primary/80">+ ₹{addon.totalAmount.toFixed(2)}</span>
+                                    </div>
+                                ))}
+
                                 {details.totalDiscount > 0 && (
-                                    <div className="flex justify-between text-green-600">
-                                        <span>Discount {details.discountDescription ? `(${details.discountDescription})` : ''}</span>
+                                    <div className="flex justify-between text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+                                        <span>Saved {details.discountDescription ? `(${details.discountDescription})` : ''}</span>
                                         <span>- ₹{details.totalDiscount.toFixed(2)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between">
-                                    <span>Shipping</span>
-                                    <span className="text-green-600">FREE</span>
+                                    <span className="text-muted-foreground">Shipping</span>
+                                    <span className="text-green-600 font-bold text-xs uppercase tracking-wider">Free</span>
                                 </div>
                                  <div className="flex justify-between">
-                                    <span>Taxes</span>
-                                    <span>₹0.00</span>
+                                    <span className="text-muted-foreground">Taxes</span>
+                                    <span className="text-slate-500 italic text-[11px]">Included</span>
                                 </div>
                             </div>
                             <Separator />

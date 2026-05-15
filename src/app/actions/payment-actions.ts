@@ -119,3 +119,52 @@ export async function captureAndVerifyPayment(data: {
              return { success: false, error: error.message || "Failed to save order after payment." };
     }
 }
+
+export async function processDummyPayment(data: {
+    amount: number;
+    orderType: 'design' | 'direct' | 'contest';
+    orderData: any;
+}) {
+    const session = await getSession();
+    if (!session?.sub) {
+        throw new Error('User not authenticated for dummy payment.');
+    }
+
+    const { amount, orderType, orderData } = data;
+
+    // 1. Create a successful payment record
+    const [paymentRecord] = await db.insert(payments).values({
+        userId: session.sub,
+        amount: String(amount),
+        currency: 'INR',
+        status: 'captured', // Directly mark as captured
+        provider: 'dummy',
+        providerOrderId: `dummy_order_${Date.now()}`,
+        providerPaymentId: `dummy_pay_${Date.now()}`,
+        metadata: { orderType, ...orderData }
+    }).returning({ id: payments.id });
+
+    if (!paymentRecord) {
+        throw new Error("Failed to create dummy payment record.");
+    }
+
+    // 2. Create the order based on orderType
+    try {
+        if (orderType === 'design') {
+            await createOrder({ ...orderData, paymentId: paymentRecord.id });
+        } else if (orderType === 'direct') {
+            await placeDirectOrder(orderData.items, orderData.shippingAddress, paymentRecord.id);
+        } else if (orderType === 'contest') {
+            const newContest = await createContest(orderData.contestData || orderData);
+            await db.update(payments)
+                .set({ contestId: newContest.id })
+                .where(eq(payments.id, paymentRecord.id));
+        } else {
+            throw new Error("Invalid order type");
+        }
+        return { success: true };
+    } catch (error: any) {
+        console.error("Dummy order creation failed:", error);
+        return { success: false, error: error.message || "Failed to save dummy order." };
+    }
+}

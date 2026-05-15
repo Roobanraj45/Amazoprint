@@ -78,8 +78,17 @@ export async function createOrder(data: CreateOrderData) {
     const subProductInfo = await db.query.subProducts.findFirst({ where: eq(subProducts.id, subProductId) });
     if (!subProductInfo || !subProductInfo.price) throw new Error('Could not get pricing information.');
     
-    const unitPrice = parseFloat(subProductInfo.price);
-    const totalAmount = unitPrice * quantity;
+    let totalAmount = 0;
+    let unitPrice = 0;
+
+    const customisation = (sourceDetails as any).customisation;
+    if (customisation?.priceBreakup) {
+        totalAmount = customisation.priceBreakup.final;
+        unitPrice = totalAmount / quantity;
+    } else {
+        unitPrice = parseFloat(subProductInfo.price);
+        totalAmount = unitPrice * quantity;
+    }
 
     const result = await db.insert(orders).values({
         userId: session.sub,
@@ -88,8 +97,8 @@ export async function createOrder(data: CreateOrderData) {
         designId,
         designUploadId: uploadId,
         quantity,
-        unitPrice: String(unitPrice),
-        totalAmount: String(totalAmount),
+        unitPrice: String(unitPrice.toFixed(2)),
+        totalAmount: String(totalAmount.toFixed(2)),
         shippingAddress: shippingAddress as any,
         billingAddress: billingAddress as any,
         paymentMethod: 'Card', // Placeholder
@@ -166,34 +175,45 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
     let finalUnitPrice = baseUnitPrice;
     let discountDescription: string | null = null;
     let totalDiscount = 0;
+    let customisation = (details as any).design?.customisation || {};
 
-    // 1. Find the most specific base price for the quantity
-    const standardRule = pricingRules.find(r => !r.isDiscount && !r.isContest && !r.isVerification && quantity >= (r.minQuantity || 1) && (!r.maxQuantity || quantity <= r.maxQuantity));
-    if (standardRule && standardRule.unitPrice) {
-        baseUnitPrice = Number(standardRule.unitPrice);
-        finalUnitPrice = baseUnitPrice;
+    // If we have a saved price breakup in customisation, use it as a reference or primary source
+    if (customisation.priceBreakup) {
+        const breakup = customisation.priceBreakup;
+        // The breakup.final is the total for the quantity
+        // We can use it to derive the unit price
+        finalUnitPrice = breakup.final / quantity;
+        baseUnitPrice = breakup.original / quantity;
+        totalDiscount = breakup.discount;
+        discountDescription = breakup.description;
+    } else {
+        // 1. Find the most specific base price for the quantity
+        const standardRule = pricingRules.find(r => !r.isDiscount && !r.isContest && !r.isVerification && quantity >= (r.minQuantity || 1) && (!r.maxQuantity || quantity <= r.maxQuantity));
+        if (standardRule && standardRule.unitPrice) {
+            baseUnitPrice = Number(standardRule.unitPrice);
+            finalUnitPrice = baseUnitPrice;
+        }
+
+        // 2. Find a discount rule that applies
+        const discountRule = pricingRules.find(r => r.isDiscount && quantity >= (r.minQuantity || 1) && (!r.maxQuantity || quantity <= r.maxQuantity));
+        if (discountRule && discountRule.discountValue) {
+            let perItemDiscount = 0;
+            if (discountRule.discountType === 'percentage') {
+                perItemDiscount = finalUnitPrice * (Number(discountRule.discountValue) / 100);
+                discountDescription = `${discountRule.discountValue}% off`;
+            } else if (discountRule.discountType === 'fixed') {
+                perItemDiscount = Number(discountRule.discountValue);
+                discountDescription = `₹${discountRule.discountValue} off per item`;
+            }
+            finalUnitPrice -= perItemDiscount;
+            totalDiscount = perItemDiscount * quantity;
+        }
     }
 
     const originalTotal = baseUnitPrice * quantity;
-
-    // 2. Find a discount rule that applies
-    const discountRule = pricingRules.find(r => r.isDiscount && quantity >= (r.minQuantity || 1) && (!r.maxQuantity || quantity <= r.maxQuantity));
-    if (discountRule && discountRule.discountValue) {
-        let perItemDiscount = 0;
-        if (discountRule.discountType === 'percentage') {
-            perItemDiscount = finalUnitPrice * (Number(discountRule.discountValue) / 100);
-            discountDescription = `${discountRule.discountValue}% off`;
-        } else if (discountRule.discountType === 'fixed') {
-            perItemDiscount = Number(discountRule.discountValue);
-            discountDescription = `₹${discountRule.discountValue} off per item`;
-        }
-        finalUnitPrice -= perItemDiscount;
-        totalDiscount = perItemDiscount * quantity;
-    }
-
     const total = finalUnitPrice * quantity;
 
-    return { ...details, unitPrice: finalUnitPrice, total, originalTotal, discountDescription, totalDiscount };
+    return { ...details, unitPrice: finalUnitPrice, total, originalTotal, discountDescription, totalDiscount, customisation };
 }
 
 export async function getMyOrders() {
@@ -270,3 +290,24 @@ export async function getAdminOrderDetails(orderId: number) {
     }
     return order;
 }
+
+export async function getMyOrderDetails(orderId: number) {
+    const session = await getSession();
+    if (!session?.sub) {
+        throw new Error('Unauthorized');
+    }
+
+    const order = await db.query.orders.findFirst({
+        where: and(eq(orders.id, orderId), eq(orders.userId, session.sub)),
+        with: {
+            product: true,
+            subProduct: true,
+            design: true,
+            designUpload: true,
+            directSellingProduct: true,
+        },
+    });
+
+    return order || null;
+}
+

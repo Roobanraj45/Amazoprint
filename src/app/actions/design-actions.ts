@@ -19,6 +19,7 @@ const designSchema = z.object({
   guides: z.any().optional(),
   productId: z.number().optional().nullable(),
   subProductId: z.number().optional().nullable(),
+  customisation: z.record(z.any()).optional(),
 });
 
 const updateDesignSchema = designSchema.extend({
@@ -62,6 +63,7 @@ export async function saveDesign(data: z.infer<typeof designSchema>) {
         userId: saveUserId,
         productId: validated.productId,
         subProductId: validated.subProductId,
+        customisation: validated.customisation || {},
     }).returning();
 
     revalidatePath('/design/*');
@@ -135,11 +137,17 @@ export async function updateDesign(data: z.infer<typeof updateDesignSchema>) {
     
     const result = await db.update(designs)
         .set({ 
+            name: validated.name,
+            quantity: validated.quantity,
+            width: validated.width,
+            height: validated.height,
+            productSlug: validated.productSlug,
             elements,
             background,
             guides,
             productId: validated.productId,
             subProductId: validated.subProductId,
+            customisation: validated.customisation,
             updatedAt: new Date()
         })
         .where(eq(designs.id, id))

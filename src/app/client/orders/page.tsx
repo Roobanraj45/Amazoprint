@@ -108,7 +108,7 @@ export default async function MyOrdersPage() {
                                         <div className="text-right sm:text-right mt-4 sm:mt-0 bg-background/50 p-4 rounded-2xl border border-border/40">
                                             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Total Amount</p>
                                             <p className="text-2xl font-black tracking-tighter flex items-center justify-end text-primary">
-                                                <IndianRupee className="h-5 w-5 mr-0.5" />{order.totalAmount}
+                                                <IndianRupee className="h-5 w-5 mr-0.5" />{parseFloat(order.totalAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})}
                                             </p>
                                         </div>
                                     </div>
@@ -117,9 +117,11 @@ export default async function MyOrdersPage() {
                                     <p className="text-xs font-medium text-muted-foreground flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Tracking Available
                                     </p>
-                                    <Button variant="ghost" size="sm" className="font-bold text-xs uppercase tracking-widest hover:text-primary">
-                                        View Details <ArrowRight className="w-3 h-3 ml-2" />
-                                    </Button>
+                                    <Link href={`/client/orders/${order.id}`}>
+                                        <Button variant="ghost" size="sm" className="font-bold text-xs uppercase tracking-widest hover:text-primary">
+                                            View Details <ArrowRight className="w-3 h-3 ml-2" />
+                                        </Button>
+                                    </Link>
                                 </CardFooter>
                             </Card>
                         );

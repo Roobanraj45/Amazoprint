@@ -2,13 +2,15 @@ import { notFound } from 'next/navigation';
 import { DesignEditor } from '@/components/design/design-editor';
 import type { Product, DesignElement, Background, FoilType } from '@/lib/types';
 import { db } from '@/db';
-import { products, subProducts } from '@/db/schema';
+import { products, subProducts, dieCuts } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
 import { getDesign } from '@/app/actions/design-actions';
 import { getSession } from '@/lib/auth';
 import { getFoilTypes } from '@/app/actions/foil-actions';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
+
+import { getPricingRulesForSubProduct } from '@/app/actions/pricing-actions';
 
 type DesignPageProps = {
   params: {
@@ -84,6 +86,8 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
     type: productData.category || productData.name,
     productId: productData.id,
     subProductId: subProductForDims?.id,
+    backSideCost: subProductForDims?.backSideCost,
+    dieCutPrices: subProductForDims?.dieCutPrices,
   };
 
 
@@ -135,6 +139,14 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
     : [];
 
   const spotUvAllowedForProduct = subProductForDims?.spotUvAllowed ?? false;
+  const spotUvRequested = searchParams.spotUv === 'true';
+  const selectedAddons = searchParams.addons ? searchParams.addons.split(',').map(Number) : [];
+  const selectedDie = searchParams.dieCut ? Number(searchParams.dieCut) : null;
+
+  const pricingRules = subProductForDims ? await getPricingRulesForSubProduct(subProductForDims.id) : [];
+  const allDieCuts = await db.query.dieCuts.findMany({
+    where: eq(dieCuts.isActive, true)
+  }); 
 
   return (
     <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="animate-spin h-8 w-8" /></div>}>
@@ -150,6 +162,11 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
         allFoils={allFoils}
         availableFoils={availableFoils}
         spotUvAllowed={spotUvAllowedForProduct}
+        spotUv={spotUvRequested}
+        selectedAddons={selectedAddons}
+        selectedDie={selectedDie}
+        pricingRules={pricingRules}
+        dieCuts={allDieCuts}
         verificationId={verificationId}
         contestId={contestId}
         currentUserId={session?.sub}

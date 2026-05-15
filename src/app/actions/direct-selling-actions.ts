@@ -51,6 +51,7 @@ const formSchema = z.object({
   isActive: z.boolean().default(true),
   supplierInfo: jsonFromString.optional(),
   shippingInfo: jsonFromString.optional(),
+  textAllowed: z.boolean().default(false),
 });
 
 

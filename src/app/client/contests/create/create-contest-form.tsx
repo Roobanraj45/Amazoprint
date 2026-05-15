@@ -16,7 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarIcon, Loader2, Trophy, Pencil, Lightbulb } from 'lucide-react';
+import { CalendarIcon, Loader2, Trophy, Pencil, Lightbulb, CreditCard } from 'lucide-react';
+import { processDummyPayment } from '@/app/actions/payment-actions';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -118,6 +119,41 @@ export function CreateContestForm() {
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
       setIsLoading(false);
+    }
+  };
+
+  const handleDummyPayment = async (data: ContestFormValues) => {
+    setIsLoading(true);
+    try {
+        const selectedRule = contestPricingRules.find(r => r.id === data.pricingRuleId);
+        if (!selectedRule || !selectedRule.contestPrice) {
+            throw new Error("Invalid pricing rule or price not found.");
+        }
+
+        const contestData = {
+            ...data,
+            entryFee: Number(selectedRule.contestPrice),
+            maxFreelancers: selectedRule.maxParticipants,
+        };
+        // @ts-ignore
+        delete contestData.pricingRuleId;
+
+        const result = await processDummyPayment({
+            amount: Number(selectedRule.contestPrice),
+            orderType: 'contest',
+            orderData: { contestData }
+        });
+
+        if (result.success) {
+            toast({ title: 'Success', description: 'Contest created using Dummy PG.' });
+            router.push('/client/contests');
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message || 'Dummy payment failed.' });
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -271,10 +307,20 @@ export function CreateContestForm() {
                     {errors.endDate && <p className="text-sm text-destructive">{errors.endDate.message}</p>}
                 </div>
             </CardContent>
-            <CardFooter>
-              <Button type="submit" disabled={isLoading} className="w-full">
+            <CardFooter className="flex flex-col sm:flex-row gap-4">
+              <Button type="submit" disabled={isLoading} className="flex-1">
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Proceed to Payment
+              </Button>
+              <Button 
+                  type="button" 
+                  variant="outline" 
+                  disabled={isLoading} 
+                  className="flex-1 border-dashed border-primary/50 text-primary hover:bg-primary/5"
+                  onClick={handleSubmit(handleDummyPayment)}
+              >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Dummy PG (Fast)
               </Button>
             </CardFooter>
           </form>

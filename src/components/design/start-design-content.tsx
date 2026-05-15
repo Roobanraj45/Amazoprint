@@ -8,9 +8,8 @@ import { getSession } from '@/app/actions/user-actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors } from 'lucide-react';
+import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2 } from 'lucide-react';
 import { getFoilTypes } from '@/app/actions/foil-actions';
 import { getDieCuts } from '@/app/actions/die-cut-actions';
 import { FoilType } from '@/lib/types';
@@ -18,7 +17,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { resolveImagePath, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 
@@ -172,6 +170,13 @@ export function StartDesignContent() {
         });
     }
 
+    if (spotUv) {
+        addonBreakdown.push({
+            name: 'Spot UV',
+            totalAmount: 0
+        });
+    }
+
     selectedAddons.forEach(id => {
         const rule = pricingRules.find(r => r.id === id);
         if (rule && rule.addonPriceAmount) {
@@ -247,7 +252,7 @@ export function StartDesignContent() {
   if (!product || !subProduct) {
     return (
         <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] space-y-4">
-            <h1 className="text-2xl font-bold">Product not found</h1>
+            <h1 className="text-xl font-bold">Product not found</h1>
             <Button asChild><Link href="/products">Back to Products</Link></Button>
         </div>
     );
@@ -286,449 +291,510 @@ export function StartDesignContent() {
   ];
 
   return (
-    <main className="flex-grow pt-20 pb-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              
-              <aside className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
-                <Card className="overflow-hidden border shadow-sm bg-white dark:bg-slate-900">
-                  <div className="flex flex-col sm:flex-row lg:flex-col">
-                    <div className="relative aspect-video sm:w-1/3 lg:w-full bg-slate-100 dark:bg-slate-800 border-b lg:border-b-0 lg:border-r dark:border-slate-800">
-                      {imageUrl ? (
-                        <Image src={imageUrl} alt={product.name} fill className="object-cover" priority />
-                      ) : (
-                        <div className="flex items-center justify-center h-full">
-                          <LayoutTemplate className="h-12 w-12 text-slate-300" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 p-5">
-                      <div className="mb-4">
-                        <h1 className="text-xl font-bold leading-tight text-slate-900 dark:text-white">{product.name}</h1>
-                        <p className="text-sm text-muted-foreground">{subProduct.name}</p>
+    <main className="flex-grow pt-24 pb-20 bg-slate-50/50 dark:bg-slate-950">
+        <div className="container mx-auto px-4 max-w-7xl">
+          {/* Header Section with Product Hero */}
+          <div className="mb-10 flex flex-col md:flex-row gap-8 items-center animate-in fade-in slide-in-from-top-4 duration-700">
+              <div className="w-full md:w-1/3 aspect-[4/3] relative rounded-2xl overflow-hidden shadow-xl shadow-primary/10 group">
+                  {imageUrl ? (
+                      <Image src={imageUrl} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" priority />
+                  ) : (
+                      <div className="flex items-center justify-center h-full bg-slate-200 dark:bg-slate-800">
+                          <LayoutTemplate className="h-12 w-12 text-slate-400" />
                       </div>
-                      <div className="rounded-xl border bg-muted/30 p-3.5 dark:border-slate-800">
-                          <p className="text-[11px] font-bold text-muted-foreground">Dimensions</p>
-                          <p className="text-sm font-semibold">
-                            {subProduct.width === 0 && subProduct.height === 0 
-                              ? 'Custom Size' 
-                              : `${subProduct.width} x ${subProduct.height} ${subProduct.unitType || 'mm'}`}
-                          </p>
-                        </div>
-                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              </div>
+              <div className="flex-1 space-y-3 text-center md:text-left">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest border border-primary/20">
+                      <Sparkles className="w-3 h-3" />
+                      Project Initialization
                   </div>
-                </Card>
+                  <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                      {product.name}
+                  </h1>
+                  <p className="text-sm md:text-base text-muted-foreground font-medium max-w-2xl">
+                      Configure your production specifications for industrial-grade {product.name.toLowerCase()} fulfillment.
+                  </p>
+                  <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                      <Badge variant="outline" className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-slate-200 dark:border-slate-800 px-3 py-1 rounded-lg font-semibold text-[10px] text-slate-600">
+                          <Package2 size={12} className="mr-1.5 text-primary" />
+                          {subProduct.width === 0 && subProduct.height === 0 ? 'Custom Size' : `${subProduct.width} x ${subProduct.height} ${subProduct.unitType || 'mm'}`}
+                      </Badge>
+                      <Badge variant="outline" className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-slate-200 dark:border-slate-800 px-3 py-1 rounded-lg font-semibold text-[10px] text-slate-600">
+                          <ShieldCheck size={12} className="mr-1.5 text-primary" />
+                          G7 Certified
+                      </Badge>
+                  </div>
+              </div>
+          </div>
 
-                {subProduct.width === 0 && subProduct.height === 0 && (
-                  <Card className="border shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
-                    <CardHeader className="p-4 border-b">
-                      <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <Square className="w-4 h-4 text-primary" />
-                        Enter Custom Size
-                      </CardTitle>
-                      <CardDescription className="text-[10px]">
-                        Specify the dimensions for your project in {subProduct.unitType || 'mm'}.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <div className="grid grid-cols-2 gap-4 mt-4">
-                        <div className="space-y-2">
-                          <Label className="text-[11px] font-bold text-muted-foreground">Width ({subProduct.unitType || 'mm'})</Label>
-                          <Input 
-                            type="number" 
-                            placeholder="e.g. 100" 
-                            value={customWidth} 
-                            onChange={(e) => setCustomWidth(e.target.value)}
-                            className="font-bold"
-                          />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              
+              {/* Left Column: Step-by-Step Configuration */}
+              <div className="lg:col-span-8 space-y-8">
+                
+                {/* Step 1: Physical Parameters */}
+                <section className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-700 delay-100">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-bold shadow-md shadow-primary/20">1</div>
+                        <div>
+                            <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">Production Configuration</h2>
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Set volume and physical attributes</p>
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-[11px] font-bold text-muted-foreground">Height ({subProduct.unitType || 'mm'})</Label>
-                          <Input 
-                            type="number" 
-                            placeholder="e.g. 100" 
-                            value={customHeight} 
-                            onChange={(e) => setCustomHeight(e.target.value)}
-                            className="font-bold"
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </aside>
+                    </div>
 
-              <div className="lg:col-span-7 space-y-12">
-              <div className="space-y-6">
-                    <Card className="border shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
-                      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x dark:divide-slate-800">
-                        <div className="p-4 space-y-3">
-                          <Label className="text-[11px] font-bold text-muted-foreground">Select quantity</Label>
-                          <Input 
-                            type="number" 
-                            min="1" 
-                            value={quantity} 
-                            onChange={(e) => setQuantity(e.target.value)}
-                            onBlur={() => {
-                                const val = parseInt(quantity, 10);
-                                if (isNaN(val) || val < 1) setQuantity('1');
-                            }}
-                            className="w-full h-10 font-semibold"
-                          />
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card className="border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-slate-900 rounded-2xl overflow-hidden group hover:ring-1 hover:ring-primary/20 transition-all duration-500">
+                            <CardHeader className="pb-1.5 p-5">
+                                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                                    <Hash className="w-3 h-3 text-primary" />
+                                    Order Quantity
+                                </Label>
+                            </CardHeader>
+                            <CardContent className="pb-5 px-5">
+                                <div className="relative group">
+                                    <Input 
+                                        type="number" 
+                                        min="1" 
+                                        value={quantity} 
+                                        onChange={(e) => setQuantity(e.target.value)}
+                                        onBlur={() => {
+                                            const val = parseInt(quantity, 10);
+                                            if (isNaN(val) || val < 1) setQuantity('1');
+                                        }}
+                                        className="h-12 text-2xl font-bold border-none bg-slate-50 dark:bg-slate-800/50 focus-visible:ring-primary rounded-xl pl-5"
+                                    />
+                                    <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest pointer-events-none">Units</span>
+                                </div>
+                                <div className="mt-3 flex items-center gap-1.5 text-[9px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/10 px-2.5 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-900/20">
+                                    <Zap size={10} className="fill-emerald-600/10" />
+                                    Volume discount tier automatically active
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                        {subProduct.maxPages > 1 && (
-                          <div className="p-4 space-y-3">
-                            <Label className="text-[11px] font-bold text-muted-foreground">Print configuration</Label>
-                            <div className="flex gap-2">
-                              <button 
-                                  onClick={() => setPages('1')}
-                                  className={cn(
-                                      "flex-1 py-2 px-3 rounded-lg border text-[11px] font-bold transition-all flex items-center justify-center gap-2",
-                                      pages === '1' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
-                                  )}
-                              >
-                                  <Square size={14} className={pages === '1' ? "fill-primary/20" : ""} />
-                                  Front only
-                              </button>
-                              <button 
-                                  onClick={() => setPages('2')}
-                                  className={cn(
-                                      "flex-1 py-2 px-3 rounded-lg border text-[11px] font-bold transition-all flex items-center justify-center gap-2",
-                                      pages === '2' ? "border-primary bg-primary/5 text-primary shadow-sm" : "text-muted-foreground border-slate-100 dark:border-slate-800"
-                                  )}
-                              >
-                                  <Layers size={14} className={pages === '2' ? "fill-primary/20" : ""} />
-                                  Front & back
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        {subProduct.maxPages > 2 && (
-                          <div className="p-4 space-y-3">
-                            <Label className="text-[11px] font-bold text-muted-foreground">Multiple pages</Label>
-                            <Select value={pages} onValueChange={setPages}>
-                              <SelectTrigger className="w-full h-10 font-semibold"><SelectValue/></SelectTrigger>
-                              <SelectContent>
-                                {Array.from({length: subProduct.maxPages}, (_, i) => String(i + 1)).map(p => (
-                                  <SelectItem key={p} value={p}>{p} pages</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-
-                    {(subProduct.spotUvAllowed || addonRules.length > 0 || true) && (
-                        <div className="space-y-4">
-                            <div className="flex flex-col gap-1 px-1">
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    <Sparkles className="w-4 h-4 text-indigo-500 fill-indigo-500/20" />
-                                    Premium enhancements
-                                </h3>
-                                <p className="text-[11px] text-muted-foreground font-medium">Elevate your design with special finishes and cuts</p>
-                            </div>
-                            
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                                {/* Spot UV (Integrated) */}
-                                {subProduct.spotUvAllowed && (
-                                    <div 
-                                        onClick={() => setSpotUv(!spotUv)}
-                                        className={cn(
-                                            "group relative p-3 rounded-2xl border flex flex-col items-center gap-2 text-center transition-all duration-300 cursor-pointer overflow-hidden",
-                                            spotUv 
-                                                ? "border-amber-400 bg-amber-50/50 dark:bg-amber-900/10 ring-1 ring-amber-400 shadow-lg shadow-amber-500/10" 
-                                                : "border-slate-100 dark:border-slate-800 hover:border-slate-200 hover:bg-slate-50/50"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300",
-                                            spotUv ? "bg-amber-100 text-amber-600 dark:bg-amber-900/40" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:scale-110"
-                                        )}>
-                                            <Zap className={cn("w-6 h-6", spotUv ? "fill-amber-500" : "")} />
-                                        </div>
-                                        <div className="space-y-0.5">
-                                            <p className="text-[10px] font-bold text-slate-900 dark:text-white">Spot UV</p>
-                                            <p className="text-[9px] text-amber-600 dark:text-amber-400 font-bold">Premium</p>
-                                        </div>
-                                        {spotUv && (
-                                            <div className="absolute top-1.5 right-1.5">
-                                                <CheckCircle2 className="w-3.5 h-3.5 text-amber-500 fill-white dark:fill-slate-900" />
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                 {/* Die Cut Option (Redesigned) */}
-                                {availableDieCuts.length > 0 && (
-                                    <div 
-                                        className={cn(
-                                            "group relative p-3 rounded-2xl border flex flex-col items-center gap-2 text-center transition-all duration-300 cursor-pointer overflow-hidden",
-                                            selectedDie
-                                                ? "border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10 ring-1 ring-indigo-400 shadow-lg shadow-indigo-500/10" 
-                                                : "border-slate-100 dark:border-slate-800 hover:border-slate-200 hover:bg-slate-50/50"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-300",
-                                            selectedDie ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:scale-110"
-                                        )}>
-                                            <Layers className={cn("w-6 h-6", selectedDie ? "fill-indigo-500" : "")} />
-                                        </div>
-                                        <div className="w-full space-y-1">
-                                            <p className="text-[10px] font-bold text-slate-900 dark:text-white">Die cut</p>
-                                            <Select 
-                                                value={selectedDie ? String(selectedDie) : "none"} 
-                                                onValueChange={(val) => setSelectedDie(val === "none" ? null : parseInt(val, 10))}
-                                            >
-                                                <SelectTrigger className="h-8 w-full text-[12px] font-bold border border-indigo-100 dark:border-indigo-900/50 bg-white/50 dark:bg-black/20 rounded-lg px-3 flex justify-between gap-1 focus:ring-0 text-indigo-600 dark:text-indigo-400">
-                                                    <SelectValue placeholder="None" />
-                                                </SelectTrigger>
-                                                <SelectContent className="min-w-[180px]">
-                                                    <SelectItem value="none">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[11px] font-bold">No die cut</span>
-                                                        </div>
-                                                    </SelectItem>
-                                                    {availableDieCuts.map(die => (
-                                                        <SelectItem key={die.id} value={String(die.id)}>
-                                                            <div className="flex items-center gap-4 py-1">
-                                                                {die.imageUrl ? (
-                                                                    <div className="w-8 h-8 relative shrink-0">
-                                                                        <Image src={resolveImagePath(die.imageUrl)} alt={die.name} fill className="object-contain" />
-                                                                    </div>
-                                                                ) : (
-                                                                    <Square className="w-6 h-6 text-indigo-500 shrink-0" />
-                                                                )}
-                                                                <div className="flex flex-col items-start leading-none gap-1">
-                                                                    <span className="text-[12px] font-bold text-slate-900 dark:text-white">{die.name}</span>
-                                                                    <span className="text-[10px] font-bold text-indigo-500">
-                                                                        +₹{Number(((subProduct as any).dieCutPrices || {})[die.id] || 0).toFixed(2)}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        {selectedDie && (
-                                            <div className="absolute top-1.5 right-1.5">
-                                                <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500 fill-white dark:fill-slate-900" />
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-
-                                {addonRules.map(rule => {
-                                    const isSelected = selectedAddons.includes(rule.id);
-                                    const isCurved = rule.addonName?.toLowerCase().includes('curved') || rule.addonName?.toLowerCase().includes('round');
-                                    
-                                    return (
-                                        <div 
-                                            key={rule.id}
-                                            onClick={() => toggleAddon(rule.id)}
+                        {subProduct.maxPages > 1 ? (
+                            <Card className="border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-slate-900 rounded-2xl overflow-hidden group hover:ring-1 hover:ring-primary/20 transition-all duration-500">
+                                <CardHeader className="pb-1.5 p-5">
+                                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                                        <Layers className="w-3 h-3 text-primary" />
+                                        Print Coverage
+                                    </Label>
+                                </CardHeader>
+                                <CardContent className="pb-5 px-5">
+                                    <div className="grid grid-cols-2 gap-2 h-12">
+                                        <button 
+                                            onClick={() => setPages('1')}
                                             className={cn(
-                                                "group relative p-3 rounded-2xl border flex flex-col items-center gap-2 text-center transition-all duration-300 cursor-pointer overflow-hidden",
-                                                isSelected 
-                                                    ? "border-primary bg-primary/5 ring-1 ring-primary shadow-lg shadow-primary/10" 
-                                                    : "border-slate-100 dark:border-slate-800 hover:border-slate-200 hover:bg-slate-50/50"
+                                                "rounded-xl border font-semibold transition-all flex flex-col items-center justify-center gap-0.5",
+                                                pages === '1' ? "border-primary bg-primary text-white shadow-md shadow-primary/10" : "text-muted-foreground border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-slate-200"
                                             )}
                                         >
-                                            <div className={cn(
-                                                "w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden relative transition-all duration-300",
-                                                isSelected ? "bg-primary/10 text-primary" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:scale-110"
-                                            )}>
-                                                {rule.addonImageUrl ? (
-                                                    <Image src={rule.addonImageUrl} alt={rule.addonName} fill className="object-cover" />
-                                                ) : (
-                                                    isCurved ? <Square className="w-6 h-6 rounded-sm" /> : <PlusCircle className="w-6 h-6" />
-                                                )}
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                <p className="text-[10px] font-bold text-slate-900 dark:text-white line-clamp-1">{rule.addonName}</p>
-                                                <p className="text-[9px] text-primary font-bold">₹{Number(rule.addonPriceAmount)}</p>
-                                            </div>
-                                            {isSelected && (
-                                                <div className="absolute top-1.5 right-1.5">
-                                                    <CheckCircle2 className="w-3.5 h-3.5 text-primary fill-white dark:fill-slate-900" />
-                                                </div>
+                                            <span className="text-sm">Single Sided</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => setPages('2')}
+                                            className={cn(
+                                                "rounded-xl border font-semibold transition-all flex flex-col items-center justify-center gap-0.5",
+                                                pages === '2' ? "border-primary bg-primary text-white shadow-md shadow-primary/10" : "text-muted-foreground border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-slate-200"
                                             )}
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    )}
+                                        >
+                                            <span className="text-sm">Double Sided</span>
+                                        </button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                             <Card className="border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-slate-900 rounded-2xl overflow-hidden opacity-50 grayscale pointer-events-none">
+                                <CardHeader className="pb-1.5 p-5">
+                                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Print Coverage</Label>
+                                </CardHeader>
+                                <CardContent className="pb-5 px-5">
+                                    <div className="h-12 flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200">
+                                        <span className="text-[10px] font-medium text-slate-400">Fixed: Single Sided</span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
 
-                    {discountRules.length > 0 && (
-                        <Card className="border shadow-sm bg-white dark:bg-slate-900 overflow-hidden mb-6">
-                            <CardHeader className="bg-amber-50/50 dark:bg-amber-900/10 border-b py-3">
-                                <CardTitle className="text-xs flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold">
-                                    <Sparkles className="w-4 h-4" />
-                                    Volume discounts
-                                </CardTitle>
+                    {subProduct.width === 0 && subProduct.height === 0 && (
+                        <Card className="border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-slate-900 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                             <CardHeader className="p-5 border-b border-slate-50 dark:border-slate-800">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                                        <Scissors size={14} />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-[10px] font-bold uppercase tracking-widest">Bespoke Dimensioning</CardTitle>
+                                        <CardDescription className="text-[9px] font-medium text-muted-foreground">Specify custom spatial requirements in {subProduct.unitType || 'mm'}.</CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
-                            <CardContent className="p-3">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                    {discountRules.map(rule => {
-                                        const qty = parseInt(quantity, 10);
-                                        const isActive = !isNaN(qty) && qty >= (rule.minQuantity || 1) && (!rule.maxQuantity || qty <= rule.maxQuantity);
-                                        const discountText = rule.discountType === 'percentage'
-                                            ? `${rule.discountValue}% OFF`
-                                            : `₹${rule.discountValue} OFF`;
-                                        return (
-                                            <div key={rule.id} className={cn(
-                                                "p-2 rounded-lg border text-center transition-all", 
-                                                isActive 
-                                                    ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm" 
-                                                    : "bg-muted/30 border-slate-100 dark:border-slate-800"
-                                            )}>
-                                                <p className="font-semibold text-[10px] text-muted-foreground leading-none mb-1">
-                                                    {rule.minQuantity || 1}{rule.maxQuantity ? `-${rule.maxQuantity}` : '+'} qty
-                                                </p>
-                                                <p className={cn("font-bold text-[11px]", isActive ? "text-primary" : "text-foreground")}>{discountText}</p>
-                                            </div>
-                                        )
-                                    })}
+                            <CardContent className="p-6">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Width</Label>
+                                        <div className="relative">
+                                            <Input 
+                                                type="number" 
+                                                value={customWidth} 
+                                                onChange={(e) => setCustomWidth(e.target.value)}
+                                                className="h-11 text-base font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/50 border-none focus-visible:ring-primary"
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">{subProduct.unitType || 'mm'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Height</Label>
+                                        <div className="relative">
+                                            <Input 
+                                                type="number" 
+                                                value={customHeight} 
+                                                onChange={(e) => setCustomHeight(e.target.value)}
+                                                className="h-11 text-base font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/50 border-none focus-visible:ring-primary"
+                                            />
+                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">{subProduct.unitType || 'mm'}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
                     )}
+                </section>
 
-                    <Card className="border-2 border-primary/20 shadow-xl bg-primary/[0.02] dark:bg-slate-900 overflow-hidden">
-                        <CardHeader className="py-4 border-b bg-white dark:bg-slate-900/50">
-                            <CardTitle className="text-xs font-bold text-primary flex items-center justify-between">
-                                Final summary
-                                <IndianRupee className="w-4 h-4 opacity-50" />
+                {/* Step 2: Visual Enhancements */}
+                {(subProduct.spotUvAllowed || addonRules.length > 0 || availableDieCuts.length > 0) && (
+                    <section className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-700 delay-200">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-bold shadow-md shadow-primary/20">2</div>
+                            <div>
+                                <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">Premium Enhancements</h2>
+                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Industrial finishes and structural precision</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {/* Spot UV */}
+                            {subProduct.spotUvAllowed && (
+                                <div 
+                                    onClick={() => setSpotUv(!spotUv)}
+                                    className={cn(
+                                        "group relative p-5 rounded-2xl border flex flex-col items-center gap-3 text-center transition-all duration-500 cursor-pointer overflow-hidden",
+                                        spotUv 
+                                            ? "border-amber-400 bg-amber-400/5 ring-1 ring-amber-400 shadow-lg shadow-amber-500/10" 
+                                            : "border-white dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 hover:shadow-md"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500",
+                                        spotUv ? "bg-amber-400 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-slate-200"
+                                    )}>
+                                        <Zap className={cn("w-6 h-6", spotUv ? "fill-white" : "")} />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-900 dark:text-white leading-none">Spot UV</p>
+                                        <p className="text-[9px] text-amber-600 dark:text-amber-400 font-semibold">PREMIUM GLOSS</p>
+                                    </div>
+                                    {spotUv && (
+                                        <div className="absolute top-2.5 right-2.5 animate-in zoom-in duration-300">
+                                            <CheckCircle2 className="w-4 h-4 text-amber-500 fill-white dark:fill-slate-900" />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Die Cut */}
+                            {availableDieCuts.length > 0 && (
+                                <div 
+                                    className={cn(
+                                        "group relative p-5 rounded-2xl border flex flex-col items-center gap-3 text-center transition-all duration-500 cursor-pointer overflow-hidden",
+                                        selectedDie
+                                            ? "border-indigo-500 bg-indigo-500/5 ring-1 ring-indigo-500 shadow-lg shadow-indigo-500/10" 
+                                            : "border-white dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 hover:shadow-md"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500",
+                                        selectedDie ? "bg-indigo-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-slate-200"
+                                    )}>
+                                        <Scissors className={cn("w-6 h-6", selectedDie ? "fill-white" : "")} />
+                                    </div>
+                                    <div className="w-full space-y-1.5">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-900 dark:text-white leading-none">Die Cut</p>
+                                        <Select 
+                                            value={selectedDie ? String(selectedDie) : "none"} 
+                                            onValueChange={(val) => setSelectedDie(val === "none" ? null : parseInt(val, 10))}
+                                        >
+                                            <SelectTrigger className="h-6 w-full text-[9px] font-bold uppercase tracking-tighter border-none bg-slate-100 dark:bg-slate-800 rounded-md px-1.5 flex justify-between gap-0.5 focus:ring-0 text-slate-600 dark:text-slate-400">
+                                                <SelectValue placeholder="NONE" />
+                                            </SelectTrigger>
+                                            <SelectContent className="min-w-[180px] rounded-xl shadow-xl border-border/40">
+                                                <SelectItem value="none" className="rounded-lg">
+                                                    <div className="flex items-center gap-3 py-0.5">
+                                                        <div className="w-8 h-8 rounded-lg border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center bg-slate-50 dark:bg-slate-900 shrink-0">
+                                                            <Scissors size={12} className="text-slate-300" />
+                                                        </div>
+                                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">NO DIE CUT</span>
+                                                    </div>
+                                                </SelectItem>
+                                                {availableDieCuts.map(die => (
+                                                    <SelectItem key={die.id} value={String(die.id)} className="rounded-lg">
+                                                        <div className="flex items-center gap-3 py-0.5">
+                                                            {die.imageUrl && (
+                                                                <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shrink-0">
+                                                                    <Image 
+                                                                        src={resolveImagePath(die.imageUrl)} 
+                                                                        alt={die.name} 
+                                                                        width={32} 
+                                                                        height={32} 
+                                                                        className="object-cover" 
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                            <div className="flex flex-col items-start leading-none gap-1">
+                                                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-900 dark:text-white">{die.name}</span>
+                                                                <span className="text-[10px] font-semibold text-indigo-500">+₹{Number(((subProduct as any).dieCutPrices || {})[die.id] || 0).toFixed(2)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    {selectedDie && (
+                                        <div className="absolute top-2.5 right-2.5 animate-in zoom-in duration-300">
+                                            <CheckCircle2 className="w-4 h-4 text-indigo-500 fill-white dark:fill-slate-900" />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Custom Addons */}
+                            {addonRules.map(rule => {
+                                const isSelected = selectedAddons.includes(rule.id);
+                                const isCurved = rule.addonName?.toLowerCase().includes('curved') || rule.addonName?.toLowerCase().includes('round');
+                                
+                                return (
+                                    <div 
+                                        key={rule.id}
+                                        onClick={() => toggleAddon(rule.id)}
+                                        className={cn(
+                                            "group relative p-5 rounded-2xl border flex flex-col items-center gap-3 text-center transition-all duration-500 cursor-pointer overflow-hidden",
+                                            isSelected 
+                                                ? "border-primary bg-primary/5 ring-1 ring-primary shadow-lg shadow-primary/10" 
+                                                : "border-white dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 hover:shadow-md"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden relative transition-all duration-500",
+                                            isSelected ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-slate-200"
+                                        )}>
+                                            {rule.addonImageUrl ? (
+                                                <Image src={rule.addonImageUrl} alt={rule.addonName} fill className="object-cover" />
+                                            ) : (
+                                                isCurved ? <Square className="w-6 h-6 rounded-lg border-2 border-current" /> : <PlusCircle className="w-6 h-6" />
+                                            )}
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-900 dark:text-white leading-none line-clamp-1">{rule.addonName}</p>
+                                            <p className="text-[10px] text-primary font-semibold">+₹{Number(rule.addonPriceAmount)}</p>
+                                        </div>
+                                        {isSelected && (
+                                            <div className="absolute top-2.5 right-2.5 animate-in zoom-in duration-300">
+                                                <CheckCircle2 className="w-4 h-4 text-primary fill-white dark:fill-slate-900" />
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </section>
+                )}
+
+                {/* Step 3: Creative Direction */}
+                <section className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-700 delay-300">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-bold shadow-md shadow-primary/20">3</div>
+                        <div>
+                            <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">Creative Selection</h2>
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Choose your design initiation path</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {options.map((option, idx) => (
+                            <Link key={option.title} href={option.href} className="group relative">
+                                <Card className="h-full border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-slate-900 rounded-[1.5rem] overflow-hidden transition-all duration-500 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/10">
+                                    <CardHeader className="p-6 pb-3">
+                                        <div className="flex justify-between items-start">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                                                {option.icon}
+                                            </div>
+                                            {option.badge && (
+                                                <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-3 py-1 text-[8px] font-bold uppercase tracking-widest rounded-full">
+                                                    {option.badge}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-6 pt-0">
+                                        <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white mb-2">{option.title}</h3>
+                                        <p className="text-xs text-muted-foreground font-medium leading-relaxed mb-6">
+                                            {option.description}
+                                        </p>
+                                        <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-primary">
+                                            Initialize Project <ArrowRight size={12} className="group-hover:translate-x-1.5 transition-transform duration-500" />
+                                        </div>
+                                    </CardContent>
+                                    <div className="absolute inset-x-0 bottom-0 h-1 bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left" />
+                                </Card>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+              </div>
+
+              {/* Right Column: Dynamic Price Intelligence (Sticky) */}
+              <aside className="lg:col-span-4 lg:sticky lg:top-24 space-y-6">
+                
+                {/* Visual Quote Card */}
+                <Card className="border-none shadow-xl shadow-primary/10 bg-primary text-white rounded-[1.5rem] overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-3xl -mr-12 -mt-12 animate-pulse" />
+                    <CardHeader className="p-6 pb-2 border-none">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-[9px] font-bold uppercase tracking-widest opacity-80">Instant Quotation</CardTitle>
+                            <IndianRupee size={14} className="opacity-50" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-6 pt-0">
+                        {loadingPricing ? (
+                            <div className="flex items-center justify-center h-32">
+                                <Loader2 className="h-8 w-8 animate-spin text-white/50" />
+                            </div>
+                        ) : calculatedPrice ? (
+                            <div className="space-y-6">
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <span className="text-2xl md:text-3xl font-extrabold tracking-tighter flex items-center">
+                                            <IndianRupee className="mr-0.5 stroke-[3]" size={22} />
+                                            {calculatedPrice.final.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                    <p className="text-[9px] font-semibold text-white/60 uppercase tracking-widest">Net Payable (Incl. Taxes)</p>
+                                </div>
+
+                                <div className="space-y-2.5 pt-5 border-t border-white/10">
+                                    <div className="flex justify-between text-[10px] font-semibold text-white/80">
+                                        <span className="uppercase tracking-widest opacity-60">Production</span>
+                                        <span>₹{calculatedPrice.original.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                    </div>
+
+                                    {calculatedPrice.addons.map((addon, idx) => (
+                                        <div key={idx} className="flex justify-between text-[10px] font-semibold text-white">
+                                            <span className="uppercase tracking-widest opacity-60 flex items-center gap-1.5">
+                                                <div className="w-1 h-1 rounded-full bg-white/40" />
+                                                {addon.name}
+                                            </span>
+                                            <span className="text-primary-foreground font-bold">+ ₹{addon.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                    ))}
+                                    
+                                    {calculatedPrice.discount > 0 && (
+                                        <div className="flex justify-between text-[10px] font-bold bg-white/10 px-3 py-2 rounded-xl mt-3 animate-in slide-in-from-bottom-2 duration-500">
+                                            <span className="uppercase tracking-widest">SAVED {calculatedPrice.description}</span>
+                                            <span>- ₹{calculatedPrice.discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="pt-5">
+                                    <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-white/5 border border-white/10">
+                                        <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                                            <Package2 size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-bold uppercase tracking-widest opacity-60">Unit Price</p>
+                                            <p className="text-base font-bold tracking-tight">₹{(calculatedPrice.final / parseInt(quantity, 10)).toFixed(2)} <span className="text-[9px] opacity-60 font-semibold uppercase ml-0.5">per Unit</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-32 italic font-semibold text-white/30 text-xs">Calibrating...</div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Volume Advantage Matrix */}
+                {discountRules.length > 0 && (
+                    <Card className="border-none shadow-lg bg-white dark:bg-slate-900 rounded-[1.5rem] overflow-hidden">
+                        <CardHeader className="p-5 bg-amber-400/10 dark:bg-amber-400/5 border-b border-amber-400/10">
+                            <CardTitle className="text-[9px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                <Zap className="w-3.5 h-3.5 fill-amber-500" />
+                                Volume Advantage Matrix
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-5">
-                            {loadingPricing ? (
-                                <div className="flex items-center justify-center h-24">
-                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                                </div>
-                            ) : calculatedPrice ? (
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-sm font-medium">
-                                            <span className="text-muted-foreground">Standard printing</span>
-                                            <span className="font-semibold text-slate-800 dark:text-slate-100">₹{calculatedPrice.original.toFixed(2)}</span>
+                            <div className="grid gap-2.5">
+                                {discountRules.map(rule => {
+                                    const qty = parseInt(quantity, 10);
+                                    const isActive = !isNaN(qty) && qty >= (rule.minQuantity || 1) && (!rule.maxQuantity || qty <= rule.maxQuantity);
+                                    return (
+                                        <div key={rule.id} className={cn(
+                                            "flex items-center justify-between p-3.5 rounded-xl border transition-all", 
+                                            isActive 
+                                                ? "border-amber-400 bg-amber-400/5 shadow-md shadow-amber-500/10" 
+                                                : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 opacity-60"
+                                        )}>
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-widest">{rule.minQuantity || 1}{rule.maxQuantity ? `-${rule.maxQuantity}` : '+'} Units</span>
+                                                <span className="text-[8px] font-semibold text-muted-foreground uppercase">Production Tier</span>
+                                            </div>
+                                            <Badge className={cn("rounded-lg px-2.5 py-0.5 font-bold text-[9px]", isActive ? "bg-amber-400 text-white" : "bg-slate-200 text-slate-500")}>
+                                                {rule.discountType === 'percentage' ? `${rule.discountValue}% OFF` : `₹${rule.discountValue} OFF`}
+                                            </Badge>
                                         </div>
-
-                                        {calculatedPrice.addons.length > 0 && (
-                                            <div className="space-y-1.5 pt-1">
-                                                {calculatedPrice.addons.map((addon, idx) => (
-                                                    <div key={idx} className="flex justify-between text-xs items-center">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
-                                                            <span className="text-slate-600 dark:text-slate-400 font-semibold">{addon.name}</span>
-                                                        </div>
-                                                        <span className="font-bold text-primary/80">+ ₹{addon.totalAmount.toFixed(2)}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                        
-                                        {calculatedPrice.discount > 0 && calculatedPrice.description && (
-                                            <div className="flex justify-between text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-                                                <span>Saved with {calculatedPrice.description}</span>
-                                                <span>- ₹{calculatedPrice.discount.toFixed(2)}</span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="pt-4 border-t-2 border-dashed border-primary/10">
-                                        <div className="flex justify-between items-end">
-                                            <div>
-                                                <p className="text-[11px] font-bold text-muted-foreground leading-none mb-1.5">Total amount</p>
-                                                <p className="text-[10px] text-muted-foreground/60 font-semibold">Inclusive of all taxes</p>
-                                            </div>
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-3xl font-bold text-primary flex items-center tracking-tight">
-                                                    <IndianRupee size={24} className="mr-1 stroke-[2.5]"/>
-                                                    {calculatedPrice.final.toFixed(2)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-sm text-muted-foreground text-center py-8 font-bold italic">Configuring your price...</div>
-                            )}
+                                    )
+                                })}
+                            </div>
                         </CardContent>
                     </Card>
+                )}
 
-                  
-                </div>
-
-                <div>
-                  <header className="mb-8">
-                    <h2 className="text-2xl font-extrabold tracking-tight mb-2">How would you like to design?</h2>
-                    <p className="text-muted-foreground">Choose a starting method to begin your project.</p>
-                  </header>
-
-                  <div className="grid gap-4">
-                    {options.map((option) => (
-                      <Link key={option.title} href={option.href} className="block">
-                        <Card className="group relative border-2 border-transparent hover:border-primary/50 hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-900">
-                          <CardHeader className="p-6">
-                            <div className="flex items-start gap-5">
-                              <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                                {option.icon}
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-1">
-                                  <CardTitle className="text-lg group-hover:text-primary transition-colors text-slate-800 dark:text-slate-100">{option.title}</CardTitle>
-                                  {option.badge && (
-                                    <span className="px-3 py-1 text-[11px] font-bold bg-primary/10 text-primary rounded-full">
-                                      {option.badge}
-                                    </span>
-                                  )}
+                {/* Trust Intelligence Section */}
+                <div className="p-6 rounded-[1.5rem] bg-slate-900 text-white space-y-4">
+                    <div className="flex -space-x-2.5">
+                        {[1,2,3,4].map(i => (
+                            <div key={i} className="w-8 h-8 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center overflow-hidden">
+                                <div className="w-full h-full bg-primary/20 flex items-center justify-center">
+                                    <ShieldCheck size={12} className="text-primary" />
                                 </div>
-                                <CardDescription className="text-sm leading-relaxed">
-                                  {option.description}
-                                </CardDescription>
-                              </div>
-                              <div className="self-center flex items-center justify-center w-8 h-8 rounded-full border group-hover:bg-primary group-hover:border-primary transition-all">
-                                <ArrowRight size={16} className="text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-                              </div>
                             </div>
-                          </CardHeader>
-                        </Card>
-                      </Link>
-                    ))}
-                  </div>
+                        ))}
+                    </div>
+                    <div className="space-y-1.5">
+                        <h4 className="text-sm font-bold tracking-tight leading-none">Pre-Press Assurance</h4>
+                        <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                            Manual technical audit for resolution, bleed, and ink density.
+                        </p>
+                    </div>
                 </div>
 
-                <div className="flex flex-col items-center justify-center p-8 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50">
-                   <div className="flex -space-x-2 mb-4">
-                      {[1,2,3].map(i => (
-                        <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-950 bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
-                          <ShieldCheck size={14} className="text-primary" />
-                        </div>
-                      ))}
-                   </div>
-                   <h4 className="font-bold text-sm">Professional Pre-Press Check</h4>
-                   <p className="text-xs text-muted-foreground text-center mt-1 max-w-xs">
-                     Our designers will manually review your design for resolution, bleed, and margins before printing.
-                   </p>
-                </div>
-              </div>
+              </aside>
             </div>
 
             {/* NEW: Formal Product Intelligence Section */}
-            <div className="mt-16 space-y-16 border-t border-slate-100 dark:border-slate-800 pt-16 pb-12">
+            <div className="mt-20 space-y-20 border-t border-slate-200 dark:border-slate-800 pt-20 pb-12">
                 
                 {/* 1. Feature Arsenal */}
                 <div className="space-y-10">
                     <div className="flex flex-col items-center text-center space-y-3 max-w-3xl mx-auto">
-                        <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-5 py-1.5 text-[10px] font-bold rounded-full">Capability matrix</Badge>
-                        <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">Industrial feature arsenal</h2>
-                        <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                            Explore the technical capabilities and premium finishes engineered into every unit of {product.name}.
+                        <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-5 py-1.5 text-[9px] font-bold uppercase tracking-widest rounded-full">Capability Matrix</Badge>
+                        <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">Industrial Feature Arsenal</h2>
+                        <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-xl">
+                            Technical capabilities engineered into every unit of {product.name}.
                         </p>
                     </div>
 
@@ -736,32 +802,33 @@ export function StartDesignContent() {
                         {[
                             { 
                                 icon: Sparkles, 
-                                title: "Premium finishing", 
-                                features: ["Spot UV varnish", "Soft-touch lamination", "Metallic foil accents", "Embossed textures"] 
+                                title: "Premium Finishing", 
+                                features: ["Spot UV Varnish", "Soft-touch Lamination", "Metallic Foil Accents", "Embossed Textures"] 
                             },
                             { 
                                 icon: ShieldCheck, 
-                                title: "Production rigor", 
-                                features: ["G7 Certified color", "Precision die-cutting", "300+ DPI clarity", "Structural stress tested"] 
+                                title: "Production Rigor", 
+                                features: ["G7 Certified Color", "Precision Die-cutting", "300+ DPI Clarity", "Structural Stress Tested"] 
                             },
                             { 
                                 icon: Zap, 
-                                title: "Rapid fulfillment", 
-                                features: ["Next-day dispatch", "Live tracking", "Safe-transit packing", "Volume scaling"] 
+                                title: "Rapid Fulfillment", 
+                                features: ["Next-day Dispatch", "Live Tracking", "Safe-transit Packing", "Volume Scaling"] 
                             },
                         ].map((group, i) => (
-                            <div key={i} className="p-6 rounded-[1.5rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 transition-all duration-500 group">
+                            <div key={i} className="p-7 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left" />
                                 <div className="flex items-center justify-between mb-6">
-                                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
+                                    <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-primary shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-500">
                                         <group.icon size={20} />
                                     </div>
                                 </div>
-                                <h3 className="text-md font-bold mb-4 text-slate-800 dark:text-slate-100">{group.title}</h3>
+                                <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white uppercase tracking-tight">{group.title}</h3>
                                 <ul className="space-y-3">
                                     {group.features.map((feature, j) => (
                                         <li key={j} className="flex items-center gap-2.5">
-                                            <CheckCircle2 size={12} className="text-primary/60 shrink-0" />
-                                            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">{feature}</span>
+                                            <div className="w-1 h-1 rounded-full bg-primary/40 shrink-0" />
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{feature}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -771,227 +838,166 @@ export function StartDesignContent() {
                 </div>
 
                 {/* 2. Technical Specs & Variant Matrix */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                     {/* Left: Deep Specs */}
                     <div className="lg:col-span-7 space-y-8">
                         <div className="space-y-3">
-                            <h3 className="text-xl font-bold flex items-center gap-3 text-slate-800 dark:text-slate-100">
+                            <h3 className="text-lg font-extrabold flex items-center gap-3 text-slate-900 dark:text-white uppercase tracking-tighter">
                                 <div className="w-1.5 h-6 bg-primary rounded-full" />
-                                Technical blueprint
+                                Technical Blueprint
                             </h3>
-                            <p className="text-[11px] text-slate-500 font-medium">
-                                {subProduct.width === 0 && subProduct.height === 0 
-                                    ? 'Custom size project initialization' 
-                                    : `Standard industrial parameters for ${subProduct.width}x${subProduct.height} ${subProduct.unitType} production.`}
+                            <p className="text-xs text-slate-500 font-medium max-w-lg">
+                                Industrial parameters for {product.name.toLowerCase()} production.
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {[
                                 { label: 'Paper Stock', value: subProduct.priceType === 'per_sqft' ? 'Industrial Flex' : '350 GSM Silk' },
                                 { label: 'Coating System', value: spotUv ? 'Spot UV + Matte' : 'Industrial Aqueous' },
                                 { label: 'Inking', value: 'High-Density CMYK' },
-                                { label: 'Finishing', value: 'Precision Trim' },
-                                { label: 'Margins', value: '3.0mm Safety' },
+                                { label: 'Bleed Zone', value: '3mm Industrial' },
+                                { label: 'Color Space', value: 'GRACoL 2013' },
                                 { label: 'Resolution', value: '300 DPI Min' },
                             ].map((spec, i) => (
-                                <div key={i} className="flex flex-col gap-1.5 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:shadow-sm transition-all">
-                                    <span className="text-[10px] font-bold text-slate-400">{spec.label}</span>
-                                    <span className="text-[11px] font-semibold text-slate-900 dark:text-white">{spec.value}</span>
+                                <div key={i} className="flex justify-between items-center p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:border-primary/20 transition-all duration-500">
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{spec.label}</span>
+                                    <span className="text-[10px] font-bold text-slate-900 dark:text-white uppercase">{spec.value}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Right: Interactive Variant Selector */}
-                    <div className="lg:col-span-5 space-y-6">
-                        <div className="space-y-3">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Variant matrix</h3>
-                            <p className="text-[11px] text-slate-500 font-medium text-center lg:text-left">Switch between available dimensions.</p>
-                        </div>
-                        <div className="grid gap-2">
-                            {product.subProducts.map((sp) => (
-                                <button 
-                                    key={sp.id} 
-                                    onClick={() => {
-                                        const newParams = new URLSearchParams(searchParams.toString());
-                                        newParams.set('subProductId', sp.id.toString());
-                                        router.push(`${pathname}?${newParams.toString()}`);
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                                    }}
-                                    className={cn(
-                                        "w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all group text-left",
-                                        subProduct.id === sp.id 
-                                            ? "bg-primary text-white border-primary shadow-lg shadow-primary/10" 
-                                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-primary/20"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={cn(
-                                            "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
-                                            subProduct.id === sp.id ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:text-primary"
-                                        )}>
-                                            <Square size={14} />
+                    {/* Right: Scale Matrix */}
+                    <div className="lg:col-span-5">
+                        <div className="p-7 rounded-[2rem] bg-slate-900 text-white relative overflow-hidden h-full flex flex-col">
+                            <div className="absolute bottom-0 right-0 w-48 h-48 bg-primary/20 rounded-full blur-3xl -mb-24 -mr-24" />
+                            <h3 className="text-lg font-bold uppercase tracking-tighter mb-6 flex items-center gap-2.5">
+                                <Package2 className="text-primary" />
+                                Scale Matrix
+                            </h3>
+                            <div className="space-y-4 flex-1">
+                                {pricingRules.filter(r => !r.isDiscount && !r.isAddon && !r.isContest && !r.isVerification).map((rule, i) => (
+                                    <div key={i} className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-white/10 group hover:bg-white/10 transition-all">
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] font-bold uppercase tracking-widest text-white/50">{rule.minQuantity}{rule.maxQuantity ? `-${rule.maxQuantity}` : '+'} Units</span>
+                                            <span className="text-sm font-bold">Tier {i+1}</span>
                                         </div>
-                                        <div>
-                                            <p className={cn("text-xs font-bold", subProduct.id === sp.id ? "text-white" : "text-slate-900 dark:text-white")}>
-                                                {sp.width === 0 && sp.height === 0 ? 'Custom Size' : `${sp.width}x${sp.height} ${sp.unitType}`}
-                                            </p>
-                                            <p className={cn("text-[10px] font-semibold", subProduct.id === sp.id ? "text-white/70" : "text-slate-400")}>
-                                                Standard format
-                                            </p>
+                                        <div className="text-right">
+                                            <span className="text-base font-bold text-primary">₹{Number(rule.unitPrice).toFixed(2)}</span>
+                                            <p className="text-[8px] font-semibold text-white/40 uppercase">per Unit</p>
                                         </div>
-                                    </div>
-                                    {subProduct.id === sp.id ? (
-                                        <CheckCircle2 size={16} className="text-white" />
-                                    ) : (
-                                        <ArrowRight size={14} className="text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Finishing Guide Inline */}
-                <div className="pt-8 border-t border-slate-100 dark:border-slate-800">
-                    <FinishingGuide foilTypes={foilTypes} />
-                </div>
-
-                {/* 3. Formal Use Case Showcase */}
-                <div className="p-16 rounded-[4rem] bg-slate-950 text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-1/2 h-full opacity-20 pointer-events-none">
-                        <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-l from-primary/30 to-transparent" />
-                    </div>
-                    <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                        <div className="space-y-8">
-                            <Badge className="bg-primary text-white font-bold px-6 py-2 text-[11px] rounded-full">Industrial application</Badge>
-                            <h3 className="text-5xl font-bold tracking-tight leading-none">Designed for <br/><span className="text-primary">excellence.</span></h3>
-                            <p className="text-slate-400 font-medium leading-relaxed text-lg max-w-md">
-                                From high-stakes corporate summits to luxury retail packaging, our {product.name.toLowerCase()} production line is built to deliver unmatched visual consistency.
-                            </p>
-                            <div className="grid grid-cols-2 gap-8 pt-4">
-                                {[
-                                    { label: 'Corporate', icon: Briefcase },
-                                    { label: 'Marketing', icon: Zap },
-                                ].map((item, i) => (
-                                    <div key={i} className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-primary">
-                                            <item.icon size={20} />
-                                        </div>
-                                        <span className="text-[13px] font-bold">{item.label}</span>
                                     </div>
                                 ))}
+                                {pricingRules.filter(r => !r.isDiscount && !r.isAddon && !r.isContest && !r.isVerification).length === 0 && (
+                                    <div className="flex flex-col items-center justify-center py-10 text-white/20">
+                                        <Info size={24} className="mb-3" />
+                                        <p className="text-[9px] font-bold uppercase tracking-widest">Custom Scale</p>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            {[
-                                { title: 'Durability', val: '100%' },
-                                { title: 'Color Match', val: '∆E &lt; 2' },
-                                { title: 'Eco-Friendly', val: 'FSC' },
-                                { title: 'Finish', val: 'HD' },
-                            ].map((stat, i) => (
-                                <div key={i} className="p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl flex flex-col items-center justify-center text-center space-y-2">
-                                    <span className="text-4xl font-bold text-primary">{stat.val}</span>
-                                    <span className="text-[11px] font-bold text-slate-500">{stat.title}</span>
+                            <div className="mt-8 pt-8 border-t border-white/10">
+                                <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 mb-1.5">Production Status</p>
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest">Capacity Available</span>
                                 </div>
-                            ))}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
           </div>
-        </div>
-      </main>
+    </main>
   );
 }
 
 function FinishingGuide({ foilTypes }: { foilTypes: FoilType[] }) {
     return (
-        <div className="space-y-12">
-            <div className="space-y-4">
-                <h3 className="text-2xl font-bold flex items-center gap-4 text-slate-800 dark:text-slate-100">
-                    <div className="w-2 h-8 bg-amber-500 rounded-full" />
-                    Premium Finishing Guide
+        <div className="space-y-10">
+            <div className="space-y-3">
+                <h3 className="text-xl font-bold flex items-center gap-3 text-slate-800 dark:text-slate-100">
+                    <div className="w-1.5 h-6 bg-amber-500 rounded-full" />
+                    Finishing Guide
                 </h3>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                    Elevate your design with our high-end professional finishes. These options are available for application directly within our editor.
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                    Professional finishes available within our editor.
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 {/* Spot UV Section */}
-                <div className="flex flex-col sm:flex-row gap-6 items-start">
-                    <div className="w-full sm:w-1/2 aspect-video bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
+                <div className="flex flex-col sm:flex-row gap-5 items-start">
+                    <div className="w-full sm:w-1/2 aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
                         <div className="relative w-full h-full bg-slate-900 flex flex-col items-center justify-center">
-                            <div className="text-white/10 text-3xl font-black tracking-widest uppercase select-none">MATTE</div>
+                            <div className="text-white/10 text-2xl font-bold tracking-widest uppercase select-none">MATTE</div>
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-24 h-24 bg-amber-400/10 rounded-full blur-3xl" />
-                                <div className="w-16 h-16 bg-amber-400/90 rounded-full shadow-[0_0_40px_rgba(251,191,36,0.6)] border-2 border-amber-300 flex items-center justify-center transform -rotate-12">
-                                    <span className="text-amber-950 font-black text-sm tracking-tighter">GLOSS</span>
+                                <div className="w-20 h-20 bg-amber-400/10 rounded-full blur-2xl" />
+                                <div className="w-14 h-14 bg-amber-400/90 rounded-full shadow-[0_0_30px_rgba(251,191,36,0.5)] border border-amber-300 flex items-center justify-center transform -rotate-12">
+                                    <span className="text-amber-950 font-extrabold text-[10px] tracking-tighter">GLOSS</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                            <Sparkle className="w-4 h-4 text-amber-600" />
-                            <h4 className="text-md font-bold text-slate-800 dark:text-slate-100">Spot UV</h4>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-1.5">
+                            <Sparkle className="w-3.5 h-3.5 text-amber-600" />
+                            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Spot UV</h4>
                         </div>
-                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                            A clear, glossy liquid coating that creates a beautiful contrast against matte surfaces. Perfect for logos and highlight text.
+                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                            Glossy liquid coating that creates a beautiful contrast against matte surfaces.
                         </p>
-                        <div className="flex flex-wrap gap-2">
-                            <Badge variant="outline" className="text-[9px] py-0 border-emerald-500/30 text-emerald-600">Raised Texture</Badge>
-                            <Badge variant="outline" className="text-[9px] py-0 border-emerald-500/30 text-emerald-600">Matte Contrast</Badge>
+                        <div className="flex flex-wrap gap-1.5">
+                            <Badge variant="outline" className="text-[8px] py-0 border-emerald-500/20 text-emerald-600">Raised</Badge>
+                            <Badge variant="outline" className="text-[8px] py-0 border-emerald-500/20 text-emerald-600">Matte</Badge>
                         </div>
                     </div>
                 </div>
 
                 {/* Foils Section */}
-                <div className="flex flex-col sm:flex-row gap-6 items-start">
-                    <div className="w-full sm:w-1/2 aspect-video bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
+                <div className="flex flex-col sm:flex-row gap-5 items-start">
+                    <div className="w-full sm:w-1/2 aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
                         <div className="relative w-full h-full bg-slate-950 flex flex-col items-center justify-center overflow-hidden">
-                            <div className="grid grid-cols-3 gap-2 relative z-10">
+                            <div className="grid grid-cols-3 gap-1.5 relative z-10">
                                 {foilTypes.length > 0 ? (
                                     foilTypes.slice(0, 3).map((foil, i) => (
-                                        <div key={i} className="w-8 h-8 rounded-full border border-white/20 shadow-lg" style={{ background: foil.colorCode || '#ffd700' }} />
+                                        <div key={i} className="w-6 h-6 rounded-full border border-white/20 shadow-md" style={{ background: foil.colorCode || '#ffd700' }} />
                                     ))
                                 ) : (
                                     ['#FFD700', '#C0C0C0', '#B87333'].map((color, i) => (
-                                        <div key={i} className="w-8 h-8 rounded-full border border-white/20 shadow-lg" style={{ backgroundColor: color }} />
+                                        <div key={i} className="w-6 h-6 rounded-full border border-white/20 shadow-md" style={{ backgroundColor: color }} />
                                     ))
                                 )}
                             </div>
                             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-50" />
                         </div>
                     </div>
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                            <Layers className="w-4 h-4 text-indigo-600" />
-                            <h4 className="text-md font-bold text-slate-800 dark:text-slate-100">Metallic Foil</h4>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Metallic Foil</h4>
                         </div>
-                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                            True metallic layers stamped onto your design. Offers a mirror-like brilliance that standard inks can&apos;t replicate.
+                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                            Metallic layers stamped onto your design for mirror-like brilliance.
                         </p>
-                        <div className="flex flex-wrap gap-2">
-                            <Badge variant="outline" className="text-[9px] py-0 border-indigo-500/30 text-indigo-600">Mirror Shine</Badge>
-                            <Badge variant="outline" className="text-[9px] py-0 border-indigo-500/30 text-indigo-600">Multi-Color</Badge>
+                        <div className="flex flex-wrap gap-1.5">
+                            <Badge variant="outline" className="text-[8px] py-0 border-indigo-500/20 text-indigo-600">Mirror</Badge>
+                            <Badge variant="outline" className="text-[8px] py-0 border-indigo-500/20 text-indigo-600">Multi</Badge>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                    <Info size={18} />
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                    <Info size={16} />
                 </div>
                 <div className="flex-1">
-                    <p className="text-[11px] font-bold text-slate-800 dark:text-slate-100">Application Insight</p>
-                    <p className="text-[10px] text-slate-500 font-medium">Select any element in the editor and toggle <strong>Spot UV</strong> or <strong>Foil</strong> in the toolbar.</p>
+                    <p className="text-[10px] font-bold text-slate-800 dark:text-slate-100 leading-tight">Editor Hint</p>
+                    <p className="text-[9px] text-slate-500 font-medium leading-tight">Apply finishes in the editor toolbar.</p>
                 </div>
-                <Button variant="outline" size="sm" className="text-[10px] h-8 rounded-lg" asChild>
-                    <Link href={`/design/${foilTypes[0]?.name ? 'guide' : '#'}`}>View Full Guide</Link>
+                <Button variant="outline" size="sm" className="text-[9px] h-7 rounded-md" asChild>
+                    <Link href={`/design/${foilTypes[0]?.name ? 'guide' : '#'}`}>View Guide</Link>
                 </Button>
             </div>
         </div>

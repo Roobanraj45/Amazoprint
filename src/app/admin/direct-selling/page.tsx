@@ -54,6 +54,7 @@ const formSchema = z.object({
   isActive: z.boolean().default(true),
   supplierInfo: jsonFromString.optional(),
   shippingInfo: jsonFromString.optional(),
+  textAllowed: z.boolean().default(false),
 });
 
 type Product = Awaited<ReturnType<typeof getDirectSellingProducts>>[0];
@@ -297,7 +298,7 @@ export default function DirectSellingPage() {
 
 // --- Product Form Component ---
 function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => void; product: Product | null; onClose: () => void; }) {
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, control } = useForm<z.infer<typeof formSchema>>({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, control, watch } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
@@ -313,9 +314,10 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
             dimensions: product.dimensions ? JSON.stringify(product.dimensions, null, 2) : '',
             supplierInfo: product.supplierInfo ? JSON.stringify(product.supplierInfo, null, 2) : '',
             shippingInfo: product.shippingInfo ? JSON.stringify(product.shippingInfo, null, 2) : '',
+            textAllowed: !!product.textAllowed,
         });
     } else {
-      reset({ name: '', slug: '', description: '', category: '', costPrice: 0, sellingPrice: 0, sku: '', stockQuantity: 0, minStockLevel: 5, weight: 0, dimensions: '', imageUrls: '', tags: '', isFeatured: false, isActive: true, supplierInfo: '', shippingInfo: '' });
+      reset({ name: '', slug: '', description: '', category: '', costPrice: 0, sellingPrice: 0, sku: '', stockQuantity: 0, minStockLevel: 5, weight: 0, dimensions: '', imageUrls: '', tags: '', isFeatured: false, isActive: true, supplierInfo: '', shippingInfo: '', textAllowed: false });
     }
   }, [product, reset]);
 
@@ -331,6 +333,7 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
             <TabsTrigger value="pricing">Pricing & Stock</TabsTrigger>
             <TabsTrigger value="media">Media & Shipping</TabsTrigger>
+            <TabsTrigger value="custom">Customization</TabsTrigger>
             <TabsTrigger value="meta">Meta</TabsTrigger>
           </TabsList>
           <ScrollArea className="flex-grow mt-4 pr-4">
@@ -370,6 +373,23 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                 <div className="space-y-1.5"><Label htmlFor="dimensions">Dimensions (JSON)</Label><Textarea id="dimensions" {...register('dimensions')} placeholder='e.g., {"l":10, "w":10, "h":10}'/>{errors.dimensions && <p className="text-sm text-destructive">{errors.dimensions.message}</p>}</div>
             </div>
              <div className="space-y-1.5"><Label htmlFor="shippingInfo">Shipping Info (JSON)</Label><Textarea id="shippingInfo" {...register('shippingInfo')} placeholder='e.g., {"carrier":"self", "fee":0}'/>{errors.shippingInfo && <p className="text-sm text-destructive">{errors.shippingInfo.message}</p>}</div>
+          </TabsContent>
+          <TabsContent value="custom" className="space-y-6">
+            <div className="bg-muted/30 p-4 rounded-lg border space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="textAllowed" className="text-base font-semibold">Enable Custom Text</Label>
+                  <p className="text-sm text-muted-foreground">Allow customers to provide their own text for this product.</p>
+                </div>
+                <Controller 
+                  name="textAllowed" 
+                  control={control} 
+                  render={({ field }) => (
+                    <Switch id="textAllowed" checked={field.value} onCheckedChange={field.onChange} />
+                  )} 
+                />
+              </div>
+            </div>
           </TabsContent>
           <TabsContent value="meta" className="space-y-4">
             <div className="space-y-1.5"><Label htmlFor="tags">Tags</Label><Textarea id="tags" {...register('tags')} placeholder="Enter tags, separated by commas"/></div>
