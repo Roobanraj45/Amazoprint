@@ -25,6 +25,8 @@ const subProductSchema = z.object({
   width: z.coerce.number().min(0, 'Width must be non-negative'),
   height: z.coerce.number().min(0, 'Height must be non-negative'),
   imageUrl: z.string().optional().or(z.literal('')),
+  imageUrls: z.array(z.string()).optional().default([]),
+  description: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
   maxPages: z.preprocess((val) => (val === '' || val === null || val === undefined ? 1 : val), z.coerce.number().min(1)),
   spotUvAllowed: z.boolean().default(false),

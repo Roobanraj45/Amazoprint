@@ -300,7 +300,7 @@ export default function PdfRenderPage() {
     }
   };
 
-  const isAdmin = userRole && ['admin', 'super_admin', 'company_admin', 'designer'].includes(userRole);
+  const isAdmin = userRole && ['admin', 'super_admin', 'company_admin', 'designer', 'printer'].includes(userRole);
   const activeLayerData = layers.find(l => l.id === activeTab);
   if (!data || !activeLayerData) return null;
 

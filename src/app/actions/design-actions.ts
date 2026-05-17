@@ -3,8 +3,8 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { designs, designVerifications, contestParticipants } from '@/db/schema';
-import { and, eq, desc } from 'drizzle-orm';
+import { designs, designVerifications, contestParticipants, orders } from '@/db/schema';
+import { and, eq, desc, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 
@@ -133,6 +133,18 @@ export async function updateDesign(data: z.infer<typeof updateDesignSchema>) {
 
     if (!isAuthorized) {
         throw new Error('You are not authorized to update this design.');
+    }
+
+    // NEW: Check if design is part of a processing/shipped/delivered order
+    const activeOrder = await db.query.orders.findFirst({
+        where: and(
+            eq(orders.designId, id),
+            inArray(orders.orderStatus, ['processing', 'shipped', 'delivered'])
+        )
+    });
+
+    if (activeOrder) {
+        throw new Error(`This design is locked because Order #${activeOrder.id} is already in production.`);
     }
     
     const result = await db.update(designs)

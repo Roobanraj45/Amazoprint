@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { IndianRupee, Package, Truck, CreditCard, Hash, FileText, Download, ArrowLeft } from "lucide-react";
+import { IndianRupee, Package, Truck, CreditCard, Hash, FileText, Download, ArrowLeft, History, Clock, CheckCircle2, Lock } from "lucide-react";
 import Image from 'next/image';
-import { resolveImagePath } from "@/lib/utils";
+import { resolveImagePath, cn } from "@/lib/utils";
 import { DesignCanvas } from "@/components/design/design-canvas";
 import type { Product, DesignElement, Background } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -91,9 +91,16 @@ export default async function ClientOrderDetailsPage({ params }: { params: { ord
                         Placed on {format(new Date(order.createdAt), 'PPP p')}
                     </p>
                 </div>
-                <Badge variant={order.orderStatus === 'delivered' ? 'default' : 'secondary'} className="capitalize text-base px-4 py-1">
-                    {order.orderStatus}
-                </Badge>
+                <div className="flex items-center gap-3 flex-wrap">
+                    <Button asChild variant="outline" className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 font-extrabold hover:bg-indigo-50 dark:hover:bg-indigo-950/50 shadow-sm">
+                        <Link href={`/client/orders/${order.id}/invoice`} target="_blank">
+                            <Download className="w-4 h-4 mr-2" /> Download Invoice (PDF)
+                        </Link>
+                    </Button>
+                    <Badge variant={order.orderStatus === 'delivered' ? 'default' : 'secondary'} className="capitalize text-base px-4 py-1">
+                        {order.orderStatus}
+                    </Badge>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -127,36 +134,73 @@ export default async function ClientOrderDetailsPage({ params }: { params: { ord
                                         </div>
                                     </div>
 
-                                    {(order as any).customisation && (order as any).customisation.priceBreakup && (
-                                        <div className="pt-4 border-t space-y-2">
-                                            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Price Breakup</p>
+                                    {(() => {
+                                        const customisation = (order as any).customisation || order.design?.customisation;
+                                        const breakup = customisation?.priceBreakup;
+                                        if (breakup) {
+                                            const addonsTotal = breakup.addons?.reduce((acc: number, addon: any) => acc + addon.totalAmount, 0) || 0;
+                                            const standardCost = parseFloat(order.totalAmount) - addonsTotal + (breakup.discount || 0);
                                             
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-muted-foreground">Standard Printing</span>
-                                                <span>₹{(parseFloat(order.totalAmount) - ((order as any).customisation.priceBreakup.addons?.reduce((acc: number, addon: any) => acc + addon.totalAmount, 0) || 0)).toFixed(2)}</span>
-                                            </div>
+                                            return (
+                                                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Financial Command</p>
+                                                    <div className="bg-slate-50/50 dark:bg-zinc-900/40 p-4 rounded-2xl border border-slate-100 dark:border-zinc-800/50">
+                                                        <div className="space-y-3">
+                                                            <div className="flex justify-between items-center text-xs">
+                                                                <span className="text-slate-500 font-bold uppercase tracking-tight">Standard Printing</span>
+                                                                <span className="text-slate-900 dark:text-white font-black">₹{standardCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                            </div>
+                                                            
+                                                            {breakup.addons?.length > 0 && (
+                                                                <div className="space-y-2 pl-3 border-l-2 border-primary/20">
+                                                                    {breakup.addons.map((addon: any, idx: number) => (
+                                                                        <div key={idx} className="flex justify-between items-center text-[11px]">
+                                                                            <span className="text-slate-400 font-medium">{addon.name}</span>
+                                                                            <span className="text-primary font-bold">+ ₹{addon.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
 
-                                            {(order as any).customisation.priceBreakup.addons?.map((addon: any, idx: number) => (
-                                                <div key={idx} className="flex justify-between text-sm">
-                                                    <span className="text-muted-foreground">{addon.name}</span>
-                                                    <span className="font-medium text-primary">+ ₹{addon.totalAmount.toFixed(2)}</span>
+                                                            {breakup.discount > 0 && (
+                                                                <div className="flex justify-between items-center text-xs text-emerald-600 font-bold pt-2 border-t border-dashed border-slate-200 dark:border-slate-700">
+                                                                    <span>Discount {breakup.description ? `(${breakup.description})` : ''}</span>
+                                                                    <span>- ₹{breakup.discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="flex justify-between items-center pt-3 mt-3 border-t border-slate-200 dark:border-slate-800">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Net Payable</span>
+                                                                    <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">Incl. Taxes & Shipping</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    <IndianRupee className="w-4 h-4 text-primary" />
+                                                                    <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">
+                                                                        {parseFloat(order.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            ))}
-                                            
-                                            {(order as any).customisation.priceBreakup.discount > 0 && (
-                                                <div className="flex justify-between text-sm text-emerald-600 font-bold">
-                                                    <span>Discount {(order as any).customisation.priceBreakup.description ? `(${(order as any).customisation.priceBreakup.description})` : ''}</span>
-                                                    <span>- ₹{(order as any).customisation.priceBreakup.discount.toFixed(2)}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                            );
+                                        }
+                                        return null;
+                                    })()}
 
                                     <div className="pt-4 border-t flex flex-wrap gap-3">
                                         {isDesignOrder && (
-                                            <Button asChild variant="secondary">
-                                                <Link href={`/design/${order.design.productSlug}?templateId=${order.design.id}`} target="_blank">
-                                                    <FileText className="mr-2 h-4 w-4"/> View & Edit Design
+                                            <Button asChild variant={!['completed', 'delivered', 'cancelled'].includes(order.orderStatus) ? 'outline' : 'secondary'}>
+                                                <Link 
+                                                    href={`/design/${order.design.productSlug}?templateId=${order.design.id}${!['completed', 'delivered', 'cancelled'].includes(order.orderStatus) ? '&readonly=true' : ''}`} 
+                                                    target="_blank"
+                                                >
+                                                    {!['completed', 'delivered', 'cancelled'].includes(order.orderStatus) ? (
+                                                        <><Lock className="mr-2 h-4 w-4 text-amber-500"/> View Design (Locked)</>
+                                                    ) : (
+                                                        <><FileText className="mr-2 h-4 w-4"/> View & Edit Design</>
+                                                    )}
                                                 </Link>
                                             </Button>
                                         )}
@@ -207,31 +251,144 @@ export default async function ClientOrderDetailsPage({ params }: { params: { ord
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Hash className="h-5 w-5 text-primary" /> Payment & Status</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4 text-sm">
-                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Payment Status:</span>
-                                <Badge variant={order.paymentStatus === 'paid' ? 'default' : 'destructive'} className="capitalize">{order.paymentStatus}</Badge>
+                        <CardContent className="p-4 space-y-4">
+                             <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Order Status</span>
+                                <Badge variant={order.orderStatus === 'delivered' ? 'default' : 'secondary'} className="rounded-lg font-black text-[9px] py-0.5 px-3 tracking-tighter uppercase">{order.orderStatus}</Badge>
                             </div>
-                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Payment Method:</span>
-                                <span className="font-medium">{order.paymentMethod}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Tracking Number:</span>
-                                <span className="font-medium">{order.trackingNumber || 'Pending'}</span>
+                            
+                            <div className="space-y-3 px-1">
+                                <div className="flex justify-between items-center text-[11px]">
+                                    <span className="text-slate-400 font-bold uppercase tracking-tight">Payment Status</span>
+                                    <span className={cn("font-black uppercase tracking-tighter", order.paymentStatus === 'paid' ? "text-emerald-500" : "text-amber-500")}>
+                                        {order.paymentStatus}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-[11px]">
+                                    <span className="text-slate-400 font-bold uppercase tracking-tight">Method / Provider</span>
+                                    <span className="text-slate-900 dark:text-white font-black">
+                                        {(order as any).payment?.provider?.toUpperCase() || 'OFFLINE'} / {order.paymentMethod}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-[11px]">
+                                    <span className="text-slate-400 font-bold uppercase tracking-tight">Transaction ID</span>
+                                    <span className="text-slate-900 dark:text-white font-mono font-bold text-[10px]">
+                                        {(order as any).payment?.providerPaymentId || 'N/A'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-[11px] pt-3 border-t border-slate-100 dark:border-slate-800">
+                                    <span className="text-slate-400 font-bold uppercase tracking-tight">Tracking</span>
+                                    <span className="text-blue-600 font-black">
+                                        {order.trackingNumber || 'PROVISIONING'}
+                                    </span>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-primary/5 border-primary/20">
+                    <Card>
                         <CardHeader>
-                            <CardTitle className="text-sm font-bold uppercase tracking-widest text-primary">Need Help?</CardTitle>
+                            <CardTitle className="flex items-center gap-2 text-base font-bold"><Clock className="h-4 w-4 text-primary" /> Production Timeline</CardTitle>
                         </CardHeader>
-                        <CardContent className="text-xs text-muted-foreground">
-                            If you have any questions regarding this order, please contact our support team with your Order ID.
+                        <CardContent className="space-y-6">
+                            {(order as any).logs && (order as any).logs.length > 0 ? (
+                                <div className="relative space-y-6 pl-4 before:absolute before:left-1 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
+                                    {(order as any).logs.map((log: any, idx: number) => (
+                                        <div key={idx} className="relative">
+                                            <div className="absolute -left-[1.35rem] top-1 w-3 h-3 rounded-full bg-primary border-2 border-white dark:border-slate-900 z-10" />
+                                            <div className="space-y-1">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-[11px] font-black tracking-tight text-slate-900 dark:text-white capitalize">
+                                                        {log.actionType.replace(/_/g, ' ')}
+                                                    </p>
+                                                    <span className="text-[9px] font-bold text-slate-400">
+                                                        {format(new Date(log.createdAt), 'MMM dd, p')}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                                                    {log.message}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-6">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No timeline updates yet</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-primary/5 border-primary/20 rounded-2xl overflow-hidden">
+                        <CardHeader className="p-4">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Support Protocol</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Reference **#{order.id}** for all support inquiries. Our team typically responds within 4 business hours for active production orders.
                         </CardContent>
                     </Card>
                 </div>
+            </div>
+
+            {/* Detailed Specifications Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <Card className="lg:col-span-12 border-none shadow-lg shadow-slate-200/50 dark:shadow-none bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden">
+                    <CardHeader className="p-6 pb-2 border-b border-slate-50 dark:border-slate-800">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-blue-600/10 text-blue-600 flex items-center justify-center">
+                                <FileText size={16} />
+                            </div>
+                            <CardTitle className="text-base font-bold tracking-tight">Technical Specifications</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        {(() => {
+                            let parsedCustomisation: any = null;
+                            try {
+                                const rawCustomisation = order.design?.customisation || (order as any).customisation;
+                                parsedCustomisation = typeof rawCustomisation === 'string' 
+                                    ? JSON.parse(rawCustomisation) 
+                                    : rawCustomisation;
+                            } catch (e) {}
+
+                            return (
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                    <div className="flex flex-col gap-1 p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">
+                                        <span className="text-slate-400 text-[8px] font-bold uppercase tracking-[0.2em]">Printing Side</span>
+                                        <span className="font-bold text-slate-900 dark:text-white text-xs">
+                                            {parsedCustomisation?.pages === 2 || parsedCustomisation?.pages === '2' ? 'Double Sided' : 'Single Sided'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-1 p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">
+                                        <span className="text-slate-400 text-[8px] font-bold uppercase tracking-[0.2em]">Dimensions</span>
+                                        <span className="font-bold text-slate-900 dark:text-white text-xs">
+                                            {order.design?.width || order.designUpload?.width || 'Custom'} x {order.design?.height || order.designUpload?.height || 'Custom'} mm
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-1 p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">
+                                        <span className="text-slate-400 text-[8px] font-bold uppercase tracking-[0.2em]">Spot UV Gloss</span>
+                                        <span className={cn("font-bold text-xs", parsedCustomisation?.spotUv ? "text-amber-600" : "text-slate-400")}>
+                                            {parsedCustomisation?.spotUv ? 'Applied' : 'Not Included'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-1 p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">
+                                        <span className="text-slate-400 text-[8px] font-bold uppercase tracking-[0.2em]">Custom Shape</span>
+                                        <span className="font-bold text-slate-900 dark:text-white text-xs">
+                                            {parsedCustomisation?.dieCut ? `Pattern #${parsedCustomisation.dieCut}` : 'Standard Rect.'}
+                                        </span>
+                                    </div>
+                                    {parsedCustomisation?.lamination && (
+                                        <div className="flex flex-col gap-1 p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">
+                                            <span className="text-slate-400 text-[8px] font-bold uppercase tracking-[0.2em]">Finishing</span>
+                                            <span className="font-bold text-slate-900 dark:text-white text-xs">Lamination Enabled</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                    </CardContent>
+                </Card>
             </div>
         </div>
     )

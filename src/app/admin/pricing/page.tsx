@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { getProductsWithPricing, createPricingRule, updatePricingRule, deletePricingRule } from '@/app/actions/pricing-actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogTrigger, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Edit, Trash2, Tag, IndianRupee, Users, ShieldCheck, Plus, Upload, Image as ImageIcon } from 'lucide-react';
+import { Loader2, PlusCircle, Edit, Trash2, Tag, IndianRupee, Users, ShieldCheck, Plus, Upload, Image as ImageIcon, Layers, Sparkles, CheckCircle2, Package, Check, DollarSign, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { cn, resolveImagePath } from '@/lib/utils';
@@ -114,50 +114,120 @@ export default function PricingPage() {
     }
     
     if (isLoading) {
-        return <div className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+        return (
+            <div className="flex flex-col justify-center items-center h-[60vh] gap-4 max-w-[1600px] mx-auto">
+                <Loader2 className="h-12 w-12 animate-spin text-indigo-600 dark:text-indigo-400" />
+                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Loading pricing matrix and add-on rules...</p>
+            </div>
+        );
     }
     
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">Sub-Product Pricing Management</h1>
+        <div className="space-y-8 max-w-[1600px] mx-auto pb-12">
+            {/* Stunning Hero Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-8 sm:p-10 shadow-2xl border border-slate-800">
+                <div className="absolute inset-0 bg-grid-white/[0.03] bg-[size:20px_20px]" />
+                <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 relative z-10">
+                    <div>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Badge variant="outline" className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-xs px-3 py-1 rounded-full font-semibold backdrop-blur-md">
+                                <Tag className="w-3.5 h-3.5 mr-1.5 inline-block animate-pulse" />
+                                Advanced Pricing & Add-on Engine
+                            </Badge>
+                        </div>
+                        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">Sub-Product Pricing Management</h1>
+                        <p className="text-slate-300 text-sm sm:text-base mt-2 max-w-2xl">
+                            Configure dynamic quantity brackets, contest entry fees, verification charges, discount tiers, and custom add-on options for all physical variants.
+                        </p>
+                    </div>
+                    <div className="hidden sm:flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 shadow-inner flex-shrink-0">
+                        <Tag className="w-8 h-8 text-indigo-400" />
+                    </div>
+                </div>
             </div>
             
-            <Accordion type="multiple" className="space-y-4">
-                {products.map(product => (
-                    <AccordionItem key={product.id} value={`product-${product.id}`} className="border rounded-lg bg-card overflow-hidden">
-                        <AccordionTrigger className="p-4 hover:no-underline">
-                            <div className="flex items-center gap-4">
-                                <h3 className="text-lg font-semibold">{product.name}</h3>
-                                <Badge variant="outline">{product.subProducts.length} variants</Badge>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="p-4 pt-0">
-                           <div className="space-y-4">
-                               {product.subProducts.map(sp => (
-                                    <Card key={sp.id}>
-                                        <CardHeader>
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-4">
-                                                    <Image src={resolveImagePath(sp.imageUrl || product.imageUrl)} alt={sp.name} width={40} height={40} className="rounded-md object-cover bg-muted" />
-                                                    <div>
-                                                        <CardTitle className="text-base">{sp.name}</CardTitle>
-                                                        <CardDescription>{sp.width}mm x {sp.height}mm</CardDescription>
-                                                    </div>
+            {/* Main Pricing Matrix Container */}
+            <Card className="border border-slate-200/80 dark:border-slate-800/80 shadow-xl rounded-3xl overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-sm">
+                <CardContent className="p-6 sm:p-8">
+                    {products.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-center gap-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">
+                            <Package className="w-12 h-12 text-slate-300 dark:text-slate-700" />
+                            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">No Products Available</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">There are currently no products configured in the system. Create products first to manage their variant pricing rules.</p>
+                        </div>
+                    ) : (
+                        <Accordion type="multiple" className="space-y-6">
+                            {products.map(product => (
+                                <AccordionItem key={product.id} value={`product-${product.id}`} className="border border-slate-200/80 dark:border-slate-800/80 rounded-2xl overflow-hidden bg-slate-50/40 dark:bg-slate-950/40 hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all shadow-sm">
+                                    <AccordionTrigger className="p-5 hover:no-underline hover:bg-slate-100/50 dark:hover:bg-slate-900/50 transition-colors">
+                                        <div className="flex items-center justify-between w-full pr-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden relative">
+                                                    {product.imageUrl?.trim() ? (
+                                                        <Image src={resolveImagePath(product.imageUrl.trim())} alt={product.name} fill className="object-cover" />
+                                                    ) : (
+                                                        <Package className="h-6 w-6 text-slate-400 dark:text-slate-500" />
+                                                    )}
                                                 </div>
-                                                <Button size="sm" onClick={() => handleOpenForm(sp, null)}><PlusCircle className="mr-2 h-4 w-4"/> Add Rule</Button>
+                                                <div className="text-left space-y-0.5">
+                                                    <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">{product.name}</h3>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Top-level product catalog container</p>
+                                                </div>
                                             </div>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <PricingRulesTable rules={sp.pricingRules} onEdit={(rule) => handleOpenForm(sp, rule)} onDelete={handleDelete} />
-                                        </CardContent>
-                                    </Card>
-                               ))}
-                           </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                ))}
-            </Accordion>
+                                            <Badge variant="secondary" className="rounded-full font-extrabold text-xs bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40 px-3 py-1 shadow-sm">
+                                                {product.subProducts.length} Configured Variant{product.subProducts.length === 1 ? '' : 's'}
+                                            </Badge>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="p-6 pt-2 border-t border-slate-100 dark:border-slate-800/60 bg-slate-50/80 dark:bg-slate-955/80">
+                                       <div className="space-y-6 pt-4">
+                                           {product.subProducts.length === 0 ? (
+                                               <p className="text-sm text-center text-muted-foreground py-6 italic border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-900/50">No physical variants exist for this product. Add variants in Product Management first.</p>
+                                           ) : (
+                                               product.subProducts.map(sp => (
+                                                    <Card key={sp.id} className="border border-slate-200/80 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all bg-white dark:bg-slate-900">
+                                                        <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 p-5">
+                                                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden relative">
+                                                                        {sp.imageUrl?.trim() || product.imageUrl?.trim() ? (
+                                                                            <Image src={resolveImagePath(sp.imageUrl?.trim() || product.imageUrl?.trim() || '')} alt={sp.name} fill className="object-cover" />
+                                                                        ) : (
+                                                                            <ImageIcon className="h-5 w-5 text-slate-400 dark:text-slate-500" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="space-y-0.5">
+                                                                        <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                                            {sp.name}
+                                                                            <Badge variant="outline" className="h-5 text-[10px] font-extrabold px-2 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700">
+                                                                                {sp.width} x {sp.height} {sp.unitType || 'mm'}
+                                                                            </Badge>
+                                                                        </CardTitle>
+                                                                        <CardDescription className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                                                            SKU: {sp.sku || 'N/A'} &bull; Base Price: ₹{sp.price}
+                                                                        </CardDescription>
+                                                                    </div>
+                                                                </div>
+                                                                <Button size="sm" className="h-9 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 px-4 transition-all hover:scale-[1.02] w-full sm:w-auto" onClick={() => handleOpenForm(sp, null)}>
+                                                                    <PlusCircle className="mr-2 h-4 w-4"/> Add Pricing Rule
+                                                                </Button>
+                                                            </div>
+                                                        </CardHeader>
+                                                        <CardContent className="p-6">
+                                                            <PricingRulesTable rules={sp.pricingRules} onEdit={(rule) => handleOpenForm(sp, rule)} onDelete={handleDelete} />
+                                                        </CardContent>
+                                                    </Card>
+                                               ))
+                                           )}
+                                       </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
+                    )}
+                </CardContent>
+            </Card>
 
             <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
                 <PricingRuleForm 
@@ -172,67 +242,99 @@ export default function PricingPage() {
 
 function PricingRulesTable({ rules, onEdit, onDelete }: { rules: PricingRule[], onEdit: (rule: PricingRule) => void, onDelete: (id: number) => void}) {
     if (rules.length === 0) {
-        return <p className="text-sm text-center text-muted-foreground py-4">No pricing rules defined for this variant yet.</p>
+        return (
+            <div className="py-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-950/50 gap-2">
+                <Tag className="w-8 h-8 text-slate-300 dark:text-slate-700" />
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-400">No Pricing Rules Configured</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm">This variant currently relies on its default base price. Click &apos;Add Pricing Rule&apos; above to configure custom tiers or add-ons.</p>
+            </div>
+        );
     }
     return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Range/Details</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {rules.map(rule => (
-                    <TableRow key={rule.id}>
-                        <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                                {rule.isContest && <Badge variant="secondary"><Users className="mr-1 h-3 w-3"/>Contest</Badge>}
-                                {rule.isVerification && <Badge variant="secondary"><ShieldCheck className="mr-1 h-3 w-3"/>Verification</Badge>}
-                                {rule.isDiscount && <Badge variant="secondary"><Tag className="mr-1 h-3 w-3"/>Discount</Badge>}
-                                {rule.isAddon && <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200"><Plus className="mr-1 h-3 w-3"/>Add-on</Badge>}
-                                {!rule.isContest && !rule.isVerification && !rule.isDiscount && !rule.isAddon && <Badge>Standard</Badge>}
-                            </div>
-                        </TableCell>
-                        <TableCell>
-                            {rule.isContest ? `${rule.minParticipants || '...'} - ${rule.maxParticipants || '...'}` : 
-                             rule.isAddon ? (
-                                <div className="flex items-center gap-3">
-                                    {rule.addonImageUrl && (
-                                        <div className="relative h-10 w-10 rounded overflow-hidden border">
-                                            <Image src={rule.addonImageUrl} alt={rule.addonName || ''} fill className="object-cover" />
-                                        </div>
-                                    )}
-                                    <span className="font-medium">{rule.addonName || 'Unnamed Add-on'}</span>
-                                </div>
-                             ) :
-                             `${rule.minQuantity || '1'} - ${rule.maxQuantity || '...'}`}
-                        </TableCell>
-                        <TableCell>
-                            <span className="flex items-center font-semibold"><IndianRupee size={12}/>{rule.unitPrice || rule.contestPrice || rule.discountValue || rule.designVerificationFee || rule.addonPriceAmount || 'N/A'}</span>
-                        </TableCell>
-                         <TableCell>
-                            <Badge variant={rule.isActive ? 'default' : 'destructive'}>{rule.isActive ? 'Active' : 'Inactive'}</Badge>
-                         </TableCell>
-                        <TableCell className="text-right">
-                             <Button variant="ghost" size="icon" onClick={() => onEdit(rule)}><Edit className="h-4 w-4"/></Button>
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the pricing rule.</AlertDialogDescription></AlertDialogHeader>
-                                <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => onDelete(rule.id)}>Delete</AlertDialogAction></AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </TableCell>
+        <div className="border border-slate-200/80 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-sm">
+            <Table>
+                <TableHeader className="bg-slate-100/60 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
+                    <TableRow className="hover:bg-transparent">
+                        <TableHead className="font-extrabold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider py-3.5 pl-4">Rule Type</TableHead>
+                        <TableHead className="font-extrabold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider py-3.5">Bracket / Add-on Details</TableHead>
+                        <TableHead className="font-extrabold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider py-3.5">Configured Price</TableHead>
+                        <TableHead className="font-extrabold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider py-3.5">Status</TableHead>
+                        <TableHead className="font-extrabold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider py-3.5 text-right pr-4">Actions</TableHead>
                     </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+                </TableHeader>
+                <TableBody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-900">
+                    {rules.map(rule => (
+                        <TableRow key={rule.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors group">
+                            <TableCell className="pl-4 py-4">
+                                <div className="flex flex-wrap gap-1.5">
+                                    {rule.isContest && <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800 font-extrabold text-[10px] px-2.5 py-1 rounded-lg shadow-sm"><Users className="mr-1.5 h-3.5 w-3.5 inline-block"/>CONTEST</Badge>}
+                                    {rule.isVerification && <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800 font-extrabold text-[10px] px-2.5 py-1 rounded-lg shadow-sm"><ShieldCheck className="mr-1.5 h-3.5 w-3.5 inline-block"/>VERIFICATION</Badge>}
+                                    {rule.isDiscount && <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800 font-extrabold text-[10px] px-2.5 py-1 rounded-lg shadow-sm"><Tag className="mr-1.5 h-3.5 w-3.5 inline-block"/>DISCOUNT</Badge>}
+                                    {rule.isAddon && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800 font-extrabold text-[10px] px-2.5 py-1 rounded-lg shadow-sm"><Plus className="mr-1.5 h-3.5 w-3.5 inline-block"/>ADD-ON</Badge>}
+                                    {!rule.isContest && !rule.isVerification && !rule.isDiscount && !rule.isAddon && <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 font-extrabold text-[10px] px-2.5 py-1 rounded-lg shadow-sm">STANDARD</Badge>}
+                                </div>
+                            </TableCell>
+                            <TableCell className="py-4">
+                                {rule.isContest ? (
+                                    <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{rule.minParticipants || '...'} &ndash; {rule.maxParticipants || '...'} Participants</span>
+                                ) : rule.isAddon ? (
+                                    <div className="flex items-center gap-3.5">
+                                        {rule.addonImageUrl ? (
+                                            <div className="relative h-11 w-11 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm flex-shrink-0 bg-white">
+                                                <Image src={rule.addonImageUrl} alt={rule.addonName || ''} fill className="object-cover" />
+                                            </div>
+                                        ) : (
+                                            <div className="h-11 w-11 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center flex-shrink-0">
+                                                <ImageIcon className="h-5 w-5 text-slate-400" />
+                                            </div>
+                                        )}
+                                        <span className="font-bold text-slate-900 dark:text-white text-sm">{rule.addonName || 'Unnamed Add-on'}</span>
+                                    </div>
+                                ) : (
+                                    <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{rule.minQuantity || '1'} &ndash; {rule.maxQuantity || '...'} Units</span>
+                                )}
+                            </TableCell>
+                            <TableCell className="py-4">
+                                <span className="flex items-center font-extrabold text-slate-900 dark:text-white text-base">
+                                    <IndianRupee className="w-4 h-4 mr-0.5 text-indigo-500" />
+                                    {rule.unitPrice || rule.contestPrice || rule.discountValue || rule.designVerificationFee || rule.addonPriceAmount || '0.00'}
+                                    {rule.isDiscount && rule.discountType === 'percentage' ? <span className="text-xs text-muted-foreground ml-1 font-bold">(%)</span> : null}
+                                </span>
+                            </TableCell>
+                             <TableCell className="py-4">
+                                <Badge variant={rule.isActive ? 'default' : 'secondary'} className={`h-6 text-[10px] font-extrabold px-2.5 rounded-full shadow-sm ${rule.isActive ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                                    {rule.isActive ? 'Active' : 'Inactive'}
+                                </Badge>
+                             </TableCell>
+                            <TableCell className="text-right pr-4 py-4">
+                                <div className="flex items-center justify-end gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-800 dark:hover:text-indigo-400 transition-colors" onClick={() => onEdit(rule)}>
+                                         <Edit className="h-4 w-4"/>
+                                     </Button>
+                                     <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-955/30 dark:hover:text-red-400 transition-colors text-destructive">
+                                                <Trash2 className="h-4 w-4"/>
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent className="rounded-2xl border-slate-200 dark:border-slate-800 shadow-2xl">
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle className="text-xl font-bold">Delete Pricing Rule?</AlertDialogTitle>
+                                                <AlertDialogDescription className="text-sm font-medium">This action will permanently delete this pricing bracket or add-on configuration. This cannot be undone.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel className="h-10 rounded-xl font-bold border-slate-200 dark:border-slate-800">Cancel</AlertDialogCancel>
+                                                <AlertDialogAction className="h-10 rounded-xl font-bold bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20" onClick={() => onDelete(rule.id)}>Permanently Delete</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
     );
 }
 
@@ -288,147 +390,257 @@ function PricingRuleForm({ onSubmit, rule, onClose }: { onSubmit: (data: Pricing
     }, [rule, reset]);
 
     return (
-        <DialogContent className="sm:max-w-2xl h-[90vh] flex flex-col">
-            <DialogHeader>
-                <DialogTitle>{rule ? 'Edit' : 'Add'} Pricing Rule</DialogTitle>
-                <DialogDescription>Define a specific pricing scenario. Selecting one type will disable others.</DialogDescription>
+        <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col p-0 bg-background border-slate-200/80 dark:border-slate-800/80 shadow-2xl rounded-2xl overflow-hidden">
+            <DialogHeader className="p-8 pb-8 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white relative overflow-hidden border-b border-slate-800 flex-shrink-0">
+                <div className="absolute inset-0 bg-grid-white/[0.03] bg-[size:20px_20px]" />
+                <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+                <div className="flex items-center justify-between relative z-10">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-xs px-2.5 py-0.5 rounded-full font-semibold backdrop-blur-md">
+                                <Tag className="w-3.5 h-3.5 mr-1.5 inline-block animate-pulse" />
+                                Rule Configuration Engine
+                            </Badge>
+                        </div>
+                        <DialogTitle className="text-2xl font-bold tracking-tight text-white">{rule ? 'Edit Pricing Bracket / Add-on' : 'Create New Pricing Bracket / Add-on'}</DialogTitle>
+                        <DialogDescription className="text-slate-300 text-sm mt-1">Define specific pricing scenarios, quantity thresholds, or custom physical add-on options.</DialogDescription>
+                    </div>
+                    <div className="hidden sm:flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 shadow-inner flex-shrink-0">
+                        <Tag className="w-8 h-8 text-indigo-400" />
+                    </div>
+                </div>
             </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-                <ScrollArea className="flex-1 p-1">
-                <div className="space-y-6 p-4">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div className="flex items-center space-x-2">
-                            <Controller name="isContest" control={control} render={({ field }) => <Switch id="isContest" checked={field.value} onCheckedChange={(val) => handleToggle('isContest', val)} />} />
-                            <Label htmlFor="isContest">Contest</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Controller name="isVerification" control={control} render={({ field }) => <Switch id="isVerification" checked={field.value} onCheckedChange={(val) => handleToggle('isVerification', val)} />} />
-                            <Label htmlFor="isVerification">Verification</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Controller name="isDiscount" control={control} render={({ field }) => <Switch id="isDiscount" checked={field.value} onCheckedChange={(val) => handleToggle('isDiscount', val)} />} />
-                            <Label htmlFor="isDiscount">Discount</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Controller name="isAddon" control={control} render={({ field }) => <Switch id="isAddon" checked={field.value} onCheckedChange={(val) => handleToggle('isAddon', val)} />} />
-                            <Label htmlFor="isAddon">Add-on</Label>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/50 dark:bg-slate-950/50">
+                    {/* Exclusivity Type Selection Cards */}
+                    <div className="space-y-3">
+                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Select Rule Type (Mutually Exclusive)</Label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-2 bg-slate-100/60 dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-inner">
+                            {/* Contest Card */}
+                            <label htmlFor="isContest" className={`flex flex-col items-center justify-center p-4 rounded-xl border cursor-pointer transition-all ${isContest ? 'bg-white dark:bg-slate-900 border-purple-500 shadow-md text-purple-600 dark:text-purple-400 font-bold' : 'border-transparent hover:bg-white/50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 font-semibold'}`}>
+                                <Users className="w-6 h-6 mb-2" />
+                                <div className="flex items-center gap-2">
+                                    <Controller name="isContest" control={control} render={({ field }) => <Switch id="isContest" checked={field.value} onCheckedChange={(val) => handleToggle('isContest', val)} className="scale-75 data-[state=checked]:bg-purple-600" />} />
+                                    <span className="text-sm">Contest</span>
+                                </div>
+                            </label>
+
+                            {/* Verification Card */}
+                            <label htmlFor="isVerification" className={`flex flex-col items-center justify-center p-4 rounded-xl border cursor-pointer transition-all ${isVerification ? 'bg-white dark:bg-slate-900 border-blue-500 shadow-md text-blue-600 dark:text-blue-400 font-bold' : 'border-transparent hover:bg-white/50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 font-semibold'}`}>
+                                <ShieldCheck className="w-6 h-6 mb-2" />
+                                <div className="flex items-center gap-2">
+                                    <Controller name="isVerification" control={control} render={({ field }) => <Switch id="isVerification" checked={field.value} onCheckedChange={(val) => handleToggle('isVerification', val)} className="scale-75 data-[state=checked]:bg-blue-600" />} />
+                                    <span className="text-sm">Verification</span>
+                                </div>
+                            </label>
+
+                            {/* Discount Card */}
+                            <label htmlFor="isDiscount" className={`flex flex-col items-center justify-center p-4 rounded-xl border cursor-pointer transition-all ${isDiscount ? 'bg-white dark:bg-slate-900 border-emerald-500 shadow-md text-emerald-600 dark:text-emerald-400 font-bold' : 'border-transparent hover:bg-white/50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 font-semibold'}`}>
+                                <Tag className="w-6 h-6 mb-2" />
+                                <div className="flex items-center gap-2">
+                                    <Controller name="isDiscount" control={control} render={({ field }) => <Switch id="isDiscount" checked={field.value} onCheckedChange={(val) => handleToggle('isDiscount', val)} className="scale-75 data-[state=checked]:bg-emerald-600" />} />
+                                    <span className="text-sm">Discount</span>
+                                </div>
+                            </label>
+
+                            {/* Addon Card */}
+                            <label htmlFor="isAddon" className={`flex flex-col items-center justify-center p-4 rounded-xl border cursor-pointer transition-all ${isAddon ? 'bg-white dark:bg-slate-900 border-amber-500 shadow-md text-amber-600 dark:text-amber-400 font-bold' : 'border-transparent hover:bg-white/50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 font-semibold'}`}>
+                                <Plus className="w-6 h-6 mb-2" />
+                                <div className="flex items-center gap-2">
+                                    <Controller name="isAddon" control={control} render={({ field }) => <Switch id="isAddon" checked={field.value} onCheckedChange={(val) => handleToggle('isAddon', val)} className="scale-75 data-[state=checked]:bg-amber-600" />} />
+                                    <span className="text-sm">Add-on</span>
+                                </div>
+                            </label>
                         </div>
                     </div>
-                    <Card>
-                        <CardContent className="pt-6 space-y-4">
+
+                    {/* Dynamic Configuration Container */}
+                    <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-sm">
+                        <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4 bg-slate-50/50 dark:bg-slate-900/50">
+                            <div className="flex items-center gap-2">
+                                <Tag className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                <CardTitle className="text-base font-bold text-slate-900 dark:text-white">
+                                    {isContest ? 'Contest Pricing Configuration' :
+                                     isVerification ? 'Verification Fee Setup' :
+                                     isDiscount ? 'Discount Tier Setup' :
+                                     isAddon ? 'Add-on Option Configuration' :
+                                     'Standard Quantity Bracket Configuration'}
+                                </CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-6">
                             {!isContest && !isVerification && !isDiscount && !isAddon && (
                                 <div className="space-y-4">
-                                    <Label className="font-bold">Standard Pricing</Label>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="space-y-1.5"><Label>Min Qty</Label><Input type="number" {...register('minQuantity')} /></div>
-                                        <div className="space-y-1.5"><Label>Max Qty</Label><Input type="number" {...register('maxQuantity')} /></div>
-                                        <div className="space-y-1.5"><Label>Unit Price</Label><Input type="number" step="0.01" {...register('unitPrice')} /></div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Minimum Quantity</Label>
+                                            <Input type="number" placeholder="1" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('minQuantity')} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Maximum Quantity</Label>
+                                            <Input type="number" placeholder="No limit" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('maxQuantity')} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Per-Unit Price (₹)</Label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">₹</span>
+                                                <Input type="number" step="0.01" placeholder="0.00" className="h-10 rounded-xl pl-7 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('unitPrice')} />
+                                            </div>
+                                        </div>
                                     </div>
+                                    <p className="text-xs text-muted-foreground font-medium italic mt-2">Defines the cost per single unit when a user orders within this specific quantity range.</p>
                                 </div>
                             )}
 
                             {isContest && (
                                 <div className="space-y-4">
-                                    <Label className="font-bold">Contest Pricing</Label>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="space-y-1.5"><Label>Min Participants</Label><Input type="number" {...register('minParticipants')} /></div>
-                                        <div className="space-y-1.5"><Label>Max Participants</Label><Input type="number" {...register('maxParticipants')} /></div>
-                                        <div className="space-y-1.5"><Label>Contest Price</Label><Input type="number" step="0.01" {...register('contestPrice')} /></div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Min Participants</Label>
+                                            <Input type="number" placeholder="1" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('minParticipants')} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Max Participants</Label>
+                                            <Input type="number" placeholder="No limit" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('maxParticipants')} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Contest Price (₹)</Label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">₹</span>
+                                                <Input type="number" step="0.01" placeholder="0.00" className="h-10 rounded-xl pl-7 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('contestPrice')} />
+                                            </div>
+                                        </div>
                                     </div>
+                                    <p className="text-xs text-muted-foreground font-medium italic mt-2">Applies specialized pricing when a design contest reaches this bracket of active participants.</p>
                                 </div>
                             )}
 
                             {isVerification && (
                                 <div className="space-y-4">
-                                    <Label className="font-bold">Verification Fee</Label>
-                                    <Input type="number" step="0.01" {...register('designVerificationFee')} placeholder="e.g., 500.00" />
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Design Verification Fee (₹)</Label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">₹</span>
+                                            <Input type="number" step="0.01" placeholder="e.g. 500.00" className="h-10 rounded-xl pl-7 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('designVerificationFee')} />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground font-medium italic mt-2">Fixed fee charged to the user for professional prepress verification of their uploaded artwork.</p>
                                 </div>
                             )}
 
                             {isDiscount && (
-                                <div className="space-y-4">
-                                    <Label className="font-bold">Discount Pricing</Label>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5"><Label>Min Qty</Label><Input type="number" {...register('minQuantity')} placeholder="e.g., 100"/></div>
-                                        <div className="space-y-1.5"><Label>Max Qty</Label><Input type="number" {...register('maxQuantity')} placeholder="e.g., 500" /></div>
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Minimum Quantity</Label>
+                                            <Input type="number" placeholder="e.g. 100" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('minQuantity')} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Maximum Quantity</Label>
+                                            <Input type="number" placeholder="e.g. 500" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('maxQuantity')} />
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <Label>Discount Type</Label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Discount Type</Label>
                                             <Controller
                                                 name="discountType"
                                                 control={control}
                                                 render={({ field }) => (
                                                     <Select onValueChange={field.onChange} value={field.value ?? undefined}>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select type..." />
+                                                        <SelectTrigger className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-indigo-500 font-semibold">
+                                                            <SelectValue placeholder="Select discount type..." />
                                                         </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="percentage">Percentage (%)</SelectItem>
-                                                            <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
+                                                        <SelectContent className="rounded-xl">
+                                                            <SelectItem value="percentage" className="font-semibold">Percentage Discount (%)</SelectItem>
+                                                            <SelectItem value="fixed" className="font-semibold">Fixed Amount Discount (₹)</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 )}
                                             />
                                         </div>
-                                        <div className="space-y-1.5"><Label>Discount Value</Label><Input type="number" step="0.01" {...register('discountValue')} /></div>
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Discount Value</Label>
+                                            <Input type="number" step="0.01" placeholder="0.00" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('discountValue')} />
+                                        </div>
                                     </div>
+                                    <p className="text-xs text-muted-foreground font-medium italic mt-2">Applies an automatic bulk discount reduction when the user&apos;s cart matches this quantity bracket.</p>
                                 </div>
                             )}
 
                             {isAddon && (
-                                <div className="space-y-4">
-                                     <Label className="font-bold">Add-on Price & Image</Label>
-                                     <div className="grid grid-cols-1 gap-4">
-                                         <div className="space-y-1.5"><Label>Add-on Name</Label><Input placeholder="e.g. Gold Foil, Premium Lamination" {...register('addonName')} /></div>
-                                         <div className="space-y-1.5"><Label>Price Amount (₹)</Label><Input type="number" step="0.01" {...register('addonPriceAmount')} /></div>
-                                         
+                                <div className="space-y-6">
+                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                          <div className="space-y-2">
-                                             <Label>Add-on Image</Label>
-                                             <div className="flex items-center gap-4">
-                                                 <div className="relative h-24 w-24 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center overflow-hidden bg-muted">
-                                                     {addonImageUrl ? (
-                                                         <Image src={addonImageUrl} alt="Add-on" fill className="object-cover" />
-                                                     ) : (
-                                                         <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
-                                                     )}
-                                                 </div>
-                                                 <div className="flex flex-col gap-2">
-                                                     <Dialog open={isImageBrowserOpen} onOpenChange={setIsImageBrowserOpen}>
-                                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsImageBrowserOpen(true)}>
-                                                             <PlusCircle className="mr-2 h-4 w-4" />
-                                                             {addonImageUrl ? 'Change Image' : 'Select Image'}
-                                                         </Button>
-                                                         <ImageBrowserDialog 
-                                                             onSelect={(url) => {
-                                                                 setValue('addonImageUrl', url);
-                                                                 setIsImageBrowserOpen(false);
-                                                             }} 
-                                                             folder={imageFolder} 
-                                                             setFolder={setImageFolder} 
-                                                         />
-                                                     </Dialog>
-                                                     {addonImageUrl && (
-                                                         <Button type="button" variant="ghost" size="sm" className="text-destructive h-8" onClick={() => setValue('addonImageUrl', null)}>
-                                                             Remove Image
-                                                         </Button>
-                                                     )}
-                                                 </div>
+                                             <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Add-on Display Name</Label>
+                                             <Input placeholder="e.g. Gold Foil Stamp, Velvet Lamination" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('addonName')} />
+                                         </div>
+                                         <div className="space-y-2">
+                                             <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Add-on Price Amount (₹)</Label>
+                                             <div className="relative">
+                                                 <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">₹</span>
+                                                 <Input type="number" step="0.01" placeholder="0.00" className="h-10 rounded-xl pl-7 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('addonPriceAmount')} />
                                              </div>
                                          </div>
                                      </div>
+                                     
+                                     <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                         <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Add-on Preview Icon / Image</Label>
+                                         <div className="flex items-center gap-6 p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                             <div className="relative h-20 w-20 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden bg-white shadow-sm flex-shrink-0">
+                                                 {addonImageUrl ? (
+                                                     <Image src={addonImageUrl} alt="Add-on" fill className="object-cover" />
+                                                 ) : (
+                                                     <ImageIcon className="h-8 w-8 text-slate-300 dark:text-slate-700" />
+                                                 )}
+                                             </div>
+                                             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                                 <Dialog open={isImageBrowserOpen} onOpenChange={setIsImageBrowserOpen}>
+                                                     <DialogTrigger asChild>
+                                                         <Button type="button" variant="outline" size="sm" className="h-9 rounded-xl font-semibold border-slate-200 dark:border-slate-800 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-800 dark:hover:text-indigo-400 transition-colors">
+                                                             <PlusCircle className="mr-2 h-4 w-4" />
+                                                             {addonImageUrl ? 'Change Image' : 'Select Image'}
+                                                         </Button>
+                                                     </DialogTrigger>
+                                                     <ImageBrowserDialog 
+                                                         onSelect={(url) => {
+                                                             setValue('addonImageUrl', url, { shouldDirty: true, shouldValidate: true });
+                                                             setIsImageBrowserOpen(false);
+                                                         }} 
+                                                         folder={imageFolder} 
+                                                         setFolder={setImageFolder} 
+                                                     />
+                                                 </Dialog>
+                                                 {addonImageUrl && (
+                                                     <Button type="button" variant="ghost" size="sm" className="h-9 rounded-xl font-semibold text-destructive hover:bg-red-50 dark:hover:bg-red-955/30 transition-colors" onClick={() => setValue('addonImageUrl', null, { shouldDirty: true, shouldValidate: true })}>
+                                                         Remove Image
+                                                     </Button>
+                                                 )}
+                                             </div>
+                                         </div>
+                                     </div>
+                                     <p className="text-xs text-muted-foreground font-medium italic mt-2">Creates a selectable add-on card on the product configuration page with its own specialized pricing increment.</p>
                                  </div>
                              )}
                         </CardContent>
                     </Card>
-                    <div className="flex items-center space-x-2 pt-2"><Controller name="isActive" control={control} render={({ field }) => <Switch id="isActive" checked={field.value} onCheckedChange={field.onChange} />} /><Label htmlFor="isActive">Rule is Active</Label></div>
+
+                    {/* Active Status Switch */}
+                    <div className="flex items-center justify-between p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-sm">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="isActive" className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Rule is Active</Label>
+                            <p className="text-xs text-muted-foreground font-medium">Enable or disable this specific pricing bracket or add-on rule instantly.</p>
+                        </div>
+                        <Controller name="isActive" control={control} render={({ field }) => <Switch id="isActive" checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-indigo-600" />} />
+                    </div>
                 </div>
-                </ScrollArea>
-                <DialogFooter className="pt-4">
-                    <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Rule
+
+                <DialogFooter className="p-6 pt-4 border-t border-slate-200 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/50 backdrop-blur-md flex items-center justify-end gap-3 flex-shrink-0">
+                    <Button type="button" variant="outline" onClick={onClose} className="h-10 rounded-xl font-bold border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800">Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting} className="h-10 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 px-6">
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                        Save Rule Configuration
                     </Button>
                 </DialogFooter>
             </form>

@@ -64,6 +64,9 @@ export default function LoginPage() {
       let dashboardUrl = '/';
       switch (result.role) {
         case 'freelancer': dashboardUrl = '/freelancer/dashboard'; break;
+        case 'printer': dashboardUrl = '/printer/dashboard'; break;
+        case 'user': dashboardUrl = '/client/dashboard'; break;
+        case 'accounts': dashboardUrl = '/accounts/dashboard'; break;
         case 'admin':
         case 'super_admin':
         case 'company_admin':

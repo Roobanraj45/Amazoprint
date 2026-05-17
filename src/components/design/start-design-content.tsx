@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { getProductBySlug } from '@/app/actions/product-actions';
 import { getPricingRulesForSubProduct } from '@/app/actions/pricing-actions';
 import { getSession } from '@/app/actions/user-actions';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2 } from 'lucide-react';
+import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2, Truck, Lock, Check, ChevronLeft, ChevronRight, Search, FileText, MessageSquare, Upload, Copy } from 'lucide-react';
 import { getFoilTypes } from '@/app/actions/foil-actions';
 import { getDieCuts } from '@/app/actions/die-cut-actions';
 import { FoilType } from '@/lib/types';
@@ -37,6 +37,7 @@ export function StartDesignContent() {
   const [pricingRules, setPricingRules] = useState<any[]>([]);
   const [loadingPricing, setLoadingPricing] = useState(false);
   const [calculatedPrice, setCalculatedPrice] = useState<{ 
+    basePriceTotal: number;
     original: number; 
     final: number; 
     discount: number; 
@@ -44,7 +45,7 @@ export function StartDesignContent() {
     addons: { name: string; totalAmount: number }[];
   } | null>(null);
 
-  const [quantity, setQuantity] = useState('100');
+  const [quantity, setQuantity] = useState('500');
   const [pages, setPages] = useState('1');
   const [spotUv, setSpotUv] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
@@ -53,6 +54,10 @@ export function StartDesignContent() {
   const [customHeight, setCustomHeight] = useState(searchParams.get('height') || '');
   const [selectedDie, setSelectedDie] = useState<number | null>(null);
   const [dieCuts, setDieCuts] = useState<any[]>([]);
+
+  // Navigation & View States
+  const [activeTab, setActiveTab] = useState('details'); // 'details', 'templates', 'guidelines', 'shipping', 'reviews'
+  const [activeThumbnailIndex, setActiveThumbnailIndex] = useState(0);
 
   useEffect(() => {
     getFoilTypes().then(setFoilTypes);
@@ -102,6 +107,24 @@ export function StartDesignContent() {
 
     fetchData();
   }, [params, searchParams, router]);
+
+  const handleSubProductChange = useCallback((sp: SubProductData) => {
+    setSubProduct(sp);
+    if (!sp.spotUvAllowed) {
+        setSpotUv(false);
+    }
+    if (sp.maxPages <= 1) {
+        setPages('1');
+    }
+    setLoadingPricing(true);
+    getPricingRulesForSubProduct(sp.id).then(rules => {
+        setPricingRules(rules);
+        setLoadingPricing(false);
+    });
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set('subProductId', String(sp.id));
+    router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
+  }, [searchParams, pathname, router]);
 
   const availableDieCuts = useMemo(() => {
     if (!subProduct || !(subProduct as any).allowedDieCuts || !(subProduct as any).allowedDieCuts.length) return [];
@@ -204,6 +227,7 @@ export function StartDesignContent() {
     }
 
     setCalculatedPrice({
+        basePriceTotal: basePrice * qty,
         original: (basePrice + addonTotalPerUnit) * qty,
         final: (finalPrice + addonTotalPerUnit) * qty,
         discount: discount * qty,
@@ -241,765 +265,869 @@ export function StartDesignContent() {
     return newParams.toString();
   }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, customWidth, customHeight, selectedDie]);
 
+  const thumbnailImages = useMemo(() => {
+    if (!subProduct && !product) return [];
+    const images: string[] = [];
+    
+    if (subProduct) {
+        if (subProduct.imageUrl) {
+            images.push(resolveImagePath(subProduct.imageUrl));
+        }
+        if (Array.isArray(subProduct.imageUrls)) {
+            subProduct.imageUrls.forEach(url => {
+                if (url) {
+                    const img = resolveImagePath(url);
+                    if (!images.includes(img)) images.push(img);
+                }
+            });
+        }
+    }
+
+    if (images.length === 0 && product?.imageUrl) {
+        images.push(resolveImagePath(product.imageUrl));
+    }
+
+    if (images.length === 1) {
+        images.push(images[0]);
+        images.push(images[0]);
+        images.push(images[0]);
+    }
+    return images.slice(0, 4);
+  }, [subProduct, product]);
+
   if (loading) {
     return (
-        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-950">
+            <Loader2 className="h-12 w-12 animate-spin text-indigo-600 dark:text-indigo-400" />
         </div>
     );
   }
 
   if (!product || !subProduct) {
     return (
-        <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] space-y-4">
-            <h1 className="text-xl font-bold">Product not found</h1>
-            <Button asChild><Link href="/products">Back to Products</Link></Button>
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] space-y-4 bg-slate-50 dark:bg-slate-950">
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Product not found</h1>
+            <Button asChild className="rounded-xl font-bold"><Link href="/products">Back to Products Directory</Link></Button>
         </div>
     );
   }
 
   const isLoggedIn = !!session;
-  const imageUrl = resolveImagePath(subProduct?.imageUrl || product.imageUrl);
-
-  const options = [
-    {
-      title: 'Templates',
-      description: 'Quickly swap details on professional layouts.',
-      href: `/design/${product.slug}/templates?${constructedQuery}`,
-      icon: <LayoutTemplate className="w-5 h-5 text-blue-600" />,
-      badge: 'Fast',
-    },
-    {
-      title: 'Start blank',
-      description: 'Build your vision from zero in our editor.',
-      href: `/design/${product.slug}?${constructedQuery}`,
-      icon: <PenSquare className="w-5 h-5 text-purple-600" />,
-      badge: 'Popular',
-    },
-    {
-      title: 'Upload file',
-      description: 'Send us your print-ready file. We will take care!.',
-      href: isLoggedIn ? `/design/${product.slug}/upload?${constructedQuery}` : `/login?redirect_url=/design/${product.slug}/upload%3F${constructedQuery}`,
-      icon: <ImagePlus className="w-5 h-5 text-emerald-600" />,
-    },
-    {
-      title: 'Hire expert',
-      description: 'Get custom designs from our top designers.',
-      href: `/client/contests/create?productId=${product.id}&subProductId=${subProduct.id}`,
-      icon: <Trophy className="w-5 h-5 text-amber-500" />,
-    },
-  ];
+  const currentDisplayImage = thumbnailImages[activeThumbnailIndex] || resolveImagePath(subProduct?.imageUrl || product.imageUrl);
 
   return (
-    <main className="flex-grow pt-24 pb-20 bg-slate-50/50 dark:bg-slate-950">
-        <div className="container mx-auto px-4 max-w-7xl">
-          {/* Header Section with Product Hero */}
-          <div className="mb-10 flex flex-col md:flex-row gap-8 items-center animate-in fade-in slide-in-from-top-4 duration-700">
-              <div className="w-full md:w-1/3 aspect-[4/3] relative rounded-2xl overflow-hidden shadow-xl shadow-primary/10 group">
-                  {imageUrl ? (
-                      <Image src={imageUrl} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-105" priority />
-                  ) : (
-                      <div className="flex items-center justify-center h-full bg-slate-200 dark:bg-slate-800">
-                          <LayoutTemplate className="h-12 w-12 text-slate-400" />
+    <main className="flex-grow pt-24 pb-24 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-indigo-500 selection:text-white">
+        <div className="container mx-auto px-4 sm:px-6 max-w-[1400px] space-y-16">
+          
+          {/* Breadcrumb Navigation */}
+          <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <Link href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Home</Link>
+              <span>›</span>
+              <Link href="/products" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">All Products</Link>
+              <span>›</span>
+              <Link href={`/products#${product.slug}`} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{product.name}</Link>
+              {subProduct && (
+                  <>
+                      <span>›</span>
+                      <span className="text-slate-900 dark:text-white font-bold">{subProduct.name}</span>
+                  </>
+              )}
+          </nav>
+
+          {/* MAIN SPLIT SECTION: Left (Images & Design Options) | Right (Config & Price Box) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+              
+              {/* LEFT COLUMN: Media Viewer & Design It Your Way */}
+              <div className="lg:col-span-6 space-y-8">
+                  {/* Main Product Image Viewer */}
+                  <div className="space-y-4">
+                      <div className="aspect-[4/3] relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-md group flex items-center justify-center">
+                          {currentDisplayImage ? (
+                              <Image 
+                                  src={currentDisplayImage} 
+                                  alt={product.name} 
+                                  fill 
+                                  className="object-contain p-8 transition-transform duration-700 group-hover:scale-105" 
+                                  priority 
+                              />
+                          ) : (
+                              <LayoutTemplate className="h-20 w-20 text-slate-300 dark:text-slate-700" />
+                          )}
+                          <div className="absolute top-4 right-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-white dark:hover:bg-slate-900 transition-all hover:scale-110">
+                              <Search className="w-5 h-5" />
+                          </div>
+                      </div>
+
+                      {/* Thumbnail Selector Carousel */}
+                      <div className="flex items-center justify-between gap-3">
+                          <button 
+                              onClick={() => setActiveThumbnailIndex(prev => prev > 0 ? prev - 1 : thumbnailImages.length - 1)}
+                              className="w-10 h-10 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition-all"
+                          >
+                              <ChevronLeft className="w-5 h-5" />
+                          </button>
+                          <div className="flex items-center gap-3 flex-1 justify-center overflow-x-auto py-1">
+                              {thumbnailImages.map((img, idx) => (
+                                  <button
+                                      key={idx}
+                                      onClick={() => setActiveThumbnailIndex(idx)}
+                                      className={cn(
+                                          "relative w-20 h-16 rounded-2xl overflow-hidden border-2 transition-all flex-shrink-0 bg-slate-50 dark:bg-slate-900",
+                                          activeThumbnailIndex === idx ? "border-indigo-600 dark:border-indigo-400 ring-2 ring-indigo-600/20 shadow-md scale-105" : "border-slate-200 dark:border-slate-800 opacity-70 hover:opacity-100"
+                                      )}
+                                  >
+                                      <Image src={img} alt={`Thumbnail ${idx+1}`} fill className="object-cover" />
+                                  </button>
+                              ))}
+                          </div>
+                          <button 
+                              onClick={() => setActiveThumbnailIndex(prev => prev < thumbnailImages.length - 1 ? prev + 1 : 0)}
+                              className="w-10 h-10 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition-all"
+                          >
+                              <ChevronRight className="w-5 h-5" />
+                          </button>
+                      </div>
+                  </div>
+
+                  {/* Design It Your Way Container */}
+                  <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
+                      <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-extrabold text-sm tracking-tight">
+                              <Sparkles className="w-4 h-4 animate-pulse" /> Design it Your Way
+                          </div>
+                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Use our easy design tool or hire a professional designer.</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Design Online Card */}
+                          <div className="p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-6 group hover:border-indigo-500/50 transition-all">
+                              <div className="flex items-start gap-4">
+                                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
+                                      <LayoutTemplate className="w-6 h-6" />
+                                  </div>
+                                  <div>
+                                      <h4 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight">Design Online</h4>
+                                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Use our easy drag & drop tool.</p>
+                                  </div>
+                              </div>
+                              <Button asChild className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-extrabold shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all">
+                                  <Link href={`/design/${product.slug}?${constructedQuery}`}>Start Designing</Link>
+                              </Button>
+                          </div>
+
+                          {/* Hire a Designer Card */}
+                          <div className="p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-6 group hover:border-pink-500/50 transition-all relative overflow-hidden">
+                              <div className="absolute top-3 right-3 bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border border-pink-200 dark:border-pink-800 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-tight uppercase">
+                                  Popular
+                              </div>
+                              <div className="flex items-start gap-4 pr-12">
+                                  <div className="w-12 h-12 rounded-2xl bg-pink-50 dark:bg-pink-950/50 border border-pink-100 dark:border-pink-900 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0 group-hover:scale-105 transition-transform">
+                                      <Trophy className="w-6 h-6" />
+                                  </div>
+                                  <div>
+                                      <h4 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight">Hire a Designer</h4>
+                                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Work with our professional designers.</p>
+                                  </div>
+                              </div>
+                              <Button asChild variant="outline" className="w-full h-12 rounded-xl border-2 border-pink-600 text-pink-600 dark:border-pink-500 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/30 font-extrabold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                                  <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct.id}`}>Hire a Designer</Link>
+                              </Button>
+                          </div>
+                      </div>
+
+                      <div className="text-center pt-2">
+                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                              Not sure? Get inspiration from our <Link href={`/design/${product.slug}/templates?${constructedQuery}`} className="text-pink-600 dark:text-pink-400 font-extrabold hover:underline">templates</Link>
+                          </p>
+                      </div>
+                  </div>
+              </div>
+
+              {/* RIGHT COLUMN: Product Configuration & Price Box */}
+              <div className="lg:col-span-6 space-y-8">
+                  {/* Product Title & Reviews Header */}
+                  <div className="space-y-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+                      <div className="space-y-1">
+                          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                              {subProduct?.name || product.name}
+                          </h1>
+                          <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase flex items-center gap-1.5 pt-0.5">
+                              <Package2 className="w-3.5 h-3.5 inline-block" /> {product.name}
+                          </p>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                          <div className="flex items-center text-amber-500 gap-0.5">
+                              <Star className="w-4 h-4 fill-amber-500" />
+                              <Star className="w-4 h-4 fill-amber-500" />
+                              <Star className="w-4 h-4 fill-amber-500" />
+                              <Star className="w-4 h-4 fill-amber-500" />
+                              <Star className="w-4 h-4 fill-amber-500" />
+                          </div>
+                          <span className="text-slate-900 dark:text-white ml-1">4.8</span>
+                          <span className="text-slate-400 dark:text-slate-500 font-semibold">(245 Reviews)</span>
+                      </div>
+
+                      {(subProduct?.description || product.description) && (
+                          <div className="pt-2">
+                              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
+                                  {subProduct?.description || product.description}
+                              </p>
+                          </div>
+                      )}
+                  </div>
+
+                  {/* Option Groups Matrix */}
+                  <div className="space-y-6">
+                      {/* 1. Size Selection */}
+                      <div className="space-y-3">
+                          <Label className="text-xs font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                              <span className="text-indigo-600 dark:text-indigo-400 font-black">1.</span> Size
+                          </Label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                              {product.subProducts.map(sp => (
+                                  <button
+                                      key={sp.id}
+                                      onClick={() => handleSubProductChange(sp)}
+                                      className={cn(
+                                          "py-3 px-3 rounded-2xl border text-xs font-extrabold transition-all text-center flex items-center justify-center shadow-sm",
+                                          subProduct.id === sp.id 
+                                              ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
+                                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
+                                      )}
+                                  >
+                                      {sp.width === 0 && sp.height === 0 ? 'Custom Size' : `${sp.width}" x ${sp.height}"`}
+                                  </button>
+                              ))}
+                          </div>
+                          {subProduct.width === 0 && subProduct.height === 0 && (
+                              <div className="grid grid-cols-2 gap-4 pt-2 animate-in zoom-in-95 duration-300">
+                                  <div className="space-y-1.5">
+                                      <Label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Custom Width</Label>
+                                      <Input 
+                                          type="number" 
+                                          value={customWidth} 
+                                          onChange={(e) => setCustomWidth(e.target.value)} 
+                                          placeholder="Width" 
+                                          className="h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-sm" 
+                                      />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                      <Label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Custom Height</Label>
+                                      <Input 
+                                          type="number" 
+                                          value={customHeight} 
+                                          onChange={(e) => setCustomHeight(e.target.value)} 
+                                          placeholder="Height" 
+                                          className="h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-sm" 
+                                      />
+                                  </div>
+                              </div>
+                          )}
+                      </div>
+
+                      {/* 2. Add on & Finishes */}
+                      <div className="space-y-3">
+                          <Label className="text-xs font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                              <span className="text-indigo-600 dark:text-indigo-400 font-black">2.</span> Add on & Finishes
+                          </Label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                              {/* Default Paper Type Pill */}
+                              <button className="py-3 px-3 rounded-2xl border border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-extrabold text-center shadow-md ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]">
+                                  Premium Matte
+                              </button>
+
+                              {/* Spot UV Toggle Pill */}
+                              {subProduct.spotUvAllowed && (
+                                  <button
+                                      onClick={() => setSpotUv(!spotUv)}
+                                      className={cn(
+                                          "py-3 px-3 rounded-2xl border text-xs font-extrabold transition-all text-center flex items-center justify-center gap-1.5 shadow-sm",
+                                          spotUv 
+                                              ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20 shadow-md scale-[1.02]" 
+                                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                      )}
+                                  >
+                                      <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Spot UV
+                                  </button>
+                              )}
+
+                              {/* Addons Pills */}
+                              {addonRules.map(rule => {
+                                  const isSelected = selectedAddons.includes(rule.id);
+                                  return (
+                                      <button
+                                          key={rule.id}
+                                          onClick={() => toggleAddon(rule.id)}
+                                          className={cn(
+                                              "py-3 px-3 rounded-2xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm truncate",
+                                              isSelected 
+                                                  ? "border-indigo-600 bg-indigo-600/10 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-600/20 shadow-md scale-[1.02]" 
+                                                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                          )}
+                                      >
+                                          <div className="flex items-center gap-1.5 shrink-0">
+                                              {rule.addonImageUrl ? (
+                                                  <>
+                                                      <img 
+                                                          src={resolveImagePath(rule.addonImageUrl)} 
+                                                          alt={rule.addonName || 'Addon'} 
+                                                          className="w-4 h-4 object-contain shrink-0" 
+                                                          onError={(e) => { 
+                                                              e.currentTarget.style.display = 'none'; 
+                                                              const nextEl = e.currentTarget.nextElementSibling;
+                                                              if (nextEl) nextEl.classList.remove('hidden');
+                                                          }} 
+                                                      />
+                                                      <Sparkle className="w-4 h-4 shrink-0 hidden text-indigo-500" />
+                                                  </>
+                                              ) : (
+                                                  <Sparkle className="w-4 h-4 shrink-0 text-indigo-500" />
+                                              )}
+                                          </div>
+                                          <span className="truncate">{rule.addonName}</span>
+                                      </button>
+                                  );
+                              })}
+                          </div>
+                      </div>
+
+                      {/* 3. Shapes & Die cuts */}
+                      <div className="space-y-3">
+                          <Label className="text-xs font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                              <span className="text-indigo-600 dark:text-indigo-400 font-black">3.</span> Shapes & Die cuts
+                          </Label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                              {/* Default Standard Shape Pill */}
+                              <button 
+                                  onClick={() => setSelectedDie(null)}
+                                  className={cn(
+                                      "py-3 px-3 rounded-2xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm truncate",
+                                      !selectedDie 
+                                          ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
+                                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                  )}
+                              >
+                                  <LayoutTemplate className={cn("w-4 h-4 shrink-0", !selectedDie ? "text-white dark:text-slate-900" : "text-indigo-500")} />
+                                  <span className="truncate">Standard (No Die Cut)</span>
+                              </button>
+
+                              {availableDieCuts.map(die => (
+                                  <button
+                                      key={die.id}
+                                      onClick={() => setSelectedDie(selectedDie === die.id ? null : die.id)}
+                                      className={cn(
+                                          "py-3 px-3 rounded-2xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm truncate",
+                                          selectedDie === die.id 
+                                              ? "border-indigo-600 bg-indigo-600/10 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-600/20 shadow-md scale-[1.02]" 
+                                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                      )}
+                                  >
+                                      <div className="flex items-center gap-1.5 shrink-0">
+                                          {die.imageUrl ? (
+                                              <>
+                                                  <img 
+                                                      src={resolveImagePath(die.imageUrl)} 
+                                                      alt={die.name || 'Die Cut'} 
+                                                      className="w-4 h-4 object-contain shrink-0" 
+                                                      onError={(e) => { 
+                                                          e.currentTarget.style.display = 'none'; 
+                                                          const nextEl = e.currentTarget.nextElementSibling;
+                                                          if (nextEl) nextEl.classList.remove('hidden');
+                                                      }} 
+                                                  />
+                                                  <Scissors className="w-4 h-4 shrink-0 hidden text-indigo-500" />
+                                              </>
+                                          ) : (
+                                              <Scissors className="w-4 h-4 shrink-0 text-indigo-500" />
+                                          )}
+                                      </div>
+                                      <span className="truncate">{die.name}</span>
+                                  </button>
+                              ))}
+                          </div>
+                      </div>
+
+                      {/* 4. Print Sides */}
+                      {subProduct.maxPages > 1 && (
+                          <div className="space-y-3">
+                              <Label className="text-xs font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-black">4.</span> Print Sides
+                              </Label>
+                              <div className="grid grid-cols-2 gap-2.5">
+                                  <button 
+                                      onClick={() => setPages('1')}
+                                      className={cn(
+                                          "py-3 px-4 rounded-2xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm",
+                                          pages === '1' ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                      )}
+                                  >
+                                      <FileText className={cn("w-4 h-4 shrink-0", pages === '1' ? "text-white dark:text-slate-900" : "text-indigo-500")} />
+                                      <span>Front Only</span>
+                                  </button>
+                                  <button 
+                                      onClick={() => setPages('2')}
+                                      className={cn(
+                                          "py-3 px-4 rounded-2xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm",
+                                          pages === '2' ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                      )}
+                                  >
+                                      <Copy className={cn("w-4 h-4 shrink-0", pages === '2' ? "text-white dark:text-slate-900" : "text-indigo-500")} />
+                                      <span>Front & Back</span>
+                                  </button>
+                              </div>
+                          </div>
+                      )}
+
+                      {/* 5. Quantity Select */}
+                      <div className="space-y-3">
+                          <Label className="text-xs font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                              <span className="text-indigo-600 dark:text-indigo-400 font-black">5.</span> Quantity
+                          </Label>
+                          {subProduct.width === 0 && subProduct.height === 0 ? (
+                              <Input 
+                                  type="number" 
+                                  min="1" 
+                                  value={quantity} 
+                                  onChange={(e) => setQuantity(e.target.value)} 
+                                  className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-base shadow-inner pl-4" 
+                              />
+                          ) : (
+                              <Select value={quantity} onValueChange={setQuantity}>
+                                  <SelectTrigger className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-indigo-500 font-extrabold text-sm shadow-inner px-4">
+                                      <SelectValue placeholder="Select Quantity" />
+                                  </SelectTrigger>
+                                  <SelectContent className="rounded-2xl border-slate-200 dark:border-slate-800 shadow-2xl">
+                                      {[100, 250, 500, 1000, 2500, 5000].map((qty) => (
+                                          <SelectItem key={qty} value={String(qty)} className="rounded-xl font-extrabold">
+                                              {qty} Cards
+                                          </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                          )}
+                      </div>
+                  </div>
+
+                  {/* Price Box Container */}
+                  <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+                          <div>
+                              <p className="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Price</p>
+                              <div className="flex items-baseline gap-3">
+                                  <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight flex items-center">
+                                      <IndianRupee className="mr-0.5 stroke-[3]" size={28} />
+                                      {calculatedPrice ? calculatedPrice.final.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '...'}
+                                  </span>
+                                  {calculatedPrice && calculatedPrice.discount > 0 && (
+                                      <>
+                                          <span className="text-lg font-extrabold text-slate-400 dark:text-slate-500 line-through">
+                                              ₹{calculatedPrice.original.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                          </span>
+                                          <span className="bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border border-pink-200 dark:border-pink-800 px-2.5 py-0.5 rounded-full text-xs font-extrabold tracking-tight">
+                                              {calculatedPrice.description}
+                                          </span>
+                                      </>
+                                  )}
+                              </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs font-extrabold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950 py-2 px-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                              <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" /> Ships in 2-3 Business Days
+                          </div>
+                      </div>
+
+                      {/* Price Split-up / Breakdown */}
+                      {calculatedPrice && (
+                          <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                              <p className="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price Breakdown</p>
+                              <div className="space-y-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+                                  <div className="flex justify-between items-center py-1">
+                                      <span>Base Product ({quantity} Cards)</span>
+                                      <span className="font-extrabold text-slate-900 dark:text-white">
+                                          ₹{(calculatedPrice.basePriceTotal ?? calculatedPrice.original ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </span>
+                                  </div>
+                                  {calculatedPrice.discount > 0 && (
+                                      <div className="flex justify-between items-center py-1 text-pink-600 dark:text-pink-400">
+                                          <span>Volume Discount ({calculatedPrice.description})</span>
+                                          <span className="font-extrabold">-₹{calculatedPrice.discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                      </div>
+                                  )}
+                                  {calculatedPrice.addons.map((addon, idx) => (
+                                      <div key={idx} className="flex justify-between items-center py-1 border-t border-slate-100 dark:border-slate-800/60">
+                                          <span>{addon.name}</span>
+                                          <span className="font-extrabold text-slate-900 dark:text-white">
+                                              {addon.totalAmount > 0 ? `₹${addon.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : 'Free'}
+                                          </span>
+                                      </div>
+                                  ))}
+                                  <div className="flex justify-between items-center py-2 border-t-2 border-slate-200 dark:border-slate-800 font-black text-sm text-slate-900 dark:text-white">
+                                      <span>Total Estimated Price</span>
+                                      <span>₹{calculatedPrice.final.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                  </div>
+                              </div>
+                          </div>
+                      )}
+
+                      {/* Action CTAs Side-by-Side */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <Button asChild className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-extrabold shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all text-base gap-2">
+                              <Link href={`/design/${product.slug}/templates?${constructedQuery}`}>
+                                  <LayoutTemplate className="w-5 h-5" /> Design Template
+                              </Link>
+                          </Button>
+                          <Button asChild variant="outline" className="w-full h-14 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-base gap-2">
+                              <Link href={isLoggedIn ? `/design/${product.slug}/upload?${constructedQuery}` : `/login?redirect_url=/design/${product.slug}/upload%3F${constructedQuery}`}>
+                                  <Upload className="w-5 h-5" /> Upload Artwork
+                              </Link>
+                          </Button>
+                      </div>
+
+                      <div className="text-center pt-2">
+                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                              Need a design? <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct.id}`} className="text-pink-600 dark:text-pink-400 font-extrabold hover:underline">Get a Free Quote</Link>
+                          </p>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          {/* MIDDLE BANNER: Trust Badges Banner */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 py-8 px-8 bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl shadow-sm">
+              <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm shrink-0">
+                      <Truck className="w-6 h-6" />
+                  </div>
+                  <div>
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">Free Shipping</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">On all orders over ₹5000</p>
+                  </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm shrink-0">
+                      <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">100% Satisfaction</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Quality is our priority</p>
+                  </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-sm shrink-0">
+                      <Zap className="w-6 h-6" />
+                  </div>
+                  <div>
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">Fast Turnaround</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Get your prints on time</p>
+                  </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-pink-600 dark:text-pink-400 shadow-sm shrink-0">
+                      <Lock className="w-6 h-6" />
+                  </div>
+                  <div>
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">Secure Payment</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Safe & secure checkout</p>
+                  </div>
+              </div>
+          </div>
+
+          {/* BOTTOM DETAILS SECTION: Tabs & Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-8 border-t border-slate-200 dark:border-slate-800">
+              {/* Sidebar Navigation Tabs */}
+              <div className="lg:col-span-3 space-y-2">
+                  {[
+                      { id: 'details', label: 'Product Details', icon: FileText },
+                      { id: 'templates', label: 'Templates', icon: LayoutTemplate },
+                      { id: 'guidelines', label: 'Design Guidelines', icon: Sparkles },
+                      { id: 'shipping', label: 'Shipping Information', icon: Truck },
+                      { id: 'reviews', label: 'Reviews (245)', icon: MessageSquare },
+                  ].map((tab) => (
+                      <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={cn(
+                              "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-extrabold text-xs transition-all text-left",
+                              activeTab === tab.id 
+                                  ? "bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border-l-4 border-pink-600 dark:border-pink-500 shadow-sm pl-5" 
+                                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
+                          )}
+                      >
+                          <tab.icon className="w-4 h-4 shrink-0" /> {tab.label}
+                      </button>
+                  ))}
+              </div>
+
+              {/* Tab Content Area */}
+              <div className="lg:col-span-9 p-8 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl shadow-sm space-y-8">
+                  {activeTab === 'details' && (
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+                          <div className="md:col-span-7 space-y-6">
+                              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Product Details</h3>
+                              {(subProduct?.description || product.description) && (
+                                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                      {subProduct?.description || product.description}
+                                  </p>
+                              )}
+                              <ul className="space-y-3 pt-2">
+                                  {[
+                                      "High-quality printing with vibrant colors",
+                                      "Premium paper stock options",
+                                      "Multiple finishes available",
+                                      "Fast turnaround and delivery"
+                                  ].map((bullet, idx) => (
+                                      <li key={idx} className="flex items-center gap-3 text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                                          <div className="w-5 h-5 rounded-full bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 flex items-center justify-center shrink-0">
+                                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                          </div>
+                                          {bullet}
+                                      </li>
+                                  ))}
+                              </ul>
+                          </div>
+                          <div className="md:col-span-5 flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner space-y-4">
+                              <div className="w-full aspect-[3.5/2] border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 relative shadow-sm">
+                                  <LayoutTemplate className="w-12 h-12 text-slate-300 dark:text-slate-700" />
+                                  <div className="absolute -right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500">2&quot;</div>
+                                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black text-slate-500">3.5&quot;</div>
+                              </div>
+                              <p className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Standard Dimensions</p>
+                          </div>
                       </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                  {activeTab === 'templates' && (
+                      <div className="space-y-6">
+                          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Professional Templates</h3>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                              Browse our extensive library of fully customizable, industry-standard design templates created by professional graphic designers.
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                              {[1, 2, 3].map((i) => (
+                                  <div key={i} className="aspect-[4/3] rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center group overflow-hidden relative shadow-sm">
+                                      <LayoutTemplate className="w-10 h-10 text-slate-300 dark:text-slate-700 group-hover:scale-110 transition-transform" />
+                                      <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                          <Button size="sm" className="h-8 rounded-xl font-bold text-xs" asChild>
+                                              <Link href={`/design/${product.slug}/templates?${constructedQuery}`}>Use Template</Link>
+                                          </Button>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                  )}
+
+                  {activeTab === 'guidelines' && (
+                      <div className="space-y-6">
+                          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Design Guidelines</h3>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                              To ensure the highest quality print results, please ensure your uploaded artwork adheres to our pre-press technical specifications.
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Bleed & Safety Margins</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Include a 3mm bleed around all edges. Keep critical text and logos within the safety margin.</p>
+                              </div>
+                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Color Mode & Resolution</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Submit files in CMYK color space with a minimum resolution of 300 DPI for crystal clear printing.</p>
+                              </div>
+                          </div>
+                      </div>
+                  )}
+
+                  {activeTab === 'shipping' && (
+                      <div className="space-y-6">
+                          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Shipping Information</h3>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                              We offer secure, insured courier delivery across all major destinations with complete tracking visibility from dispatch to your doorstep.
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Standard Delivery</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">3-5 business days after dispatch.</p>
+                              </div>
+                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Express Priority</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">1-2 business days after dispatch.</p>
+                              </div>
+                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Packaging Assurance</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Weatherproof, rigid box transit packing.</p>
+                              </div>
+                          </div>
+                      </div>
+                  )}
+
+                  {activeTab === 'reviews' && (
+                      <div className="space-y-8">
+                          <div className="space-y-6">
+                              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                                  <div>
+                                      <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Customer Reviews</h3>
+                                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Based on 245 verified customer purchases</p>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-amber-500 font-black text-xl">
+                                      <Star className="w-5 h-5 fill-amber-500" /> 4.8 / 5.0
+                                  </div>
+                              </div>
+                              <div className="space-y-4 pt-2">
+                                  {[
+                                      { name: "Rahul Sharma", date: "May 14, 2026", comment: "Absolutely stunning print quality! The premium matte finish feels incredibly professional and elegant." },
+                                      { name: "Priya Patel", date: "May 10, 2026", comment: "Super fast turnaround time and the packaging was extremely secure. Will definitely order all my business cards here!" },
+                                  ].map((rev, idx) => (
+                                      <div key={idx} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                                          <div className="flex items-center justify-between">
+                                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">{rev.name}</span>
+                                              <span className="text-[10px] font-bold text-slate-400">{rev.date}</span>
+                                          </div>
+                                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">{rev.comment}</p>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+
+                          {/* SUB PRODUCT DESCRIPTION SECTION BELOW REVIEWS */}
+                          {(subProduct?.description || product.description) && (
+                              <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                      <FileText className="w-4 h-4 text-pink-600 dark:text-pink-400" /> About {subProduct?.name || product.name}
+                                  </h4>
+                                  <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-50 to-pink-50/30 dark:from-slate-950 dark:to-pink-950/20 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+                                      <p className="text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed whitespace-pre-wrap">
+                                          {subProduct?.description || product.description}
+                                      </p>
+                                  </div>
+                              </div>
+                          )}
+                      </div>
+                  )}
               </div>
-              <div className="flex-1 space-y-3 text-center md:text-left">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest border border-primary/20">
-                      <Sparkles className="w-3 h-3" />
-                      Project Initialization
+          </div>
+
+          {/* PREMIUM PRODUCT STORY & VALUE PROPOSITION */}
+          <div className="p-8 sm:p-12 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl shadow-2xl relative overflow-hidden border border-slate-800 space-y-12">
+              {/* Background Glows & Grids */}
+              <div className="absolute inset-0 bg-grid-white/[0.03] bg-[size:24px_24px]" />
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32" />
+              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-pink-500/10 rounded-full blur-3xl pointer-events-none -ml-32 -mb-32" />
+
+              <div className="relative z-10 max-w-3xl space-y-4">
+                  <Badge variant="outline" className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-xs px-3 py-1 rounded-full font-extrabold backdrop-blur-md uppercase tracking-wider">
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5 inline-block animate-pulse text-indigo-400" /> Premium Craftsmanship
+                  </Badge>
+                  <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight">
+                      Make an unforgettable first impression with business cards that feel as premium as your reputation.
+                  </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+                  {/* Key Features */}
+                  <div className="p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.07] transition-all duration-300 flex flex-col justify-between">
+                      <div className="space-y-4">
+                          <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-inner">
+                              <Star className="w-6 h-6" />
+                          </div>
+                          <h3 className="text-xl font-extrabold text-white tracking-tight">Key Features</h3>
+                          <ul className="space-y-3.5 pt-1">
+                              {[
+                                  "300 GSM premium cardstock for a substantial, professional feel",
+                                  "Stunning gloss lamination that catches light and protects against wear",
+                                  "Single or double-sided printing options to match your brand",
+                                  "Quick 4-5 day turnaround without compromising quality"
+                              ].map((feat, idx) => (
+                                  <li key={idx} className="flex items-start gap-3 text-xs font-bold text-slate-300 leading-relaxed">
+                                      <div className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5 border border-indigo-500/30">
+                                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                      </div>
+                                      {feat}
+                                  </li>
+                              ))}
+                          </ul>
+                      </div>
                   </div>
-                  <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
-                      {product.name}
-                  </h1>
-                  <p className="text-sm md:text-base text-muted-foreground font-medium max-w-2xl">
-                      Configure your production specifications for industrial-grade {product.name.toLowerCase()} fulfillment.
-                  </p>
-                  <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                      <Badge variant="outline" className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-slate-200 dark:border-slate-800 px-3 py-1 rounded-lg font-semibold text-[10px] text-slate-600">
-                          <Package2 size={12} className="mr-1.5 text-primary" />
-                          {subProduct.width === 0 && subProduct.height === 0 ? 'Custom Size' : `${subProduct.width} x ${subProduct.height} ${subProduct.unitType || 'mm'}`}
-                      </Badge>
-                      <Badge variant="outline" className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-slate-200 dark:border-slate-800 px-3 py-1 rounded-lg font-semibold text-[10px] text-slate-600">
-                          <ShieldCheck size={12} className="mr-1.5 text-primary" />
-                          G7 Certified
-                      </Badge>
+
+                  {/* Top Benefits */}
+                  <div className="p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.07] transition-all duration-300 flex flex-col justify-between">
+                      <div className="space-y-4">
+                          <div className="w-12 h-12 rounded-2xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 shadow-inner">
+                              <Trophy className="w-6 h-6" />
+                          </div>
+                          <h3 className="text-xl font-extrabold text-white tracking-tight">Top Benefits</h3>
+                          <p className="text-xs text-slate-300 font-medium leading-relaxed pt-1">
+                              Your Gloss Laminated Business Card isn&apos;t just contact information—it&apos;s a tangible representation of your professionalism. The 300 GSM weight gives it a luxurious heft that instantly signals quality, while the gloss lamination creates a mirror-like finish that makes colors pop and text shimmer.
+                          </p>
+                          <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                              This protective layer also ensures your cards stay pristine through countless handshakes, coffee meetings, and desk shuffles.
+                          </p>
+                      </div>
+                  </div>
+
+                  {/* Who It's For */}
+                  <div className="p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.07] transition-all duration-300 flex flex-col justify-between">
+                      <div className="space-y-4">
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner">
+                              <Briefcase className="w-6 h-6" />
+                          </div>
+                          <h3 className="text-xl font-extrabold text-white tracking-tight">Who It&apos;s For</h3>
+                          <p className="text-xs text-slate-300 font-medium leading-relaxed pt-1">
+                              Perfect for entrepreneurs, executives, and professionals who refuse to settle for ordinary. Whether you&apos;re closing deals, networking at conferences, or building client relationships, these cards elevate your personal brand and make you memorable.
+                          </p>
+                          <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                              Clients won&apos;t toss these aside—they&apos;ll keep them on their desk as a reminder of your excellence.
+                          </p>
+                      </div>
                   </div>
               </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              
-              {/* Left Column: Step-by-Step Configuration */}
-              <div className="lg:col-span-8 space-y-8">
-                
-                {/* Step 1: Physical Parameters */}
-                <section className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-700 delay-100">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-bold shadow-md shadow-primary/20">1</div>
-                        <div>
-                            <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">Production Configuration</h2>
-                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Set volume and physical attributes</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card className="border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-slate-900 rounded-2xl overflow-hidden group hover:ring-1 hover:ring-primary/20 transition-all duration-500">
-                            <CardHeader className="pb-1.5 p-5">
-                                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                                    <Hash className="w-3 h-3 text-primary" />
-                                    Order Quantity
-                                </Label>
-                            </CardHeader>
-                            <CardContent className="pb-5 px-5">
-                                <div className="relative group">
-                                    <Input 
-                                        type="number" 
-                                        min="1" 
-                                        value={quantity} 
-                                        onChange={(e) => setQuantity(e.target.value)}
-                                        onBlur={() => {
-                                            const val = parseInt(quantity, 10);
-                                            if (isNaN(val) || val < 1) setQuantity('1');
-                                        }}
-                                        className="h-12 text-2xl font-bold border-none bg-slate-50 dark:bg-slate-800/50 focus-visible:ring-primary rounded-xl pl-5"
-                                    />
-                                    <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest pointer-events-none">Units</span>
-                                </div>
-                                <div className="mt-3 flex items-center gap-1.5 text-[9px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/10 px-2.5 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-900/20">
-                                    <Zap size={10} className="fill-emerald-600/10" />
-                                    Volume discount tier automatically active
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {subProduct.maxPages > 1 ? (
-                            <Card className="border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-slate-900 rounded-2xl overflow-hidden group hover:ring-1 hover:ring-primary/20 transition-all duration-500">
-                                <CardHeader className="pb-1.5 p-5">
-                                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                                        <Layers className="w-3 h-3 text-primary" />
-                                        Print Coverage
-                                    </Label>
-                                </CardHeader>
-                                <CardContent className="pb-5 px-5">
-                                    <div className="grid grid-cols-2 gap-2 h-12">
-                                        <button 
-                                            onClick={() => setPages('1')}
-                                            className={cn(
-                                                "rounded-xl border font-semibold transition-all flex flex-col items-center justify-center gap-0.5",
-                                                pages === '1' ? "border-primary bg-primary text-white shadow-md shadow-primary/10" : "text-muted-foreground border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-slate-200"
-                                            )}
-                                        >
-                                            <span className="text-sm">Single Sided</span>
-                                        </button>
-                                        <button 
-                                            onClick={() => setPages('2')}
-                                            className={cn(
-                                                "rounded-xl border font-semibold transition-all flex flex-col items-center justify-center gap-0.5",
-                                                pages === '2' ? "border-primary bg-primary text-white shadow-md shadow-primary/10" : "text-muted-foreground border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:border-slate-200"
-                                            )}
-                                        >
-                                            <span className="text-sm">Double Sided</span>
-                                        </button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ) : (
-                             <Card className="border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-slate-900 rounded-2xl overflow-hidden opacity-50 grayscale pointer-events-none">
-                                <CardHeader className="pb-1.5 p-5">
-                                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Print Coverage</Label>
-                                </CardHeader>
-                                <CardContent className="pb-5 px-5">
-                                    <div className="h-12 flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200">
-                                        <span className="text-[10px] font-medium text-slate-400">Fixed: Single Sided</span>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-
-                    {subProduct.width === 0 && subProduct.height === 0 && (
-                        <Card className="border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-slate-900 rounded-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-                             <CardHeader className="p-5 border-b border-slate-50 dark:border-slate-800">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                                        <Scissors size={14} />
-                                    </div>
-                                    <div>
-                                        <CardTitle className="text-[10px] font-bold uppercase tracking-widest">Bespoke Dimensioning</CardTitle>
-                                        <CardDescription className="text-[9px] font-medium text-muted-foreground">Specify custom spatial requirements in {subProduct.unitType || 'mm'}.</CardDescription>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-6">
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Width</Label>
-                                        <div className="relative">
-                                            <Input 
-                                                type="number" 
-                                                value={customWidth} 
-                                                onChange={(e) => setCustomWidth(e.target.value)}
-                                                className="h-11 text-base font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/50 border-none focus-visible:ring-primary"
-                                            />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">{subProduct.unitType || 'mm'}</span>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Height</Label>
-                                        <div className="relative">
-                                            <Input 
-                                                type="number" 
-                                                value={customHeight} 
-                                                onChange={(e) => setCustomHeight(e.target.value)}
-                                                className="h-11 text-base font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/50 border-none focus-visible:ring-primary"
-                                            />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">{subProduct.unitType || 'mm'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-                </section>
-
-                {/* Step 2: Visual Enhancements */}
-                {(subProduct.spotUvAllowed || addonRules.length > 0 || availableDieCuts.length > 0) && (
-                    <section className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-700 delay-200">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-bold shadow-md shadow-primary/20">2</div>
-                            <div>
-                                <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">Premium Enhancements</h2>
-                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Industrial finishes and structural precision</p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                            {/* Spot UV */}
-                            {subProduct.spotUvAllowed && (
-                                <div 
-                                    onClick={() => setSpotUv(!spotUv)}
-                                    className={cn(
-                                        "group relative p-5 rounded-2xl border flex flex-col items-center gap-3 text-center transition-all duration-500 cursor-pointer overflow-hidden",
-                                        spotUv 
-                                            ? "border-amber-400 bg-amber-400/5 ring-1 ring-amber-400 shadow-lg shadow-amber-500/10" 
-                                            : "border-white dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 hover:shadow-md"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500",
-                                        spotUv ? "bg-amber-400 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-slate-200"
-                                    )}>
-                                        <Zap className={cn("w-6 h-6", spotUv ? "fill-white" : "")} />
-                                    </div>
-                                    <div className="space-y-0.5">
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-900 dark:text-white leading-none">Spot UV</p>
-                                        <p className="text-[9px] text-amber-600 dark:text-amber-400 font-semibold">PREMIUM GLOSS</p>
-                                    </div>
-                                    {spotUv && (
-                                        <div className="absolute top-2.5 right-2.5 animate-in zoom-in duration-300">
-                                            <CheckCircle2 className="w-4 h-4 text-amber-500 fill-white dark:fill-slate-900" />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Die Cut */}
-                            {availableDieCuts.length > 0 && (
-                                <div 
-                                    className={cn(
-                                        "group relative p-5 rounded-2xl border flex flex-col items-center gap-3 text-center transition-all duration-500 cursor-pointer overflow-hidden",
-                                        selectedDie
-                                            ? "border-indigo-500 bg-indigo-500/5 ring-1 ring-indigo-500 shadow-lg shadow-indigo-500/10" 
-                                            : "border-white dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 hover:shadow-md"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500",
-                                        selectedDie ? "bg-indigo-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-slate-200"
-                                    )}>
-                                        <Scissors className={cn("w-6 h-6", selectedDie ? "fill-white" : "")} />
-                                    </div>
-                                    <div className="w-full space-y-1.5">
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-900 dark:text-white leading-none">Die Cut</p>
-                                        <Select 
-                                            value={selectedDie ? String(selectedDie) : "none"} 
-                                            onValueChange={(val) => setSelectedDie(val === "none" ? null : parseInt(val, 10))}
-                                        >
-                                            <SelectTrigger className="h-6 w-full text-[9px] font-bold uppercase tracking-tighter border-none bg-slate-100 dark:bg-slate-800 rounded-md px-1.5 flex justify-between gap-0.5 focus:ring-0 text-slate-600 dark:text-slate-400">
-                                                <SelectValue placeholder="NONE" />
-                                            </SelectTrigger>
-                                            <SelectContent className="min-w-[180px] rounded-xl shadow-xl border-border/40">
-                                                <SelectItem value="none" className="rounded-lg">
-                                                    <div className="flex items-center gap-3 py-0.5">
-                                                        <div className="w-8 h-8 rounded-lg border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center bg-slate-50 dark:bg-slate-900 shrink-0">
-                                                            <Scissors size={12} className="text-slate-300" />
-                                                        </div>
-                                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">NO DIE CUT</span>
-                                                    </div>
-                                                </SelectItem>
-                                                {availableDieCuts.map(die => (
-                                                    <SelectItem key={die.id} value={String(die.id)} className="rounded-lg">
-                                                        <div className="flex items-center gap-3 py-0.5">
-                                                            {die.imageUrl && (
-                                                                <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shrink-0">
-                                                                    <Image 
-                                                                        src={resolveImagePath(die.imageUrl)} 
-                                                                        alt={die.name} 
-                                                                        width={32} 
-                                                                        height={32} 
-                                                                        className="object-cover" 
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                            <div className="flex flex-col items-start leading-none gap-1">
-                                                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-900 dark:text-white">{die.name}</span>
-                                                                <span className="text-[10px] font-semibold text-indigo-500">+₹{Number(((subProduct as any).dieCutPrices || {})[die.id] || 0).toFixed(2)}</span>
-                                                            </div>
-                                                        </div>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    {selectedDie && (
-                                        <div className="absolute top-2.5 right-2.5 animate-in zoom-in duration-300">
-                                            <CheckCircle2 className="w-4 h-4 text-indigo-500 fill-white dark:fill-slate-900" />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Custom Addons */}
-                            {addonRules.map(rule => {
-                                const isSelected = selectedAddons.includes(rule.id);
-                                const isCurved = rule.addonName?.toLowerCase().includes('curved') || rule.addonName?.toLowerCase().includes('round');
-                                
-                                return (
-                                    <div 
-                                        key={rule.id}
-                                        onClick={() => toggleAddon(rule.id)}
-                                        className={cn(
-                                            "group relative p-5 rounded-2xl border flex flex-col items-center gap-3 text-center transition-all duration-500 cursor-pointer overflow-hidden",
-                                            isSelected 
-                                                ? "border-primary bg-primary/5 ring-1 ring-primary shadow-lg shadow-primary/10" 
-                                                : "border-white dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 hover:shadow-md"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden relative transition-all duration-500",
-                                            isSelected ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-slate-200"
-                                        )}>
-                                            {rule.addonImageUrl ? (
-                                                <Image src={rule.addonImageUrl} alt={rule.addonName} fill className="object-cover" />
-                                            ) : (
-                                                isCurved ? <Square className="w-6 h-6 rounded-lg border-2 border-current" /> : <PlusCircle className="w-6 h-6" />
-                                            )}
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-900 dark:text-white leading-none line-clamp-1">{rule.addonName}</p>
-                                            <p className="text-[10px] text-primary font-semibold">+₹{Number(rule.addonPriceAmount)}</p>
-                                        </div>
-                                        {isSelected && (
-                                            <div className="absolute top-2.5 right-2.5 animate-in zoom-in duration-300">
-                                                <CheckCircle2 className="w-4 h-4 text-primary fill-white dark:fill-slate-900" />
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </section>
-                )}
-
-                {/* Step 3: Creative Direction */}
-                <section className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-700 delay-300">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-bold shadow-md shadow-primary/20">3</div>
-                        <div>
-                            <h2 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">Creative Selection</h2>
-                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Choose your design initiation path</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {options.map((option, idx) => (
-                            <Link key={option.title} href={option.href} className="group relative">
-                                <Card className="h-full border-none shadow-lg shadow-slate-200/40 dark:shadow-none bg-white dark:bg-slate-900 rounded-[1.5rem] overflow-hidden transition-all duration-500 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/10">
-                                    <CardHeader className="p-6 pb-3">
-                                        <div className="flex justify-between items-start">
-                                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all duration-500">
-                                                {option.icon}
-                                            </div>
-                                            {option.badge && (
-                                                <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-3 py-1 text-[8px] font-bold uppercase tracking-widest rounded-full">
-                                                    {option.badge}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="p-6 pt-0">
-                                        <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white mb-2">{option.title}</h3>
-                                        <p className="text-xs text-muted-foreground font-medium leading-relaxed mb-6">
-                                            {option.description}
-                                        </p>
-                                        <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-primary">
-                                            Initialize Project <ArrowRight size={12} className="group-hover:translate-x-1.5 transition-transform duration-500" />
-                                        </div>
-                                    </CardContent>
-                                    <div className="absolute inset-x-0 bottom-0 h-1 bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left" />
-                                </Card>
-                            </Link>
-                        ))}
-                    </div>
-                </section>
+          {/* RELATED PRODUCTS CAROUSEL: You May Also Like */}
+          <div className="space-y-6 pt-12 border-t border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">You May Also Like</h3>
+                  <div className="flex items-center gap-2">
+                      <button className="w-10 h-10 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition-all">
+                          <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <button className="w-10 h-10 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition-all">
+                          <ChevronRight className="w-5 h-5" />
+                      </button>
+                  </div>
               </div>
 
-              {/* Right Column: Dynamic Price Intelligence (Sticky) */}
-              <aside className="lg:col-span-4 lg:sticky lg:top-24 space-y-6">
-                
-                {/* Visual Quote Card */}
-                <Card className="border-none shadow-xl shadow-primary/10 bg-primary text-white rounded-[1.5rem] overflow-hidden relative group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-3xl -mr-12 -mt-12 animate-pulse" />
-                    <CardHeader className="p-6 pb-2 border-none">
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-[9px] font-bold uppercase tracking-widest opacity-80">Instant Quotation</CardTitle>
-                            <IndianRupee size={14} className="opacity-50" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-6 pt-0">
-                        {loadingPricing ? (
-                            <div className="flex items-center justify-center h-32">
-                                <Loader2 className="h-8 w-8 animate-spin text-white/50" />
-                            </div>
-                        ) : calculatedPrice ? (
-                            <div className="space-y-6">
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-end">
-                                        <span className="text-2xl md:text-3xl font-extrabold tracking-tighter flex items-center">
-                                            <IndianRupee className="mr-0.5 stroke-[3]" size={22} />
-                                            {calculatedPrice.final.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                        </span>
-                                    </div>
-                                    <p className="text-[9px] font-semibold text-white/60 uppercase tracking-widest">Net Payable (Incl. Taxes)</p>
-                                </div>
-
-                                <div className="space-y-2.5 pt-5 border-t border-white/10">
-                                    <div className="flex justify-between text-[10px] font-semibold text-white/80">
-                                        <span className="uppercase tracking-widest opacity-60">Production</span>
-                                        <span>₹{calculatedPrice.original.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                    </div>
-
-                                    {calculatedPrice.addons.map((addon, idx) => (
-                                        <div key={idx} className="flex justify-between text-[10px] font-semibold text-white">
-                                            <span className="uppercase tracking-widest opacity-60 flex items-center gap-1.5">
-                                                <div className="w-1 h-1 rounded-full bg-white/40" />
-                                                {addon.name}
-                                            </span>
-                                            <span className="text-primary-foreground font-bold">+ ₹{addon.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                        </div>
-                                    ))}
-                                    
-                                    {calculatedPrice.discount > 0 && (
-                                        <div className="flex justify-between text-[10px] font-bold bg-white/10 px-3 py-2 rounded-xl mt-3 animate-in slide-in-from-bottom-2 duration-500">
-                                            <span className="uppercase tracking-widest">SAVED {calculatedPrice.description}</span>
-                                            <span>- ₹{calculatedPrice.discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="pt-5">
-                                    <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-white/5 border border-white/10">
-                                        <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                                            <Package2 size={16} />
-                                        </div>
-                                        <div>
-                                            <p className="text-[9px] font-bold uppercase tracking-widest opacity-60">Unit Price</p>
-                                            <p className="text-base font-bold tracking-tight">₹{(calculatedPrice.final / parseInt(quantity, 10)).toFixed(2)} <span className="text-[9px] opacity-60 font-semibold uppercase ml-0.5">per Unit</span></p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center h-32 italic font-semibold text-white/30 text-xs">Calibrating...</div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Volume Advantage Matrix */}
-                {discountRules.length > 0 && (
-                    <Card className="border-none shadow-lg bg-white dark:bg-slate-900 rounded-[1.5rem] overflow-hidden">
-                        <CardHeader className="p-5 bg-amber-400/10 dark:bg-amber-400/5 border-b border-amber-400/10">
-                            <CardTitle className="text-[9px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                                <Zap className="w-3.5 h-3.5 fill-amber-500" />
-                                Volume Advantage Matrix
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-5">
-                            <div className="grid gap-2.5">
-                                {discountRules.map(rule => {
-                                    const qty = parseInt(quantity, 10);
-                                    const isActive = !isNaN(qty) && qty >= (rule.minQuantity || 1) && (!rule.maxQuantity || qty <= rule.maxQuantity);
-                                    return (
-                                        <div key={rule.id} className={cn(
-                                            "flex items-center justify-between p-3.5 rounded-xl border transition-all", 
-                                            isActive 
-                                                ? "border-amber-400 bg-amber-400/5 shadow-md shadow-amber-500/10" 
-                                                : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 opacity-60"
-                                        )}>
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-widest">{rule.minQuantity || 1}{rule.maxQuantity ? `-${rule.maxQuantity}` : '+'} Units</span>
-                                                <span className="text-[8px] font-semibold text-muted-foreground uppercase">Production Tier</span>
-                                            </div>
-                                            <Badge className={cn("rounded-lg px-2.5 py-0.5 font-bold text-[9px]", isActive ? "bg-amber-400 text-white" : "bg-slate-200 text-slate-500")}>
-                                                {rule.discountType === 'percentage' ? `${rule.discountValue}% OFF` : `₹${rule.discountValue} OFF`}
-                                            </Badge>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Trust Intelligence Section */}
-                <div className="p-6 rounded-[1.5rem] bg-slate-900 text-white space-y-4">
-                    <div className="flex -space-x-2.5">
-                        {[1,2,3,4].map(i => (
-                            <div key={i} className="w-8 h-8 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center overflow-hidden">
-                                <div className="w-full h-full bg-primary/20 flex items-center justify-center">
-                                    <ShieldCheck size={12} className="text-primary" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="space-y-1.5">
-                        <h4 className="text-sm font-bold tracking-tight leading-none">Pre-Press Assurance</h4>
-                        <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
-                            Manual technical audit for resolution, bleed, and ink density.
-                        </p>
-                    </div>
-                </div>
-
-              </aside>
-            </div>
-
-            {/* NEW: Formal Product Intelligence Section */}
-            <div className="mt-20 space-y-20 border-t border-slate-200 dark:border-slate-800 pt-20 pb-12">
-                
-                {/* 1. Feature Arsenal */}
-                <div className="space-y-10">
-                    <div className="flex flex-col items-center text-center space-y-3 max-w-3xl mx-auto">
-                        <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-5 py-1.5 text-[9px] font-bold uppercase tracking-widest rounded-full">Capability Matrix</Badge>
-                        <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">Industrial Feature Arsenal</h2>
-                        <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-xl">
-                            Technical capabilities engineered into every unit of {product.name}.
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {[
-                            { 
-                                icon: Sparkles, 
-                                title: "Premium Finishing", 
-                                features: ["Spot UV Varnish", "Soft-touch Lamination", "Metallic Foil Accents", "Embossed Textures"] 
-                            },
-                            { 
-                                icon: ShieldCheck, 
-                                title: "Production Rigor", 
-                                features: ["G7 Certified Color", "Precision Die-cutting", "300+ DPI Clarity", "Structural Stress Tested"] 
-                            },
-                            { 
-                                icon: Zap, 
-                                title: "Rapid Fulfillment", 
-                                features: ["Next-day Dispatch", "Live Tracking", "Safe-transit Packing", "Volume Scaling"] 
-                            },
-                        ].map((group, i) => (
-                            <div key={i} className="p-7 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:shadow-xl hover:shadow-primary/5 transition-all duration-700 group relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left" />
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-primary shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-500">
-                                        <group.icon size={20} />
-                                    </div>
-                                </div>
-                                <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white uppercase tracking-tight">{group.title}</h3>
-                                <ul className="space-y-3">
-                                    {group.features.map((feature, j) => (
-                                        <li key={j} className="flex items-center gap-2.5">
-                                            <div className="w-1 h-1 rounded-full bg-primary/40 shrink-0" />
-                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{feature}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* 2. Technical Specs & Variant Matrix */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                    {/* Left: Deep Specs */}
-                    <div className="lg:col-span-7 space-y-8">
-                        <div className="space-y-3">
-                            <h3 className="text-lg font-extrabold flex items-center gap-3 text-slate-900 dark:text-white uppercase tracking-tighter">
-                                <div className="w-1.5 h-6 bg-primary rounded-full" />
-                                Technical Blueprint
-                            </h3>
-                            <p className="text-xs text-slate-500 font-medium max-w-lg">
-                                Industrial parameters for {product.name.toLowerCase()} production.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {[
-                                { label: 'Paper Stock', value: subProduct.priceType === 'per_sqft' ? 'Industrial Flex' : '350 GSM Silk' },
-                                { label: 'Coating System', value: spotUv ? 'Spot UV + Matte' : 'Industrial Aqueous' },
-                                { label: 'Inking', value: 'High-Density CMYK' },
-                                { label: 'Bleed Zone', value: '3mm Industrial' },
-                                { label: 'Color Space', value: 'GRACoL 2013' },
-                                { label: 'Resolution', value: '300 DPI Min' },
-                            ].map((spec, i) => (
-                                <div key={i} className="flex justify-between items-center p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 group hover:border-primary/20 transition-all duration-500">
-                                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{spec.label}</span>
-                                    <span className="text-[10px] font-bold text-slate-900 dark:text-white uppercase">{spec.value}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Right: Scale Matrix */}
-                    <div className="lg:col-span-5">
-                        <div className="p-7 rounded-[2rem] bg-slate-900 text-white relative overflow-hidden h-full flex flex-col">
-                            <div className="absolute bottom-0 right-0 w-48 h-48 bg-primary/20 rounded-full blur-3xl -mb-24 -mr-24" />
-                            <h3 className="text-lg font-bold uppercase tracking-tighter mb-6 flex items-center gap-2.5">
-                                <Package2 className="text-primary" />
-                                Scale Matrix
-                            </h3>
-                            <div className="space-y-4 flex-1">
-                                {pricingRules.filter(r => !r.isDiscount && !r.isAddon && !r.isContest && !r.isVerification).map((rule, i) => (
-                                    <div key={i} className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-white/10 group hover:bg-white/10 transition-all">
-                                        <div className="flex flex-col">
-                                            <span className="text-[9px] font-bold uppercase tracking-widest text-white/50">{rule.minQuantity}{rule.maxQuantity ? `-${rule.maxQuantity}` : '+'} Units</span>
-                                            <span className="text-sm font-bold">Tier {i+1}</span>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="text-base font-bold text-primary">₹{Number(rule.unitPrice).toFixed(2)}</span>
-                                            <p className="text-[8px] font-semibold text-white/40 uppercase">per Unit</p>
-                                        </div>
-                                    </div>
-                                ))}
-                                {pricingRules.filter(r => !r.isDiscount && !r.isAddon && !r.isContest && !r.isVerification).length === 0 && (
-                                    <div className="flex flex-col items-center justify-center py-10 text-white/20">
-                                        <Info size={24} className="mb-3" />
-                                        <p className="text-[9px] font-bold uppercase tracking-widest">Custom Scale</p>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="mt-8 pt-8 border-t border-white/10">
-                                <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/40 mb-1.5">Production Status</p>
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                    <span className="text-[10px] font-bold uppercase tracking-widest">Capacity Available</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                  {(() => {
+                      const relatedSubProducts = product.subProducts.filter(sp => sp.id !== subProduct?.id);
+                      const displaySubProducts = relatedSubProducts.length > 0 ? relatedSubProducts : product.subProducts;
+                      return displaySubProducts.map((rel) => {
+                          const imageSrc = rel.imageUrl || rel.imageUrls?.[0] || product.imageUrl;
+                          return (
+                              <Link 
+                                  key={rel.id} 
+                                  href={`/design/${product.slug}?subProductId=${rel.id}`}
+                                  className="group border border-slate-200/80 dark:border-slate-800/80 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col p-4 space-y-4"
+                              >
+                                  <div className="aspect-[4/3] rounded-2xl bg-slate-100 dark:bg-slate-950 flex items-center justify-center overflow-hidden relative border border-slate-200/50 dark:border-slate-800/50">
+                                      {imageSrc ? (
+                                          <Image src={resolveImagePath(imageSrc)} alt={rel.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                                      ) : (
+                                          <LayoutTemplate className="w-10 h-10 text-slate-300 dark:text-slate-700 group-hover:scale-110 transition-transform duration-500" />
+                                      )}
+                                  </div>
+                                  <div className="space-y-1 text-center sm:text-left flex-1 flex flex-col justify-between">
+                                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">{rel.name}</h4>
+                                      <p className="text-xs font-extrabold text-slate-400 dark:text-slate-500 pt-2">From ₹{parseFloat(rel.price || '0').toLocaleString('en-IN', {minimumFractionDigits: 2})}</p>
+                                  </div>
+                              </Link>
+                          );
+                      });
+                  })()}
+              </div>
           </div>
+
+        </div>
     </main>
   );
-}
-
-function FinishingGuide({ foilTypes }: { foilTypes: FoilType[] }) {
-    return (
-        <div className="space-y-10">
-            <div className="space-y-3">
-                <h3 className="text-xl font-bold flex items-center gap-3 text-slate-800 dark:text-slate-100">
-                    <div className="w-1.5 h-6 bg-amber-500 rounded-full" />
-                    Finishing Guide
-                </h3>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                    Professional finishes available within our editor.
-                </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                {/* Spot UV Section */}
-                <div className="flex flex-col sm:flex-row gap-5 items-start">
-                    <div className="w-full sm:w-1/2 aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
-                        <div className="relative w-full h-full bg-slate-900 flex flex-col items-center justify-center">
-                            <div className="text-white/10 text-2xl font-bold tracking-widest uppercase select-none">MATTE</div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-20 h-20 bg-amber-400/10 rounded-full blur-2xl" />
-                                <div className="w-14 h-14 bg-amber-400/90 rounded-full shadow-[0_0_30px_rgba(251,191,36,0.5)] border border-amber-300 flex items-center justify-center transform -rotate-12">
-                                    <span className="text-amber-950 font-extrabold text-[10px] tracking-tighter">GLOSS</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-1.5">
-                            <Sparkle className="w-3.5 h-3.5 text-amber-600" />
-                            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Spot UV</h4>
-                        </div>
-                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-                            Glossy liquid coating that creates a beautiful contrast against matte surfaces.
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                            <Badge variant="outline" className="text-[8px] py-0 border-emerald-500/20 text-emerald-600">Raised</Badge>
-                            <Badge variant="outline" className="text-[8px] py-0 border-emerald-500/20 text-emerald-600">Matte</Badge>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Foils Section */}
-                <div className="flex flex-col sm:flex-row gap-5 items-start">
-                    <div className="w-full sm:w-1/2 aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shrink-0">
-                        <div className="relative w-full h-full bg-slate-950 flex flex-col items-center justify-center overflow-hidden">
-                            <div className="grid grid-cols-3 gap-1.5 relative z-10">
-                                {foilTypes.length > 0 ? (
-                                    foilTypes.slice(0, 3).map((foil, i) => (
-                                        <div key={i} className="w-6 h-6 rounded-full border border-white/20 shadow-md" style={{ background: foil.colorCode || '#ffd700' }} />
-                                    ))
-                                ) : (
-                                    ['#FFD700', '#C0C0C0', '#B87333'].map((color, i) => (
-                                        <div key={i} className="w-6 h-6 rounded-full border border-white/20 shadow-md" style={{ backgroundColor: color }} />
-                                    ))
-                                )}
-                            </div>
-                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-50" />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-1.5">
-                            <Layers className="w-3.5 h-3.5 text-indigo-600" />
-                            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Metallic Foil</h4>
-                        </div>
-                        <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-                            Metallic layers stamped onto your design for mirror-like brilliance.
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                            <Badge variant="outline" className="text-[8px] py-0 border-indigo-500/20 text-indigo-600">Mirror</Badge>
-                            <Badge variant="outline" className="text-[8px] py-0 border-indigo-500/20 text-indigo-600">Multi</Badge>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                    <Info size={16} />
-                </div>
-                <div className="flex-1">
-                    <p className="text-[10px] font-bold text-slate-800 dark:text-slate-100 leading-tight">Editor Hint</p>
-                    <p className="text-[9px] text-slate-500 font-medium leading-tight">Apply finishes in the editor toolbar.</p>
-                </div>
-                <Button variant="outline" size="sm" className="text-[9px] h-7 rounded-md" asChild>
-                    <Link href={`/design/${foilTypes[0]?.name ? 'guide' : '#'}`}>View Guide</Link>
-                </Button>
-            </div>
-        </div>
-    );
 }

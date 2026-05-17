@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import Image from "next/image";
 import { resolveImagePath } from "@/lib/utils";
-import { FileText, IndianRupee, Package, Clock, ShieldCheck, Search, Filter, ArrowRight } from "lucide-react";
+import { FileText, IndianRupee, Package, Clock, ShieldCheck, Search, Filter, ArrowRight, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -117,11 +117,18 @@ export default async function MyOrdersPage() {
                                     <p className="text-xs font-medium text-muted-foreground flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Tracking Available
                                     </p>
-                                    <Link href={`/client/orders/${order.id}`}>
-                                        <Button variant="ghost" size="sm" className="font-bold text-xs uppercase tracking-widest hover:text-primary">
-                                            View Details <ArrowRight className="w-3 h-3 ml-2" />
+                                    <div className="flex items-center gap-2">
+                                        <Button asChild variant="outline" size="sm" className="font-bold text-xs uppercase tracking-widest text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 shadow-sm">
+                                            <Link href={`/client/orders/${order.id}/invoice`} target="_blank">
+                                                <Download className="w-3 h-3 mr-1.5" /> Invoice
+                                            </Link>
                                         </Button>
-                                    </Link>
+                                        <Link href={`/client/orders/${order.id}`}>
+                                            <Button variant="ghost" size="sm" className="font-bold text-xs uppercase tracking-widest hover:text-primary">
+                                                View Details <ArrowRight className="w-3 h-3 ml-2" />
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </CardFooter>
                             </Card>
                         );

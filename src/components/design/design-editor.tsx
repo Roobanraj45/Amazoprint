@@ -42,6 +42,7 @@ import {
   Trash2,
   PlayCircle,
   LayoutDashboard,
+  Lock,
 } from 'lucide-react';
 import { PropertiesPanel } from '@/components/design/properties-panel';
 import { DesignCanvas } from '@/components/design/design-canvas';
@@ -110,6 +111,7 @@ type DesignEditorProps = {
   contestId?: string | null;
   currentUserId?: string | null;
   initialDesign?: any;
+  isReadonly?: boolean;
 };
 
 function DesignEditorInternal({
@@ -133,6 +135,7 @@ function DesignEditorInternal({
   verificationId,
   contestId,
   currentUserId,
+  isReadonly = false,
 }: DesignEditorProps) {
   const router = useRouter();
   const { setLeftOpen, rightOpen, setRightOpen } = useSidebar();
@@ -411,6 +414,7 @@ function DesignEditorInternal({
   }, [isDirty]);
 
   const updatePage = useCallback((pageIndex: number, newPageData: Partial<Page>) => {
+    if (isReadonly) return;
     setIsDirty(true);
     setState(prev => {
       if (!prev) return prev;
@@ -418,7 +422,7 @@ function DesignEditorInternal({
       newPages[pageIndex] = { ...newPages[pageIndex], ...newPageData };
       return { ...prev, pages: newPages };
     })
-  }, [setState]);
+  }, [setState, isReadonly]);
 
   const finalizePath = useCallback((pathOverride?: PathPoint[], forceClosed?: boolean) => {
     const pathToFinalize = pathOverride || livePath;
@@ -1330,6 +1334,7 @@ function DesignEditorInternal({
   };
 
   const updateElement = (id: string, newProps: Partial<DesignElement>) => {
+    if (isReadonly) return;
     const recursiveUpdate = (els: DesignElement[], targetId: string, props: Partial<DesignElement>): DesignElement[] => {
       return els.map(el => {
         if (el.id === targetId) return { ...el, ...props };
@@ -1429,6 +1434,10 @@ function DesignEditorInternal({
   const onBackgroundChange = (newBackground: Background) => updatePage(currentPage, { background: newBackground });
 
   const handleSave = async () => {
+    if (isReadonly) {
+      toast({ variant: 'destructive', title: 'Design Locked', description: 'This design is locked because the associated order is currently in active production.' });
+      return;
+    }
     if (!currentUserId) {
       toast({ 
         variant: 'destructive', 
@@ -1505,6 +1514,10 @@ function DesignEditorInternal({
   };
 
   const handleOrder = async () => {
+    if (isReadonly) {
+      toast({ variant: 'destructive', title: 'Design Locked', description: 'This design is locked because the associated order is currently in active production.' });
+      return;
+    }
     setIsOrdering(true);
     let designId = currentDesignId;
 
@@ -2263,10 +2276,18 @@ function DesignEditorInternal({
           currentPage={currentPage}
           totalPages={totalPages}
           setCurrentPage={setCurrentPage}
+          isReadonly={isReadonly}
         />
 
-        <div className="flex overflow-hidden relative">
-          <EditorSidebarLeft
+        <div className="flex flex-col overflow-hidden relative">
+          {isReadonly && (
+            <div className="bg-amber-500 text-slate-950 font-extrabold text-xs px-4 py-2 flex items-center justify-center gap-2 shadow-md z-40">
+              <Lock className="w-4 h-4 shrink-0" />
+              <span>View Only Mode: This design is locked because the associated order is currently in active production. Editing and saving are disabled.</span>
+            </div>
+          )}
+          <div className="flex flex-1 overflow-hidden relative">
+            <EditorSidebarLeft
             activeTool={activeTool}
             setActiveTool={setActiveTool}
             activePanel={activeLeftPanel}
@@ -2433,7 +2454,8 @@ function DesignEditorInternal({
           )}
         </div>
       </div>
-      <LoadDesignDialog isOpen={isLoadDialogOpen} onOpenChange={setIsLoadDialogOpen} onLoad={handleLoadDesign} />
+    </div>
+    <LoadDesignDialog isOpen={isLoadDialogOpen} onOpenChange={setIsLoadDialogOpen} onLoad={handleLoadDesign} />
       
       <Sheet open={isHelpOpen} onOpenChange={setIsHelpOpen}>
           <SheetContent side="right" className="w-[400px] sm:w-[540px] overflow-y-auto">

@@ -23,9 +23,36 @@ export async function POST(req: NextRequest) {
 
     const { email, password, keepLoggedIn } = parsed.data;
 
-    const user = await db.query.users.findFirst({
+    let user: { id: string; role: string; name: string; passwordHash: string } | null = null;
+
+    // 1. Check primary users table (customers, freelancers)
+    const dbUser = await db.query.users.findFirst({
       where: eq(users.email, email.toLowerCase()),
     });
+
+    if (dbUser) {
+      user = { id: dbUser.id, role: dbUser.role, name: dbUser.name, passwordHash: dbUser.passwordHash };
+    } else {
+      // 2. Check admins table
+      const { admins } = await import('@/db/schema');
+      const dbAdmin = await db.query.admins.findFirst({
+        where: eq(admins.email, email.toLowerCase()),
+      });
+
+      if (dbAdmin) {
+        user = { id: dbAdmin.id, role: dbAdmin.role, name: dbAdmin.name, passwordHash: dbAdmin.passwordHash };
+      } else {
+        // 3. Check print press users
+        const { printPressUsers } = await import('@/db/schema');
+        const dbPrinter = await db.query.printPressUsers.findFirst({
+          where: eq(printPressUsers.email, email.toLowerCase()),
+        });
+
+        if (dbPrinter) {
+          user = { id: dbPrinter.id, role: 'printer', name: dbPrinter.fullName, passwordHash: dbPrinter.passwordHash };
+        }
+      }
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });

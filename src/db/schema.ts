@@ -124,6 +124,10 @@ export const printPressUsers = pgTable('print_press_users', {
   };
 });
 
+export const printPressUsersRelations = relations(printPressUsers, ({ many }) => ({
+  assignedOrders: many(orders),
+}));
+
 
 export const products = pgTable('products', {
   id: serial('id').primaryKey(),
@@ -170,6 +174,8 @@ export const subProducts = pgTable('sub_products', {
   width: numeric('width', { precision: 10, scale: 2 }).notNull(),
   height: numeric('height', { precision: 10, scale: 2 }).notNull(),
   imageUrl: text('image_url'),
+  imageUrls: text('image_urls').array().default([]),
+  description: text('description'),
   isActive: boolean('is_active').default(true),
   maxPages: integer('max_pages').default(1).notNull(),
   spotUvAllowed: boolean('spot_uv_allowed').default(false).notNull(),
@@ -432,6 +438,7 @@ export const orders = pgTable('orders', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   paymentId: integer('payment_id').references(() => payments.id, { onDelete: 'set null' }),
+  printerAssigned: uuid('printer_assigned').references(() => printPressUsers.id, { onDelete: 'set null' }),
 }, (table) => {
     return {
         userIdx: index('idx_orders_user_id').on(table.userId),
@@ -442,7 +449,29 @@ export const orders = pgTable('orders', {
         createdAtIdx: index('idx_orders_created_at').on(table.createdAt),
         directSellingProductIdIdx: index('idx_orders_direct_selling_product_id').on(table.directSellingProductId),
         paymentIdIdx: index('idx_orders_payment_id').on(table.paymentId),
+        printerAssignedIdx: index('idx_orders_printer_assigned').on(table.printerAssigned),
     };
+});
+
+export const orderLogs = pgTable('order_logs', {
+  id: serial('id').primaryKey(),
+  orderId: integer('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  actionType: varchar('action_type', { length: 50 }).notNull(),
+  oldValue: jsonb('old_value'),
+  newValue: jsonb('new_value'),
+  message: text('message'),
+  metadata: jsonb('metadata').default({}),
+  performedBy: uuid('performed_by'), // Removed FK as performer can be admin/printer/user in separate tables
+  performedByRole: varchar('performed_by_role', { length: 50 }),
+  isCustomerVisible: boolean('is_customer_visible').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => {
+  return {
+    orderIdIdx: index('idx_order_logs_order_id').on(table.orderId),
+    actionTypeIdx: index('idx_order_logs_action_type').on(table.actionType),
+    createdAtIdx: index('idx_order_logs_created_at').on(table.createdAt),
+    performedByIdx: index('idx_order_logs_performed_by').on(table.performedBy),
+  };
 });
 
 export const directSellingProducts = pgTable('direct_selling_products', {
@@ -665,7 +694,7 @@ export const verificationMessagesRelations = relations(verificationMessages, ({ 
     }),
 }));
 
-export const ordersRelations = relations(orders, ({ one }) => ({
+export const ordersRelations = relations(orders, ({ one, many }) => ({
     user: one(users, {
         fields: [orders.userId],
         references: [users.id],
@@ -693,6 +722,18 @@ export const ordersRelations = relations(orders, ({ one }) => ({
     payment: one(payments, {
         fields: [orders.paymentId],
         references: [payments.id],
+    }),
+    printer: one(printPressUsers, {
+        fields: [orders.printerAssigned],
+        references: [printPressUsers.id],
+    }),
+    logs: many(orderLogs),
+}));
+
+export const orderLogsRelations = relations(orderLogs, ({ one }) => ({
+    order: one(orders, {
+        fields: [orderLogs.orderId],
+        references: [orders.id],
     }),
 }));
 

@@ -1,5 +1,7 @@
 'use client';
 
+import { usePathname } from "next/navigation";
+
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
 import { Home, ShoppingCart, PenSquare, CreditCard, LogOut, Trophy, UploadCloud, Palette, ShieldCheck, Package, Bell, Search } from "lucide-react"
 import Link from "next/link"
@@ -7,17 +9,20 @@ import { AmazoprintLogo } from "@/components/ui/logo"
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const router = useRouter();
+  
   const menuItems = [
-    { href: "/client/dashboard", label: "Dashboard", icon: <Home /> },
-    { href: "/products", label: "Products", icon: <Palette /> },
-    { href: "/client/orders", label: "My Orders", icon: <Package /> },
-    { href: "/client/designs", label: "My Designs", icon: <PenSquare /> },
-    { href: "/client/contests", label: "My Contests", icon: <Trophy /> },
-    { href: "/client/my-uploads", label: "My Uploads", icon: <UploadCloud /> },
-    { href: "/client/payments", label: "Payments", icon: <CreditCard /> },
+    { href: "/client/dashboard", label: "Dashboard", icon: <Home size={16} />, color: "text-blue-500" },
+    { href: "/products", label: "Products", icon: <Palette size={16} />, color: "text-purple-500" },
+    { href: "/client/orders", label: "My Orders", icon: <Package size={16} />, color: "text-amber-500" },
+    { href: "/client/designs", label: "My Designs", icon: <PenSquare size={16} />, color: "text-emerald-500" },
+    { href: "/client/contests", label: "My Contests", icon: <Trophy size={16} />, color: "text-rose-500" },
+    { href: "/client/my-uploads", label: "My Uploads", icon: <UploadCloud size={16} />, color: "text-indigo-500" },
+    { href: "/client/payments", label: "Payments", icon: <CreditCard size={16} />, color: "text-slate-500" },
   ];
 
   const handleLogout = async () => {
@@ -27,48 +32,69 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <SidebarProvider>
-        <div className="flex h-screen w-full bg-zinc-50 dark:bg-zinc-950 text-foreground selection:bg-primary/10 selection:text-primary">
-            <Sidebar className="border-r border-border/40 bg-card/50 backdrop-blur-xl">
-                <SidebarHeader className="p-6">
-                    <Link href="/" className="flex items-center justify-start transition-transform hover:scale-105">
-                        <AmazoprintLogo />
+    <SidebarProvider className="print:!bg-white print:!min-h-0 print:!block print:!w-full print:!overflow-visible">
+        <div className="flex h-screen w-full bg-zinc-50 dark:bg-zinc-950 text-foreground selection:bg-primary/10 selection:text-primary font-sans print:!h-auto print:!w-full print:!bg-white print:!text-black print:!block print:!overflow-visible print:!p-0 print:!m-0">
+            <Sidebar className="w-56 border-r border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 backdrop-blur-xl print:!hidden">
+                <SidebarHeader className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-zinc-800/50 px-4">
+                    <Link href="/" className="w-full flex items-center justify-center transition-transform hover:scale-[1.02]">
+                        <AmazoprintLogo className="w-full h-auto" />
                     </Link>
                 </SidebarHeader>
-                <SidebarContent className="px-4">
-                    <SidebarMenu className="gap-2">
-                        {menuItems.map((item) => (
-                            <SidebarMenuItem key={item.label}>
-                                <SidebarMenuButton asChild className="rounded-xl hover:bg-primary/10 hover:text-primary transition-all group data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-bold h-11">
-                                    <Link href={item.href} className="flex items-center gap-3 px-3">
-                                        <div className="text-muted-foreground group-hover:text-primary transition-colors">
-                                          {item.icon}
-                                        </div>
-                                        <span className="font-medium tracking-tight text-sm">{item.label}</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        ))}
+                <SidebarContent className="px-2 py-4">
+                  
+                    <SidebarMenu className="gap-1">
+                        {menuItems.map((item) => {
+                            const isActive = pathname === item.href || (item.href !== "/client/dashboard" && pathname.startsWith(item.href));
+                            return (
+                                <SidebarMenuItem key={item.label}>
+                                    <SidebarMenuButton 
+                                        asChild 
+                                        className={cn(
+                                            "h-9 transition-all duration-200 rounded-lg group px-2",
+                                            isActive 
+                                                ? "bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:text-white" 
+                                                : "text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-900 dark:text-slate-400"
+                                        )}
+                                    >
+                                        <Link href={item.href} className="flex items-center gap-2">
+                                            <div className={cn(
+                                                "transition-transform group-hover:scale-110",
+                                                !isActive && item.color
+                                            )}>
+                                                {item.icon}
+                                            </div>
+                                            <span className="font-bold text-[11px] tracking-tight">{item.label}</span>
+                                            {isActive && (
+                                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                            )}
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            );
+                        })}
                     </SidebarMenu>
                 </SidebarContent>
-                <SidebarHeader className="p-4 mt-auto">
+                <SidebarHeader className="p-2 border-t border-slate-100 dark:border-zinc-800/50">
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton onClick={handleLogout} className="rounded-xl hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-colors h-11">
-                                <LogOut className="w-5 h-5" />
-                                <span className="font-semibold text-sm">Logout</span>
+                            <SidebarMenuButton 
+                                onClick={handleLogout} 
+                                className="rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 text-slate-400 transition-colors h-9 px-2"
+                            >
+                                <LogOut size={16} />
+                                <span className="font-bold text-[11px]">Logout</span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarHeader>
             </Sidebar>
 
-            <SidebarInset className="bg-transparent flex flex-col flex-1 overflow-hidden relative">
+            <SidebarInset className="bg-transparent flex flex-col flex-1 overflow-hidden relative print:!p-0 print:!m-0 print:!overflow-visible print:!w-full print:!block print:!bg-white print:!shadow-none print:!border-none">
                 {/* Background Ambient Effects */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10" />
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-violet-500/5 blur-[100px] rounded-full pointer-events-none -z-10" />
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10 print:!hidden" />
+                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-violet-500/5 blur-[100px] rounded-full pointer-events-none -z-10 print:!hidden" />
 
-                <header className="flex h-16 items-center justify-between gap-4 border-b border-border/40 bg-card/60 backdrop-blur-xl px-6 lg:px-10 z-10 sticky top-0">
+                <header className="flex h-16 items-center justify-between gap-4 border-b border-border/40 bg-card/60 backdrop-blur-xl px-6 lg:px-10 z-10 sticky top-0 print:!hidden">
                     <div className="flex items-center gap-4 flex-1">
                       <SidebarTrigger className="md:hidden text-muted-foreground hover:text-foreground transition-colors" />
                       <div className="relative hidden sm:block max-w-md w-full">
@@ -95,8 +121,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-auto relative z-0">
-                    <div className="min-h-full">
+                <main className="flex-1 overflow-auto relative z-0 print:!overflow-visible print:!p-0 print:!m-0 print:!block print:!w-full print:!bg-white print:!shadow-none print:!border-none">
+                    <div className="min-h-full print:!min-h-0 print:!block print:!w-full print:!p-0 print:!m-0 print:!overflow-visible">
                       {children}
                     </div>
                 </main>

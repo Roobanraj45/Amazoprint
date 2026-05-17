@@ -31,18 +31,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }, []);
 
     const menuItems = [
-        { href: "/admin/dashboard", label: "Dashboard", icon: <Home size={18} />, color: "group-hover:text-blue-500" },
-        { href: "/admin/products", label: "Products", icon: <ShoppingBag size={18} />, color: "group-hover:text-cyan-500" },
-        { href: "/admin/pricing", label: "Pricing", icon: <DollarSign size={18} />, color: "group-hover:text-emerald-500" },
-        { href: "/admin/direct-selling", label: "Direct Selling", icon: <Store size={18} />, color: "group-hover:text-lime-500" },
-        { href: "/admin/orders", label: "Orders", icon: <Package size={18} />, color: "group-hover:text-indigo-500" },
-        { href: "/admin/foils", label: "Foils", icon: <Sparkles size={18} />, color: "group-hover:text-fuchsia-500" },
-        { href: "/admin/contests", label: "Contests", icon: <Trophy size={18} />, color: "group-hover:text-orange-500" },
-        { href: "/admin/die-cuts", label: "Die Cuts", icon: <Scissors size={18} />, color: "group-hover:text-purple-600" },
-        { href: "/admin/users", label: "Users", icon: <Users size={18} />, color: "group-hover:text-sky-500" },
-        { href: "/admin/printers", label: "Printers", icon: <Factory size={18} />, color: "group-hover:text-blue-600" },
-        { href: "/admin/designs", label: "Designs", icon: <Palette size={18} />, color: "group-hover:text-rose-500" },
-        { href: "/admin/extract", label: "File Extract", icon: <FileArchive size={18} />, color: "group-hover:text-amber-600" },
+        { href: "/admin/dashboard", label: "Dashboard", icon: <Home size={14} />, color: "group-hover:text-blue-500" },
+        { href: "/admin/products", label: "Products", icon: <ShoppingBag size={14} />, color: "group-hover:text-cyan-500" },
+        { href: "/admin/pricing", label: "Pricing", icon: <DollarSign size={14} />, color: "group-hover:text-emerald-500" },
+        { href: "/admin/direct-selling", label: "Direct Selling", icon: <Store size={14} />, color: "group-hover:text-lime-500" },
+        { href: "/admin/orders", label: "Orders", icon: <Package size={14} />, color: "group-hover:text-indigo-500" },
+        { href: "/admin/foils", label: "Foils", icon: <Sparkles size={14} />, color: "group-hover:text-fuchsia-500" },
+        { href: "/admin/contests", label: "Contests", icon: <Trophy size={14} />, color: "group-hover:text-orange-500" },
+        { href: "/admin/die-cuts", label: "Die Cuts", icon: <Scissors size={14} />, color: "group-hover:text-purple-600" },
+        { href: "/admin/users", label: "Users", icon: <Users size={14} />, color: "group-hover:text-sky-500" },
+        { href: "/admin/printers", label: "Printers", icon: <Factory size={14} />, color: "group-hover:text-blue-600" },
+        { href: "/admin/designs", label: "Designs", icon: <Palette size={14} />, color: "group-hover:text-rose-500" },
+        { href: "/admin/extract", label: "File Extract", icon: <FileArchive size={14} />, color: "group-hover:text-amber-600" },
     ];
 
     const handleLogout = async () => {
@@ -56,15 +56,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex h-screen w-full bg-[#f8fafc] dark:bg-zinc-950 overflow-hidden">
                 <Sidebar collapsible="icon" className="border-r border-slate-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl">
                     <SidebarHeader className="h-16 border-b border-slate-200/60 dark:border-zinc-800/60">
-                        <Link href="/admin/dashboard" className="flex items-center justify-center h-full p-2 gap-2">
-                            <AmazoprintLogo />
-                            <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">Admin</span>
+                        <Link href="/admin/dashboard" className="flex items-center justify-center h-full w-full p-2">
+                            <AmazoprintLogo isSimple className="w-full h-10 px-2" />
                         </Link>
                     </SidebarHeader>
                     
-                    <SidebarContent className="px-3 pt-2 flex-1 space-y-1">
-                        <div className="px-4 mb-2 group-data-[collapsible=icon]:hidden">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Management</span>
+                    <SidebarContent className="px-2 pt-2 flex-1 space-y-0.5">
+                        <div className="px-3 mb-1 group-data-[collapsible=icon]:hidden">
+                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">Management</span>
                         </div>
                         <SidebarMenu>
                             {menuItems.map((item) => {
@@ -76,21 +75,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                         <SidebarMenuButton 
                                             asChild 
                                             className={cn(
-                                                "h-11 transition-all duration-200 rounded-xl group px-3",
+                                                "h-9 transition-all duration-200 rounded-lg group px-2",
                                                 isActive 
-                                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:text-white" 
+                                                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:text-white" 
                                                     : "text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-900 dark:text-slate-400"
                                             )}
                                             tooltip={item.label}
                                         >
-                                            <Link href={item.href} className="flex items-center gap-3">
+                                            <Link href={item.href} className="flex items-center gap-2">
                                                 <div className={cn(
                                                     "transition-transform group-hover:scale-110",
                                                     !isActive && item.color
                                                 )}>
                                                     {item.icon}
                                                 </div>
-                                                <span className="font-bold text-sm tracking-tight group-data-[collapsible=icon]:hidden">{item.label}</span>
+                                                <span className="font-bold text-xs tracking-tight group-data-[collapsible=icon]:hidden">{item.label}</span>
                                                 {isActive && (
                                                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse group-data-[collapsible=icon]:hidden" />
                                                 )}
@@ -102,19 +101,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         </SidebarMenu>
                     </SidebarContent>
 
-                    <SidebarFooter className="p-3 border-t border-slate-200/60 dark:border-zinc-800/60 mt-auto bg-slate-50/50 dark:bg-zinc-900/30">
-                        <SidebarMenu className="space-y-1">
+                    <SidebarFooter className="p-2 border-t border-slate-200/60 dark:border-zinc-800/60 mt-auto bg-slate-50/50 dark:bg-zinc-900/30">
+                        <SidebarMenu className="space-y-0.5">
                             <SidebarMenuItem>
                                 <SidebarMenuButton 
                                     asChild
                                     className={cn(
-                                        "h-11 rounded-xl transition-all",
+                                        "h-9 rounded-lg transition-all px-2",
                                         pathname === "/admin/change-password" ? "bg-slate-200 dark:bg-zinc-800" : "text-slate-500 hover:bg-slate-200/50"
                                     )}
                                 >
                                     <Link href="/admin/change-password">
-                                        <ShieldCheck size={18} className="text-slate-500" />
-                                        <span className="font-bold text-sm group-data-[collapsible=icon]:hidden">Security Settings</span>
+                                        <ShieldCheck size={14} className="text-slate-500" />
+                                        <span className="font-bold text-xs group-data-[collapsible=icon]:hidden">Security Settings</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -122,9 +121,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             <SidebarMenuItem>
                                 <SidebarMenuButton 
                                     onClick={handleLogout} 
-                                    className="h-11 rounded-xl text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 font-bold"
+                                    className="h-9 rounded-lg text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 font-bold px-2 text-xs"
                                 >
-                                    <LogOut size={18} />
+                                    <LogOut size={14} />
                                     <span className="group-data-[collapsible=icon]:hidden">Sign Out</span>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>

@@ -377,13 +377,13 @@ export function EditorHeader(props: any) {
             <div className="flex items-center gap-2">
 
                 <div className="hidden lg:flex items-center gap-2">
-                    <Button variant="outline" className="h-12 w-14 flex flex-col items-center gap-1 group" onClick={handleSave} disabled={props.isSaving}>
+                    <Button variant="outline" className="h-12 w-14 flex flex-col items-center gap-1 group" onClick={handleSave} disabled={props.isSaving || props.isReadonly}>
                         {props.isSaving ? (
                             <Loader2 className="h-4.5 w-4.5 animate-spin" />
                         ) : (
                             <Save className={iconClass} />
                         )}
-                        <span className={labelClass}>{props.isSaving ? 'Saving' : 'Save'}</span>
+                        <span className={labelClass}>{props.isSaving ? 'Saving' : (props.isReadonly ? 'Locked' : 'Save')}</span>
                     </Button>
 
                     <Button variant="outline" className="h-12 w-14 flex flex-col items-center gap-1 group" onClick={handlePreview}>
@@ -400,27 +400,27 @@ export function EditorHeader(props: any) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={handleSave}>Save</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={handleSave} disabled={props.isReadonly}>Save</DropdownMenuItem>
                             <DropdownMenuItem onSelect={handlePreview}>Preview</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
 
                 {isAdmin ? (
-                    <Button onClick={handleDownload} className="h-12 w-16 flex flex-col items-center justify-center gap-1 group bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <Button onClick={handleDownload} disabled={props.isReadonly} className="h-12 w-16 flex flex-col items-center justify-center gap-1 group bg-primary hover:bg-primary/90 text-primary-foreground">
                         {isDownloadingPdf ? (
                             <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
                             <>
                                 <Download className="h-5 w-5" />
-                                <span className="text-[10px] font-bold">Export</span>
+                                <span className="text-[10px] font-bold">{props.isReadonly ? 'Locked' : 'Export'}</span>
                             </>
                         )}
                     </Button>
                 ) : (
-                    <Button onClick={handleOrder} className="h-12 w-16 flex flex-col items-center justify-center gap-1 group bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <Button onClick={handleOrder} disabled={props.isReadonly} className="h-12 w-16 flex flex-col items-center justify-center gap-1 group bg-primary hover:bg-primary/90 text-primary-foreground">
                         <ShoppingCart className="h-5 w-5" />
-                        <span className="text-[10px] font-bold">Order</span>
+                        <span className="text-[10px] font-bold">{props.isReadonly ? 'Locked' : 'Order'}</span>
                     </Button>
                 )}
             </div>

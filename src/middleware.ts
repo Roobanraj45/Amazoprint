@@ -9,6 +9,7 @@ export function middleware(request: NextRequest) {
   const publicPaths = [
     '/login', 
     '/admin-login', 
+    '/printer-login',
     '/register', 
     '/contests', 
     '/products', 

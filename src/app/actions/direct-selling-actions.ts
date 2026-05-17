@@ -7,6 +7,7 @@ import { orders, directSellingProducts } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
+import { recordOrderLog } from './order-actions';
 
 // Helper to verify admin
 async function verifyAdmin() {
@@ -134,11 +135,26 @@ export async function placeDirectOrder(items: any[], shippingAddress: any, payme
             paymentMethod: 'Card', // Placeholder
             paymentStatus: 'paid', // Placeholder
             orderStatus: 'confirmed',
+            specialInstructions: item.customText || undefined,
             paymentId: paymentId,
         };
     });
 
     const newOrders = await db.insert(orders).values(orderValues).returning();
+    
+    // Log direct order creation
+    for (const order of newOrders) {
+        try {
+            await recordOrderLog({
+                orderId: order.id,
+                actionType: 'order_created',
+                newValue: { status: 'confirmed', total: order.totalAmount },
+                message: `Direct sale order created by ${session.name || 'customer'}`
+            });
+        } catch (e) {
+            console.error(`Failed to log direct order creation for order ${order.id}:`, e);
+        }
+    }
     
     revalidatePath('/client/orders');
     revalidatePath('/freelancer/orders');

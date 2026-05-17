@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation';
 import { DesignEditor } from '@/components/design/design-editor';
 import type { Product, DesignElement, Background, FoilType } from '@/lib/types';
 import { db } from '@/db';
-import { products, subProducts, dieCuts } from '@/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { products, subProducts, dieCuts, orders } from '@/db/schema';
+import { eq, asc, and, notInArray } from 'drizzle-orm';
 import { getDesign } from '@/app/actions/design-actions';
 import { getSession } from '@/lib/auth';
 import { getFoilTypes } from '@/app/actions/foil-actions';
@@ -25,6 +25,7 @@ type DesignPageProps = {
     contestId?: string;
     pages?: string;
     verificationId?: string;
+    readonly?: string;
   };
 };
 
@@ -76,7 +77,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
   const finalHeight = Math.round(finalHeightUnits * unitToPx);
 
   // The DesignEditor component expects a `Product` type from `@/lib/types`.
-  const productForEditor: Product = {
+  const productForEditor: Product & { price?: string } = {
     id: productData.slug,
     name: productData.name,
     description: productData.description || '',
@@ -88,6 +89,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
     subProductId: subProductForDims?.id,
     backSideCost: subProductForDims?.backSideCost,
     dieCutPrices: subProductForDims?.dieCutPrices,
+    price: subProductForDims?.price,
   };
 
 
@@ -105,6 +107,8 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
   const adminRoles = ['admin', 'super_admin', 'company_admin', 'designer'];
   const isAdmin = !!session?.role && adminRoles.includes(session.role);
   const isFreelancer = session?.role === 'freelancer';
+
+  let isServerReadonly = searchParams.readonly === 'true';
 
   let template = null;
   if (templateId) {
@@ -127,6 +131,18 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
       initialDesignName = template.name;
       if (isAuthorizedToUpdate) {
         initialDesignId = template.id;
+      }
+
+      // --- SERVER-SIDE LOCK ENFORCEMENT ---
+      // Check if there is any active order associated with this design
+      const activeOrder = await db.query.orders.findFirst({
+        where: and(
+          eq(orders.designId, Number(templateId)),
+          notInArray(orders.orderStatus, ['completed', 'delivered', 'cancelled', 'refunded'])
+        )
+      });
+      if (activeOrder) {
+        isServerReadonly = true;
       }
     }
   }
@@ -172,6 +188,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
         currentUserId={session?.sub}
         initialUnit={unitType as any}
         initialDesign={template}
+        isReadonly={isServerReadonly}
       />
     </Suspense>
   );

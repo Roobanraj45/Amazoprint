@@ -20,7 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-const SIDEBAR_WIDTH_ICON = "6rem"
+const SIDEBAR_WIDTH_ICON = "3.5rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContext = {
@@ -76,7 +76,7 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
-    const [leftWidth, setLeftWidth] = React.useState(24)
+    const [leftWidth, setLeftWidth] = React.useState(12)
     const [rightWidth, setRightWidth] = React.useState(20)
 
     const [_leftOpen, _setLeftOpen] = React.useState(defaultLeftOpen)

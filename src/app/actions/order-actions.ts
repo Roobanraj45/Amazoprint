@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { orders, designs, designUploads, products, subProducts } from '@/db/schema';
+import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs } from '@/db/schema';
 import { and, eq, desc } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -107,8 +107,22 @@ export async function createOrder(data: CreateOrderData) {
         paymentId,
     }).returning();
     
+    const newOrder = result[0];
+
+    // Log order creation
+    try {
+        await recordOrderLog({
+            orderId: newOrder.id,
+            actionType: 'order_created',
+            newValue: { status: 'confirmed', total: newOrder.totalAmount },
+            message: `Order created by ${session.name || 'customer'}`
+        });
+    } catch (e) {
+        console.error('Failed to log order creation:', e);
+    }
+
     revalidatePath('/client/orders');
-    return result[0];
+    return newOrder;
 }
 
 async function getProductBySlug(slug: string) {
@@ -305,9 +319,133 @@ export async function getMyOrderDetails(orderId: number) {
             design: true,
             designUpload: true,
             directSellingProduct: true,
+            payment: true,
+            logs: {
+                where: eq(orderLogs.isCustomerVisible, true),
+                orderBy: [desc(orderLogs.createdAt)]
+            }
         },
     });
 
     return order || null;
 }
 
+export async function assignPrinterToOrder(orderId: number, printerId: string | null) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    // Automatically update order status when printer is assigned
+    const newStatus = printerId ? 'processing' : 'confirmed';
+
+    // Get current order state for logging
+    const currentOrder = await db.query.orders.findFirst({
+        where: eq(orders.id, orderId),
+        columns: { printerAssigned: true, orderStatus: true }
+    });
+
+    await db.update(orders)
+        .set({ 
+            printerAssigned: printerId, 
+            orderStatus: newStatus,
+            updatedAt: new Date() 
+        })
+        .where(eq(orders.id, orderId));
+
+    // Log printer assignment
+    try {
+        await recordOrderLog({
+            orderId,
+            actionType: 'printer_assigned',
+            oldValue: { printer: currentOrder?.printerAssigned, status: currentOrder?.orderStatus },
+            newValue: { printer: printerId, status: newStatus },
+            message: printerId ? `Order assigned to printer and moved to production` : `Order unassigned and returned to confirmed status`
+        });
+    } catch (e) {
+        console.error('Failed to log printer assignment:', e);
+    }
+
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath('/admin/orders');
+    return { success: true };
+}
+
+export async function getApprovedPrinters() {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    return await db.query.printPressUsers.findMany({
+        where: eq(printPressUsers.isApproved, true),
+        columns: {
+            id: true,
+            fullName: true,
+            companyName: true,
+            city: true
+        }
+    });
+}
+
+export async function recordOrderLog({
+    orderId,
+    actionType,
+    oldValue = null,
+    newValue = null,
+    message = '',
+    metadata = {},
+    isCustomerVisible = true
+}: {
+    orderId: number;
+    actionType: string;
+    oldValue?: any;
+    newValue?: any;
+    message?: string;
+    metadata?: any;
+    isCustomerVisible?: boolean;
+}) {
+    const session = await getSession();
+    
+    await db.insert(orderLogs).values({
+        orderId,
+        actionType,
+        oldValue,
+        newValue,
+        message,
+        metadata,
+        performedBy: session?.sub,
+        performedByRole: session?.role || 'system',
+        isCustomerVisible,
+    });
+}
+
+export async function getPrinterAssignedOrders() {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized');
+    }
+
+    const assignedOrders = await db.query.orders.findMany({
+        where: eq(orders.printerAssigned, session.sub),
+        with: {
+            user: {
+                columns: {
+                    name: true,
+                    email: true,
+                    phone: true
+                }
+            },
+            product: true,
+            subProduct: true,
+            design: true,
+            designUpload: true,
+            directSellingProduct: true,
+        },
+        orderBy: [desc(orders.updatedAt)]
+    });
+
+    return assignedOrders;
+}
