@@ -466,14 +466,6 @@ export function StartDesignContent() {
                           <span className="text-slate-900 dark:text-white ml-1">4.8</span>
                           <span className="text-slate-400 dark:text-slate-500 font-semibold">(245 Reviews)</span>
                       </div>
-
-                      {(subProduct?.description || product.description) && (
-                          <div className="pt-2">
-                              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
-                                  {subProduct?.description || product.description}
-                              </p>
-                          </div>
-                      )}
                   </div>
 
                   {/* Option Groups Matrix */}
@@ -591,24 +583,29 @@ export function StartDesignContent() {
                           </div>
                       </div>
 
-                      {/* 3. Shapes & Die cuts */}
+                      {/* 3. Shapes & Die cuts (Proportioned Image Buttons) */}
                       <div className="space-y-3">
                           <Label className="text-xs font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
                               <span className="text-indigo-600 dark:text-indigo-400 font-black">3.</span> Shapes & Die cuts
                           </Label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                              {/* Default Standard Shape Pill */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                              {/* Default Standard Shape Card */}
                               <button 
                                   onClick={() => setSelectedDie(null)}
                                   className={cn(
-                                      "py-3 px-3 rounded-2xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm truncate",
+                                      "group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all overflow-hidden text-center shadow-sm hover:shadow-md",
                                       !selectedDie 
-                                          ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
-                                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                          ? "border-slate-900 dark:border-white bg-slate-900/5 dark:bg-white/5 ring-4 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
+                                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                                   )}
                               >
-                                  <LayoutTemplate className={cn("w-4 h-4 shrink-0", !selectedDie ? "text-white dark:text-slate-900" : "text-indigo-500")} />
-                                  <span className="truncate">Standard (No Die Cut)</span>
+                                  <div className="w-4/5 aspect-[4/3] mx-auto bg-slate-100 dark:bg-slate-800/50 rounded-xl flex items-center justify-center mb-2 group-hover:scale-105 transition-transform p-2">
+                                      <LayoutTemplate className={cn("w-7 h-7", !selectedDie ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-600")} />
+                                  </div>
+                                  <span className={cn("text-xs font-black tracking-tight line-clamp-1", !selectedDie ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300")}>
+                                      Standard (No Die Cut)
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-bold mt-0.5">Regular Cut</span>
                               </button>
 
                               {availableDieCuts.map(die => (
@@ -616,32 +613,35 @@ export function StartDesignContent() {
                                       key={die.id}
                                       onClick={() => setSelectedDie(selectedDie === die.id ? null : die.id)}
                                       className={cn(
-                                          "py-3 px-3 rounded-2xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm truncate",
+                                          "group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all overflow-hidden text-center shadow-sm hover:shadow-md",
                                           selectedDie === die.id 
-                                              ? "border-indigo-600 bg-indigo-600/10 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-600/20 shadow-md scale-[1.02]" 
-                                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                              ? "border-indigo-600 bg-indigo-600/5 ring-4 ring-indigo-600/20 scale-[1.02]" 
+                                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                                       )}
                                   >
-                                      <div className="flex items-center gap-1.5 shrink-0">
+                                      <div className="w-4/5 aspect-[4/3] mx-auto bg-slate-100 dark:bg-slate-800/50 rounded-xl flex items-center justify-center mb-2 overflow-hidden relative group-hover:scale-105 transition-transform p-2">
                                           {die.imageUrl ? (
                                               <>
                                                   <img 
                                                       src={resolveImagePath(die.imageUrl)} 
                                                       alt={die.name || 'Die Cut'} 
-                                                      className="w-4 h-4 object-contain shrink-0" 
+                                                      className="w-full h-full object-contain" 
                                                       onError={(e) => { 
                                                           e.currentTarget.style.display = 'none'; 
                                                           const nextEl = e.currentTarget.nextElementSibling;
                                                           if (nextEl) nextEl.classList.remove('hidden');
                                                       }} 
                                                   />
-                                                  <Scissors className="w-4 h-4 shrink-0 hidden text-indigo-500" />
+                                                  <Scissors className="w-7 h-7 hidden text-indigo-500" />
                                               </>
                                           ) : (
-                                              <Scissors className="w-4 h-4 shrink-0 text-indigo-500" />
+                                              <Scissors className="w-7 h-7 text-indigo-500" />
                                           )}
                                       </div>
-                                      <span className="truncate">{die.name}</span>
+                                      <span className={cn("text-xs font-black tracking-tight line-clamp-1", selectedDie === die.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
+                                          {die.name}
+                                      </span>
+                                      <span className="text-[10px] text-indigo-500 font-bold mt-0.5">Custom Die Shape</span>
                                   </button>
                               ))}
                           </div>
@@ -1008,38 +1008,36 @@ export function StartDesignContent() {
           </div>
 
           {/* PREMIUM PRODUCT STORY & VALUE PROPOSITION */}
-          <div className="p-8 sm:p-12 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl shadow-2xl relative overflow-hidden border border-slate-800 space-y-12">
-              {/* Background Glows & Grids */}
-              <div className="absolute inset-0 bg-grid-white/[0.03] bg-[size:24px_24px]" />
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32" />
-              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-pink-500/10 rounded-full blur-3xl pointer-events-none -ml-32 -mb-32" />
+          <div className="p-8 sm:p-12 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm relative overflow-hidden space-y-12">
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32" />
+              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-pink-500/5 rounded-full blur-3xl pointer-events-none -ml-32 -mb-32" />
 
               <div className="relative z-10 max-w-3xl space-y-4">
-                  <Badge variant="outline" className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 text-xs px-3 py-1 rounded-full font-extrabold backdrop-blur-md uppercase tracking-wider">
-                      <Sparkles className="w-3.5 h-3.5 mr-1.5 inline-block animate-pulse text-indigo-400" /> Premium Craftsmanship
+                  <Badge variant="outline" className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 text-xs px-3 py-1 rounded-full font-extrabold uppercase tracking-wider w-fit">
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5 inline-block animate-pulse text-indigo-600 dark:text-indigo-400" /> Premium Craftsmanship
                   </Badge>
-                  <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-tight">
+                  <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
                       Make an unforgettable first impression with business cards that feel as premium as your reputation.
                   </h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
                   {/* Key Features */}
-                  <div className="p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.07] transition-all duration-300 flex flex-col justify-between">
+                  <div className="p-8 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm hover:border-indigo-500/50 transition-all duration-300 flex flex-col justify-between">
                       <div className="space-y-4">
-                          <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-inner">
+                          <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                               <Star className="w-6 h-6" />
                           </div>
-                          <h3 className="text-xl font-extrabold text-white tracking-tight">Key Features</h3>
+                          <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Key Features</h3>
                           <ul className="space-y-3.5 pt-1">
                               {[
                                   "300 GSM premium cardstock for a substantial, professional feel",
-                                  "Stunning gloss lamination that catches light and protects against wear",
+                                  "Stunning gloss lamination that catches light and protect against wear",
                                   "Single or double-sided printing options to match your brand",
                                   "Quick 4-5 day turnaround without compromising quality"
                               ].map((feat, idx) => (
-                                  <li key={idx} className="flex items-start gap-3 text-xs font-bold text-slate-300 leading-relaxed">
-                                      <div className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 mt-0.5 border border-indigo-500/30">
+                                  <li key={idx} className="flex items-start gap-3 text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
+                                      <div className="w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5 border border-indigo-100 dark:border-indigo-900">
                                           <Check className="w-3.5 h-3.5 stroke-[3]" />
                                       </div>
                                       {feat}
@@ -1050,32 +1048,32 @@ export function StartDesignContent() {
                   </div>
 
                   {/* Top Benefits */}
-                  <div className="p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.07] transition-all duration-300 flex flex-col justify-between">
+                  <div className="p-8 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm hover:border-pink-500/50 transition-all duration-300 flex flex-col justify-between">
                       <div className="space-y-4">
-                          <div className="w-12 h-12 rounded-2xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 shadow-inner">
+                          <div className="w-12 h-12 rounded-2xl bg-pink-50 dark:bg-pink-950/50 border border-pink-100 dark:border-pink-900 flex items-center justify-center text-pink-600 dark:text-pink-400">
                               <Trophy className="w-6 h-6" />
                           </div>
-                          <h3 className="text-xl font-extrabold text-white tracking-tight">Top Benefits</h3>
-                          <p className="text-xs text-slate-300 font-medium leading-relaxed pt-1">
+                          <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Top Benefits</h3>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed pt-1">
                               Your Gloss Laminated Business Card isn&apos;t just contact information—it&apos;s a tangible representation of your professionalism. The 300 GSM weight gives it a luxurious heft that instantly signals quality, while the gloss lamination creates a mirror-like finish that makes colors pop and text shimmer.
                           </p>
-                          <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
                               This protective layer also ensures your cards stay pristine through countless handshakes, coffee meetings, and desk shuffles.
                           </p>
                       </div>
                   </div>
 
                   {/* Who It's For */}
-                  <div className="p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.07] transition-all duration-300 flex flex-col justify-between">
+                  <div className="p-8 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm hover:border-emerald-500/50 transition-all duration-300 flex flex-col justify-between">
                       <div className="space-y-4">
-                          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner">
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                               <Briefcase className="w-6 h-6" />
                           </div>
-                          <h3 className="text-xl font-extrabold text-white tracking-tight">Who It&apos;s For</h3>
-                          <p className="text-xs text-slate-300 font-medium leading-relaxed pt-1">
+                          <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Who It&apos;s For</h3>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed pt-1">
                               Perfect for entrepreneurs, executives, and professionals who refuse to settle for ordinary. Whether you&apos;re closing deals, networking at conferences, or building client relationships, these cards elevate your personal brand and make you memorable.
                           </p>
-                          <p className="text-xs text-slate-300 font-medium leading-relaxed">
+                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
                               Clients won&apos;t toss these aside—they&apos;ll keep them on their desk as a reminder of your excellence.
                           </p>
                       </div>
