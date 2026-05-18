@@ -12,6 +12,7 @@ import { RadioGroup } from '@/components/ui/radio-group';
 import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2, Truck, Lock, Check, ChevronLeft, ChevronRight, Search, FileText, MessageSquare, Upload, Copy } from 'lucide-react';
 import { getFoilTypes } from '@/app/actions/foil-actions';
 import { getDieCuts } from '@/app/actions/die-cut-actions';
+import { getCardTextures } from '@/app/actions/card-texture-actions';
 import { FoilType } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -54,6 +55,8 @@ export function StartDesignContent() {
   const [customHeight, setCustomHeight] = useState(searchParams.get('height') || '');
   const [selectedDie, setSelectedDie] = useState<number | null>(null);
   const [dieCuts, setDieCuts] = useState<any[]>([]);
+  const [selectedTexture, setSelectedTexture] = useState<number | null>(null);
+  const [cardTextures, setCardTextures] = useState<any[]>([]);
 
   // Navigation & View States
   const [activeTab, setActiveTab] = useState('details'); // 'details', 'templates', 'guidelines', 'shipping', 'reviews'
@@ -62,6 +65,7 @@ export function StartDesignContent() {
   useEffect(() => {
     getFoilTypes().then(setFoilTypes);
     getDieCuts().then(setDieCuts);
+    getCardTextures().then(setCardTextures);
   }, []);
 
   useEffect(() => {
@@ -130,6 +134,11 @@ export function StartDesignContent() {
     if (!subProduct || !(subProduct as any).allowedDieCuts || !(subProduct as any).allowedDieCuts.length) return [];
     return dieCuts.filter(dc => (subProduct as any).allowedDieCuts.includes(dc.id) && dc.isActive);
   }, [subProduct, dieCuts]);
+
+  const availableCardTextures = useMemo(() => {
+    if (!subProduct || !(subProduct as any).allowedCardTextures || !(subProduct as any).allowedCardTextures.length) return [];
+    return cardTextures.filter(ct => (subProduct as any).allowedCardTextures.includes(ct.id) && ct.isActive);
+  }, [subProduct, cardTextures]);
 
   const discountRules = useMemo(() => {
     return pricingRules
@@ -226,6 +235,20 @@ export function StartDesignContent() {
         }
     }
 
+    if (selectedTexture) {
+        const texture = cardTextures.find(c => c.id === selectedTexture);
+        if (texture) {
+            const customPrices = (subProduct as any).cardTexturePrices || {};
+            const amount = Number(customPrices[selectedTexture] || 0);
+                
+            addonTotalPerUnit += amount;
+            addonBreakdown.push({
+                name: `Card Texture: ${texture.name}`,
+                totalAmount: amount * qty
+            });
+        }
+    }
+
     setCalculatedPrice({
         basePriceTotal: basePrice * qty,
         original: (basePrice + addonTotalPerUnit) * qty,
@@ -235,7 +258,7 @@ export function StartDesignContent() {
         addons: addonBreakdown,
     });
 
-  }, [quantity, subProduct, pricingRules, selectedAddons, pages, selectedDie, dieCuts]);
+  }, [quantity, subProduct, pricingRules, selectedAddons, pages, selectedDie, dieCuts, selectedTexture, cardTextures]);
 
   const constructedQuery = useMemo(() => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -256,6 +279,11 @@ export function StartDesignContent() {
     } else {
       newParams.delete('dieCut');
     }
+    if (selectedTexture) {
+      newParams.set('cardTexture', String(selectedTexture));
+    } else {
+      newParams.delete('cardTexture');
+    }
     
     if (subProduct?.width === 0 && subProduct?.height === 0) {
       if (customWidth) newParams.set('width', customWidth);
@@ -263,7 +291,7 @@ export function StartDesignContent() {
     }
 
     return newParams.toString();
-  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, customWidth, customHeight, selectedDie]);
+  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, customWidth, customHeight, selectedDie, selectedTexture]);
 
   const thumbnailImages = useMemo(() => {
     if (!subProduct && !product) return [];
@@ -335,10 +363,10 @@ export function StartDesignContent() {
           </nav>
 
           {/* MAIN SPLIT SECTION: Left (Images & Design Options) | Right (Config & Price Box) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               
               {/* LEFT COLUMN: Media Viewer & Design It Your Way */}
-              <div className="lg:col-span-6 space-y-8">
+              <div className="lg:col-span-6 space-y-6">
                   {/* Main Product Image Viewer */}
                   <div className="space-y-4">
                       <div className="aspect-[4/3] relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-md group flex items-center justify-center">
@@ -387,75 +415,73 @@ export function StartDesignContent() {
                               <ChevronRight className="w-5 h-5" />
                           </button>
                       </div>
-                  </div>
-
-                  {/* Design It Your Way Container */}
-                  <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
+                                    {/* Choose Your Design Path Container */}
+                  <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-5">
                       <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-extrabold text-sm tracking-tight">
-                              <Sparkles className="w-4 h-4 animate-pulse" /> Design it Your Way
+                          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm tracking-tight">
+                              <Sparkles className="w-4 h-4 animate-pulse" /> Choose Your Design Path
                           </div>
-                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Use our easy design tool or hire a professional designer.</p>
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Select how you&apos;d like to create your custom print.</p>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {/* Design Online Card */}
-                          <div className="p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-6 group hover:border-indigo-500/50 transition-all">
+                          {/* Customize Online Card */}
+                          <div className="p-5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-5 group hover:border-indigo-500/50 transition-all">
                               <div className="flex items-start gap-4">
-                                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
-                                      <LayoutTemplate className="w-6 h-6" />
+                                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
+                                      <LayoutTemplate className="w-5 h-5" />
                                   </div>
                                   <div>
-                                      <h4 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight">Design Online</h4>
-                                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Use our easy drag & drop tool.</p>
+                                      <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Customize Online</h4>
+                                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-normal">Personalize your design with our intuitive studio.</p>
                                   </div>
                               </div>
-                              <Button asChild className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-extrabold shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all">
+                              <Button asChild className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-bold shadow hover:shadow-md hover:-translate-y-0.5 transition-all text-xs">
                                   <Link href={`/design/${product.slug}?${constructedQuery}`}>Start Designing</Link>
                               </Button>
                           </div>
 
-                          {/* Hire a Designer Card */}
-                          <div className="p-6 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-6 group hover:border-pink-500/50 transition-all relative overflow-hidden">
-                              <div className="absolute top-3 right-3 bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border border-pink-200 dark:border-pink-800 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-tight uppercase">
+                          {/* Expert Design Service Card */}
+                          <div className="p-5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-5 group hover:border-pink-500/50 transition-all relative overflow-hidden">
+                              <div className="absolute top-3 right-3 bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border border-pink-200 dark:border-pink-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-tight uppercase">
                                   Popular
                               </div>
                               <div className="flex items-start gap-4 pr-12">
-                                  <div className="w-12 h-12 rounded-2xl bg-pink-50 dark:bg-pink-950/50 border border-pink-100 dark:border-pink-900 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0 group-hover:scale-105 transition-transform">
-                                      <Trophy className="w-6 h-6" />
+                                  <div className="w-10 h-10 rounded-2xl bg-pink-50 dark:bg-pink-950/50 border border-pink-100 dark:border-pink-900 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0 group-hover:scale-105 transition-transform">
+                                      <Trophy className="w-5 h-5" />
                                   </div>
                                   <div>
-                                      <h4 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight">Hire a Designer</h4>
-                                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Work with our professional designers.</p>
+                                      <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Expert Design Service</h4>
+                                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-normal">Collaborate with professional designers.</p>
                                   </div>
                               </div>
-                              <Button asChild variant="outline" className="w-full h-12 rounded-xl border-2 border-pink-600 text-pink-600 dark:border-pink-500 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/30 font-extrabold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                              <Button asChild variant="outline" className="w-full h-11 rounded-xl border border-pink-600 text-pink-600 dark:border-pink-500 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/30 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-xs">
                                   <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct.id}`}>Hire a Designer</Link>
                               </Button>
                           </div>
                       </div>
 
-                      <div className="text-center pt-2">
-                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                              Not sure? Get inspiration from our <Link href={`/design/${product.slug}/templates?${constructedQuery}`} className="text-pink-600 dark:text-pink-400 font-extrabold hover:underline">templates</Link>
+                      <div className="text-center pt-1">
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              Looking for inspiration? Browse our professionally crafted <Link href={`/design/${product.slug}/templates?${constructedQuery}`} className="text-pink-600 dark:text-pink-400 font-bold hover:underline">templates</Link>
                           </p>
                       </div>
-                  </div>
+                  </div>  </div>
               </div>
 
               {/* RIGHT COLUMN: Product Configuration & Price Box */}
-              <div className="lg:col-span-6 space-y-8">
+              <div className="lg:col-span-6 space-y-6">
                   {/* Product Title & Reviews Header */}
-                  <div className="space-y-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+                  <div className="space-y-3 pb-5 border-b border-slate-100 dark:border-slate-800">
                       <div className="space-y-1">
-                          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
                               {subProduct?.name || product.name}
                           </h1>
-                          <p className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase flex items-center gap-1.5 pt-0.5">
+                          <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 tracking-wider uppercase flex items-center gap-1.5 pt-0.5">
                               <Package2 className="w-3.5 h-3.5 inline-block" /> {product.name}
                           </p>
                       </div>
-                      <div className="flex items-center gap-2 text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
                           <div className="flex items-center text-amber-500 gap-0.5">
                               <Star className="w-4 h-4 fill-amber-500" />
                               <Star className="w-4 h-4 fill-amber-500" />
@@ -464,16 +490,16 @@ export function StartDesignContent() {
                               <Star className="w-4 h-4 fill-amber-500" />
                           </div>
                           <span className="text-slate-900 dark:text-white ml-1">4.8</span>
-                          <span className="text-slate-400 dark:text-slate-500 font-semibold">(245 Reviews)</span>
+                          <span className="text-slate-400 dark:text-slate-500 font-medium">(245 Reviews)</span>
                       </div>
                   </div>
 
                   {/* Option Groups Matrix */}
-                  <div className="space-y-6">
+                  <div className="space-y-5">
                       {/* 1. Size Selection */}
-                      <div className="space-y-3">
-                          <Label className="text-xs font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
-                              <span className="text-indigo-600 dark:text-indigo-400 font-black">1.</span> Size
+                      <div className="space-y-2.5">
+                          <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                              <span className="text-indigo-600 dark:text-indigo-400 font-bold">1.</span> Select Dimensions
                           </Label>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                               {product.subProducts.map(sp => (
@@ -481,9 +507,9 @@ export function StartDesignContent() {
                                       key={sp.id}
                                       onClick={() => handleSubProductChange(sp)}
                                       className={cn(
-                                          "py-3 px-3 rounded-2xl border text-xs font-extrabold transition-all text-center flex items-center justify-center shadow-sm",
+                                          "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all text-center flex items-center justify-center shadow-sm",
                                           subProduct.id === sp.id 
-                                              ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
+                                              ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
                                               : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
                                       )}
                                   >
@@ -494,38 +520,38 @@ export function StartDesignContent() {
                           {subProduct.width === 0 && subProduct.height === 0 && (
                               <div className="grid grid-cols-2 gap-4 pt-2 animate-in zoom-in-95 duration-300">
                                   <div className="space-y-1.5">
-                                      <Label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Custom Width</Label>
+                                      <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Custom Width</Label>
                                       <Input 
                                           type="number" 
                                           value={customWidth} 
                                           onChange={(e) => setCustomWidth(e.target.value)} 
                                           placeholder="Width" 
-                                          className="h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-sm" 
+                                          className="h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold text-sm" 
                                       />
                                   </div>
                                   <div className="space-y-1.5">
-                                      <Label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Custom Height</Label>
+                                      <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Custom Height</Label>
                                       <Input 
                                           type="number" 
                                           value={customHeight} 
                                           onChange={(e) => setCustomHeight(e.target.value)} 
                                           placeholder="Height" 
-                                          className="h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-sm" 
+                                          className="h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold text-sm" 
                                       />
                                   </div>
                               </div>
                           )}
                       </div>
 
-                      {/* 2. Add on & Finishes */}
-                      <div className="space-y-3">
-                          <Label className="text-xs font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
-                              <span className="text-indigo-600 dark:text-indigo-400 font-black">2.</span> Add on & Finishes
+                      {/* 2. Choose Paper & Finishes */}
+                      <div className="space-y-2.5">
+                          <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                              <span className="text-indigo-600 dark:text-indigo-400 font-bold">2.</span> Choose Paper & Finishes
                           </Label>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                               {/* Default Paper Type Pill */}
-                              <button className="py-3 px-3 rounded-2xl border border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-extrabold text-center shadow-md ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]">
-                                  Premium Matte
+                              <button className="py-2.5 px-3 rounded-2xl border border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold flex items-center justify-center gap-1.5 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]">
+                                  <FileText className="w-5 h-5 opacity-80 shrink-0" /> Premium Matte
                               </button>
 
                               {/* Spot UV Toggle Pill */}
@@ -533,13 +559,13 @@ export function StartDesignContent() {
                                   <button
                                       onClick={() => setSpotUv(!spotUv)}
                                       className={cn(
-                                          "py-3 px-3 rounded-2xl border text-xs font-extrabold transition-all text-center flex items-center justify-center gap-1.5 shadow-sm",
+                                          "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5 shadow-sm",
                                           spotUv 
-                                              ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20 shadow-md scale-[1.02]" 
+                                              ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20 shadow scale-[1.02]" 
                                               : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
                                       )}
                                   >
-                                      <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Spot UV
+                                      <Sparkles className="w-5 h-5 text-amber-500 shrink-0" /> Spot UV
                                   </button>
                               )}
 
@@ -551,9 +577,9 @@ export function StartDesignContent() {
                                           key={rule.id}
                                           onClick={() => toggleAddon(rule.id)}
                                           className={cn(
-                                              "py-3 px-3 rounded-2xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm truncate",
+                                              "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm truncate",
                                               isSelected 
-                                                  ? "border-indigo-600 bg-indigo-600/10 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-600/20 shadow-md scale-[1.02]" 
+                                                  ? "border-indigo-600 bg-indigo-600/10 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-600/20 shadow scale-[1.02]" 
                                                   : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
                                           )}
                                       >
@@ -563,17 +589,17 @@ export function StartDesignContent() {
                                                       <img 
                                                           src={resolveImagePath(rule.addonImageUrl)} 
                                                           alt={rule.addonName || 'Addon'} 
-                                                          className="w-4 h-4 object-contain shrink-0" 
+                                                          className="w-5 h-5 object-contain shrink-0" 
                                                           onError={(e) => { 
                                                               e.currentTarget.style.display = 'none'; 
                                                               const nextEl = e.currentTarget.nextElementSibling;
                                                               if (nextEl) nextEl.classList.remove('hidden');
                                                           }} 
                                                       />
-                                                      <Sparkle className="w-4 h-4 shrink-0 hidden text-indigo-500" />
+                                                      <Sparkle className="w-5 h-5 shrink-0 hidden text-indigo-500" />
                                                   </>
                                               ) : (
-                                                  <Sparkle className="w-4 h-4 shrink-0 text-indigo-500" />
+                                                  <Sparkle className="w-5 h-5 shrink-0 text-indigo-500" />
                                               )}
                                           </div>
                                           <span className="truncate">{rule.addonName}</span>
@@ -583,29 +609,29 @@ export function StartDesignContent() {
                           </div>
                       </div>
 
-                      {/* 3. Shapes & Die cuts (Proportioned Image Buttons) */}
-                      <div className="space-y-3">
-                          <Label className="text-xs font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
-                              <span className="text-indigo-600 dark:text-indigo-400 font-black">3.</span> Shapes & Die cuts
+                      {/* 3. Card Shape & Die-Cut */}
+                      <div className="space-y-2.5">
+                          <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                              <span className="text-indigo-600 dark:text-indigo-400 font-bold">3.</span> Card Shape & Die-Cut
                           </Label>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                               {/* Default Standard Shape Card */}
                               <button 
                                   onClick={() => setSelectedDie(null)}
                                   className={cn(
-                                      "group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all overflow-hidden text-center shadow-sm hover:shadow-md",
+                                      "group relative flex flex-col items-center justify-center p-3 rounded-2xl border transition-all overflow-hidden text-center shadow-sm hover:shadow",
                                       !selectedDie 
-                                          ? "border-slate-900 dark:border-white bg-slate-900/5 dark:bg-white/5 ring-4 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
+                                          ? "border-slate-900 dark:border-white bg-slate-900/5 dark:bg-white/5 ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
                                           : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                                   )}
                               >
                                   <div className="w-4/5 aspect-[4/3] mx-auto bg-slate-100 dark:bg-slate-800/50 rounded-xl flex items-center justify-center mb-2 group-hover:scale-105 transition-transform p-2">
-                                      <LayoutTemplate className={cn("w-7 h-7", !selectedDie ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-600")} />
+                                      <LayoutTemplate className={cn("w-6 h-6", !selectedDie ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-600")} />
                                   </div>
-                                  <span className={cn("text-xs font-black tracking-tight line-clamp-1", !selectedDie ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300")}>
-                                      Standard (No Die Cut)
+                                  <span className={cn("text-xs font-bold tracking-tight line-clamp-1", !selectedDie ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300")}>
+                                      Standard Rectangular
                                   </span>
-                                  <span className="text-[10px] text-slate-400 font-bold mt-0.5">Regular Cut</span>
+                                  <span className="text-[10px] text-slate-400 font-medium mt-0.5">Clean standard cut</span>
                               </button>
 
                               {availableDieCuts.map(die => (
@@ -613,9 +639,9 @@ export function StartDesignContent() {
                                       key={die.id}
                                       onClick={() => setSelectedDie(selectedDie === die.id ? null : die.id)}
                                       className={cn(
-                                          "group relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all overflow-hidden text-center shadow-sm hover:shadow-md",
+                                          "group relative flex flex-col items-center justify-center p-3 rounded-2xl border transition-all overflow-hidden text-center shadow-sm hover:shadow",
                                           selectedDie === die.id 
-                                              ? "border-indigo-600 bg-indigo-600/5 ring-4 ring-indigo-600/20 scale-[1.02]" 
+                                              ? "border-indigo-600 bg-indigo-600/5 ring-2 ring-indigo-600/20 scale-[1.02]" 
                                               : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                                       )}
                                   >
@@ -632,33 +658,99 @@ export function StartDesignContent() {
                                                           if (nextEl) nextEl.classList.remove('hidden');
                                                       }} 
                                                   />
-                                                  <Scissors className="w-7 h-7 hidden text-indigo-500" />
+                                                  <Scissors className="w-6 h-6 hidden text-indigo-500" />
                                               </>
                                           ) : (
-                                              <Scissors className="w-7 h-7 text-indigo-500" />
+                                              <Scissors className="w-6 h-6 text-indigo-500" />
                                           )}
                                       </div>
-                                      <span className={cn("text-xs font-black tracking-tight line-clamp-1", selectedDie === die.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
+                                      <span className={cn("text-xs font-bold tracking-tight line-clamp-1", selectedDie === die.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
                                           {die.name}
                                       </span>
-                                      <span className="text-[10px] text-indigo-500 font-bold mt-0.5">Custom Die Shape</span>
+                                      <span className="text-[10px] text-indigo-500 font-medium mt-0.5">Custom Die Shape</span>
                                   </button>
                               ))}
                           </div>
                       </div>
 
-                      {/* 4. Print Sides */}
+                      {/* 4. Texture & Tactile Finish */}
+                      {availableCardTextures.length > 0 && (
+                          <div className="space-y-2.5">
+                              <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                                  <span className="text-amber-600 dark:text-amber-400 font-bold">4.</span> Texture & Tactile Finish
+                              </Label>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                  {/* Default Standard Texture Card */}
+                                  <button 
+                                      onClick={() => setSelectedTexture(null)}
+                                      className={cn(
+                                          "group relative flex flex-col items-center justify-center p-3 rounded-2xl border transition-all overflow-hidden text-center shadow-sm hover:shadow",
+                                          !selectedTexture 
+                                              ? "border-slate-900 dark:border-white bg-slate-900/5 dark:bg-white/5 ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
+                                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                                      )}
+                                  >
+                                      <div className="w-4/5 aspect-[4/3] mx-auto bg-slate-100 dark:bg-slate-800/50 rounded-xl flex items-center justify-center mb-2 group-hover:scale-105 transition-transform p-2">
+                                          <Layers className={cn("w-6 h-6", !selectedTexture ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-600")} />
+                                      </div>
+                                      <span className={cn("text-xs font-bold tracking-tight line-clamp-1", !selectedTexture ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300")}>
+                                          Standard Smooth
+                                      </span>
+                                      <span className="text-[10px] text-slate-400 font-medium mt-0.5">Classic smooth surface</span>
+                                  </button>
+
+                                  {availableCardTextures.map(texture => (
+                                      <button
+                                          key={texture.id}
+                                          onClick={() => setSelectedTexture(selectedTexture === texture.id ? null : texture.id)}
+                                          className={cn(
+                                              "group relative flex flex-col items-center justify-center p-3 rounded-2xl border transition-all overflow-hidden text-center shadow-sm hover:shadow",
+                                              selectedTexture === texture.id 
+                                                  ? "border-amber-600 bg-amber-600/5 ring-2 ring-amber-600/20 scale-[1.02]" 
+                                                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                                          )}
+                                      >
+                                          <div className="w-4/5 aspect-[4/3] mx-auto bg-slate-100 dark:bg-slate-800/50 rounded-xl flex items-center justify-center mb-2 overflow-hidden relative group-hover:scale-105 transition-transform p-2">
+                                              {texture.imageUrl ? (
+                                                  <>
+                                                      <img 
+                                                          src={resolveImagePath(texture.imageUrl)} 
+                                                          alt={texture.name || 'Card Texture'} 
+                                                          className="w-full h-full object-contain" 
+                                                          onError={(e) => { 
+                                                              e.currentTarget.style.display = 'none'; 
+                                                              const nextEl = e.currentTarget.nextElementSibling;
+                                                              if (nextEl) nextEl.classList.remove('hidden');
+                                                          }} 
+                                                      />
+                                                      <Layers className="w-6 h-6 hidden text-amber-500" />
+                                                  </>
+                                              ) : (
+                                                  <Layers className="w-6 h-6 text-amber-500" />
+                                              )}
+                                          </div>
+                                          <span className={cn("text-xs font-bold tracking-tight line-clamp-1", selectedTexture === texture.id ? "text-amber-600 dark:text-amber-400" : "text-slate-700 dark:text-slate-300")}>
+                                              {texture.name}
+                                          </span>
+                                          <span className="text-[10px] text-amber-500 font-medium mt-0.5">Premium Texture</span>
+                                      </button>
+                                  ))}
+                              </div>
+                          </div>
+                      )}
+
+                      {/* 5. Printing Sides */}
                       {subProduct.maxPages > 1 && (
-                          <div className="space-y-3">
-                              <Label className="text-xs font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
-                                  <span className="text-indigo-600 dark:text-indigo-400 font-black">4.</span> Print Sides
+                          <div className="space-y-2.5">
+                              <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">5.</span> Printing Sides
                               </Label>
                               <div className="grid grid-cols-2 gap-2.5">
                                   <button 
                                       onClick={() => setPages('1')}
                                       className={cn(
-                                          "py-3 px-4 rounded-2xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm",
-                                          pages === '1' ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                          "py-2.5 px-4 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
+                                          pages === '1' ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
                                       )}
                                   >
                                       <FileText className={cn("w-4 h-4 shrink-0", pages === '1' ? "text-white dark:text-slate-900" : "text-indigo-500")} />
@@ -667,8 +759,8 @@ export function StartDesignContent() {
                                   <button 
                                       onClick={() => setPages('2')}
                                       className={cn(
-                                          "py-3 px-4 rounded-2xl border text-xs font-extrabold transition-all flex items-center justify-center gap-2 shadow-sm",
-                                          pages === '2' ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                          "py-2.5 px-4 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
+                                          pages === '2' ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
                                       )}
                                   >
                                       <Copy className={cn("w-4 h-4 shrink-0", pages === '2' ? "text-white dark:text-slate-900" : "text-indigo-500")} />
@@ -678,10 +770,10 @@ export function StartDesignContent() {
                           </div>
                       )}
 
-                      {/* 5. Quantity Select */}
-                      <div className="space-y-3">
-                          <Label className="text-xs font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
-                              <span className="text-indigo-600 dark:text-indigo-400 font-black">5.</span> Quantity
+                      {/* 6. Select Quantity */}
+                      <div className="space-y-2.5">
+                          <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                              <span className="text-indigo-600 dark:text-indigo-400 font-bold">6.</span> Select Quantity
                           </Label>
                           {subProduct.width === 0 && subProduct.height === 0 ? (
                               <Input 
@@ -689,16 +781,16 @@ export function StartDesignContent() {
                                   min="1" 
                                   value={quantity} 
                                   onChange={(e) => setQuantity(e.target.value)} 
-                                  className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-base shadow-inner pl-4" 
+                                  className="h-11 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold text-sm shadow-inner pl-4" 
                               />
                           ) : (
                               <Select value={quantity} onValueChange={setQuantity}>
-                                  <SelectTrigger className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-indigo-500 font-extrabold text-sm shadow-inner px-4">
+                                  <SelectTrigger className="h-11 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-indigo-500 font-semibold text-sm shadow-inner px-4">
                                       <SelectValue placeholder="Select Quantity" />
                                   </SelectTrigger>
-                                  <SelectContent className="rounded-2xl border-slate-200 dark:border-slate-800 shadow-2xl">
+                                  <SelectContent className="rounded-2xl border-slate-200 dark:border-slate-800 shadow-xl">
                                       {[100, 250, 500, 1000, 2500, 5000].map((qty) => (
-                                          <SelectItem key={qty} value={String(qty)} className="rounded-xl font-extrabold">
+                                          <SelectItem key={qty} value={String(qty)} className="rounded-xl font-semibold text-sm">
                                               {qty} Cards
                                           </SelectItem>
                                       ))}
@@ -709,58 +801,58 @@ export function StartDesignContent() {
                   </div>
 
                   {/* Price Box Container */}
-                  <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+                  <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-5">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-5 border-b border-slate-200 dark:border-slate-800">
                           <div>
-                              <p className="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Price</p>
+                              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Estimated Price</p>
                               <div className="flex items-baseline gap-3">
-                                  <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight flex items-center">
-                                      <IndianRupee className="mr-0.5 stroke-[3]" size={28} />
+                                  <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center">
+                                      <IndianRupee className="mr-0.5 stroke-[2.5]" size={24} />
                                       {calculatedPrice ? calculatedPrice.final.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '...'}
                                   </span>
                                   {calculatedPrice && calculatedPrice.discount > 0 && (
                                       <>
-                                          <span className="text-lg font-extrabold text-slate-400 dark:text-slate-500 line-through">
+                                          <span className="text-base font-bold text-slate-400 dark:text-slate-500 line-through">
                                               ₹{calculatedPrice.original.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                           </span>
-                                          <span className="bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border border-pink-200 dark:border-pink-800 px-2.5 py-0.5 rounded-full text-xs font-extrabold tracking-tight">
+                                          <span className="bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border border-pink-200 dark:border-pink-800 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-tight">
                                               {calculatedPrice.description}
                                           </span>
                                       </>
                                   )}
                               </div>
                           </div>
-                          <div className="flex items-center gap-2 text-xs font-extrabold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950 py-2 px-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                          <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950 py-2 px-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                               <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" /> Ships in 2-3 Business Days
                           </div>
                       </div>
 
                       {/* Price Split-up / Breakdown */}
                       {calculatedPrice && (
-                          <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                              <p className="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price Breakdown</p>
+                          <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price Breakdown</p>
                               <div className="space-y-2 text-xs font-medium text-slate-600 dark:text-slate-400">
                                   <div className="flex justify-between items-center py-1">
                                       <span>Base Product ({quantity} Cards)</span>
-                                      <span className="font-extrabold text-slate-900 dark:text-white">
+                                      <span className="font-bold text-slate-900 dark:text-white">
                                           ₹{(calculatedPrice.basePriceTotal ?? calculatedPrice.original ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                       </span>
                                   </div>
                                   {calculatedPrice.discount > 0 && (
                                       <div className="flex justify-between items-center py-1 text-pink-600 dark:text-pink-400">
                                           <span>Volume Discount ({calculatedPrice.description})</span>
-                                          <span className="font-extrabold">-₹{calculatedPrice.discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                          <span className="font-bold">-₹{calculatedPrice.discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                       </div>
                                   )}
                                   {calculatedPrice.addons.map((addon, idx) => (
                                       <div key={idx} className="flex justify-between items-center py-1 border-t border-slate-100 dark:border-slate-800/60">
                                           <span>{addon.name}</span>
-                                          <span className="font-extrabold text-slate-900 dark:text-white">
+                                          <span className="font-bold text-slate-900 dark:text-white">
                                               {addon.totalAmount > 0 ? `₹${addon.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : 'Free'}
                                           </span>
                                       </div>
                                   ))}
-                                  <div className="flex justify-between items-center py-2 border-t-2 border-slate-200 dark:border-slate-800 font-black text-sm text-slate-900 dark:text-white">
+                                  <div className="flex justify-between items-center py-2 border-t border-slate-200 dark:border-slate-800 font-bold text-sm text-slate-900 dark:text-white">
                                       <span>Total Estimated Price</span>
                                       <span>₹{calculatedPrice.final.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                   </div>
@@ -770,21 +862,21 @@ export function StartDesignContent() {
 
                       {/* Action CTAs Side-by-Side */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <Button asChild className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-extrabold shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all text-base gap-2">
+                          <Button asChild className="w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-bold shadow hover:shadow-md hover:-translate-y-0.5 transition-all text-sm gap-2">
                               <Link href={`/design/${product.slug}/templates?${constructedQuery}`}>
-                                  <LayoutTemplate className="w-5 h-5" /> Design Template
+                                  <LayoutTemplate className="w-4 h-4" /> Design Template
                               </Link>
                           </Button>
-                          <Button asChild variant="outline" className="w-full h-14 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 font-extrabold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-base gap-2">
+                          <Button asChild variant="outline" className="w-full h-12 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-sm gap-2">
                               <Link href={isLoggedIn ? `/design/${product.slug}/upload?${constructedQuery}` : `/login?redirect_url=/design/${product.slug}/upload%3F${constructedQuery}`}>
-                                  <Upload className="w-5 h-5" /> Upload Artwork
+                                  <Upload className="w-4 h-4" /> Upload Artwork
                               </Link>
                           </Button>
                       </div>
 
-                      <div className="text-center pt-2">
-                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                              Need a design? <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct.id}`} className="text-pink-600 dark:text-pink-400 font-extrabold hover:underline">Get a Free Quote</Link>
+                      <div className="text-center pt-1">
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              Have a custom requirement? <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct.id}`} className="text-pink-600 dark:text-pink-400 font-bold hover:underline">Request a tailored quote</Link>
                           </p>
                       </div>
                   </div>
@@ -792,50 +884,50 @@ export function StartDesignContent() {
           </div>
 
           {/* MIDDLE BANNER: Trust Badges Banner */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 py-8 px-8 bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 py-6 px-6 bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl shadow-sm">
               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm shrink-0">
-                      <Truck className="w-6 h-6" />
+                  <div className="w-11 h-11 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm shrink-0">
+                      <Truck className="w-5 h-5" />
                   </div>
                   <div>
-                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">Free Shipping</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">On all orders over ₹5000</p>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Free Shipping</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">On all orders over ₹5000</p>
                   </div>
               </div>
 
               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm shrink-0">
-                      <ShieldCheck className="w-6 h-6" />
+                  <div className="w-11 h-11 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm shrink-0">
+                      <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
-                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">100% Satisfaction</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Quality is our priority</p>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">100% Satisfaction</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">Quality is our priority</p>
                   </div>
               </div>
 
               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-sm shrink-0">
-                      <Zap className="w-6 h-6" />
+                  <div className="w-11 h-11 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-sm shrink-0">
+                      <Zap className="w-5 h-5" />
                   </div>
                   <div>
-                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">Fast Turnaround</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Get your prints on time</p>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Fast Turnaround</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">Get your prints on time</p>
                   </div>
               </div>
 
               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-pink-600 dark:text-pink-400 shadow-sm shrink-0">
-                      <Lock className="w-6 h-6" />
+                  <div className="w-11 h-11 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-pink-600 dark:text-pink-400 shadow-sm shrink-0">
+                      <Lock className="w-5 h-5" />
                   </div>
                   <div>
-                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">Secure Payment</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Safe & secure checkout</p>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Secure Payment</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">Safe & secure checkout</p>
                   </div>
               </div>
           </div>
 
           {/* BOTTOM DETAILS SECTION: Tabs & Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-8 border-t border-slate-200 dark:border-slate-800">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-6 border-t border-slate-200 dark:border-slate-800">
               {/* Sidebar Navigation Tabs */}
               <div className="lg:col-span-3 space-y-2">
                   {[
@@ -849,7 +941,7 @@ export function StartDesignContent() {
                           key={tab.id}
                           onClick={() => setActiveTab(tab.id)}
                           className={cn(
-                              "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-extrabold text-xs transition-all text-left",
+                              "w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-xs transition-all text-left",
                               activeTab === tab.id 
                                   ? "bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border-l-4 border-pink-600 dark:border-pink-500 shadow-sm pl-5" 
                                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
@@ -861,55 +953,55 @@ export function StartDesignContent() {
               </div>
 
               {/* Tab Content Area */}
-              <div className="lg:col-span-9 p-8 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl shadow-sm space-y-8">
+              <div className="lg:col-span-9 p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl shadow-sm space-y-6">
                   {activeTab === 'details' && (
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-                          <div className="md:col-span-7 space-y-6">
-                              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Product Details</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                          <div className="md:col-span-7 space-y-5">
+                              <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Product Details</h3>
                               {(subProduct?.description || product.description) && (
-                                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                  <p className="text-sm text-slate-600 dark:text-slate-400 font-normal leading-relaxed">
                                       {subProduct?.description || product.description}
                                   </p>
                               )}
-                              <ul className="space-y-3 pt-2">
+                              <ul className="space-y-3 pt-1">
                                   {[
                                       "High-quality printing with vibrant colors",
                                       "Premium paper stock options",
                                       "Multiple finishes available",
                                       "Fast turnaround and delivery"
                                   ].map((bullet, idx) => (
-                                      <li key={idx} className="flex items-center gap-3 text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                                      <li key={idx} className="flex items-center gap-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
                                           <div className="w-5 h-5 rounded-full bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 flex items-center justify-center shrink-0">
-                                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                                           </div>
                                           {bullet}
                                       </li>
                                   ))}
                               </ul>
                           </div>
-                          <div className="md:col-span-5 flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner space-y-4">
-                              <div className="w-full aspect-[3.5/2] border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 relative shadow-sm">
-                                  <LayoutTemplate className="w-12 h-12 text-slate-300 dark:text-slate-700" />
-                                  <div className="absolute -right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500">2&quot;</div>
-                                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black text-slate-500">3.5&quot;</div>
+                          <div className="md:col-span-5 flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner space-y-3">
+                              <div className="w-full aspect-[3.5/2] border border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center bg-white dark:bg-slate-900 relative shadow-sm">
+                                  <LayoutTemplate className="w-10 h-10 text-slate-300 dark:text-slate-700" />
+                                  <div className="absolute -right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-500">2&quot;</div>
+                                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-500">3.5&quot;</div>
                               </div>
-                              <p className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-2">Standard Dimensions</p>
+                              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider pt-1">Standard Dimensions</p>
                           </div>
                       </div>
                   )}
 
                   {activeTab === 'templates' && (
-                      <div className="space-y-6">
-                          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Professional Templates</h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                      <div className="space-y-5">
+                          <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Professional Templates</h3>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 font-normal leading-relaxed">
                               Browse our extensive library of fully customizable, industry-standard design templates created by professional graphic designers.
                           </p>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3">
                               {[1, 2, 3].map((i) => (
                                   <div key={i} className="aspect-[4/3] rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center group overflow-hidden relative shadow-sm">
-                                      <LayoutTemplate className="w-10 h-10 text-slate-300 dark:text-slate-700 group-hover:scale-110 transition-transform" />
+                                      <LayoutTemplate className="w-8 h-8 text-slate-300 dark:text-slate-700 group-hover:scale-110 transition-transform" />
                                       <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                          <Button size="sm" className="h-8 rounded-xl font-bold text-xs" asChild>
+                                          <Button size="sm" className="h-8 rounded-xl font-semibold text-xs" asChild>
                                               <Link href={`/design/${product.slug}/templates?${constructedQuery}`}>Use Template</Link>
                                           </Button>
                                       </div>
@@ -920,70 +1012,70 @@ export function StartDesignContent() {
                   )}
 
                   {activeTab === 'guidelines' && (
-                      <div className="space-y-6">
-                          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Design Guidelines</h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                      <div className="space-y-5">
+                          <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Design Guidelines</h3>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 font-normal leading-relaxed">
                               To ensure the highest quality print results, please ensure your uploaded artwork adheres to our pre-press technical specifications.
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                               <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
-                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Bleed & Safety Margins</h4>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Include a 3mm bleed around all edges. Keep critical text and logos within the safety margin.</p>
+                                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Bleed & Safety Margins</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-relaxed">Include a 3mm bleed around all edges. Keep critical text and logos within the safety margin.</p>
                               </div>
                               <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
-                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Color Mode & Resolution</h4>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">Submit files in CMYK color space with a minimum resolution of 300 DPI for crystal clear printing.</p>
+                                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Color Mode & Resolution</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-relaxed">Submit files in CMYK color space with a minimum resolution of 300 DPI for crystal clear printing.</p>
                               </div>
                           </div>
                       </div>
                   )}
 
                   {activeTab === 'shipping' && (
-                      <div className="space-y-6">
-                          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Shipping Information</h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                      <div className="space-y-5">
+                          <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Shipping Information</h3>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 font-normal leading-relaxed">
                               We offer secure, insured courier delivery across all major destinations with complete tracking visibility from dispatch to your doorstep.
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
-                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Standard Delivery</h4>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">3-5 business days after dispatch.</p>
+                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Standard Delivery</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">3-5 business days after dispatch.</p>
                               </div>
-                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
-                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Express Priority</h4>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">1-2 business days after dispatch.</p>
+                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Express Priority</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">1-2 business days after dispatch.</p>
                               </div>
-                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
-                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">Packaging Assurance</h4>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Weatherproof, rigid box transit packing.</p>
+                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Packaging Assurance</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">Weatherproof, rigid box transit packing.</p>
                               </div>
                           </div>
                       </div>
                   )}
 
                   {activeTab === 'reviews' && (
-                      <div className="space-y-8">
-                          <div className="space-y-6">
+                      <div className="space-y-6">
+                          <div className="space-y-5">
                               <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
                                   <div>
-                                      <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Customer Reviews</h3>
-                                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Based on 245 verified customer purchases</p>
+                                      <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Customer Reviews</h3>
+                                      <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">Based on 245 verified customer purchases</p>
                                   </div>
-                                  <div className="flex items-center gap-1 text-amber-500 font-black text-xl">
+                                  <div className="flex items-center gap-1 text-amber-500 font-bold text-lg">
                                       <Star className="w-5 h-5 fill-amber-500" /> 4.8 / 5.0
                                   </div>
                               </div>
-                              <div className="space-y-4 pt-2">
+                              <div className="space-y-4 pt-1">
                                   {[
                                       { name: "Rahul Sharma", date: "May 14, 2026", comment: "Absolutely stunning print quality! The premium matte finish feels incredibly professional and elegant." },
                                       { name: "Priya Patel", date: "May 10, 2026", comment: "Super fast turnaround time and the packaging was extremely secure. Will definitely order all my business cards here!" },
                                   ].map((rev, idx) => (
                                       <div key={idx} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
                                           <div className="flex items-center justify-between">
-                                              <span className="text-xs font-extrabold text-slate-900 dark:text-white">{rev.name}</span>
-                                              <span className="text-[10px] font-bold text-slate-400">{rev.date}</span>
+                                              <span className="text-xs font-bold text-slate-900 dark:text-white">{rev.name}</span>
+                                              <span className="text-[10px] font-medium text-slate-400">{rev.date}</span>
                                           </div>
-                                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">{rev.comment}</p>
+                                          <p className="text-xs text-slate-600 dark:text-slate-400 font-normal leading-relaxed">{rev.comment}</p>
                                       </div>
                                   ))}
                               </div>
@@ -991,12 +1083,12 @@ export function StartDesignContent() {
 
                           {/* SUB PRODUCT DESCRIPTION SECTION BELOW REVIEWS */}
                           {(subProduct?.description || product.description) && (
-                              <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
-                                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                              <div className="pt-5 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                                  <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                                       <FileText className="w-4 h-4 text-pink-600 dark:text-pink-400" /> About {subProduct?.name || product.name}
                                   </h4>
                                   <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-50 to-pink-50/30 dark:from-slate-950 dark:to-pink-950/20 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
-                                      <p className="text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed whitespace-pre-wrap">
+                                      <p className="text-sm text-slate-700 dark:text-slate-300 font-normal leading-relaxed whitespace-pre-wrap">
                                           {subProduct?.description || product.description}
                                       </p>
                                   </div>
@@ -1008,37 +1100,37 @@ export function StartDesignContent() {
           </div>
 
           {/* PREMIUM PRODUCT STORY & VALUE PROPOSITION */}
-          <div className="p-8 sm:p-12 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm relative overflow-hidden space-y-12">
+          <div className="p-6 sm:p-10 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm relative overflow-hidden space-y-8">
               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32" />
               <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-pink-500/5 rounded-full blur-3xl pointer-events-none -ml-32 -mb-32" />
 
-              <div className="relative z-10 max-w-3xl space-y-4">
-                  <Badge variant="outline" className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 text-xs px-3 py-1 rounded-full font-extrabold uppercase tracking-wider w-fit">
+              <div className="relative z-10 max-w-3xl space-y-3">
+                  <Badge variant="outline" className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider w-fit">
                       <Sparkles className="w-3.5 h-3.5 mr-1.5 inline-block animate-pulse text-indigo-600 dark:text-indigo-400" /> Premium Craftsmanship
                   </Badge>
-                  <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
                       Make an unforgettable first impression with business cards that feel as premium as your reputation.
                   </h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
                   {/* Key Features */}
-                  <div className="p-8 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm hover:border-indigo-500/50 transition-all duration-300 flex flex-col justify-between">
-                      <div className="space-y-4">
-                          <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                              <Star className="w-6 h-6" />
+                  <div className="p-6 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-5 shadow-sm hover:border-indigo-500/50 transition-all duration-300 flex flex-col justify-between">
+                      <div className="space-y-3">
+                          <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                              <Star className="w-5 h-5" />
                           </div>
-                          <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Key Features</h3>
-                          <ul className="space-y-3.5 pt-1">
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Key Features</h3>
+                          <ul className="space-y-3 pt-1">
                               {[
                                   "300 GSM premium cardstock for a substantial, professional feel",
                                   "Stunning gloss lamination that catches light and protect against wear",
                                   "Single or double-sided printing options to match your brand",
                                   "Quick 4-5 day turnaround without compromising quality"
                               ].map((feat, idx) => (
-                                  <li key={idx} className="flex items-start gap-3 text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
+                                  <li key={idx} className="flex items-start gap-3 text-xs font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
                                       <div className="w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5 border border-indigo-100 dark:border-indigo-900">
-                                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                                       </div>
                                       {feat}
                                   </li>
@@ -1048,32 +1140,32 @@ export function StartDesignContent() {
                   </div>
 
                   {/* Top Benefits */}
-                  <div className="p-8 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm hover:border-pink-500/50 transition-all duration-300 flex flex-col justify-between">
-                      <div className="space-y-4">
-                          <div className="w-12 h-12 rounded-2xl bg-pink-50 dark:bg-pink-950/50 border border-pink-100 dark:border-pink-900 flex items-center justify-center text-pink-600 dark:text-pink-400">
-                              <Trophy className="w-6 h-6" />
+                  <div className="p-6 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-5 shadow-sm hover:border-pink-500/50 transition-all duration-300 flex flex-col justify-between">
+                      <div className="space-y-3">
+                          <div className="w-10 h-10 rounded-2xl bg-pink-50 dark:bg-pink-950/50 border border-pink-100 dark:border-pink-900 flex items-center justify-center text-pink-600 dark:text-pink-400">
+                              <Trophy className="w-5 h-5" />
                           </div>
-                          <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Top Benefits</h3>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed pt-1">
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Top Benefits</h3>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 font-normal leading-relaxed pt-1">
                               Your Gloss Laminated Business Card isn&apos;t just contact information—it&apos;s a tangible representation of your professionalism. The 300 GSM weight gives it a luxurious heft that instantly signals quality, while the gloss lamination creates a mirror-like finish that makes colors pop and text shimmer.
                           </p>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                          <p className="text-xs text-slate-600 dark:text-slate-400 font-normal leading-relaxed">
                               This protective layer also ensures your cards stay pristine through countless handshakes, coffee meetings, and desk shuffles.
                           </p>
                       </div>
                   </div>
 
                   {/* Who It's For */}
-                  <div className="p-8 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm hover:border-emerald-500/50 transition-all duration-300 flex flex-col justify-between">
-                      <div className="space-y-4">
-                          <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                              <Briefcase className="w-6 h-6" />
+                  <div className="p-6 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-5 shadow-sm hover:border-emerald-500/50 transition-all duration-300 flex flex-col justify-between">
+                      <div className="space-y-3">
+                          <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                              <Briefcase className="w-5 h-5" />
                           </div>
-                          <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Who It&apos;s For</h3>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed pt-1">
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Who It&apos;s For</h3>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 font-normal leading-relaxed pt-1">
                               Perfect for entrepreneurs, executives, and professionals who refuse to settle for ordinary. Whether you&apos;re closing deals, networking at conferences, or building client relationships, these cards elevate your personal brand and make you memorable.
                           </p>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                          <p className="text-xs text-slate-600 dark:text-slate-400 font-normal leading-relaxed">
                               Clients won&apos;t toss these aside—they&apos;ll keep them on their desk as a reminder of your excellence.
                           </p>
                       </div>
@@ -1082,9 +1174,9 @@ export function StartDesignContent() {
           </div>
 
           {/* RELATED PRODUCTS CAROUSEL: You May Also Like */}
-          <div className="space-y-6 pt-12 border-t border-slate-200 dark:border-slate-800">
+          <div className="space-y-5 pt-8 border-t border-slate-200 dark:border-slate-800">
               <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">You May Also Like</h3>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">You May Also Like</h3>
                   <div className="flex items-center gap-2">
                       <button className="w-10 h-10 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition-all">
                           <ChevronLeft className="w-5 h-5" />
@@ -1105,7 +1197,7 @@ export function StartDesignContent() {
                               <Link 
                                   key={rel.id} 
                                   href={`/design/${product.slug}?subProductId=${rel.id}`}
-                                  className="group border border-slate-200/80 dark:border-slate-800/80 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col p-4 space-y-4"
+                                  className="group border border-slate-200/80 dark:border-slate-800/80 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm hover:shadow hover:-translate-y-1 transition-all duration-300 flex flex-col p-4 space-y-4"
                               >
                                   <div className="aspect-[4/3] rounded-2xl bg-slate-100 dark:bg-slate-950 flex items-center justify-center overflow-hidden relative border border-slate-200/50 dark:border-slate-800/50">
                                       {imageSrc ? (
@@ -1115,8 +1207,8 @@ export function StartDesignContent() {
                                       )}
                                   </div>
                                   <div className="space-y-1 text-center sm:text-left flex-1 flex flex-col justify-between">
-                                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">{rel.name}</h4>
-                                      <p className="text-xs font-extrabold text-slate-400 dark:text-slate-500 pt-2">From ₹{parseFloat(rel.price || '0').toLocaleString('en-IN', {minimumFractionDigits: 2})}</p>
+                                      <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">{rel.name}</h4>
+                                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500 pt-2">From ₹{parseFloat(rel.price || '0').toLocaleString('en-IN', {minimumFractionDigits: 2})}</p>
                                   </div>
                               </Link>
                           );

@@ -165,6 +165,23 @@ export const dieCuts = pgTable('die_cuts', {
   };
 });
 
+export const cardTextures = pgTable('card_textures', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
+  allowedSubProductIds: integer('allowed_sub_product_ids').array(),
+  description: text('description'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  imageUrl: text('image_url'),
+  amount: numeric('amount', { precision: 10, scale: 2 }).default('0.00'),
+}, (table) => {
+  return {
+    allowedSubProductsIdx: index('idx_card_textures_allowed_sub_products').using('gin', table.allowedSubProductIds),
+  };
+});
+
 export const subProducts = pgTable('sub_products', {
   id: serial('id').primaryKey(),
   productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
@@ -182,6 +199,8 @@ export const subProducts = pgTable('sub_products', {
   allowedFoils: integer('allowed_foils').array(),
   allowedDieCuts: integer('allowed_die_cuts').array(),
   dieCutPrices: jsonb('die_cut_prices').$type<Record<string, number>>().default({}),
+  allowedCardTextures: integer('allowed_card_textures').array(),
+  cardTexturePrices: jsonb('card_texture_prices').$type<Record<string, number>>().default({}),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   unitType: varchar('unit_type', { length: 10 }).default('mm').notNull(),
@@ -192,6 +211,7 @@ export const subProducts = pgTable('sub_products', {
     activeSubIdx: index('idx_sub_products_active').on(table.isActive),
     skuIdx: index('idx_sub_products_sku').on(table.sku),
     allowedDieCutsIdx: index('idx_sub_products_allowed_die_cuts').on(table.allowedDieCuts),
+    allowedCardTexturesIdx: index('idx_sub_products_allowed_card_textures').using('gin', table.allowedCardTextures),
   };
 });
 

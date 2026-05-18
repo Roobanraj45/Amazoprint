@@ -27,6 +27,7 @@ export async function createDieCut(data: z.infer<typeof dieCutSchema>) {
   const validated = dieCutSchema.parse(data);
   const result = await db.insert(dieCuts).values(validated).returning();
   revalidatePath('/admin/die-cuts');
+  revalidatePath('/admin/addons');
   return result[0];
 }
 
@@ -37,10 +38,12 @@ export async function updateDieCut(id: number, data: z.infer<typeof dieCutSchema
     .where(eq(dieCuts.id, id))
     .returning();
   revalidatePath('/admin/die-cuts');
+  revalidatePath('/admin/addons');
   return result[0];
 }
 
 export async function deleteDieCut(id: number) {
   await db.delete(dieCuts).where(eq(dieCuts.id, id));
   revalidatePath('/admin/die-cuts');
+  revalidatePath('/admin/addons');
 }

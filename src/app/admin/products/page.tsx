@@ -16,6 +16,7 @@ import {
 } from '@/app/actions/product-actions';
 import { getFoilTypes } from '@/app/actions/foil-actions';
 import { getDieCuts } from '@/app/actions/die-cut-actions';
+import { getCardTextures } from '@/app/actions/card-texture-actions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -97,6 +98,7 @@ const subProductSchema = z.object({
   spotUvAllowed: z.boolean().default(false),
   allowedFoils: z.array(z.coerce.number()).optional(),
   allowedDieCuts: z.array(z.coerce.number()).optional(),
+  allowedCardTextures: z.array(z.coerce.number()).optional(),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
   backSideCost: z.coerce.number().optional().default(0),
 });
@@ -105,6 +107,7 @@ type Product = Awaited<ReturnType<typeof getProducts>>[0];
 type SubProduct = Product['subProducts'][0];
 type FoilType = Awaited<ReturnType<typeof getFoilTypes>>[0];
 type DieCut = Awaited<ReturnType<typeof getDieCuts>>[0];
+type CardTexture = Awaited<ReturnType<typeof getCardTextures>>[0];
 
 type Folder = {
   name: string;
@@ -116,6 +119,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Awaited<ReturnType<typeof getProducts>>>([]);
   const [foilTypes, setFoilTypes] = useState<FoilType[]>([]);
   const [dieCuts, setDieCuts] = useState<DieCut[]>([]);
+  const [cardTextures, setCardTextures] = useState<CardTexture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProductFormOpen, setProductFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -125,10 +129,11 @@ export default function ProductsPage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [prods, foils, cuts] = await Promise.all([getProducts(), getFoilTypes(), getDieCuts()]);
+      const [prods, foils, cuts, textures] = await Promise.all([getProducts(), getFoilTypes(), getDieCuts(), getCardTextures()]);
       setProducts(prods);
       setFoilTypes(foils);
       setDieCuts(cuts);
+      setCardTextures(textures);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to load data.' });
     } finally {
@@ -271,7 +276,7 @@ export default function ProductsPage() {
                   </AccordionTrigger>
                   <AccordionContent className="pt-0 pb-5 px-5 border-t border-slate-100 dark:border-slate-800/60 bg-slate-50/80 dark:bg-slate-955/80">
                     <div className="pt-5">
-                      <SubProductsManager product={product} onUpdate={loadData} foilTypes={foilTypes} dieCuts={dieCuts} />
+                      <SubProductsManager product={product} onUpdate={loadData} foilTypes={foilTypes} dieCuts={dieCuts} cardTextures={cardTextures} />
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -465,7 +470,7 @@ function ProductForm({
 }
 
 // SubProducts Manager Component
-function SubProductsManager({ product, onUpdate, foilTypes, dieCuts }: { product: Product; onUpdate: () => void; foilTypes: FoilType[]; dieCuts: DieCut[] }) {
+function SubProductsManager({ product, onUpdate, foilTypes, dieCuts, cardTextures }: { product: Product; onUpdate: () => void; foilTypes: FoilType[]; dieCuts: DieCut[]; cardTextures: CardTexture[] }) {
   const [isFormOpen, setFormOpen] = useState(false);
   const [editingSubProduct, setEditingSubProduct] = useState<SubProduct | null>(null);
   const { toast } = useToast();
@@ -528,6 +533,7 @@ function SubProductsManager({ product, onUpdate, foilTypes, dieCuts }: { product
             onClose={() => setFormOpen(false)}
             foilTypes={foilTypes}
             dieCuts={dieCuts}
+            cardTextures={cardTextures}
           />
         </Dialog>
       </div>
@@ -618,7 +624,10 @@ function SubProductsManager({ product, onUpdate, foilTypes, dieCuts }: { product
                                 {(sp.allowedDieCuts?.length ?? 0) > 0 && (
                                     <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800 text-[10px] h-5 font-extrabold px-2 rounded-lg shadow-sm">DIE ({sp.allowedDieCuts?.length})</Badge>
                                 )}
-                                {!sp.spotUvAllowed && !sp.allowedFoils?.length && !sp.allowedDieCuts?.length && (
+                                {(sp.allowedCardTextures?.length ?? 0) > 0 && (
+                                    <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800 text-[10px] h-5 font-extrabold px-2 rounded-lg shadow-sm">TEXTURE ({sp.allowedCardTextures?.length})</Badge>
+                                )}
+                                {!sp.spotUvAllowed && !sp.allowedFoils?.length && !sp.allowedDieCuts?.length && !sp.allowedCardTextures?.length && (
                                     <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium italic">No enhancements</span>
                                 )}
                             </div>
@@ -652,12 +661,14 @@ function SubProductForm({
   onClose,
   foilTypes,
   dieCuts,
+  cardTextures,
 }: {
   onSubmit: (data: z.infer<typeof subProductSchema>) => void;
   subProduct: SubProduct | null;
   onClose: () => void;
   foilTypes: FoilType[];
   dieCuts: DieCut[];
+  cardTextures: CardTexture[];
 }) {
   const [isImageBrowserOpen, setImageBrowserOpen] = useState(false);
   const [isAdditionalBrowserOpen, setAdditionalBrowserOpen] = useState(false);
@@ -673,7 +684,7 @@ function SubProductForm({
     setValue,
   } = useForm<z.infer<typeof subProductSchema>>({
     resolver: zodResolver(subProductSchema),
-    defaultValues: { isActive: true, imageUrl: '', imageUrls: [], description: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [], allowedDieCuts: [], dieCutPrices: {}, unitType: 'mm', backSideCost: 0 },
+    defaultValues: { isActive: true, imageUrl: '', imageUrls: [], description: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [], allowedDieCuts: [], allowedCardTextures: [], dieCutPrices: {}, cardTexturePrices: {}, unitType: 'mm', backSideCost: 0 },
   });
   
   const imageUrl = watch('imageUrl');
@@ -681,6 +692,7 @@ function SubProductForm({
 
   useEffect(() => {
     register('dieCutPrices');
+    register('cardTexturePrices');
   }, [register]);
 
   useEffect(() => {
@@ -693,7 +705,9 @@ function SubProductForm({
           maxPages: subProduct.maxPages ?? 1,
           allowedFoils: subProduct.allowedFoils || [],
           allowedDieCuts: subProduct.allowedDieCuts || [],
+          allowedCardTextures: subProduct.allowedCardTextures || [],
           dieCutPrices: (subProduct as any).dieCutPrices || {},
+          cardTexturePrices: (subProduct as any).cardTexturePrices || {},
           unitType: subProduct.unitType as any || 'mm',
           backSideCost: Number(subProduct.backSideCost || 0),
           imageUrls: subProduct.imageUrls || [],
@@ -714,7 +728,9 @@ function SubProductForm({
             maxPages: 1,
             allowedFoils: [],
             allowedDieCuts: [],
+            allowedCardTextures: [],
             dieCutPrices: {},
+            cardTexturePrices: {},
             unitType: 'mm',
             backSideCost: 0,
         });
@@ -748,7 +764,8 @@ function SubProductForm({
       <form onSubmit={handleSubmit((data) => {
           onSubmit({
               ...data,
-              dieCutPrices: watch('dieCutPrices') || {}
+              dieCutPrices: watch('dieCutPrices') || {},
+              cardTexturePrices: watch('cardTexturePrices') || {}
           });
       })} className="flex flex-col flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/50 dark:bg-slate-950/50">
@@ -1074,6 +1091,71 @@ function SubProductForm({
                                     </div>
                                 </div>
                             )}
+
+                            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 block">Allowed Card Textures & Custom Pricing</Label>
+                                <Controller
+                                    name="allowedCardTextures"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <MultiSelect
+                                            items={cardTextures}
+                                            selected={field.value || []}
+                                            onChange={(newSelected) => {
+                                                field.onChange(newSelected);
+                                                const currentPrices = watch('cardTexturePrices') || {};
+                                                const newPrices = { ...currentPrices };
+                                                newSelected.forEach(id => {
+                                                    if (newPrices[id] === undefined) {
+                                                        const ct = cardTextures.find(c => c.id === id);
+                                                        newPrices[id] = Number(ct?.amount || 0);
+                                                    }
+                                                });
+                                                setValue('cardTexturePrices', newPrices, { shouldDirty: true });
+                                            }}
+                                            placeholder="Select applicable card textures..."
+                                        />
+                                    )}
+                                />
+                                
+                                {/* Price configuration for selected card textures */}
+                                {(watch('allowedCardTextures') || []).length > 0 && (
+                                    <div className="space-y-2 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 bg-slate-50 dark:bg-slate-950 shadow-inner mt-3">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Per-card Texture Pricing Override</p>
+                                        <div className="grid grid-cols-1 gap-2.5">
+                                            {(watch('allowedCardTextures') || []).map(id => {
+                                                const ct = cardTextures.find(c => c.id === id);
+                                                if (!ct) return null;
+                                                const currentPrices = watch('cardTexturePrices') || {};
+                                                return (
+                                                    <div key={id} className="flex items-center justify-between gap-4 p-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:border-amber-500/40 transition-colors">
+                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-2">
+                                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400" />
+                                                          {ct.name}
+                                                        </span>
+                                                        <div className="flex items-center gap-2 w-28">
+                                                            <span className="text-[11px] text-muted-foreground font-bold">₹</span>
+                                                            <Input 
+                                                                type="number" 
+                                                                step="0.01" 
+                                                                className="h-8 text-xs font-bold px-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500"
+                                                                value={currentPrices[id] ?? Number(ct.amount || 0)}
+                                                                onChange={(e) => {
+                                                                    const val = parseFloat(e.target.value) || 0;
+                                                                    setValue('cardTexturePrices', {
+                                                                        ...currentPrices,
+                                                                        [id]: val
+                                                                    }, { shouldDirty: true });
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                       </CardContent>
                     </Card>

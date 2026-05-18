@@ -25,6 +25,7 @@ export async function createFoilType(data: z.infer<typeof foilTypeSchema>) {
   const validated = foilTypeSchema.parse(data);
   const result = await db.insert(foilTypes).values(validated).returning();
   revalidatePath('/admin/foils');
+  revalidatePath('/admin/addons');
   revalidatePath('/admin/products');
   revalidatePath('/products');
   revalidatePath('/');
@@ -35,6 +36,7 @@ export async function updateFoilType(id: number, data: z.infer<typeof foilTypeSc
   const validated = foilTypeSchema.parse(data);
   const result = await db.update(foilTypes).set({ ...validated, updatedAt: new Date() }).where(eq(foilTypes.id, id)).returning();
   revalidatePath('/admin/foils');
+  revalidatePath('/admin/addons');
   revalidatePath('/admin/products');
   revalidatePath('/products');
   revalidatePath('/');
@@ -44,6 +46,7 @@ export async function updateFoilType(id: number, data: z.infer<typeof foilTypeSc
 export async function deleteFoilType(id: number) {
   await db.delete(foilTypes).where(eq(foilTypes.id, id));
   revalidatePath('/admin/foils');
+  revalidatePath('/admin/addons');
   revalidatePath('/admin/products');
   revalidatePath('/products');
   revalidatePath('/');

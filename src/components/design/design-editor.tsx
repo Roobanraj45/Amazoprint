@@ -105,8 +105,10 @@ type DesignEditorProps = {
   spotUv?: boolean;
   selectedAddons?: number[];
   selectedDie?: number | null;
+  selectedTexture?: number | null;
   pricingRules?: any[];
   dieCuts?: any[];
+  cardTextures?: any[];
   verificationId?: string | null;
   contestId?: string | null;
   currentUserId?: string | null;
@@ -130,8 +132,10 @@ function DesignEditorInternal({
   spotUv: initialSpotUv = false,
   selectedAddons: initialSelectedAddons = [],
   selectedDie: initialSelectedDie = null,
+  selectedTexture: initialSelectedTexture = null,
   pricingRules = [],
   dieCuts = [],
+  cardTextures = [],
   verificationId,
   contestId,
   currentUserId,
@@ -365,6 +369,20 @@ function DesignEditorInternal({
         }
     }
 
+    if (initialSelectedTexture) {
+        const texture = cardTextures.find((c: any) => c.id === initialSelectedTexture);
+        if (texture) {
+            const customPrices = (subProduct as any).cardTexturePrices || {};
+            const amount = Number(customPrices[initialSelectedTexture] || 0);
+            
+            addonTotalPerUnit += amount;
+            addonBreakdown.push({
+                name: `Card Texture: ${texture.name}`,
+                totalAmount: amount * qty
+            });
+        }
+    }
+
     setCalculatedPrice({
         original: (basePrice + addonTotalPerUnit) * qty,
         final: (finalPrice + addonTotalPerUnit) * qty,
@@ -373,7 +391,7 @@ function DesignEditorInternal({
         addons: addonBreakdown,
     });
 
-  }, [quantity, initialProduct, pricingRules, initialSelectedAddons, totalPages, initialSelectedDie, dieCuts, initialSpotUv]);
+  }, [quantity, initialProduct, pricingRules, initialSelectedAddons, totalPages, initialSelectedDie, dieCuts, initialSelectedTexture, cardTextures, initialSpotUv]);
 
   useEffect(() => {
     currentElementsRef.current = currentElements;

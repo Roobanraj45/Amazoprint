@@ -17,6 +17,7 @@ import {
   Store,
   Factory,
   Zap,
+  Layers,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -53,7 +54,7 @@ export default async function AdminDashboard() {
   const menuItems = [
     { href: '/admin/products', label: 'Products', icon: <ShoppingBag size={24} />, color: 'from-blue-500 to-cyan-500', description: 'Inventory & dynamic pricing.' },
     { href: '/admin/orders', label: 'Orders', icon: <Package size={24} />, color: 'from-indigo-500 to-purple-500', description: 'Customer fulfillment tracking.' },
-    { href: '/admin/foils', label: 'Specialty Foils', icon: <Sparkles size={24} />, color: 'from-fuchsia-500 to-pink-500', description: 'Configure premium foil types.' },
+    { href: '/admin/addons', label: 'Product Add-ons', icon: <Layers size={24} />, color: 'from-purple-500 to-indigo-500', description: 'Manage die-cuts & specialty foils.' },
     { href: '/admin/contests', label: 'Contests', icon: <Trophy size={24} />, color: 'from-orange-500 to-amber-500', description: 'Community design battles.' },
     { href: '/admin/users', label: 'Directory', icon: <Users size={24} />, color: 'from-emerald-500 to-teal-500', description: 'User roles and permissions.' },
     { href: '/admin/printers', label: 'Production', icon: <Factory size={24} />, color: 'from-sky-500 to-blue-500', description: 'Printer partner management.' },

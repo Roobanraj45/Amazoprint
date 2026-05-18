@@ -33,6 +33,8 @@ const subProductSchema = z.object({
   allowedFoils: z.array(z.coerce.number()).optional(),
   allowedDieCuts: z.array(z.coerce.number()).optional(),
   dieCutPrices: z.record(z.string(), z.coerce.number()).optional().default({}),
+  allowedCardTextures: z.array(z.coerce.number()).optional(),
+  cardTexturePrices: z.record(z.string(), z.coerce.number()).optional().default({}),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
   backSideCost: z.coerce.number().optional().default(0),
 });
@@ -94,6 +96,7 @@ export async function createSubProduct(data: z.infer<typeof subProductSchema>) {
   const result = await db.insert(subProducts).values({
     ...validated,
     dieCutPrices: validated.dieCutPrices || {},
+    cardTexturePrices: validated.cardTexturePrices || {},
   }).returning();
   revalidatePath('/admin/products');
   revalidatePath('/products');
@@ -107,6 +110,7 @@ export async function updateSubProduct(id: number, data: Omit<z.infer<typeof sub
         .set({ 
             ...validated, 
             dieCutPrices: validated.dieCutPrices || {},
+            cardTexturePrices: validated.cardTexturePrices || {},
             updatedAt: new Date() 
         })
         .where(eq(subProducts.id, id))

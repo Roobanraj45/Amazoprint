@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { DesignEditor } from '@/components/design/design-editor';
 import type { Product, DesignElement, Background, FoilType } from '@/lib/types';
 import { db } from '@/db';
-import { products, subProducts, dieCuts, orders } from '@/db/schema';
+import { products, subProducts, dieCuts, cardTextures, orders } from '@/db/schema';
 import { eq, asc, and, notInArray } from 'drizzle-orm';
 import { getDesign } from '@/app/actions/design-actions';
 import { getSession } from '@/lib/auth';
@@ -89,6 +89,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
     subProductId: subProductForDims?.id,
     backSideCost: subProductForDims?.backSideCost,
     dieCutPrices: subProductForDims?.dieCutPrices,
+    cardTexturePrices: subProductForDims?.cardTexturePrices,
     price: subProductForDims?.price,
   };
 
@@ -163,6 +164,10 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
   const allDieCuts = await db.query.dieCuts.findMany({
     where: eq(dieCuts.isActive, true)
   }); 
+  const selectedTexture = searchParams.cardTexture ? Number(searchParams.cardTexture) : null;
+  const allCardTextures = await db.query.cardTextures.findMany({
+    where: eq(cardTextures.isActive, true)
+  });
 
   return (
     <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="animate-spin h-8 w-8" /></div>}>
@@ -181,8 +186,10 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
         spotUv={spotUvRequested}
         selectedAddons={selectedAddons}
         selectedDie={selectedDie}
+        selectedTexture={selectedTexture}
         pricingRules={pricingRules}
         dieCuts={allDieCuts}
+        cardTextures={allCardTextures}
         verificationId={verificationId}
         contestId={contestId}
         currentUserId={session?.sub}
