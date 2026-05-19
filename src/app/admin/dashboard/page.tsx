@@ -34,11 +34,12 @@ import { getAdminContests } from '@/app/actions/contest-actions';
 import { getUsers } from '@/app/actions/user-actions';
 
 export default async function AdminDashboard() {
-  const [orders, contests, users] = await Promise.all([
-    getAdminAllOrders(),
+  const [ordersResult, contests, users] = await Promise.all([
+    getAdminAllOrders({ limit: 10000 }),
     getAdminContests(),
     getUsers(),
   ]);
+  const orders = ordersResult.orders;
 
   const totalRevenue = orders.reduce((sum, order) => sum + parseFloat(order.totalAmount), 0);
   const activeContests = contests.filter(c => c.status === 'active').length;

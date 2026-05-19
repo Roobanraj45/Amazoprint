@@ -6,11 +6,11 @@ export default function UploadDesignLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 flex flex-col">
       <Header />
-      <main className="container mx-auto max-w-4xl px-4 py-24 sm:py-32">
+      <div className="flex-grow flex flex-col">
         {children}
-      </main>
-    </>
+      </div>
+    </div>
   );
 }

@@ -1,0 +1,351 @@
+[
+  {
+    "id": 8,
+    "contestId": 7,
+    "freelancerId": "dc50ec32-fc84-430b-ab72-9632586b895b",
+    "joinedAt": "2026-05-19T06:07:45.263Z",
+    "designId": 96,
+    "templateId": null,
+    "status": "active",
+    "freelancer": {
+      "id": "dc50ec32-fc84-430b-ab72-9632586b895b",
+      "name": "Rooban freelancer\n",
+      "profileImage": null
+    },
+    "submission": {
+      "id": 96,
+      "userId": "dc50ec32-fc84-430b-ab72-9632586b895b",
+      "name": "Design contest",
+      "productSlug": "e",
+      "thumbnailUrl": null,
+      "width": 92,
+      "height": 54,
+      "quantity": 100,
+      "elements": [
+        [
+          {
+            "x": 0,
+            "y": 0,
+            "id": "bg_base",
+            "type": "shape",
+            "width": 1087,
+            "height": 638,
+            "opacity": 1,
+            "fillType": "gradient",
+            "rotation": 0,
+            "shapeType": "rectangle",
+            "gradientStops": [
+              {
+                "id": "gs1",
+                "color": "#0a0a0a",
+                "position": 0
+              },
+              {
+                "id": "gs2",
+                "color": "#1a1a1a",
+                "position": 1
+              }
+            ],
+            "gradientDirection": 135
+          },
+          {
+            "x": 0,
+            "y": 0,
+            "id": "texture_overlay",
+            "src": "https://loremflickr.com/1200/800/abstract,grid,pattern",
+            "type": "image",
+            "width": 1087,
+            "height": 638,
+            "opacity": 0.08,
+            "rotation": 0,
+            "blendMode": "overlay",
+            "objectFit": "cover"
+          },
+          {
+            "x": 800,
+            "y": -100,
+            "id": "deco_hex_1",
+            "type": "shape",
+            "width": 400,
+            "height": 400,
+            "opacity": 0.1,
+            "fillType": "solid",
+            "rotation": 15,
+            "shapeType": "hexagon",
+            "backgroundColor": "#D4AF37"
+          },
+          {
+            "x": -150,
+            "y": 400,
+            "id": "deco_hex_2",
+            "type": "shape",
+            "width": 350,
+            "height": 350,
+            "opacity": 0.05,
+            "fillType": "solid",
+            "rotation": -10,
+            "shapeType": "hexagon",
+            "backgroundColor": "#ffffff"
+          },
+          {
+            "x": 60,
+            "y": 60,
+            "id": "accent_line_gold",
+            "type": "shape",
+            "width": 4,
+            "height": 518,
+            "opacity": 1,
+            "fillType": "solid",
+            "rotation": 0,
+            "shapeType": "rectangle",
+            "backgroundColor": "#D4AF37"
+          },
+          {
+            "x": 100,
+            "y": 120,
+            "id": "name_text",
+            "type": "text",
+            "color": "#FFFFFF",
+            "width": 800,
+            "height": 60,
+            "content": "MR. ROOBANRAJ",
+            "opacity": 1,
+            "fontSize": 54,
+            "rotation": 0,
+            "textAlign": "left",
+            "fontFamily": "Montserrat",
+            "fontWeight": "bold",
+            "textShadows": [
+              {
+                "id": "ts1",
+                "blur": 4,
+                "color": "rgba(0,0,0,0.5)",
+                "offsetX": 2,
+                "offsetY": 2
+              }
+            ],
+            "letterSpacing": 2,
+            "textTransform": "uppercase"
+          },
+          {
+            "x": 100,
+            "y": 185,
+            "id": "title_text",
+            "type": "text",
+            "color": "#D4AF37",
+            "width": 800,
+            "height": 30,
+            "content": "SOFTWARE DEVELOPER",
+            "opacity": 1,
+            "fontSize": 22,
+            "rotation": 0,
+            "textAlign": "left",
+            "fontFamily": "Montserrat",
+            "fontWeight": "normal",
+            "letterSpacing": 5,
+            "textTransform": "uppercase"
+          },
+          {
+            "x": 100,
+            "y": 230,
+            "id": "horizontal_divider",
+            "type": "shape",
+            "width": 150,
+            "height": 2,
+            "opacity": 0.8,
+            "fillType": "solid",
+            "rotation": 0,
+            "shapeType": "rectangle",
+            "backgroundColor": "#D4AF37"
+          },
+          {
+            "x": 100,
+            "y": 320,
+            "id": "contact_phone",
+            "type": "text",
+            "color": "#FFFFFF",
+            "width": 400,
+            "height": 25,
+            "content": "+91 98765 43210",
+            "opacity": 0.9,
+            "fontSize": 18,
+            "rotation": 0,
+            "textAlign": "left",
+            "fontFamily": "Inter",
+            "fontWeight": "normal"
+          },
+          {
+            "x": 100,
+            "y": 355,
+            "id": "contact_email",
+            "type": "text",
+            "color": "#FFFFFF",
+            "width": 400,
+            "height": 25,
+            "content": "roobanraj@knewrix.com",
+            "opacity": 0.9,
+            "fontSize": 18,
+            "rotation": 0,
+            "textAlign": "left",
+            "fontFamily": "Inter",
+            "fontWeight": "normal"
+          },
+          {
+            "x": 100,
+            "y": 390,
+            "id": "contact_web",
+            "type": "text",
+            "color": "#FFFFFF",
+            "width": 400,
+            "height": 25,
+            "content": "www.knewrix.com",
+            "opacity": 0.9,
+            "fontSize": 18,
+            "rotation": 0,
+            "textAlign": "left",
+            "fontFamily": "Inter",
+            "fontWeight": "normal"
+          },
+          {
+            "x": 100,
+            "y": 425,
+            "id": "contact_loc",
+            "type": "text",
+            "color": "#FFFFFF",
+            "width": 400,
+            "height": 25,
+            "content": "Chennai, Tamil Nadu, India",
+            "opacity": 0.9,
+            "fontSize": 18,
+            "rotation": 0,
+            "textAlign": "left",
+            "fontFamily": "Inter",
+            "fontWeight": "normal"
+          },
+          {
+            "x": 0,
+            "y": 538,
+            "id": "company_block_bg",
+            "type": "shape",
+            "width": 1087,
+            "height": 100,
+            "opacity": 1,
+            "fillType": "solid",
+            "rotation": 0,
+            "shapeType": "rectangle",
+            "backgroundColor": "#000000"
+          },
+          {
+            "x": 100,
+            "y": 570,
+            "id": "company_name",
+            "type": "text",
+            "color": "#FFFFFF",
+            "width": 600,
+            "height": 40,
+            "content": "KNEWRIX PRIVATE LIMITED",
+            "opacity": 1,
+            "fontSize": 28,
+            "rotation": 0,
+            "textAlign": "left",
+            "fontFamily": "Montserrat",
+            "fontWeight": "bold",
+            "letterSpacing": 3,
+            "textTransform": "uppercase"
+          },
+          {
+            "x": 860,
+            "y": 310,
+            "id": "qr_code_frame",
+            "type": "shape",
+            "width": 140,
+            "height": 140,
+            "opacity": 1,
+            "fillType": "solid",
+            "rotation": 0,
+            "shapeType": "rectangle",
+            "borderColor": "#D4AF37",
+            "borderWidth": 4,
+            "borderRadius": 8,
+            "backgroundColor": "#FFFFFF"
+          },
+          {
+            "x": 870,
+            "y": 320,
+            "id": "qr_code",
+            "type": "qrcode",
+            "width": 120,
+            "height": 120,
+            "content": "https://knewrix.com/team/roobanraj",
+            "opacity": 1,
+            "rotation": 0
+          },
+          {
+            "x": 900,
+            "y": 60,
+            "id": "deco_dot_grid",
+            "type": "shape",
+            "width": 100,
+            "height": 100,
+            "opacity": 0.2,
+            "fillType": "solid",
+            "rotation": 0,
+            "shapeType": "circle",
+            "backgroundColor": "#D4AF37"
+          },
+          {
+            "x": 987,
+            "y": 0,
+            "id": "top_right_accent",
+            "type": "shape",
+            "width": 100,
+            "height": 100,
+            "opacity": 1,
+            "fillType": "solid",
+            "rotation": 45,
+            "shapeType": "rectangle",
+            "backgroundColor": "#D4AF37"
+          },
+          {
+            "x": 1060,
+            "y": 550,
+            "id": "bottom_right_detail",
+            "type": "shape",
+            "width": 10,
+            "height": 60,
+            "opacity": 1,
+            "fillType": "solid",
+            "rotation": 0,
+            "shapeType": "rectangle",
+            "backgroundColor": "#D4AF37"
+          }
+        ]
+      ],
+      "background": [
+        {
+          "type": "solid",
+          "color": "#ffffff"
+        }
+      ],
+      "guides": [],
+      "createdAt": null,
+      "updatedAt": null,
+      "productId": 1,
+      "subProductId": 1,
+      "customisation": {
+        "pages": 1,
+        "addons": [],
+        "dieCut": null,
+        "spotUv": false,
+        "priceBreakup": {
+          "final": 900,
+          "addons": [],
+          "discount": 100,
+          "original": 1000,
+          "description": "10.00% off"
+        }
+      }
+    },
+    "template": null
+  }
+]

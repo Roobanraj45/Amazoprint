@@ -9,6 +9,7 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { and, eq, desc } from 'drizzle-orm';
+import { contestParticipants } from '@/db/schema';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -16,9 +17,10 @@ const uploadSchema = z.object({
     name: z.string().min(1, 'Design name is required.'),
     isPublic: z.preprocess((val) => val === 'true', z.boolean()),
     description: z.string().optional(),
-    productId: z.coerce.number().optional(),
-    subProductId: z.coerce.number().optional(),
-    quantity: z.coerce.number().optional().default(100),
+    productId: z.preprocess((val) => (val === undefined || val === 'null' || val === 'undefined' || val === '' || val === null ? undefined : Number(val)), z.number().optional()),
+    subProductId: z.preprocess((val) => (val === undefined || val === 'null' || val === 'undefined' || val === '' || val === null ? undefined : Number(val)), z.number().optional()),
+    quantity: z.preprocess((val) => (val === undefined || val === 'null' || val === 'undefined' || val === '' || val === null ? 100 : Number(val)), z.number().optional().default(100)),
+    contestId: z.preprocess((val) => (val === undefined || val === 'null' || val === 'undefined' || val === '' || val === null ? undefined : Number(val)), z.number().optional()),
 });
 
 
@@ -67,7 +69,7 @@ export async function uploadDesign(formData: FormData) {
     if (!validated.success) {
         return { success: false, error: validated.error.errors.map(e => e.message).join(', ') };
     }
-    const { name, isPublic, description, productId, subProductId, quantity } = validated.data;
+    const { name, isPublic, description, productId, subProductId, quantity, contestId } = validated.data;
 
     const file = formData.get('file') as File | null;
     if (!file) {
@@ -88,6 +90,16 @@ export async function uploadDesign(formData: FormData) {
             thumbnailPath = await processAndSaveFile(thumbnailFile, userFolder);
         }
         
+        let customisationObj: any = {};
+        const customisationStr = formData.get('customisation') as string | null;
+        if (customisationStr) {
+            try {
+                customisationObj = JSON.parse(customisationStr);
+            } catch (err) {
+                console.error('Failed to parse customisation JSON', err);
+            }
+        }
+        
         const [newUpload] = await db.insert(designUploads).values({
             userId: session.sub,
             filePath: filePath,
@@ -100,8 +112,23 @@ export async function uploadDesign(formData: FormData) {
             metadata: description ? { description } : undefined,
             productId: productId,
             subProductId: subProductId,
+            customisation: customisationObj,
         }).returning();
         
+        if (contestId && newUpload.id) {
+            await db.update(contestParticipants)
+                .set({
+                    templateId: newUpload.id,
+                    status: 'submitted',
+                })
+                .where(and(eq(contestParticipants.contestId, contestId), eq(contestParticipants.freelancerId, session.sub)));
+            
+            revalidatePath(`/client/contests/${contestId}`);
+            revalidatePath('/freelancer/contests');
+            
+            return { success: true, url: filePath, redirectTo: '/freelancer/contests' };
+        }
+
         if (productId && subProductId && newUpload.id) {
             return { success: true, redirectTo: `/checkout?uploadId=${newUpload.id}&quantity=${quantity}` };
         }
@@ -111,9 +138,43 @@ export async function uploadDesign(formData: FormData) {
 
         return { success: true, url: filePath };
     } catch (e) {
-        console.error(e);
-        return { success: false, error: 'Failed to save the file.' };
+        console.error('Error in uploadDesign:', e);
+        return { success: false, error: formatDatabaseError(e) };
     }
+}
+
+function formatDatabaseError(e: any): string {
+    if (!e) return 'An unexpected error occurred while saving your design.';
+    const msg = typeof e === 'string' ? e : (e instanceof Error ? e.message : String(e));
+
+    if (msg.includes('null value in column')) {
+        if (msg.includes('product_id')) return 'Please select a valid product before uploading your design.';
+        if (msg.includes('sub_product_id')) return 'Please select a specific size or variant for your product before uploading.';
+        if (msg.includes('original_filename')) return 'A design title is required.';
+        if (msg.includes('file_path')) return 'File upload failed. Please try uploading your artwork again.';
+        return 'A required field is missing. Please ensure all necessary details are provided.';
+    }
+
+    if (msg.includes('violates foreign key constraint')) {
+        if (msg.includes('product_id')) return 'The selected product is invalid or no longer available.';
+        if (msg.includes('sub_product_id')) return 'The selected product size/variant is invalid or no longer available.';
+        if (msg.includes('user_id')) return 'Your session appears to be invalid. Please log in again.';
+        return 'Selected related information is invalid or no longer exists.';
+    }
+
+    if (msg.includes('violates unique constraint')) {
+        return 'A record with this information already exists.';
+    }
+
+    if (msg.includes('value too long for type character varying')) {
+        return 'The text entered is too long. Please shorten your title or description.';
+    }
+
+    if (msg.includes('invalid input syntax')) {
+        return 'Invalid data format provided. Please check your selections and try again.';
+    }
+
+    return 'We encountered an issue saving your design details. Please try again.';
 }
 
 export async function deleteUpload(id: number) {

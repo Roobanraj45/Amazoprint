@@ -5,16 +5,20 @@ import { useToast } from "@/hooks/use-toast";
 import { joinContest } from "@/app/actions/contest-actions";
 import { useState } from "react";
 import { Loader2, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function JoinButton({ contestId, isFull, hasJoined }: { contestId: number; isFull: boolean; hasJoined: boolean }) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+
+  const router = useRouter();
 
   const handleJoin = async () => {
     setIsLoading(true);
     const result = await joinContest(contestId);
     if (result.success) {
       toast({ title: "Joined!", description: "Contest added to your workspace." });
+      router.push('/freelancer/contests');
     } else {
       toast({ variant: 'destructive', title: "Error", description: result.error });
     }

@@ -261,6 +261,7 @@ export const contests = pgTable('contests', {
   startDate: timestamp('start_date').notNull(),
   endDate: timestamp('end_date').notNull(),
   status: varchar('status', { length: 50, enum: ['active', 'completed', 'cancelled'] }).default('active'),
+  customisation: jsonb('customisation').default({}),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => {
@@ -277,7 +278,8 @@ export const contestParticipants = pgTable('contest_participants', {
     contestId: integer('contest_id').notNull().references(() => contests.id, { onDelete: 'cascade' }),
     freelancerId: uuid('freelancer_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     joinedAt: timestamp('joined_at').defaultNow(),
-    templateUploadId: integer('template_upload_id'),
+    designId: integer('design_id').references(() => designs.id, { onDelete: 'set null' }),
+    templateId: integer('template_id').references(() => designUploads.id, { onDelete: 'set null' }),
     status: varchar('status', { length: 50, enum: ['active', 'submitted', 'selected', 'rejected'] }).default('active'),
 }, (table) => {
     return {
@@ -382,6 +384,7 @@ export const designUploads = pgTable('design_uploads', {
   uploadStatus: varchar('upload_status', { length: 50, enum: ['pending', 'processing', 'completed', 'failed'] }).default('pending'),
   isPublic: boolean('is_public').default(false),
   metadata: jsonb('metadata'),
+  customisation: jsonb('customisation').default({}),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => {
@@ -459,6 +462,8 @@ export const orders = pgTable('orders', {
   updatedAt: timestamp('updated_at').defaultNow(),
   paymentId: integer('payment_id').references(() => payments.id, { onDelete: 'set null' }),
   printerAssigned: uuid('printer_assigned').references(() => printPressUsers.id, { onDelete: 'set null' }),
+  customisation: jsonb('customisation').default({}),
+  contestId: integer('contest_id').references(() => contests.id, { onDelete: 'set null' }),
 }, (table) => {
     return {
         userIdx: index('idx_orders_user_id').on(table.userId),
@@ -470,6 +475,7 @@ export const orders = pgTable('orders', {
         directSellingProductIdIdx: index('idx_orders_direct_selling_product_id').on(table.directSellingProductId),
         paymentIdIdx: index('idx_orders_payment_id').on(table.paymentId),
         printerAssignedIdx: index('idx_orders_printer_assigned').on(table.printerAssigned),
+        contestIdx: index('idx_orders_contest_id').on(table.contestId),
     };
 });
 
@@ -594,6 +600,7 @@ export const contestsRelations = relations(contests, ({ one, many }) => ({
   messages: many(contestMessages),
   winners: many(contestWinners),
   payments: many(payments),
+  orders: many(orders),
 }));
 
 export const contestParticipantsRelations = relations(contestParticipants, ({ one }) => ({
@@ -606,8 +613,12 @@ export const contestParticipantsRelations = relations(contestParticipants, ({ on
     references: [users.id],
   }),
   submission: one(designs, {
-    fields: [contestParticipants.templateUploadId],
+    fields: [contestParticipants.designId],
     references: [designs.id]
+  }),
+  template: one(designUploads, {
+    fields: [contestParticipants.templateId],
+    references: [designUploads.id]
   })
 }));
 
@@ -746,6 +757,10 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     printer: one(printPressUsers, {
         fields: [orders.printerAssigned],
         references: [printPressUsers.id],
+    }),
+    contest: one(contests, {
+        fields: [orders.contestId],
+        references: [contests.id],
     }),
     logs: many(orderLogs),
 }));

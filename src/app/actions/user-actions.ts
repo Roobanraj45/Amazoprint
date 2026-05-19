@@ -2,8 +2,8 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { users } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { users, contests, orders, designVerifications, contestParticipants, contestWinners } from '@/db/schema';
+import { eq, desc, and, count } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession as getAuthSession } from '@/lib/auth';
 
@@ -56,4 +56,56 @@ export async function logout() {
     await deleteSession();
     revalidatePath('/');
     return { success: true };
+}
+
+export async function getUserProfile() {
+    const session = await getAuthSession();
+    if (!session?.sub) {
+        throw new Error('Unauthorized');
+    }
+
+    const user = await db.query.users.findFirst({
+        where: eq(users.id, session.sub)
+    });
+
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    return user;
+}
+
+export async function getUserStats() {
+    const session = await getAuthSession();
+    if (!session?.sub) {
+        throw new Error('Unauthorized');
+    }
+
+    if (session.role === 'freelancer') {
+        const [joinedResult] = await db.select({ count: count() }).from(contestParticipants).where(eq(contestParticipants.userId, session.sub));
+        const [wonResult] = await db.select({ count: count() }).from(contestWinners).where(eq(contestWinners.freelancerId, session.sub));
+        const [verificationsResult] = await db.select({ count: count() }).from(designVerifications).where(
+            and(
+                eq(designVerifications.freelancerId, session.sub),
+                eq(designVerifications.status, 'completed')
+            )
+        );
+
+        return {
+            contestsJoined: joinedResult.count,
+            contestsWon: wonResult.count,
+            verificationsCompleted: verificationsResult.count,
+        };
+    } else {
+        // Assume client/user
+        const [createdResult] = await db.select({ count: count() }).from(contests).where(eq(contests.userId, session.sub));
+        const [ordersResult] = await db.select({ count: count() }).from(orders).where(eq(orders.userId, session.sub));
+        const [verificationsResult] = await db.select({ count: count() }).from(designVerifications).where(eq(designVerifications.userId, session.sub));
+
+        return {
+            contestsCreated: createdResult.count,
+            ordersPlaced: ordersResult.count,
+            verificationsRequested: verificationsResult.count,
+        };
+    }
 }

@@ -6,7 +6,7 @@ import { createRazorpayOrder, captureAndVerifyPayment, processDummyPayment } fro
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Loader2, IndianRupee, ShieldCheck } from 'lucide-react';
+import { Loader2, IndianRupee, ShieldCheck, Coins, Sparkles, Trophy } from 'lucide-react';
 import Script from 'next/script';
 
 // Define a type for the order details
@@ -94,11 +94,13 @@ export function PaymentContent() {
                 }
             },
             prefill: {
-                name: orderPayload.shippingAddress.name,
-                contact: orderPayload.shippingAddress.phone,
+                name: orderPayload.shippingAddress?.name || "Client",
+                contact: orderPayload.shippingAddress?.phone || "",
             },
             notes: {
-                address: `${orderPayload.shippingAddress.addressLine1}, ${orderPayload.shippingAddress.city}`
+                address: orderPayload.shippingAddress 
+                    ? `${orderPayload.shippingAddress.addressLine1 || ''}, ${orderPayload.shippingAddress.city || ''}` 
+                    : "Digital Service / Design Contest"
             },
             theme: {
                 color: "#2563EB" // Blue-600
@@ -166,14 +168,90 @@ export function PaymentContent() {
                         <p className="text-xs text-muted-foreground">All taxes and fees included.</p>
                     </div>
 
-                    <div className="space-y-3">
-                        <h4 className="font-semibold text-sm">Shipping to:</h4>
-                        <div className="text-sm text-muted-foreground p-3 rounded-md border">
-                            <p className="font-medium">{orderPayload.shippingAddress.name}</p>
-                            <p>{orderPayload.shippingAddress.addressLine1}</p>
-                            <p>{orderPayload.shippingAddress.city}, {orderPayload.shippingAddress.state} {orderPayload.shippingAddress.zip}</p>
+                    {orderType === 'contest' ? (
+                        <div className="space-y-4">
+                            <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 space-y-3 shadow-inner">
+                                <h4 className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Trophy className="w-4 h-4 text-indigo-500 shrink-0" /> Contest Specifications Summary
+                                </h4>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between border-b border-border/40 pb-2">
+                                        <span className="text-muted-foreground font-semibold">Contest Title</span>
+                                        <span className="font-extrabold text-foreground text-right">{orderPayload.orderData?.contestData?.title}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-border/40 pb-2">
+                                        <span className="text-muted-foreground font-semibold">Casing Format</span>
+                                        <span className="font-extrabold text-indigo-600 bg-indigo-600/10 px-2.5 py-0.5 rounded-lg text-xs flex items-center gap-1 shrink-0">
+                                            <Sparkles className="w-3.5 h-3.5 animate-pulse" /> Aa Format
+                                        </span>
+                                    </div>
+                                    {orderPayload.orderData?.contestData?.customisation?.sizeDisplay && (
+                                        <div className="flex justify-between border-b border-border/40 pb-2">
+                                            <span className="text-muted-foreground font-semibold">Design Options</span>
+                                            <span className="font-bold text-foreground text-right">
+                                                {orderPayload.orderData?.contestData?.customisation?.sizeDisplay} ({orderPayload.orderData?.contestData?.customisation?.quantity || 1} Units)
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10 space-y-3 shadow-inner">
+                                <h4 className="text-xs font-extrabold text-rose-500 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Coins className="w-4 h-4 text-rose-500 shrink-0" /> Detailed Cost Breakdown
+                                </h4>
+                                <div className="space-y-2.5 text-sm">
+                                    {/* Specifications Cost Sub-matrix */}
+                                    {orderPayload.orderData?.contestData?.customisation?.specsCost !== undefined && (
+                                        <div className="border-b border-border/40 pb-2.5 space-y-1.5 text-xs bg-slate-50/50 dark:bg-slate-900/50 p-3 rounded-xl border">
+                                            <div className="flex justify-between font-bold text-slate-700 dark:text-slate-300">
+                                                <span>Base Printing ({orderPayload.orderData?.contestData?.customisation?.quantity || 1} Units)</span>
+                                                <span>₹{Number(orderPayload.orderData?.contestData?.customisation?.printBaseCost || 0).toFixed(2)}</span>
+                                            </div>
+                                            {orderPayload.orderData?.contestData?.customisation?.specsBreakdown?.map((addon: any, idx: number) => (
+                                                <div key={idx} className="flex justify-between text-muted-foreground pl-2 font-medium">
+                                                    <span>+ {addon.name}</span>
+                                                    <span>₹{Number(addon.totalAmount || 0).toFixed(2)}</span>
+                                                </div>
+                                            ))}
+                                            <div className="flex justify-between font-black text-indigo-600 dark:text-indigo-400 pt-1.5 border-t border-dashed border-border/40">
+                                                <span>Specifications Subtotal</span>
+                                                <span>₹{Number(orderPayload.orderData?.contestData?.customisation?.specsCost || 0).toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-between border-b border-border/40 pb-2">
+                                        <span className="text-muted-foreground font-semibold">Platform Fee (Contest Tier)</span>
+                                        <span className="font-bold text-foreground">₹{Number(orderPayload.orderData?.contestData?.entryFee || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-border/40 pb-2">
+                                        <span className="text-muted-foreground font-semibold">Winner Prize Escrow</span>
+                                        <span className="font-bold text-rose-500">₹{Number(orderPayload.orderData?.contestData?.prizeAmount || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between pt-1.5 font-extrabold text-base border-t border-border/60">
+                                        <span className="text-foreground">Grand Total Cost</span>
+                                        <span className="text-primary flex items-center"><IndianRupee size={16} className="mr-0.5"/>{orderPayload.amount.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="space-y-3">
+                            <h4 className="font-semibold text-sm">Shipping to:</h4>
+                            {orderPayload.shippingAddress ? (
+                                <div className="text-sm text-muted-foreground p-3 rounded-md border">
+                                    <p className="font-medium">{orderPayload.shippingAddress.name}</p>
+                                    <p>{orderPayload.shippingAddress.addressLine1}</p>
+                                    <p>{orderPayload.shippingAddress.city}, {orderPayload.shippingAddress.state} {orderPayload.shippingAddress.zip}</p>
+                                </div>
+                            ) : (
+                                <div className="text-sm text-muted-foreground p-3 rounded-md border">
+                                    No shipping address provided.
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </CardContent>
                 <CardFooter className="flex-col gap-4">
                      <Button 

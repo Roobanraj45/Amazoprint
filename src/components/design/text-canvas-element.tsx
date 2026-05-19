@@ -254,7 +254,7 @@ export const TextCanvasElement = React.memo(({
     let contentToWrap = displayContent || '';
     if (element.textTransform === 'uppercase') contentToWrap = contentToWrap.toUpperCase();
     else if (element.textTransform === 'lowercase') contentToWrap = contentToWrap.toLowerCase();
-    else if (element.textTransform === 'capitalize') contentToWrap = contentToWrap.replace(/\b\w/g, char => char.toUpperCase());
+    else if (element.textTransform === 'capitalize') contentToWrap = contentToWrap.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
 
     const charData = React.useMemo(() => {
         if (typeof document === 'undefined') return [];
@@ -430,7 +430,7 @@ export const TextCanvasElement = React.memo(({
     let contentToWrap = displayContent;
     if (element.textTransform === 'uppercase') contentToWrap = contentToWrap.toUpperCase();
     else if (element.textTransform === 'lowercase') contentToWrap = contentToWrap.toLowerCase();
-    else if (element.textTransform === 'capitalize') contentToWrap = contentToWrap.replace(/\b\w/g, char => char.toUpperCase());
+    else if (element.textTransform === 'capitalize') contentToWrap = contentToWrap.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
 
     const allLines = contentToWrap.split('\n');
     const lines: { text: string; y: number; width: number }[] = [];

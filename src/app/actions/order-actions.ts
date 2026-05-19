@@ -4,8 +4,8 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs } from '@/db/schema';
-import { and, eq, desc } from 'drizzle-orm';
+import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs, users } from '@/db/schema';
+import { and, eq, desc, count, ilike, sql, gte, lte, or, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import type { Address } from '@/lib/types';
@@ -81,9 +81,10 @@ export async function createOrder(data: CreateOrderData) {
     let totalAmount = 0;
     let unitPrice = 0;
 
-    const customisation = (sourceDetails as any).customisation;
-    if (customisation?.priceBreakup) {
-        totalAmount = customisation.priceBreakup.final;
+    const customisation = (sourceDetails as any).customisation || {};
+    if (customisation.priceBreakup || customisation.pricing) {
+        const breakup = customisation.priceBreakup || customisation.pricing;
+        totalAmount = breakup.final;
         unitPrice = totalAmount / quantity;
     } else {
         unitPrice = parseFloat(subProductInfo.price);
@@ -105,6 +106,7 @@ export async function createOrder(data: CreateOrderData) {
         paymentStatus: 'paid', // Placeholder
         orderStatus: 'confirmed',
         paymentId,
+        customisation,
     }).returning();
     
     const newOrder = result[0];
@@ -189,11 +191,12 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
     let finalUnitPrice = baseUnitPrice;
     let discountDescription: string | null = null;
     let totalDiscount = 0;
-    let customisation = (details as any).design?.customisation || {};
+    let customisation = (details as any).design?.customisation || (details as any).upload?.customisation || {};
 
     // If we have a saved price breakup in customisation, use it as a reference or primary source
-    if (customisation.priceBreakup) {
-        const breakup = customisation.priceBreakup;
+    if (customisation.priceBreakup || customisation.pricing) {
+        const breakup = customisation.priceBreakup || customisation.pricing;
+        customisation.priceBreakup = breakup; // Normalize so checkout UI works seamlessly
         // The breakup.final is the total for the quantity
         // We can use it to derive the unit price
         finalUnitPrice = breakup.final / quantity;
@@ -230,11 +233,17 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
     return { ...details, unitPrice: finalUnitPrice, total, originalTotal, discountDescription, totalDiscount, customisation };
 }
 
-export async function getMyOrders() {
+export async function getMyOrders(page: number = 1, limit: number = 10) {
     const session = await getSession();
     if (!session?.sub) {
-        return [];
+        return { orders: [], totalCount: 0, totalPages: 0, currentPage: 1 };
     }
+
+    const offset = (page - 1) * limit;
+    
+    const [totalCountResult] = await db.select({ count: count() }).from(orders).where(eq(orders.userId, session.sub));
+    const totalCount = totalCountResult.count;
+    const totalPages = Math.ceil(totalCount / limit);
 
     const userOrders = await db.query.orders.findMany({
         where: eq(orders.userId, session.sub),
@@ -244,21 +253,90 @@ export async function getMyOrders() {
             design: true,
             designUpload: true,
             directSellingProduct: true,
+            contest: {
+                with: {
+                    payments: true
+                }
+            }
         },
-        orderBy: [desc(orders.createdAt)]
+        orderBy: [desc(orders.createdAt)],
+        limit,
+        offset
     });
 
-    return userOrders;
+    return { orders: userOrders, totalCount, totalPages, currentPage: page };
 }
 
-export async function getAdminAllOrders() {
+export async function getAdminAllOrders({
+    page = 1,
+    limit = 10,
+    searchQuery = '',
+    statusFilter = 'all',
+    startDate = '',
+    endDate = ''
+}: {
+    page?: number;
+    limit?: number;
+    searchQuery?: string;
+    statusFilter?: string;
+    startDate?: string;
+    endDate?: string;
+} = {}) {
     const session = await getSession();
     const adminRoles = ['admin', 'super_admin', 'company_admin'];
     if (!session?.sub || !adminRoles.includes(session.role)) {
         throw new Error('Unauthorized');
     }
 
-    return await db.query.orders.findMany({
+    const conditions = [];
+
+    if (statusFilter && statusFilter !== 'all') {
+        conditions.push(eq(orders.orderStatus, statusFilter));
+    }
+
+    if (startDate && endDate) {
+        // Assume ISO strings or date strings YYYY-MM-DD
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        conditions.push(and(gte(orders.createdAt, start), lte(orders.createdAt, end)));
+    } else if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        conditions.push(gte(orders.createdAt, start));
+    } else if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        conditions.push(lte(orders.createdAt, end));
+    }
+
+    if (searchQuery) {
+        const isNumeric = !isNaN(Number(searchQuery)) && searchQuery.trim() !== '';
+        const searchConditions = [];
+        
+        if (isNumeric) {
+            searchConditions.push(eq(orders.id, Number(searchQuery)));
+        }
+        
+        // Subquery to find users matching name or email
+        const userMatches = db.select({ id: users.id }).from(users).where(
+            or(ilike(users.name, `%${searchQuery}%`), ilike(users.email, `%${searchQuery}%`))
+        );
+        
+        searchConditions.push(inArray(orders.userId, userMatches));
+        conditions.push(or(...searchConditions));
+    }
+
+    const finalCondition = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    const [totalCountResult] = await db.select({ count: count() }).from(orders).where(finalCondition);
+    const totalCount = totalCountResult.count;
+    const totalPages = Math.ceil(totalCount / limit);
+    const offset = (page - 1) * limit;
+
+    const fetchedOrders = await db.query.orders.findMany({
+        where: finalCondition,
         with: {
             user: {
                 columns: {
@@ -269,9 +347,103 @@ export async function getAdminAllOrders() {
             product: true,
             subProduct: true,
             directSellingProduct: true,
+            contest: {
+                with: {
+                    payments: true
+                }
+            }
         },
         orderBy: [desc(orders.createdAt)],
+        limit,
+        offset
     });
+
+    return { orders: fetchedOrders, totalCount, totalPages, currentPage: page };
+}
+
+export async function getAdminOrderStats({
+    searchQuery = '',
+    statusFilter = 'all',
+    startDate = '',
+    endDate = ''
+}: {
+    searchQuery?: string;
+    statusFilter?: string;
+    startDate?: string;
+    endDate?: string;
+} = {}) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // 1. Total Overall Revenue & Count
+    const [totalStats] = await db.select({ 
+        totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0)`,
+        count: count()
+    }).from(orders);
+
+    // 2. Today's Revenue & Count
+    const [todayStats] = await db.select({ 
+        totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0)`,
+        count: count()
+    }).from(orders).where(gte(orders.createdAt, startOfToday));
+
+    // 3. Filtered Revenue & Count
+    const conditions = [];
+
+    if (statusFilter && statusFilter !== 'all') {
+        conditions.push(eq(orders.orderStatus, statusFilter));
+    }
+
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        conditions.push(and(gte(orders.createdAt, start), lte(orders.createdAt, end)));
+    } else if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        conditions.push(gte(orders.createdAt, start));
+    } else if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        conditions.push(lte(orders.createdAt, end));
+    }
+
+    if (searchQuery) {
+        const isNumeric = !isNaN(Number(searchQuery)) && searchQuery.trim() !== '';
+        const searchConditions = [];
+        
+        if (isNumeric) {
+            searchConditions.push(eq(orders.id, Number(searchQuery)));
+        }
+        
+        const userMatches = db.select({ id: users.id }).from(users).where(
+            or(ilike(users.name, `%${searchQuery}%`), ilike(users.email, `%${searchQuery}%`))
+        );
+        
+        searchConditions.push(inArray(orders.userId, userMatches));
+        conditions.push(or(...searchConditions));
+    }
+
+    const finalCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [filteredStats] = await db.select({ 
+        totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0)`,
+        count: count()
+    }).from(orders).where(finalCondition);
+
+    return {
+        total: { amount: Number(totalStats.totalAmount), count: totalStats.count },
+        today: { amount: Number(todayStats.totalAmount), count: todayStats.count },
+        filtered: { amount: Number(filteredStats.totalAmount), count: filteredStats.count }
+    };
 }
 
 export async function getAdminOrderDetails(orderId: number) {

@@ -122,7 +122,7 @@ export async function updateDesign(data: z.infer<typeof updateDesignSchema>) {
             where: and(
                 eq(contestParticipants.contestId, Number(contestId)),
                 eq(contestParticipants.freelancerId, session.sub),
-                eq(contestParticipants.templateUploadId, id)
+                eq(contestParticipants.designId, id)
             )
         });
         if (participant) {

@@ -415,56 +415,80 @@ export function StartDesignContent() {
                               <ChevronRight className="w-5 h-5" />
                           </button>
                       </div>
-                                    {/* Choose Your Design Path Container */}
+                  {/* Design Templates Section */}
+                  <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+                      <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm tracking-tight">
+                              <LayoutTemplate className="w-4 h-4 animate-pulse" /> Design Templates
+                          </div>
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Select and customize professionally designed templates for a quick start.</p>
+                      </div>
+
+                      <div className="p-5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-5 group hover:border-indigo-500/50 transition-all">
+                          <div className="flex items-start gap-4">
+                              <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
+                                  <LayoutTemplate className="w-5 h-5" />
+                              </div>
+                              <div>
+                                  <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Browse Ready-Made Templates</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-normal">Choose from hundreds of premium, pre-formatted design templates customized specifically for this product size and format.</p>
+                              </div>
+                          </div>
+                          <Button asChild className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-bold shadow hover:shadow-md hover:-translate-y-0.5 transition-all text-xs">
+                              <Link href={`/design/${product.slug}/templates?${constructedQuery}`}>Browse Design Templates</Link>
+                          </Button>
+                      </div>
+                  </div>
+
+                  {/* Artwork Setup Specifications */}
                   <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-5">
                       <div className="space-y-1">
                           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm tracking-tight">
-                              <Sparkles className="w-4 h-4 animate-pulse" /> Choose Your Design Path
+                              <Info className="w-4 h-4 text-indigo-500 animate-pulse" /> Artwork Setup Specifications
                           </div>
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Select how you&apos;d like to create your custom print.</p>
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Ensure your files are set up correctly for flawless printing results.</p>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {/* Customize Online Card */}
-                          <div className="p-5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-5 group hover:border-indigo-500/50 transition-all">
-                              <div className="flex items-start gap-4">
-                                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
-                                      <LayoutTemplate className="w-5 h-5" />
+                      <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-2">
+                              <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
                                   </div>
-                                  <div>
-                                      <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Customize Online</h4>
-                                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-normal">Personalize your design with our intuitive studio.</p>
-                                  </div>
+                                  <span className="text-[11px] font-bold text-slate-900 dark:text-white">Resolution</span>
                               </div>
-                              <Button asChild className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-bold shadow hover:shadow-md hover:-translate-y-0.5 transition-all text-xs">
-                                  <Link href={`/design/${product.slug}?${constructedQuery}`}>Start Designing</Link>
-                              </Button>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">300 DPI minimum required for crisp, razor-sharp details.</p>
                           </div>
 
-                          {/* Expert Design Service Card */}
-                          <div className="p-5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-5 group hover:border-pink-500/50 transition-all relative overflow-hidden">
-                              <div className="absolute top-3 right-3 bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border border-pink-200 dark:border-pink-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-tight uppercase">
-                                  Popular
-                              </div>
-                              <div className="flex items-start gap-4 pr-12">
-                                  <div className="w-10 h-10 rounded-2xl bg-pink-50 dark:bg-pink-950/50 border border-pink-100 dark:border-pink-900 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0 group-hover:scale-105 transition-transform">
-                                      <Trophy className="w-5 h-5" />
+                          <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-2">
+                              <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                                      <Layers className="w-3.5 h-3.5" />
                                   </div>
-                                  <div>
-                                      <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Expert Design Service</h4>
-                                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-normal">Collaborate with professional designers.</p>
-                                  </div>
+                                  <span className="text-[11px] font-bold text-slate-900 dark:text-white">Color Mode</span>
                               </div>
-                              <Button asChild variant="outline" className="w-full h-11 rounded-xl border border-pink-600 text-pink-600 dark:border-pink-500 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/30 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-xs">
-                                  <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct.id}`}>Hire a Designer</Link>
-                              </Button>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">CMYK color space. Convert RGB designs to prevent color shifting.</p>
                           </div>
-                      </div>
 
-                      <div className="text-center pt-1">
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                              Looking for inspiration? Browse our professionally crafted <Link href={`/design/${product.slug}/templates?${constructedQuery}`} className="text-pink-600 dark:text-pink-400 font-bold hover:underline">templates</Link>
-                          </p>
+                          <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-2">
+                              <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                                      <Scissors className="w-3.5 h-3.5 animate-pulse" />
+                                  </div>
+                                  <span className="text-[11px] font-bold text-slate-900 dark:text-white">Bleed Margin</span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">Add 3mm of bleed around all edges to avoid white margins after cutting.</p>
+                          </div>
+
+                          <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-2">
+                              <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-lg bg-pink-50 dark:bg-pink-950/50 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0">
+                                      <FileText className="w-3.5 h-3.5" />
+                                  </div>
+                                  <span className="text-[11px] font-bold text-slate-900 dark:text-white">File Format</span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">PDF is highly recommended. High-quality vector formats give the best print.</p>
+                          </div>
                       </div>
                   </div>  </div>
               </div>
@@ -497,25 +521,52 @@ export function StartDesignContent() {
                   {/* Option Groups Matrix */}
                   <div className="space-y-5">
                       {/* 1. Size Selection */}
+                      {/* 1. Size Selection */}
                       <div className="space-y-2.5">
                           <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
                               <span className="text-indigo-600 dark:text-indigo-400 font-bold">1.</span> Select Dimensions
                           </Label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                              {product.subProducts.map(sp => (
-                                  <button
-                                      key={sp.id}
-                                      onClick={() => handleSubProductChange(sp)}
-                                      className={cn(
-                                          "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all text-center flex items-center justify-center shadow-sm",
-                                          subProduct.id === sp.id 
-                                              ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
-                                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
-                                      )}
-                                  >
-                                      {sp.width === 0 && sp.height === 0 ? 'Custom Size' : `${sp.width}" x ${sp.height}"`}
-                                  </button>
-                              ))}
+                          <div className="relative group/carousel flex items-center">
+                              <Button 
+                                  variant="outline" 
+                                  size="icon" 
+                                  className="absolute left-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 -translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                                  onClick={() => {
+                                      const container = document.getElementById('dimensions-scroll-container');
+                                      if (container) container.scrollBy({ left: -200, behavior: 'smooth' });
+                                  }}
+                              >
+                                  <ChevronLeft className="h-4 w-4" />
+                              </Button>
+
+                              <div id="dimensions-scroll-container" className="flex items-center gap-2.5 overflow-x-auto scrollbar-none scroll-smooth py-1 px-1 w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                  {product.subProducts.map(sp => (
+                                      <button
+                                          key={sp.id}
+                                          onClick={() => handleSubProductChange(sp)}
+                                          className={cn(
+                                              "flex-shrink-0 w-36 py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all text-center flex items-center justify-center shadow-sm",
+                                              subProduct.id === sp.id 
+                                                  ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
+                                                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
+                                          )}
+                                      >
+                                          {sp.width === 0 && sp.height === 0 ? 'Custom Size' : `${sp.width}" x ${sp.height}"`}
+                                      </button>
+                                  ))}
+                              </div>
+
+                              <Button 
+                                  variant="outline" 
+                                  size="icon" 
+                                  className="absolute right-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                                  onClick={() => {
+                                      const container = document.getElementById('dimensions-scroll-container');
+                                      if (container) container.scrollBy({ left: 200, behavior: 'smooth' });
+                                  }}
+                              >
+                                  <ChevronRight className="h-4 w-4" />
+                              </Button>
                           </div>
                           {subProduct.width === 0 && subProduct.height === 0 && (
                               <div className="grid grid-cols-2 gap-4 pt-2 animate-in zoom-in-95 duration-300">
@@ -544,134 +595,166 @@ export function StartDesignContent() {
                       </div>
 
                       {/* 2. Choose Paper & Finishes */}
-                      <div className="space-y-2.5">
-                          <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
-                              <span className="text-indigo-600 dark:text-indigo-400 font-bold">2.</span> Choose Paper & Finishes
-                          </Label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                              {/* Default Paper Type Pill */}
-                              <button className="py-2.5 px-3 rounded-2xl border border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold flex items-center justify-center gap-1.5 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]">
-                                  <FileText className="w-5 h-5 opacity-80 shrink-0" /> Premium Matte
-                              </button>
-
-                              {/* Spot UV Toggle Pill */}
-                              {subProduct.spotUvAllowed && (
-                                  <button
-                                      onClick={() => setSpotUv(!spotUv)}
-                                      className={cn(
-                                          "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5 shadow-sm",
-                                          spotUv 
-                                              ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20 shadow scale-[1.02]" 
-                                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
-                                      )}
+                      {(subProduct.spotUvAllowed || addonRules.length > 0) && (
+                          <div className="space-y-2.5">
+                              <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">2.</span> Choose Paper & Finishes
+                              </Label>
+                              <div className="relative group/carousel flex items-center">
+                                  <Button 
+                                      variant="outline" 
+                                      size="icon" 
+                                      className="absolute left-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 -translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                                      onClick={() => {
+                                          const container = document.getElementById('finishes-scroll-container');
+                                          if (container) container.scrollBy({ left: -200, behavior: 'smooth' });
+                                      }}
                                   >
-                                      <Sparkles className="w-5 h-5 text-amber-500 shrink-0" /> Spot UV
-                                  </button>
-                              )}
+                                      <ChevronLeft className="h-4 w-4" />
+                                  </Button>
 
-                              {/* Addons Pills */}
-                              {addonRules.map(rule => {
-                                  const isSelected = selectedAddons.includes(rule.id);
-                                  return (
-                                      <button
-                                          key={rule.id}
-                                          onClick={() => toggleAddon(rule.id)}
-                                          className={cn(
-                                              "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm truncate",
-                                              isSelected 
-                                                  ? "border-indigo-600 bg-indigo-600/10 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-600/20 shadow scale-[1.02]" 
-                                                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
-                                          )}
-                                      >
-                                          <div className="flex items-center gap-1.5 shrink-0">
-                                              {rule.addonImageUrl ? (
-                                                  <>
-                                                      <img 
-                                                          src={resolveImagePath(rule.addonImageUrl)} 
-                                                          alt={rule.addonName || 'Addon'} 
-                                                          className="w-5 h-5 object-contain shrink-0" 
-                                                          onError={(e) => { 
-                                                              e.currentTarget.style.display = 'none'; 
-                                                              const nextEl = e.currentTarget.nextElementSibling;
-                                                              if (nextEl) nextEl.classList.remove('hidden');
-                                                          }} 
-                                                      />
-                                                      <Sparkle className="w-5 h-5 shrink-0 hidden text-indigo-500" />
-                                                  </>
-                                              ) : (
-                                                  <Sparkle className="w-5 h-5 shrink-0 text-indigo-500" />
+                                  <div id="finishes-scroll-container" className="flex items-center gap-2.5 overflow-x-auto scrollbar-none scroll-smooth py-1 px-1 w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                      {/* Spot UV Toggle Pill */}
+                                      {subProduct.spotUvAllowed && (
+                                          <button
+                                              onClick={() => setSpotUv(!spotUv)}
+                                              className={cn(
+                                                  "flex-shrink-0 w-36 py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all text-center flex items-center justify-center gap-1.5 shadow-sm",
+                                                  spotUv 
+                                                      ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20 shadow scale-[1.02]" 
+                                                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
                                               )}
-                                          </div>
-                                          <span className="truncate">{rule.addonName}</span>
-                                      </button>
-                                  );
-                              })}
+                                          >
+                                              <Sparkles className="w-5 h-5 text-amber-500 shrink-0" /> Spot UV
+                                          </button>
+                                      )}
+
+                                      {/* Addons Pills */}
+                                      {addonRules.map(rule => {
+                                          const isSelected = selectedAddons.includes(rule.id);
+                                          return (
+                                              <button
+                                                  key={rule.id}
+                                                  onClick={() => toggleAddon(rule.id)}
+                                                  className={cn(
+                                                      "flex-shrink-0 w-36 py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm truncate",
+                                                      isSelected 
+                                                          ? "border-indigo-600 bg-indigo-600/10 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-600/20 shadow scale-[1.02]" 
+                                                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                                  )}
+                                              >
+                                                  <div className="flex items-center gap-1.5 shrink-0">
+                                                      {rule.addonImageUrl ? (
+                                                          <>
+                                                              <img 
+                                                                  src={resolveImagePath(rule.addonImageUrl)} 
+                                                                  alt={rule.addonName || 'Addon'} 
+                                                                  className="w-5 h-5 object-contain shrink-0" 
+                                                                  onError={(e) => { 
+                                                                      e.currentTarget.style.display = 'none'; 
+                                                                      const nextEl = e.currentTarget.nextElementSibling;
+                                                                      if (nextEl) nextEl.classList.remove('hidden');
+                                                                  }} 
+                                                              />
+                                                              <Sparkle className="w-5 h-5 shrink-0 hidden text-indigo-500" />
+                                                          </>
+                                                      ) : (
+                                                          <Sparkle className="w-5 h-5 shrink-0 text-indigo-500" />
+                                                      )}
+                                                  </div>
+                                                  <span className="truncate">{rule.addonName}</span>
+                                              </button>
+                                          );
+                                      })}
+                                  </div>
+
+                                  <Button 
+                                      variant="outline" 
+                                      size="icon" 
+                                      className="absolute right-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                                      onClick={() => {
+                                          const container = document.getElementById('finishes-scroll-container');
+                                          if (container) container.scrollBy({ left: 200, behavior: 'smooth' });
+                                      }}
+                                  >
+                                      <ChevronRight className="h-4 w-4" />
+                                  </Button>
+                              </div>
                           </div>
-                      </div>
+                      )}
 
                       {/* 3. Card Shape & Die-Cut */}
-                      <div className="space-y-2.5">
-                          <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
-                              <span className="text-indigo-600 dark:text-indigo-400 font-bold">3.</span> Card Shape & Die-Cut
-                          </Label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                              {/* Default Standard Shape Card */}
-                              <button 
-                                  onClick={() => setSelectedDie(null)}
-                                  className={cn(
-                                      "group relative flex flex-col items-center justify-center p-3 rounded-2xl border transition-all overflow-hidden text-center shadow-sm hover:shadow",
-                                      !selectedDie 
-                                          ? "border-slate-900 dark:border-white bg-slate-900/5 dark:bg-white/5 ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
-                                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
-                                  )}
-                              >
-                                  <div className="w-4/5 aspect-[4/3] mx-auto bg-slate-100 dark:bg-slate-800/50 rounded-xl flex items-center justify-center mb-2 group-hover:scale-105 transition-transform p-2">
-                                      <LayoutTemplate className={cn("w-6 h-6", !selectedDie ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-600")} />
-                                  </div>
-                                  <span className={cn("text-xs font-bold tracking-tight line-clamp-1", !selectedDie ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300")}>
-                                      Standard Rectangular
-                                  </span>
-                                  <span className="text-[10px] text-slate-400 font-medium mt-0.5">Clean standard cut</span>
-                              </button>
-
-                              {availableDieCuts.map(die => (
-                                  <button
-                                      key={die.id}
-                                      onClick={() => setSelectedDie(selectedDie === die.id ? null : die.id)}
-                                      className={cn(
-                                          "group relative flex flex-col items-center justify-center p-3 rounded-2xl border transition-all overflow-hidden text-center shadow-sm hover:shadow",
-                                          selectedDie === die.id 
-                                              ? "border-indigo-600 bg-indigo-600/5 ring-2 ring-indigo-600/20 scale-[1.02]" 
-                                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
-                                      )}
+                      {availableDieCuts.length > 0 && (
+                          <div className="space-y-2.5">
+                              <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">3.</span> Card Shape & Die-Cut
+                              </Label>
+                              <div className="relative group/carousel flex items-center">
+                                  <Button 
+                                      variant="outline" 
+                                      size="icon" 
+                                      className="absolute left-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 -translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                                      onClick={() => {
+                                          const container = document.getElementById('die-cuts-scroll-container');
+                                          if (container) container.scrollBy({ left: -200, behavior: 'smooth' });
+                                      }}
                                   >
-                                      <div className="w-4/5 aspect-[4/3] mx-auto bg-slate-100 dark:bg-slate-800/50 rounded-xl flex items-center justify-center mb-2 overflow-hidden relative group-hover:scale-105 transition-transform p-2">
-                                          {die.imageUrl ? (
-                                              <>
-                                                  <img 
-                                                      src={resolveImagePath(die.imageUrl)} 
-                                                      alt={die.name || 'Die Cut'} 
-                                                      className="w-full h-full object-contain" 
-                                                      onError={(e) => { 
-                                                          e.currentTarget.style.display = 'none'; 
-                                                          const nextEl = e.currentTarget.nextElementSibling;
-                                                          if (nextEl) nextEl.classList.remove('hidden');
-                                                      }} 
-                                                  />
-                                                  <Scissors className="w-6 h-6 hidden text-indigo-500" />
-                                              </>
-                                          ) : (
-                                              <Scissors className="w-6 h-6 text-indigo-500" />
-                                          )}
-                                      </div>
-                                      <span className={cn("text-xs font-bold tracking-tight line-clamp-1", selectedDie === die.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
-                                          {die.name}
-                                      </span>
-                                      <span className="text-[10px] text-indigo-500 font-medium mt-0.5">Custom Die Shape</span>
-                                  </button>
-                              ))}
+                                      <ChevronLeft className="h-4 w-4" />
+                                  </Button>
+
+                                  <div id="die-cuts-scroll-container" className="flex items-center gap-3 overflow-x-auto scrollbar-none scroll-smooth py-1 px-1 w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                      {availableDieCuts.map(die => (
+                                          <button
+                                              key={die.id}
+                                              onClick={() => setSelectedDie(selectedDie === die.id ? null : die.id)}
+                                              className={cn(
+                                                  "group relative flex-shrink-0 w-36 flex flex-col items-center justify-center p-3 rounded-2xl border transition-all overflow-hidden text-center shadow-sm hover:shadow",
+                                                  selectedDie === die.id 
+                                                      ? "border-indigo-600 bg-indigo-600/5 ring-2 ring-indigo-600/20 scale-[1.02]" 
+                                                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                                              )}
+                                          >
+                                              <div className="w-4/5 aspect-[4/3] mx-auto bg-slate-100 dark:bg-slate-800/50 rounded-xl flex items-center justify-center mb-2 overflow-hidden relative group-hover:scale-105 transition-transform p-2">
+                                                  {die.imageUrl ? (
+                                                      <>
+                                                          <img 
+                                                              src={resolveImagePath(die.imageUrl)} 
+                                                              alt={die.name || 'Die Cut'} 
+                                                              className="w-full h-full object-contain" 
+                                                              onError={(e) => { 
+                                                                  e.currentTarget.style.display = 'none'; 
+                                                                  const nextEl = e.currentTarget.nextElementSibling;
+                                                                  if (nextEl) nextEl.classList.remove('hidden');
+                                                              }} 
+                                                          />
+                                                          <Scissors className="w-6 h-6 hidden text-indigo-500" />
+                                                      </>
+                                                  ) : (
+                                                      <Scissors className="w-6 h-6 text-indigo-500" />
+                                                  )}
+                                              </div>
+                                              <span className={cn("text-xs font-bold tracking-tight line-clamp-1 w-full truncate", selectedDie === die.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
+                                                  {die.name}
+                                              </span>
+                                              <span className="text-[10px] text-indigo-500 font-medium mt-0.5">Custom Die Shape</span>
+                                          </button>
+                                      ))}
+                                  </div>
+
+                                  <Button 
+                                      variant="outline" 
+                                      size="icon" 
+                                      className="absolute right-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                                      onClick={() => {
+                                          const container = document.getElementById('die-cuts-scroll-container');
+                                          if (container) container.scrollBy({ left: 200, behavior: 'smooth' });
+                                      }}
+                                  >
+                                      <ChevronRight className="h-4 w-4" />
+                                  </Button>
+                              </div>
                           </div>
-                      </div>
+                      )}
 
                       {/* 4. Texture & Tactile Finish */}
                       {availableCardTextures.length > 0 && (
@@ -679,62 +762,69 @@ export function StartDesignContent() {
                               <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
                                   <span className="text-amber-600 dark:text-amber-400 font-bold">4.</span> Texture & Tactile Finish
                               </Label>
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                  {/* Default Standard Texture Card */}
-                                  <button 
-                                      onClick={() => setSelectedTexture(null)}
-                                      className={cn(
-                                          "group relative flex flex-col items-center justify-center p-3 rounded-2xl border transition-all overflow-hidden text-center shadow-sm hover:shadow",
-                                          !selectedTexture 
-                                              ? "border-slate-900 dark:border-white bg-slate-900/5 dark:bg-white/5 ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
-                                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
-                                      )}
+                              <div className="relative group/carousel flex items-center">
+                                  <Button 
+                                      variant="outline" 
+                                      size="icon" 
+                                      className="absolute left-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 -translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                                      onClick={() => {
+                                          const container = document.getElementById('textures-scroll-container');
+                                          if (container) container.scrollBy({ left: -200, behavior: 'smooth' });
+                                      }}
                                   >
-                                      <div className="w-4/5 aspect-[4/3] mx-auto bg-slate-100 dark:bg-slate-800/50 rounded-xl flex items-center justify-center mb-2 group-hover:scale-105 transition-transform p-2">
-                                          <Layers className={cn("w-6 h-6", !selectedTexture ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-600")} />
-                                      </div>
-                                      <span className={cn("text-xs font-bold tracking-tight line-clamp-1", !selectedTexture ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300")}>
-                                          Standard Smooth
-                                      </span>
-                                      <span className="text-[10px] text-slate-400 font-medium mt-0.5">Classic smooth surface</span>
-                                  </button>
+                                      <ChevronLeft className="h-4 w-4" />
+                                  </Button>
 
-                                  {availableCardTextures.map(texture => (
-                                      <button
-                                          key={texture.id}
-                                          onClick={() => setSelectedTexture(selectedTexture === texture.id ? null : texture.id)}
-                                          className={cn(
-                                              "group relative flex flex-col items-center justify-center p-3 rounded-2xl border transition-all overflow-hidden text-center shadow-sm hover:shadow",
-                                              selectedTexture === texture.id 
-                                                  ? "border-amber-600 bg-amber-600/5 ring-2 ring-amber-600/20 scale-[1.02]" 
-                                                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
-                                          )}
-                                      >
-                                          <div className="w-4/5 aspect-[4/3] mx-auto bg-slate-100 dark:bg-slate-800/50 rounded-xl flex items-center justify-center mb-2 overflow-hidden relative group-hover:scale-105 transition-transform p-2">
-                                              {texture.imageUrl ? (
-                                                  <>
-                                                      <img 
-                                                          src={resolveImagePath(texture.imageUrl)} 
-                                                          alt={texture.name || 'Card Texture'} 
-                                                          className="w-full h-full object-contain" 
-                                                          onError={(e) => { 
-                                                              e.currentTarget.style.display = 'none'; 
-                                                              const nextEl = e.currentTarget.nextElementSibling;
-                                                              if (nextEl) nextEl.classList.remove('hidden');
-                                                          }} 
-                                                      />
-                                                      <Layers className="w-6 h-6 hidden text-amber-500" />
-                                                  </>
-                                              ) : (
-                                                  <Layers className="w-6 h-6 text-amber-500" />
+                                  <div id="textures-scroll-container" className="flex items-center gap-3 overflow-x-auto scrollbar-none scroll-smooth py-1 px-1 w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                      {availableCardTextures.map(texture => (
+                                          <button
+                                              key={texture.id}
+                                              onClick={() => setSelectedTexture(selectedTexture === texture.id ? null : texture.id)}
+                                              className={cn(
+                                                  "group relative flex-shrink-0 w-36 flex flex-col items-center justify-center p-3 rounded-2xl border transition-all overflow-hidden text-center shadow-sm hover:shadow",
+                                                  selectedTexture === texture.id 
+                                                      ? "border-amber-600 bg-amber-600/5 ring-2 ring-amber-600/20 scale-[1.02]" 
+                                                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                                               )}
-                                          </div>
-                                          <span className={cn("text-xs font-bold tracking-tight line-clamp-1", selectedTexture === texture.id ? "text-amber-600 dark:text-amber-400" : "text-slate-700 dark:text-slate-300")}>
-                                              {texture.name}
-                                          </span>
-                                          <span className="text-[10px] text-amber-500 font-medium mt-0.5">Premium Texture</span>
-                                      </button>
-                                  ))}
+                                          >
+                                              <div className="w-4/5 aspect-[4/3] mx-auto bg-slate-100 dark:bg-slate-800/50 rounded-xl flex items-center justify-center mb-2 overflow-hidden relative group-hover:scale-105 transition-transform p-2">
+                                                  {texture.imageUrl ? (
+                                                      <>
+                                                          <img 
+                                                              src={resolveImagePath(texture.imageUrl)} 
+                                                              alt={texture.name || 'Card Texture'} 
+                                                              className="w-full h-full object-contain" 
+                                                              onError={(e) => { 
+                                                                  e.currentTarget.style.display = 'none'; 
+                                                                  const nextEl = e.currentTarget.nextElementSibling;
+                                                                  if (nextEl) nextEl.classList.remove('hidden');
+                                                              }} 
+                                                          />
+                                                          <Layers className="w-6 h-6 hidden text-amber-500" />
+                                                      </>
+                                                  ) : (
+                                                      <Layers className="w-6 h-6 text-amber-500" />
+                                                  )}
+                                              </div>
+                                              <span className={cn("text-xs font-bold tracking-tight line-clamp-1 w-full truncate", selectedTexture === texture.id ? "text-amber-600 dark:text-amber-400" : "text-slate-700 dark:text-slate-300")}>
+                                                  {texture.name}
+                                              </span>
+                                              <span className="text-[10px] text-amber-500 font-medium mt-0.5">Premium Texture</span>
+                                          </button>
+                                      ))}
+                                  </div>
+
+                                  <Button 
+                                      variant="outline" 
+                                      size="icon" 
+                                      className="absolute right-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                                      onClick={() => {
+                                          const container = document.getElementById('textures-scroll-container');
+                                          if (container) container.scrollBy({ left: 200, behavior: 'smooth' });
+                                      }}
+                                  >
+                                      <ChevronRight className="h-4 w-4" />
+                                  </Button>
                               </div>
                           </div>
                       )}
@@ -860,24 +950,67 @@ export function StartDesignContent() {
                           </div>
                       )}
 
-                      {/* Action CTAs Side-by-Side */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <Button asChild className="w-full h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-bold shadow hover:shadow-md hover:-translate-y-0.5 transition-all text-sm gap-2">
-                              <Link href={`/design/${product.slug}/templates?${constructedQuery}`}>
-                                  <LayoutTemplate className="w-4 h-4" /> Design Template
-                              </Link>
-                          </Button>
-                          <Button asChild variant="outline" className="w-full h-12 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-sm gap-2">
-                              <Link href={isLoggedIn ? `/design/${product.slug}/upload?${constructedQuery}` : `/login?redirect_url=/design/${product.slug}/upload%3F${constructedQuery}`}>
-                                  <Upload className="w-4 h-4" /> Upload Artwork
-                              </Link>
-                          </Button>
-                      </div>
+                      {/* Choose Your Design Path Container */}
+                      <div className="space-y-5 pt-3 border-t border-slate-200 dark:border-slate-800">
+                          <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm tracking-tight">
+                                  <Sparkles className="w-4 h-4 animate-pulse" /> Choose Your Design Path
+                              </div>
+                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Select how you&apos;d like to create your custom print.</p>
+                          </div>
 
-                      <div className="text-center pt-1">
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                              Have a custom requirement? <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct.id}`} className="text-pink-600 dark:text-pink-400 font-bold hover:underline">Request a tailored quote</Link>
-                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                              {/* Customize Online Card */}
+                              <div className="p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 group hover:border-indigo-500/50 transition-all">
+                                  <div className="flex items-start gap-3">
+                                      <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
+                                          <PenSquare className="w-4.5 h-4.5" />
+                                      </div>
+                                      <div>
+                                          <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">Customize Online</h4>
+                                          <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Personalize with our intuitive studio.</p>
+                                      </div>
+                                  </div>
+                                  <Button asChild className="w-full h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-bold shadow hover:shadow-md hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
+                                      <Link href={`/design/${product.slug}?${constructedQuery}`}>Start Designing</Link>
+                                  </Button>
+                              </div>
+
+                              {/* Upload Artwork Card */}
+                              <div className="p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 group hover:border-indigo-500/50 transition-all">
+                                  <div className="flex items-start gap-3">
+                                      <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
+                                          <Upload className="w-4.5 h-4.5" />
+                                      </div>
+                                      <div>
+                                          <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">Upload Artwork</h4>
+                                          <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Upload print-ready PDF/image directly.</p>
+                                      </div>
+                                  </div>
+                                  <Button asChild variant="outline" className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
+                                      <Link href={isLoggedIn ? `/design/${product.slug}/upload?${constructedQuery}` : `/login?redirect_url=/design/${product.slug}/upload%3F${constructedQuery}`}>Upload Print File</Link>
+                                  </Button>
+                              </div>
+
+                              {/* Expert Design Service Card */}
+                              <div className="p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 group hover:border-pink-500/50 transition-all relative overflow-hidden">
+                                  <div className="absolute top-2 right-2 bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border border-pink-200 dark:border-pink-800 px-1.5 py-0.2 rounded-full text-[8px] font-black tracking-tight uppercase">
+                                      Popular
+                                  </div>
+                                  <div className="flex items-start gap-3 pr-8">
+                                      <div className="w-8 h-8 rounded-xl bg-pink-50 dark:bg-pink-950/50 border border-pink-100 dark:border-pink-900 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0 group-hover:scale-105 transition-transform">
+                                          <Trophy className="w-4.5 h-4.5" />
+                                      </div>
+                                      <div>
+                                          <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">Expert Service</h4>
+                                          <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Collaborate with designers.</p>
+                                      </div>
+                                  </div>
+                                  <Button asChild variant="outline" className="w-full h-9 rounded-xl border border-pink-600 text-pink-600 dark:border-pink-500 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/30 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
+                                      <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct.id}&${constructedQuery}`}>Hire a Designer</Link>
+                                  </Button>
+                              </div>
+                          </div>
                       </div>
                   </div>
               </div>
@@ -1221,3 +1354,5 @@ export function StartDesignContent() {
     </main>
   );
 }
+
+

@@ -1536,6 +1536,10 @@ function DesignEditorInternal({
       toast({ variant: 'destructive', title: 'Design Locked', description: 'This design is locked because the associated order is currently in active production.' });
       return;
     }
+    if (contestId) {
+      toast({ variant: 'destructive', title: 'Action Denied', description: 'Ordering is disabled during contest designing.' });
+      return;
+    }
     setIsOrdering(true);
     let designId = currentDesignId;
 

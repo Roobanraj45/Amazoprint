@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
-import { Home, ShoppingCart, PenSquare, CreditCard, LogOut, Trophy, UploadCloud, Palette, ShieldCheck, Package, Bell, Search } from "lucide-react"
+import { Home, ShoppingCart, PenSquare, CreditCard, LogOut, Trophy, UploadCloud, Palette, ShieldCheck, Package, Bell, Search, User } from "lucide-react"
 import Link from "next/link"
 import { AmazoprintLogo } from "@/components/ui/logo"
 import { useRouter } from "next/navigation";
@@ -23,6 +23,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     { href: "/client/contests", label: "My Contests", icon: <Trophy size={16} />, color: "text-rose-500" },
     { href: "/client/my-uploads", label: "My Uploads", icon: <UploadCloud size={16} />, color: "text-indigo-500" },
     { href: "/client/payments", label: "Payments", icon: <CreditCard size={16} />, color: "text-slate-500" },
+    { href: "/client/profile", label: "My Profile", icon: <User size={16} />, color: "text-sky-500" },
   ];
 
   const handleLogout = async () => {
@@ -108,16 +109,18 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                         <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-card" />
                       </button>
                       <div className="h-8 w-[1px] bg-border/50 mx-2 hidden sm:block" />
-                      <div className="flex items-center gap-3 cursor-pointer group">
-                        <div className="hidden sm:block text-right">
-                          <p className="text-sm font-bold leading-none mb-1 group-hover:text-primary transition-colors">Client Pro</p>
-                          <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest leading-none">Enterprise</p>
-                        </div>
-                        <Avatar className="h-10 w-10 border-2 border-border/50 group-hover:border-primary/50 transition-colors">
-                          <AvatarImage src="" />
-                          <AvatarFallback className="bg-primary/10 text-primary font-bold">CP</AvatarFallback>
-                        </Avatar>
-                      </div>
+                      <Link href="/client/profile">
+                          <div className="flex items-center gap-3 cursor-pointer group">
+                            <div className="hidden sm:block text-right">
+                              <p className="text-sm font-bold leading-none mb-1 group-hover:text-primary transition-colors">Client Pro</p>
+                              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest leading-none">Enterprise</p>
+                            </div>
+                            <Avatar className="h-10 w-10 border-2 border-border/50 group-hover:border-primary/50 transition-colors">
+                              <AvatarImage src="" />
+                              <AvatarFallback className="bg-primary/10 text-primary font-bold">CP</AvatarFallback>
+                            </Avatar>
+                          </div>
+                      </Link>
                     </div>
                 </header>
 

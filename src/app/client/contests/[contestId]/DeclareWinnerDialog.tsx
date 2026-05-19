@@ -103,40 +103,46 @@ export function DeclareWinnerDialog({ contest, submissions }) {
         </DialogHeader>
         <ScrollArea className="h-96 pr-6">
           <div className="space-y-4">
-            {submissions.map(participant => (
-              <div key={participant.id} className="flex items-center gap-4 rounded-lg border p-3">
-                <Avatar>
-                  <AvatarImage src={participant.freelancer.profileImage || undefined} />
-                  <AvatarFallback>{participant.freelancer.name?.charAt(0) || 'F'}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="font-semibold">{participant.freelancer.name}</p>
-                  <p className="text-sm text-muted-foreground">Submission ID: {participant.submission.id}</p>
+            {submissions.map(participant => {
+              const subId = participant.submission?.id || participant.template?.id || 0;
+              const isTemplate = !!participant.template;
+              return (
+                <div key={participant.id} className="flex items-center gap-4 rounded-lg border p-3">
+                  <Avatar>
+                    <AvatarImage src={participant.freelancer.profileImage || undefined} />
+                    <AvatarFallback>{participant.freelancer.name?.charAt(0) || 'F'}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-semibold">{participant.freelancer.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isTemplate ? 'Uploaded Template' : 'Canvas Design'} (ID: {subId})
+                    </p>
+                  </div>
+                  <Select
+                    value={String(getSubmissionRank(subId))}
+                    onValueChange={(value) => handleRankChange(subId, participant.freelancer.id, value)}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Select Rank..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No Rank</SelectItem>
+                      {ranks.map(r => (
+                        <SelectItem
+                          key={r.value}
+                          value={String(r.value)}
+                          disabled={winners.some(w => w.rank === r.value && w.submissionId !== subId)}
+                        >
+                         <span className="flex items-center gap-2">
+                          <Award size={14} className={r.color} /> {r.label}
+                         </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select
-                  value={String(getSubmissionRank(participant.submission.id))}
-                  onValueChange={(value) => handleRankChange(participant.submission.id, participant.freelancer.id, value)}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Select Rank..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">No Rank</SelectItem>
-                    {ranks.map(r => (
-                      <SelectItem
-                        key={r.value}
-                        value={String(r.value)}
-                        disabled={winners.some(w => w.rank === r.value && w.submissionId !== participant.submission.id)}
-                      >
-                       <span className="flex items-center gap-2">
-                        <Award size={14} className={r.color} /> {r.label}
-                       </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </ScrollArea>
         <DialogFooter>

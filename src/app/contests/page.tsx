@@ -113,6 +113,55 @@ export default async function ContestsPage() {
                         </div>
                     </div>
                   </div>
+
+                  {contest.customisation && typeof contest.customisation === 'object' && Object.keys(contest.customisation).length > 0 && (
+                      <div className="border-t border-border/40 pt-4 space-y-2">
+                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Specifications Summary</p>
+                          <div className="flex flex-wrap gap-1.5">
+                              {/* @ts-ignore */}
+                              {contest.customisation.sizeDisplay && (
+                                  <span className="text-[9px] font-bold px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-md border border-indigo-100 dark:border-indigo-900/60">
+                                      {/* @ts-ignore */}
+                                      {contest.customisation.sizeDisplay}
+                                  </span>
+                              )}
+                              {/* @ts-ignore */}
+                              {contest.customisation.quantity && (
+                                  <span className="text-[9px] font-bold px-2 py-0.5 bg-slate-50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 rounded-md border border-slate-200/60 dark:border-slate-800">
+                                      {/* @ts-ignore */}
+                                      {contest.customisation.quantity} Units
+                                  </span>
+                              )}
+                              {/* @ts-ignore */}
+                              {contest.customisation.pages && (
+                                  <span className="text-[9px] font-bold px-2 py-0.5 bg-slate-50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 rounded-md border border-slate-200/60 dark:border-slate-800">
+                                      {/* @ts-ignore */}
+                                      {contest.customisation.pages === '2' ? 'Front & Back' : 'Front Only'}
+                                  </span>
+                              )}
+                              {/* @ts-ignore */}
+                              {contest.customisation.spotUv && (
+                                  <span className="text-[9px] font-bold px-2 py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-md border border-amber-100 dark:border-amber-900/60">
+                                      Spot UV
+                                  </span>
+                              )}
+                              {/* @ts-ignore */}
+                              {contest.customisation.dieCut && (
+                                  <span className="text-[9px] font-bold px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-md border border-emerald-100 dark:border-emerald-900/60">
+                                      {/* @ts-ignore */}
+                                      {contest.customisation.dieCut.name}
+                                  </span>
+                              )}
+                              {/* @ts-ignore */}
+                              {contest.customisation.cardTexture && (
+                                  <span className="text-[9px] font-bold px-2 py-0.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-md border border-rose-100 dark:border-rose-900/60">
+                                      {/* @ts-ignore */}
+                                      {contest.customisation.cardTexture.name}
+                                  </span>
+                              )}
+                          </div>
+                      </div>
+                  )}
                 </CardContent>
 
                 <CardFooter className="p-8 pt-0 grid grid-cols-5 gap-3">

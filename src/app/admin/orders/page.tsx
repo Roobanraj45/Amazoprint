@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getAdminAllOrders } from "@/app/actions/order-actions";
+import { getAdminAllOrders, getAdminOrderStats } from "@/app/actions/order-actions";
 import {
     Card,
     CardContent,
@@ -42,77 +42,90 @@ export default function AdminOrdersPage() {
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
 
+    const [statsData, setStatsData] = useState<any>(null);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+
+    useEffect(() => {
+        // Reset page to 1 when filters change
+        setPage(1);
+    }, [timeFilter, statusFilter, searchQuery, startDate, endDate]);
+
     useEffect(() => {
         async function loadOrders() {
             setIsLoading(true);
             try {
-                const fetchedOrders = await getAdminAllOrders();
-                setOrders(fetchedOrders);
+                let resolvedStartDate = startDate;
+                let resolvedEndDate = endDate;
+
+                if (timeFilter === 'today') {
+                    resolvedStartDate = startOfDay(new Date()).toISOString();
+                    resolvedEndDate = endOfDay(new Date()).toISOString();
+                } else if (timeFilter === 'this_week') {
+                    resolvedStartDate = startOfWeek(new Date()).toISOString();
+                    resolvedEndDate = endOfWeek(new Date()).toISOString();
+                } else if (timeFilter === 'this_month') {
+                    resolvedStartDate = startOfMonth(new Date()).toISOString();
+                    resolvedEndDate = endOfMonth(new Date()).toISOString();
+                } else if (timeFilter === 'all') {
+                    resolvedStartDate = '';
+                    resolvedEndDate = '';
+                }
+
+                const [fetched, stats] = await Promise.all([
+                    getAdminAllOrders({
+                        page,
+                        limit: 10,
+                        searchQuery,
+                        statusFilter,
+                        startDate: resolvedStartDate,
+                        endDate: resolvedEndDate
+                    }),
+                    getAdminOrderStats({
+                        searchQuery,
+                        statusFilter,
+                        startDate: resolvedStartDate,
+                        endDate: resolvedEndDate
+                    })
+                ]);
+
+                setOrders(fetched.orders);
+                setTotalPages(fetched.totalPages);
+                setStatsData(stats);
             } catch (error) {
                 console.error("Failed to load orders", error);
             } finally {
                 setIsLoading(false);
             }
         }
-        loadOrders();
-    }, []);
-
-    // Core Filtering Logic
-    const filteredOrders = useMemo(() => {
-        const now = new Date();
         
-        return orders.filter(order => {
-            const orderDate = new Date(order.createdAt);
+        // Debounce search slightly
+        const timeoutId = setTimeout(() => {
+            loadOrders();
+        }, 300);
+        return () => clearTimeout(timeoutId);
+    }, [page, timeFilter, statusFilter, searchQuery, startDate, endDate]);
 
-            // 1. Time-based Filter (Tabs vs Custom Range)
-            let matchesTime = true;
-            if (timeFilter === 'custom') {
-                if (startDate && endDate) {
-                    const start = startOfDay(new Date(startDate));
-                    const end = endOfDay(new Date(endDate));
-                    matchesTime = isWithinInterval(orderDate, { start, end });
-                }
-            } else if (timeFilter === 'today') {
-                matchesTime = isToday(orderDate);
-            } else if (timeFilter === 'this_week') {
-                matchesTime = isWithinInterval(orderDate, { start: startOfWeek(now), end: endOfWeek(now) });
-            } else if (timeFilter === 'this_month') {
-                matchesTime = isWithinInterval(orderDate, { start: startOfMonth(now), end: endOfMonth(now) });
-            }
-
-            // 2. Order Status Filter
-            const matchesStatus = statusFilter === 'all' || order.orderStatus === statusFilter;
-
-            // 3. Text Search Filter
-            const matchesSearch = searchQuery === '' || 
-                order.id.toString().includes(searchQuery) ||
-                order.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                order.user.email.toLowerCase().includes(searchQuery.toLowerCase());
-
-            return matchesTime && matchesStatus && matchesSearch;
-        });
-    }, [orders, timeFilter, statusFilter, searchQuery, startDate, endDate]);
-
-    const calculateTotal = (orderList: Order[]) => {
-        return orderList.reduce((acc, order) => acc + parseFloat(order.totalAmount), 0);
-    }
-    
-    const stats = [
+    const stats = statsData ? [
         { 
             title: "Today's Revenue", 
-            value: `₹${calculateTotal(orders.filter(o => isToday(new Date(o.createdAt)))).toLocaleString('en-IN')}`, 
-            count: "Real-time" 
+            value: `₹${statsData.today.amount.toLocaleString('en-IN')}`, 
+            count: `${statsData.today.count} orders today` 
         },
         { 
             title: "Filtered Revenue", 
-            value: `₹${calculateTotal(filteredOrders).toLocaleString('en-IN')}`, 
-            count: `${filteredOrders.length} matching orders` 
+            value: `₹${statsData.filtered.amount.toLocaleString('en-IN')}`, 
+            count: `${statsData.filtered.count} matching orders` 
         },
         { 
             title: "Total Revenue", 
-            value: `₹${calculateTotal(orders).toLocaleString('en-IN')}`, 
-            count: `${orders.length} total orders` 
+            value: `₹${statsData.total.amount.toLocaleString('en-IN')}`, 
+            count: `${statsData.total.count} total orders` 
         },
+    ] : [
+        { title: "Today's Revenue", value: "₹0", count: "Loading..." },
+        { title: "Filtered Revenue", value: "₹0", count: "Loading..." },
+        { title: "Total Revenue", value: "₹0", count: "Loading..." },
     ];
 
     const resetFilters = () => {
@@ -238,7 +251,7 @@ export default function AdminOrdersPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredOrders.map((order) => (
+                                    {orders.map((order) => (
                                         <TableRow key={order.id} className="hover:bg-muted/10 transition-colors border-b">
                                             <TableCell className="font-mono text-xs pl-6">#{order.id}</TableCell>
                                             <TableCell>
@@ -266,9 +279,16 @@ export default function AdminOrdersPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right font-bold pr-6">
-                                               <div className="flex items-center justify-end gap-1 text-primary">
-                                                    <IndianRupee size={12} />
-                                                    {parseFloat(order.totalAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                                               <div className="flex flex-col items-end">
+                                                   <div className="flex items-center justify-end gap-1 text-primary">
+                                                        <IndianRupee size={12} />
+                                                        {parseFloat(order.totalAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                                                   </div>
+                                                   {order.contestId && order.contest?.payments?.[0] && (
+                                                        <span className="text-[9px] text-muted-foreground font-medium whitespace-nowrap">
+                                                            (₹{parseFloat(order.contest.payments[0].amount).toLocaleString('en-IN', {minimumFractionDigits: 2})} paid during contest)
+                                                        </span>
+                                                   )}
                                                </div>
                                             </TableCell>
                                             <TableCell className="pr-4">
@@ -297,7 +317,23 @@ export default function AdminOrdersPage() {
                         </div>
                     )}
                     
-                    {!isLoading && filteredOrders.length === 0 && (
+                    {!isLoading && totalPages > 1 && (
+                        <div className="flex items-center justify-between p-4 border-t">
+                            <p className="text-sm text-muted-foreground font-medium">
+                                Page <span className="font-bold text-foreground">{page}</span> of <span className="font-bold text-foreground">{totalPages}</span>
+                            </p>
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                                    Previous
+                                </Button>
+                                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {!isLoading && orders.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-32 gap-3 text-center">
                             <div className="bg-muted p-4 rounded-full">
                                 <Search className="h-8 w-8 text-muted-foreground" />

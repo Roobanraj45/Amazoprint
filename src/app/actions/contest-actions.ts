@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { contests, contestParticipants, products, subProducts, users, designs, contestWinners } from '@/db/schema';
+import { contests, contestParticipants, products, subProducts, users, designs, contestWinners, orders, orderLogs } from '@/db/schema';
 import { and, eq, sql, desc, count, gt } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -17,6 +17,7 @@ const contestSchema = z.object({
   maxFreelancers: z.coerce.number().min(1, 'Max freelancers must be at least 1'),
   entryFee: z.coerce.number().optional(),
   endDate: z.coerce.date().refine(date => date > new Date(), { message: "End date must be in the future" }),
+  customisation: z.any().optional(),
 });
 
 const designSchema = z.object({
@@ -47,6 +48,7 @@ export async function createContest(data: z.infer<typeof contestSchema>) {
 
     const result = await db.insert(contests).values({
         ...validated,
+        customisation: validated.customisation || {},
         userId: session.sub,
         productName: product.name,
         subProductName: subProduct.name,
@@ -145,7 +147,12 @@ export async function getJoinedContests() {
     const freelancerId = session.sub;
 
     const freelancerParticipations = db.$with('freelancer_participations').as(
-        db.select({ contestId: contestParticipants.contestId, joinedAt: contestParticipants.joinedAt })
+        db.select({ 
+            contestId: contestParticipants.contestId, 
+            joinedAt: contestParticipants.joinedAt,
+            designId: contestParticipants.designId,
+            templateId: contestParticipants.templateId
+        })
           .from(contestParticipants)
           .where(eq(contestParticipants.freelancerId, freelancerId))
     );
@@ -163,6 +170,8 @@ export async function getJoinedContests() {
             },
             participantsCount: sql<number>`count(distinct ${contestParticipants.id})`.mapWith(Number),
             joinedAt: freelancerParticipations.joinedAt,
+            designId: freelancerParticipations.designId,
+            templateId: freelancerParticipations.templateId,
             winnerRank: sql<number>`(SELECT rank FROM ${contestWinners} WHERE ${contestWinners.contestId} = ${contests.id} AND ${contestWinners.freelancerId} = ${freelancerId} LIMIT 1)`.mapWith(Number),
         })
         .from(contests)
@@ -171,7 +180,15 @@ export async function getJoinedContests() {
         .innerJoin(products, eq(contests.productId, products.id))
         .innerJoin(subProducts, eq(contests.subProductId, subProducts.id))
         .leftJoin(contestParticipants, eq(contests.id, contestParticipants.contestId))
-        .groupBy(contests.id, products.id, subProducts.id, users.id, freelancerParticipations.joinedAt)
+        .groupBy(
+            contests.id, 
+            products.id, 
+            subProducts.id, 
+            users.id, 
+            freelancerParticipations.joinedAt,
+            freelancerParticipations.designId,
+            freelancerParticipations.templateId
+        )
         .orderBy(desc(freelancerParticipations.joinedAt));
     
     return data;
@@ -249,14 +266,14 @@ export async function submitContestEntry(contestId: number, designData: Omit<z.i
     let designId: number;
 
     // 2. Check if a design has already been submitted and update it, otherwise create a new one.
-    if (participation.templateUploadId) {
+    if (participation.designId) {
         // Try to update existing design
         const [updatedDesign] = await db.update(designs)
             .set({
                 ...designData,
                 updatedAt: new Date(),
             })
-            .where(eq(designs.id, participation.templateUploadId))
+            .where(eq(designs.id, participation.designId))
             .returning({ id: designs.id });
         
         if (updatedDesign) {
@@ -290,7 +307,7 @@ export async function submitContestEntry(contestId: number, designData: Omit<z.i
     // 3. ALWAYS update the contest_participants table with the correct designId and status.
     await db.update(contestParticipants)
         .set({
-            templateUploadId: designId,
+            designId: designId,
             status: 'submitted'
         })
         .where(eq(contestParticipants.id, participation.id));
@@ -333,8 +350,8 @@ export async function getContestWithSubmissions(contestId: number) {
                         }
                     },
                     submission: true,
+                    template: true,
                 },
-                where: eq(contestParticipants.status, 'submitted')
             },
             winners: {
                 with: {
@@ -347,6 +364,13 @@ export async function getContestWithSubmissions(contestId: number) {
                     }
                 },
                 orderBy: (contestWinners, { asc }) => [asc(contestWinners.rank)]
+            },
+            orders: {
+                columns: {
+                    id: true,
+                    designId: true,
+                    designUploadId: true,
+                }
             }
         }
     });
@@ -454,6 +478,7 @@ export async function getAdminContestDetails(contestId: number) {
                         }
                     },
                     submission: true,
+                    template: true,
                 },
             },
             winners: {
@@ -472,4 +497,90 @@ export async function getAdminContestDetails(contestId: number) {
     });
     
     return contestData;
+}
+
+const addressSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  addressLine1: z.string().min(1, 'Address is required'),
+  addressLine2: z.string().optional(),
+  city: z.string().min(1, 'City is required'),
+  state: z.string().min(1, 'State is required'),
+  zip: z.string().min(1, 'ZIP code is required'),
+  country: z.string().min(1, 'Country is required'),
+  phone: z.string().min(1, 'Phone is required'),
+});
+
+export async function orderContestSubmission(params: {
+    contestId: number;
+    submissionId?: number | null;
+    templateId?: number | null;
+    shippingAddress: z.infer<typeof addressSchema>;
+}) {
+    const session = await getSession();
+    if (!session?.sub) {
+        throw new Error('Not authenticated');
+    }
+
+    const { contestId, submissionId, templateId, shippingAddress } = params;
+
+    // 1. Fetch contest and verify client ownership
+    const contest = await db.query.contests.findFirst({
+        where: and(eq(contests.id, contestId), eq(contests.userId, session.sub))
+    });
+
+    if (!contest) {
+        throw new Error('Contest not found or you are not authorized.');
+    }
+
+    // 2. Check if already ordered
+    const existingOrder = await db.query.orders.findFirst({
+        where: eq(orders.contestId, contestId)
+    });
+    if (existingOrder) {
+        throw new Error('This contest has already been ordered for print production.');
+    }
+
+    // 3. Extract customization quantity
+    const customisationObj = (contest.customisation as any) || {};
+    const qty = parseInt(customisationObj.quantity || '1', 10);
+
+    // 4. Create the prepaid order
+    const result = await db.insert(orders).values({
+        userId: session.sub,
+        productId: contest.productId,
+        subProductId: contest.subProductId,
+        designId: submissionId || null,
+        designUploadId: templateId || null,
+        quantity: qty,
+        unitPrice: '0.00',
+        totalAmount: '0.00', // Already fully prepaid upfront
+        shippingAddress: shippingAddress as any,
+        billingAddress: shippingAddress as any, // Default to same
+        orderStatus: 'confirmed',
+        paymentStatus: 'paid',
+        paymentMethod: 'Contest Prepaid',
+        customisation: customisationObj,
+        contestId: contestId
+    }).returning();
+
+    const newOrder = result[0];
+
+    // 5. Record order log
+    try {
+        await db.insert(orderLogs).values({
+            orderId: newOrder.id,
+            actionType: 'order_created',
+            newValue: { status: 'confirmed', total: '0.00', prepaid: true },
+            message: `Prepaid production order created directly from contest winner submission by ${session.name || 'client'}.`,
+            performedBy: session.sub,
+            performedByRole: session.role || 'client',
+            isCustomerVisible: true
+        });
+    } catch (e) {
+        console.error('Failed to log contest order creation:', e);
+    }
+
+    revalidatePath(`/client/contests/${contestId}`);
+    revalidatePath('/client/orders');
+    return { success: true, orderId: newOrder.id };
 }

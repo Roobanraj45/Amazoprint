@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 
-export default async function MyOrdersPage() {
-    const orders = await getMyOrders();
+export default async function MyOrdersPage({ searchParams }: { searchParams: { page?: string } }) {
+    const page = searchParams.page ? parseInt(searchParams.page) : 1;
+    const { orders, totalPages, currentPage } = await getMyOrders(page, 10);
 
     return (
         <div className="min-h-full p-4 md:p-8 lg:p-10 space-y-8">
@@ -107,9 +108,16 @@ export default async function MyOrdersPage() {
                                         </div>
                                         <div className="text-right sm:text-right mt-4 sm:mt-0 bg-background/50 p-4 rounded-2xl border border-border/40">
                                             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Total Amount</p>
-                                            <p className="text-2xl font-black tracking-tighter flex items-center justify-end text-primary">
-                                                <IndianRupee className="h-5 w-5 mr-0.5" />{parseFloat(order.totalAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                                            </p>
+                                            <div className="flex flex-col items-end">
+                                                <p className="text-2xl font-black tracking-tighter flex items-center justify-end text-primary">
+                                                    <IndianRupee className="h-5 w-5 mr-0.5" />{parseFloat(order.totalAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                                                </p>
+                                                {order.contestId && order.contest?.payments?.[0] && (
+                                                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
+                                                        (₹{parseFloat(order.contest.payments[0].amount).toLocaleString('en-IN', {minimumFractionDigits: 2})} paid during contest)
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -133,6 +141,22 @@ export default async function MyOrdersPage() {
                             </Card>
                         );
                     })}
+                    
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between pt-6 border-t border-border/40 mt-4">
+                            <p className="text-sm text-muted-foreground font-medium">
+                                Page <span className="font-bold text-foreground">{currentPage}</span> of <span className="font-bold text-foreground">{totalPages}</span>
+                            </p>
+                            <div className="flex gap-2">
+                                <Button asChild variant="outline" size="sm" disabled={currentPage <= 1} className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}>
+                                    <Link href={`/client/orders?page=${currentPage - 1}`}>Previous</Link>
+                                </Button>
+                                <Button asChild variant="outline" size="sm" disabled={currentPage >= totalPages} className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}>
+                                    <Link href={`/client/orders?page=${currentPage + 1}`}>Next</Link>
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

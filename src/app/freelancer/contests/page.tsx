@@ -65,8 +65,8 @@ export default async function MyContestsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {joinedContests.map(({ contest, product, subProduct, user: client, participantsCount, winnerRank }) => {
+        <div className="flex flex-col gap-4">
+          {joinedContests.map(({ contest, product, subProduct, user: client, participantsCount, winnerRank, designId }) => {
             const progressValue = (participantsCount / contest.maxFreelancers) * 100;
             const clientForSheet = {
               id: client.id,
@@ -76,101 +76,90 @@ export default async function MyContestsPage() {
             const isContestOpen = contest.status === 'active';
 
             return (
-              <Card key={contest.id} className="flex flex-col group overflow-hidden transition-all duration-300 hover:shadow-2xl border-border/40 bg-card/40 backdrop-blur-sm hover:border-amber-500/30">
-                <CardHeader className="bg-muted/20 border-b border-border/40 pb-5">
-                  <div className="flex justify-between items-start gap-2">
-                    <Badge 
-                      variant="outline"
-                      className={cn(
-                        "px-3 py-1 text-[10px] font-black uppercase tracking-widest",
-                        isContestOpen ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-muted text-muted-foreground border-border/50"
-                      )}
-                    >
-                      {contest.status}
-                    </Badge>
-                    <div className="flex flex-col items-end">
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Bounty</span>
-                      <div className="flex items-center text-lg font-black text-foreground group-hover:text-amber-500 transition-colors">
-                        <IndianRupee className="h-4 w-4 mr-0.5 stroke-[3]" />
-                        {contest.prizeAmount.toLocaleString('en-IN')}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <CardTitle className="text-xl tracking-tight leading-tight group-hover:text-amber-500 transition-colors line-clamp-2">
-                      {contest.title}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-2 mt-2">
-                      <Badge variant="secondary" className="bg-background text-foreground text-[9px] font-bold uppercase tracking-widest border border-border/50">
-                        {contest.productName}
-                      </Badge>
-                      <span className="text-xs font-medium text-muted-foreground truncate">{contest.subProductName}</span>
-                    </CardDescription>
-                  </div>
-                </CardHeader>
+              <Card key={contest.id} className="flex flex-col md:flex-row items-start md:items-center justify-between group overflow-hidden transition-all duration-300 hover:shadow-xl border-border/40 bg-card/40 backdrop-blur-sm hover:border-amber-500/30 p-4 md:p-6 gap-6">
+                 {/* LEFT: Info */}
+                 <div className="flex-1 space-y-3">
+                   <div className="flex flex-wrap items-center gap-3">
+                     <Badge variant="outline" className={cn("px-3 py-1 text-[10px] font-black uppercase tracking-widest", isContestOpen ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-muted text-muted-foreground border-border/50")}>
+                        {contest.status}
+                     </Badge>
+                     {winnerRank > 0 && (
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest">
+                          <Trophy className="h-3 w-3" />
+                          <span>Placed {winnerRank === 1 ? '1st' : winnerRank === 2 ? '2nd' : '3rd'}</span>
+                        </div>
+                     )}
+                   </div>
+                   <div>
+                     <CardTitle className="text-xl tracking-tight leading-tight group-hover:text-amber-500 transition-colors line-clamp-1">
+                       {contest.title}
+                     </CardTitle>
+                     <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                       <Badge variant="secondary" className="bg-background text-foreground text-[9px] font-bold uppercase tracking-widest border border-border/50">
+                         {contest.productName}
+                       </Badge>
+                       <span className="text-xs font-medium text-muted-foreground truncate">{contest.subProductName}</span>
+                     </div>
+                   </div>
+                 </div>
 
-                <CardContent className="flex-grow p-6 space-y-6">
-                  {/* Winning Badge */}
-                  {winnerRank > 0 && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-sm font-black uppercase tracking-widest">
-                      <div className="p-1.5 rounded-full bg-amber-500/20">
-                        <Trophy className="h-4 w-4" />
-                      </div>
-                      <span>Placed {winnerRank === 1 ? '1st' : winnerRank === 2 ? '2nd' : '3rd'} Place</span>
-                    </div>
-                  )}
+                 {/* MIDDLE: Stats */}
+                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 w-full md:w-auto md:min-w-[300px]">
+                   <div className="flex flex-col space-y-1">
+                     <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Bounty</span>
+                     <div className="flex items-center text-xl font-black text-foreground group-hover:text-amber-500 transition-colors">
+                       <IndianRupee className="h-4 w-4 mr-0.5 stroke-[3]" />
+                       {contest.prizeAmount.toLocaleString('en-IN')}
+                     </div>
+                   </div>
+                   
+                   <div className="flex flex-col space-y-1">
+                     <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Timeline</span>
+                     <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+                       <Calendar className="h-4 w-4 text-muted-foreground" />
+                       <span>{formatDistanceToNowStrict(new Date(contest.endDate), { addSuffix: true })}</span>
+                     </div>
+                   </div>
 
-                  {/* Date & Meta Info */}
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground font-medium">
-                    <div className="p-2 rounded-lg bg-muted border border-border/50">
-                      <Calendar className="h-4 w-4 text-foreground" />
-                    </div>
-                    <span>{isContestOpen ? 'Ends' : 'Ended'} <span className="text-foreground font-bold">{formatDistanceToNowStrict(new Date(contest.endDate), { addSuffix: true })}</span></span>
-                  </div>
+                   <div className="flex flex-col space-y-1 w-full sm:w-32">
+                     <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex justify-between">
+                       <span>Capacity</span>
+                       <span className="text-foreground">{participantsCount}/{contest.maxFreelancers}</span>
+                     </span>
+                     <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted border border-border/50 mt-1">
+                        <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500 ease-out" style={{ width: `${progressValue}%` }} />
+                     </div>
+                   </div>
+                 </div>
 
-                  {/* Participation Progress */}
-                  <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Users className="w-3.5 h-3.5" />
-                        <span>Squad Capacity</span>
-                      </div>
-                      <span className="text-foreground">{participantsCount} / {contest.maxFreelancers}</span>
-                    </div>
-                    <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted border border-border/50">
-                        <div 
-                            className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500 ease-out"
-                            style={{ width: `${progressValue}%` }}
-                        />
-                    </div>
-                  </div>
-                </CardContent>
-
-                <CardFooter className="bg-muted/10 p-4 border-t border-border/40 flex flex-col sm:flex-row gap-3">
-                  {isContestOpen ? (
-                    <Button asChild className="w-full font-bold uppercase tracking-widest text-xs h-10 shadow-md group/btn bg-amber-500 hover:bg-amber-600 text-white">
-                      <Link href={`/design/${product.slug}?subProductId=${subProduct.id}&contestId=${contest.id}`}>
-                        Resume Design <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button disabled variant="secondary" className="w-full uppercase text-[10px] font-bold tracking-widest">
-                      Submissions Closed
-                    </Button>
-                  )}
-                  
-                  <ConversationSheet
-                    contestId={contest.id}
-                    client={clientForSheet}
-                    freelancer={currentUser}
-                    currentUser={currentUser}
-                  >
-                    <Button variant="outline" className="w-full bg-card hover:bg-muted border-border/50 h-10 font-bold uppercase tracking-widest text-xs">
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      Comm Link
-                    </Button>
-                  </ConversationSheet>
-                </CardFooter>
+                 {/* RIGHT: Actions */}
+                 <div className="flex flex-row md:flex-col lg:flex-row items-center gap-2 w-full md:w-auto shrink-0 mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-border/40">
+                   {isContestOpen ? (
+                     <div className="flex gap-2 w-full md:w-auto">
+                        <Button asChild className="flex-1 md:flex-none font-bold uppercase tracking-widest text-[10px] h-10 shadow-md group/btn bg-amber-500 hover:bg-amber-600 text-white px-4">
+                          <Link href={`/design/${product.slug}?subProductId=${subProduct.id}&contestId=${contest.id}${designId ? `&templateId=${designId}` : ''}`}>
+                            Editor
+                          </Link>
+                        </Button>
+                        <Button asChild variant="outline" className="flex-1 md:flex-none font-bold uppercase tracking-widest text-[10px] h-10 shadow-md border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 px-4">
+                          <Link href={`/design/${product.slug}/upload?subProductId=${subProduct.id}&contestId=${contest.id}`}>
+                            Upload
+                          </Link>
+                        </Button>
+                     </div>
+                   ) : (
+                     <Button disabled variant="secondary" className="w-full md:w-auto uppercase text-[10px] font-bold tracking-widest px-4">
+                       Closed
+                     </Button>
+                   )}
+                   
+                   <ConversationSheet contestId={contest.id} client={clientForSheet} freelancer={currentUser} currentUser={currentUser}>
+                     <Button variant="outline" className="w-full md:w-auto bg-card hover:bg-muted border-border/50 h-10 font-bold uppercase tracking-widest text-xs px-4">
+                       <MessageSquare className="mr-2 h-4 w-4" />
+                       Comm Link
+                     </Button>
+                   </ConversationSheet>
+                 </div>
               </Card>
             );
           })}

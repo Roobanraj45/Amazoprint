@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar"
-import { LogOut, KeyRound, ShoppingBag, Home, Trophy, Users, Palette, Sparkles, Store, Package, DollarSign, Factory, ShieldCheck, Search, Scissors, FileArchive, Layers } from "lucide-react"
+import { LogOut, KeyRound, ShoppingBag, Home, Trophy, Users, Palette, Sparkles, Store, Package, DollarSign, Factory, ShieldCheck, Search, Scissors, FileArchive, Layers, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { useRouter, usePathname } from "next/navigation";
@@ -42,6 +42,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { href: "/admin/printers", label: "Printers", icon: <Factory size={14} />, color: "group-hover:text-blue-600" },
         { href: "/admin/designs", label: "Designs", icon: <Palette size={14} />, color: "group-hover:text-rose-500" },
         { href: "/admin/extract", label: "File Extract", icon: <FileArchive size={14} />, color: "group-hover:text-amber-600" },
+        { href: "/admin/reports", label: "Reports", icon: <BarChart3 size={14} />, color: "group-hover:text-violet-500" },
     ];
 
     const handleLogout = async () => {
