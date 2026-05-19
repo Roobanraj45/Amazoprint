@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { IndianRupee, User, Package, Truck, CreditCard, Hash, FileText, Download, ShieldCheck } from "lucide-react";
+import { IndianRupee, User, Package, Truck, CreditCard, Hash, FileText, Download, ShieldCheck, Clock, Info, Tag, Receipt } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Image from 'next/image';
 import { resolveImagePath, cn } from "@/lib/utils";
@@ -161,9 +161,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                             <h3 className="text-base font-black tracking-tight text-slate-900 dark:text-white leading-tight">{productName}</h3>
                                             <p className="text-primary font-bold tracking-tight text-[10px] uppercase">{subProductName}</p>
                                         </div>
-                                    </div>
-
-                                    {(() => {
+                                    </div>                                    {(() => {
                                         let parsedCustomisation: any = null;
                                         try {
                                             const rawCustomisation = order.design?.customisation || (order as any).customisation;
@@ -174,6 +172,48 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                             console.error("Failed to parse customisation data", e);
                                         }
 
+                                        const formatSpecValue = (val: any): string => {
+                                            if (val === null || val === undefined) return '';
+                                            if (typeof val === 'object') {
+                                                if (Array.isArray(val)) {
+                                                    return val.map((item: any) => {
+                                                        if (typeof item === 'object') {
+                                                            return item.name || item.Name || JSON.stringify(item);
+                                                        }
+                                                        return String(item);
+                                                    }).join(', ');
+                                                }
+                                                return val.name || val.Name || JSON.stringify(val);
+                                            }
+                                            return String(val);
+                                        };
+
+                                        // Standardise addons and base printing cost
+                                        let addonsList: any[] = [];
+                                        let baseSubtotal = 0;
+                                        let discount = 0;
+
+                                        const breakup = parsedCustomisation?.priceBreakup;
+                                        if (breakup) {
+                                            addonsList = breakup.addons || [];
+                                            discount = parseFloat(breakup.discount || 0);
+                                            const addonsTotal = addonsList.reduce((acc: number, addon: any) => acc + parseFloat(addon.totalAmount || addon.amount || 0), 0);
+                                            baseSubtotal = (parseFloat(order.totalAmount) || 0) - addonsTotal + discount;
+                                        } else if (parsedCustomisation?.specsBreakdown) {
+                                            addonsList = parsedCustomisation.specsBreakdown || [];
+                                            baseSubtotal = parseFloat(parsedCustomisation.printBaseCost) || 0;
+                                            discount = parseFloat(parsedCustomisation.discount) || 0;
+                                        } else {
+                                            baseSubtotal = parseFloat(order.totalAmount) || 0;
+                                        }
+
+                                        const totalAmountVal = parseFloat(order.totalAmount) || 0;
+
+                                        // GST calculations (18% inclusive)
+                                        const gstRate = 0.18;
+                                        const taxableAmount = totalAmountVal / (1 + gstRate);
+                                        const gstAmount = totalAmountVal - taxableAmount;
+
                                         return (
                                             <div className="space-y-6">
                                                 {/* Row 1: Design (Left) & Project Specs (Right) - Compact */}
@@ -183,7 +223,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Visual design</p>
                                                         <div className="w-full h-40 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-center p-3 relative overflow-hidden group-hover:shadow-inner transition-all duration-500">
                                                             <div className="relative z-10 scale-[1.1] drop-shadow-xl">
-                                                                {designPreviewNode}
+                                                                 {designPreviewNode}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -211,15 +251,30 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
 
                                                             <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">
                                                                 <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Dimensions</span>
-                                                                <span className="font-bold text-slate-900 dark:text-white text-[11px]">
-                                                                    {order.design?.width || order.designUpload?.width} x {order.design?.height || order.designUpload?.height} mm
+                                                                <span className="font-bold text-slate-900 dark:text-white text-[11px] uppercase">
+                                                                     {parsedCustomisation?.sizeDisplay || (
+                                                                         order.design?.width || order.designUpload?.width 
+                                                                             ? `${order.design?.width || order.designUpload?.width} x ${order.design?.height || order.designUpload?.height} mm` 
+                                                                             : 'Standard'
+                                                                     )}
                                                                 </span>
                                                             </div>
 
                                                             <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">
                                                                 <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Custom shape</span>
                                                                 <span className="font-bold text-slate-900 dark:text-white text-[11px]">
-                                                                    {parsedCustomisation?.dieCut ? `Pattern #${parsedCustomisation.dieCut}` : 'Standard'}
+                                                                     {parsedCustomisation?.dieCut ? (
+                                                                         typeof parsedCustomisation.dieCut === 'object'
+                                                                             ? (parsedCustomisation.dieCut.name || parsedCustomisation.dieCut.Name || `Pattern #${parsedCustomisation.dieCut.id || ''}`)
+                                                                             : `Pattern #${parsedCustomisation.dieCut}`
+                                                                     ) : 'Standard'}
+                                                                 </span>
+                                                            </div>
+
+                                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">
+                                                                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Quantity</span>
+                                                                <span className="font-bold text-slate-900 dark:text-white text-[11px]">
+                                                                     {parsedCustomisation?.quantity || order.quantity || '1'} Units
                                                                 </span>
                                                             </div>
                                                             
@@ -229,68 +284,139 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                                                     <span className="font-bold text-slate-900 dark:text-white text-[11px]">Enabled</span>
                                                                 </div>
                                                             )}
+
+                                                            {/* Dynamic Customisations Render */}
+                                                            {parsedCustomisation && Object.entries(parsedCustomisation).map(([key, val]) => {
+                                                                if (['pages', 'spotUv', 'dieCut', 'lamination', 'priceBreakup', 'pricing', 'addons', 'specsBreakdown', 'specsCost', 'printBaseCost', 'sizeDisplay', 'quantity'].includes(key)) return null;
+                                                                if (val === null || val === undefined || val === '') return null;
+                                                                
+                                                                const displayVal = formatSpecValue(val);
+                                                                if (!displayVal) return null;
+
+                                                                const label = key
+                                                                    .replace(/([A-Z])/g, ' $1')
+                                                                    .replace(/_/g, ' ')
+                                                                    .trim();
+
+                                                                return (
+                                                                    <div key={key} className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50 capitalize">
+                                                                        <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">{label}</span>
+                                                                        <span className="font-bold text-slate-900 dark:text-white text-[11px] truncate" title={displayVal}>{displayVal}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                {/* Row 2: Financial Breakdown (Full Width) - Compact */}
+                                                {/* Row 2: Financial Breakdown (Full Width) */}
                                                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center bg-slate-50/30 dark:bg-zinc-900/40 p-4 rounded-2xl border border-slate-100 dark:border-zinc-800/50">
-                                                        <div className="lg:col-span-8">
-                                                            {(() => {
-                                                                const breakup = parsedCustomisation?.priceBreakup;
-                                                                if (breakup) {
-                                                                    const addonsTotal = breakup.addons?.reduce((acc: number, addon: any) => acc + addon.totalAmount, 0) || 0;
-                                                                    const standardCost = parseFloat(order.totalAmount) - addonsTotal;
-                                                                    
-                                                                    return (
-                                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                            <div className="space-y-2">
-                                                                                <div className="flex justify-between items-center text-[10px]">
-                                                                                    <span className="text-slate-500 font-bold uppercase tracking-tight">Standard printing</span>
-                                                                                    <span className="text-slate-900 dark:text-white font-black">₹{standardCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                                                                </div>
-                                                                                {breakup.addons?.length > 0 && (
-                                                                                    <div className="space-y-1 pl-2 border-l border-primary/20">
-                                                                                        {breakup.addons.map((addon: any, idx: number) => (
-                                                                                            <div key={idx} className="flex justify-between items-center text-[9px]">
-                                                                                                <span className="text-slate-400 font-medium">{addon.name}</span>
-                                                                                                <span className="text-primary font-bold">+ ₹{addon.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                                                                            </div>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                )}
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Receipt size={11} /> Financial Audit & Breakdown Ledger</p>
+                                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-50/50 dark:bg-zinc-900/30 p-6 rounded-[1.5rem] border border-slate-100 dark:border-zinc-800/50">
+                                                        {/* Detailed Line Items */}
+                                                        <div className="lg:col-span-7 space-y-3">
+                                                            <div className="flex justify-between items-center text-xs border-b border-dashed border-slate-200 dark:border-slate-800 pb-2">
+                                                                <span className="text-slate-500 font-bold">Standard Print Production</span>
+                                                                <span className="text-slate-900 dark:text-white font-extrabold">₹{baseSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                            </div>
+
+                                                            {addonsList && addonsList.length > 0 ? (
+                                                                <div className="space-y-2 border-b border-dashed border-slate-200 dark:border-slate-800 pb-2">
+                                                                    <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Premium Customization Add-ons</p>
+                                                                    {addonsList.map((addon: any, idx: number) => {
+                                                                        const addonName = addon.name || addon.Name || 'Custom Addon';
+                                                                        const addonAmount = parseFloat(addon.totalAmount || addon.amount || 0);
+                                                                        return (
+                                                                            <div key={idx} className="flex justify-between items-center text-xs pl-2 border-l-2 border-primary/40">
+                                                                                <span className="text-slate-500 font-medium">{addonName}</span>
+                                                                                <span className="text-slate-900 dark:text-white font-bold">+ ₹{addonAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                                                             </div>
-                                                                            <div className="flex flex-col justify-center items-end border-l border-slate-200 dark:border-slate-800 pl-4">
-                                                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Final amount</span>
-                                                                                <div className="flex items-center gap-1">
-                                                                                    <IndianRupee className="w-3.5 h-3.5 text-primary" />
-                                                                                    <span className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
-                                                                                        {parseFloat(order.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                                                                    </span>
-                                                                                </div>
-                                                                                <p className="text-[7px] font-bold text-emerald-500 tracking-widest mt-1 uppercase">Taxes & shipping included</p>
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                }
-                                                                return null;
-                                                            })()}
-                                                        </div>
-                                                        <div className="lg:col-span-4 flex flex-col gap-2">
-                                                            {isDesignOrder && <PrintPreviewButton order={order} />}
-                                                            {isUploadOrder && (
-                                                                <Button asChild variant="secondary" className="rounded-xl px-4 h-9 text-[10px] font-bold shadow-sm transition-all w-full">
-                                                                    <a href={resolveImagePath(order.designUpload.filePath)} download>
-                                                                        <Download className="mr-2 h-3.5 w-3.5"/> Download Artifact
-                                                                    </a>
-                                                                </Button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            ) : null}
+
+                                                            {discount > 0 && (
+                                                                <div className="flex justify-between items-center text-xs text-emerald-600 dark:text-emerald-400 font-bold border-b border-dashed border-slate-200 dark:border-slate-800 pb-2">
+                                                                    <span className="flex items-center gap-1"><Tag size={12} /> Coupon / Special Discount</span>
+                                                                    <span>- ₹{discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                                </div>
                                                             )}
-                                                            <Button variant="outline" className="rounded-xl px-4 h-9 text-[10px] font-bold border-slate-200 transition-all w-full">
-                                                                <FileText className="mr-2 h-3.5 w-3.5" /> Job Sheet
-                                                            </Button>
+
+                                                            {/* GST Breakdown */}
+                                                            <div className="flex justify-between items-center text-xs text-slate-500 border-b border-dashed border-slate-200 dark:border-slate-800 pb-2">
+                                                                <span>Inclusive Tax Breakdown (18% GST)</span>
+                                                                <span className="font-bold">
+                                                                    ₹{taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (Taxable) + ₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} (GST)
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="flex justify-between items-center text-xs text-slate-500">
+                                                                <span>Shipping & Logistics Cost</span>
+                                                                <span className="text-emerald-600 font-bold uppercase text-[10px] tracking-wider">Free Express</span>
+                                                            </div>
                                                         </div>
-                                                    </div>
+
+                                                        {/* Total Receipt Summary */}
+                                                        <div className="lg:col-span-5 flex flex-col justify-between p-4 rounded-xl bg-slate-100/50 dark:bg-zinc-800/20 border border-slate-200/50 dark:border-zinc-800/40">
+                                                            <div className="space-y-2">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total amount</span>
+                                                                    <Badge variant={order.paymentStatus === 'paid' ? 'default' : 'destructive'} className="rounded-md text-[9px] font-black uppercase px-2 py-0.5 tracking-tighter">
+                                                                        {order.paymentStatus}
+                                                                    </Badge>
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 mt-1">
+                                                                    <IndianRupee className="w-5 h-5 text-primary" />
+                                                                    <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                                                                        {totalAmountVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-zinc-800 space-y-2">
+                                                                {/* Payment Gateway Audit Details */}
+                                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Gateway Reconciliation</p>
+                                                                {order.payment ? (
+                                                                    <div className="text-[10px] font-medium text-slate-500 space-y-1.5">
+                                                                        <div className="flex justify-between">
+                                                                            <span>Provider:</span>
+                                                                            <span className="font-extrabold uppercase text-slate-700 dark:text-slate-300">{order.payment.provider}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span>Transaction ID:</span>
+                                                                            <span className="font-mono text-slate-700 dark:text-slate-300 font-bold select-all">{order.payment.providerPaymentId || 'N/A'}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span>Settled On:</span>
+                                                                            <span className="font-bold text-slate-700 dark:text-slate-300">
+                                                                                {order.payment.createdAt ? format(new Date(order.payment.createdAt), 'dd MMM yyyy, hh:mm a') : 'N/A'}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="text-[10px] font-bold text-amber-600 dark:text-amber-500 italic">No verified online transaction record found.</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                     </div>
+
+                                                     {/* Actions row */}
+                                                     <div className="flex flex-wrap items-center gap-3">
+                                                         <div className="flex-1 min-w-[200px]">
+                                                             {isDesignOrder && <PrintPreviewButton order={order} />}
+                                                             {isUploadOrder && (
+                                                                 <Button asChild variant="secondary" className="rounded-xl px-4 h-10 text-xs font-bold shadow-sm transition-all w-full">
+                                                                     <a href={resolveImagePath(order.designUpload.filePath)} download>
+                                                                         <Download className="mr-2 h-4 w-4"/> Download Original Design File
+                                                                     </a>
+                                                                 </Button>
+                                                             )}
+                                                         </div>
+                                                         <Button variant="outline" className="rounded-xl px-4 h-10 text-xs font-bold border-slate-200 transition-all">
+                                                             <FileText className="mr-2 h-4 w-4" /> Export Job Sheet
+                                                         </Button>
+                                                     </div>
                                                 </div>
                                             </div>
                                         );
@@ -497,6 +623,53 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                             </Card>
                         )}
                     </div>
+                )}
+
+                {/* System Audit Logs & History Trail */}
+                {order.logs && order.logs.length > 0 && (
+                    <Card className="border-none shadow-xl shadow-slate-200/50 dark:shadow-none bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden">
+                        <CardHeader className="p-6 pb-2">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                                    <Clock size={16} />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-base font-bold tracking-tight">System Audit Logs & Operational History</CardTitle>
+                                    <CardDescription className="text-[11px] font-medium font-sans">Chronological timeline of system actions and workflow state transitions</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <div className="relative space-y-6 pl-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[1px] before:bg-slate-100 dark:before:bg-slate-800">
+                                {order.logs.map((log: any) => (
+                                    <div key={log.id} className="relative group text-xs">
+                                        <div className="absolute -left-[28.5px] top-1 w-2.5 h-2.5 rounded-full border bg-indigo-500 border-white dark:border-slate-900 z-10" />
+                                        <div className="space-y-1">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Badge className="font-extrabold text-[9px] uppercase tracking-wide bg-slate-100 hover:bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 border-none px-2 py-0.5 rounded-md">
+                                                    {log.actionType.replace(/_/g, ' ')}
+                                                </Badge>
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    {format(new Date(log.createdAt), 'dd MMM yyyy, hh:mm:ss a')}
+                                                </span>
+                                                {log.performedByRole && (
+                                                    <span className="text-[9px] font-extrabold text-violet-600 bg-violet-600/5 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                                        By {log.performedByRole.replace(/_/g, ' ')}
+                                                    </span>
+                                                )}
+                                                {!log.isCustomerVisible && (
+                                                    <span className="text-[9px] font-extrabold text-rose-500 bg-rose-500/5 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                                        Internal Only
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="font-semibold text-slate-700 dark:text-slate-300 leading-relaxed font-sans">{log.message}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </div>

@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs, users } from '@/db/schema';
+import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs, users, payments } from '@/db/schema';
 import { and, eq, desc, count, ilike, sql, gte, lte, or, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -468,12 +468,31 @@ export async function getAdminOrderDetails(orderId: number) {
             design: true,
             designUpload: true,
             directSellingProduct: true,
+            payment: true,
+            logs: {
+                orderBy: (logs, { desc }) => [desc(logs.createdAt)],
+            },
         },
     });
 
     if (!order) {
         return null;
     }
+
+    // Resolve contest payment via contestId if order.payment is not set
+    if (order.contestId && !order.payment) {
+        const contestPayment = await db.select()
+            .from(payments)
+            .where(eq(payments.contestId, order.contestId))
+            .orderBy(desc(payments.createdAt))
+            .limit(1)
+            .then(res => res[0]);
+        
+        if (contestPayment) {
+            (order as any).payment = contestPayment;
+        }
+    }
+
     return order;
 }
 
@@ -499,7 +518,25 @@ export async function getMyOrderDetails(orderId: number) {
         },
     });
 
-    return order || null;
+    if (!order) {
+        return null;
+    }
+
+    // Resolve contest payment via contestId if order.payment is not set
+    if (order.contestId && !order.payment) {
+        const contestPayment = await db.select()
+            .from(payments)
+            .where(eq(payments.contestId, order.contestId))
+            .orderBy(desc(payments.createdAt))
+            .limit(1)
+            .then(res => res[0]);
+        
+        if (contestPayment) {
+            (order as any).payment = contestPayment;
+        }
+    }
+
+    return order;
 }
 
 export async function assignPrinterToOrder(orderId: number, printerId: string | null) {
