@@ -33,7 +33,7 @@ export default async function ClientContestsPage() {
                         </>
                     )}
                     <Button asChild className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-amber-500/20 group">
-                        <Link href="/client/contests/create">
+                        <Link href="/products">
                             <PlusCircle size={18} className="group-hover:rotate-90 transition-transform" /> Launch Contest
                         </Link>
                     </Button>
@@ -51,7 +51,7 @@ export default async function ClientContestsPage() {
                             <p className="text-muted-foreground font-medium max-w-sm mx-auto">Ready to crowdsource the perfect design? Launch your first contest to our freelancer network.</p>
                         </div>
                         <Button asChild size="lg" className="rounded-xl shadow-lg shadow-amber-500/20 bg-amber-500 hover:bg-amber-600 text-white mt-4 font-bold tracking-widest uppercase text-xs">
-                            <Link href="/client/contests/create">
+                            <Link href="/products">
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Create New Contest
                             </Link>
