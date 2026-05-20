@@ -24,6 +24,7 @@ import {
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { cardTextures, dieCuts } from "@/db/schema";
+import { resolveImagePath } from "@/lib/utils";
 
 export default async function ClientContestDetailsPage({ params }: { params: { contestId: string }}) {
     const contestId = parseInt(params.contestId);
@@ -120,6 +121,19 @@ export default async function ClientContestDetailsPage({ params }: { params: { c
                                 <p className="text-xs font-semibold text-muted-foreground/80 bg-background/40 p-4 rounded-2xl border border-border/40 leading-relaxed">
                                     {contest.description}
                                 </p>
+                            )}
+
+                            {contest.imageUrl && (
+                                <div className="mt-4">
+                                    <p className="text-[10px] font-black tracking-wider text-muted-foreground uppercase mb-2">Reference Image / Logo</p>
+                                    <div className="relative aspect-[16/10] max-w-md rounded-2xl overflow-hidden border border-border/60 bg-muted/20">
+                                        <img 
+                                            src={resolveImagePath(contest.imageUrl)} 
+                                            alt="Reference image or logo" 
+                                            className="object-contain w-full h-full p-2" 
+                                        />
+                                    </div>
+                                </div>
                             )}
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">

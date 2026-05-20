@@ -9,6 +9,7 @@ import { format, formatDistanceToNowStrict } from 'date-fns';
 import { getSession } from "@/lib/auth";
 import Link from 'next/link';
 import { JoinButton } from "../join-button";
+import { resolveImagePath } from "@/lib/utils";
 
 export default async function ContestDetailsPage({ params }: { params: { contestId: string }}) {
     const contestId = parseInt(params.contestId);
@@ -56,6 +57,18 @@ export default async function ContestDetailsPage({ params }: { params: { contest
                                 <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                                     {contest.description || 'The client has not provided a detailed description yet.'}
                                 </p>
+                                {contest.imageUrl && (
+                                    <div className="mt-6 border-t border-border/40 pt-6">
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Reference Image / Logo</h4>
+                                        <div className="relative aspect-[16/10] max-w-md rounded-2xl overflow-hidden border border-border/60 bg-muted/20">
+                                            <img 
+                                                src={resolveImagePath(contest.imageUrl)} 
+                                                alt="Reference image or logo" 
+                                                className="object-contain w-full h-full p-2" 
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,13 +20,15 @@ import { useToast } from '@/hooks/use-toast';
 import { 
     CalendarIcon, Loader2, Trophy, Pencil, Lightbulb, CreditCard, Sparkles, 
     Rocket, ShieldCheck, CheckCircle2, AlertCircle, Coins, Award, 
-    Package, Layers, Scissors, Stamp, FileText, Search, LayoutTemplate 
+    Package, Layers, Scissors, Stamp, FileText, Search, LayoutTemplate,
+    Upload, X, UserCheck
 } from 'lucide-react';
 import { processDummyPayment } from '@/app/actions/payment-actions';
 import { cn, resolveImagePath } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import { getFreelancers } from '@/app/actions/contest-actions';
 
 type Product = Awaited<ReturnType<typeof getProducts>>[0];
 type ContestPricingRule = Awaited<ReturnType<typeof getContestPricingRules>>[0];
@@ -37,8 +39,26 @@ const contestFormSchema = z.object({
   productId: z.coerce.number().min(1, 'Product is required'),
   subProductId: z.coerce.number({invalid_type_error: "Product variant is required"}).min(1, 'Product variant is required'),
   prizeAmount: z.coerce.number().min(1, 'Prize amount must be positive'),
-  pricingRuleId: z.coerce.number().min(1, 'Please select a contest tier'),
+  pricingRuleId: z.coerce.number().optional().nullable(),
   endDate: z.coerce.date().refine(date => date > new Date(), { message: "End date must be in the future" }),
+  imageUrl: z.string().optional(),
+  contestType: z.enum(['tier', 'individual']).default('tier'),
+  assignedFreelancerId: z.string().uuid().optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.contestType === 'tier' && !data.pricingRuleId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Please select a contest tier',
+      path: ['pricingRuleId'],
+    });
+  }
+  if (data.contestType === 'individual' && !data.assignedFreelancerId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Please select a freelancer',
+      path: ['assignedFreelancerId'],
+    });
+  }
 });
 
 type ContestFormValues = z.infer<typeof contestFormSchema>;
@@ -64,7 +84,10 @@ export function CreateContestForm() {
     resolver: zodResolver(contestFormSchema),
     defaultValues: {
       productId: productIdFromUrl ? Number(productIdFromUrl) : undefined,
-      subProductId: subProductIdFromUrl ? Number(subProductIdFromUrl) : undefined
+      subProductId: subProductIdFromUrl ? Number(subProductIdFromUrl) : undefined,
+      contestType: 'tier',
+      pricingRuleId: undefined,
+      assignedFreelancerId: undefined,
     }
   });
 
@@ -72,6 +95,39 @@ export function CreateContestForm() {
   const selectedSubProductId = watch('subProductId');
   const selectedPricingRuleId = watch('pricingRuleId');
   const watchPrizeAmount = watch('prizeAmount');
+  const watchContestType = watch('contestType');
+  const watchAssignedFreelancerId = watch('assignedFreelancerId');
+  const [freelancers, setFreelancers] = useState<{ id: string; name: string; email: string }[]>([]);
+  const watchImageUrl = watch('imageUrl');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const contestImageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', 'contests');
+
+    try {
+        const response = await fetch('/api/upload', { method: 'POST', body: formData });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Upload failed');
+        setValue('imageUrl', result.url, { shouldValidate: true });
+        toast({ title: 'Image uploaded successfully.' });
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Upload failed', description: error.message });
+    } finally {
+        setIsUploadingImage(false);
+        if (contestImageInputRef.current) contestImageInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setValue('imageUrl', '', { shouldValidate: true });
+  };
 
   const selectedProduct = products.find(p => p.id === Number(selectedProductId));
   const selectedRuleObj = contestPricingRules.find(r => r.id === Number(selectedPricingRuleId));
@@ -84,6 +140,7 @@ export function CreateContestForm() {
     loadProducts();
     getDieCuts().then(setDieCuts);
     getCardTextures().then(setCardTextures);
+    getFreelancers().then(setFreelancers).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -244,18 +301,24 @@ export function CreateContestForm() {
   const handleCreateContest = async (data: ContestFormValues) => {
     setIsLoading(true);
     try {
-      const selectedRule = contestPricingRules.find(r => r.id === data.pricingRuleId);
-      if (!selectedRule || !selectedRule.contestPrice) {
-          throw new Error("Invalid pricing rule or price not found.");
+      const isIndividual = data.contestType === 'individual';
+      const entryFee = isIndividual ? 0 : Number(contestPricingRules.find(r => r.id === data.pricingRuleId)?.contestPrice || 0);
+      const maxParticipants = isIndividual ? 1 : (contestPricingRules.find(r => r.id === data.pricingRuleId)?.maxParticipants || 1);
+
+      if (!isIndividual) {
+        const selectedRule = contestPricingRules.find(r => r.id === data.pricingRuleId);
+        if (!selectedRule || !selectedRule.contestPrice) {
+            throw new Error("Invalid pricing rule or price not found.");
+        }
       }
 
       const specsCost = calculatedCustomisationPrice?.totalCost || 0;
-      const totalAmount = specsCost + Number(selectedRule.contestPrice) + Number(data.prizeAmount || 0);
+      const totalAmount = specsCost + entryFee + Number(data.prizeAmount || 0);
 
       const contestData = {
           ...data,
-          entryFee: Number(selectedRule.contestPrice),
-          maxFreelancers: selectedRule.maxParticipants,
+          entryFee,
+          maxFreelancers: maxParticipants,
           customisation: {
               ...customisation,
               specsCost,
@@ -266,14 +329,18 @@ export function CreateContestForm() {
       // @ts-ignore
       delete contestData.pricingRuleId;
       
+      const items = [
+          { name: `Specifications Printing Cost`, quantity: 1, price: specsCost },
+          { name: `Winner Prize Escrow`, quantity: 1, price: Number(data.prizeAmount || 0) }
+      ];
+      if (entryFee > 0) {
+          items.push({ name: `Platform Entry Fee`, quantity: 1, price: entryFee });
+      }
+
       const payload = {
         orderData: { contestData },
         amount: totalAmount,
-        items: [
-            { name: `Specifications Printing Cost`, quantity: 1, price: specsCost },
-            { name: `Platform Entry Fee`, quantity: 1, price: Number(selectedRule.contestPrice) },
-            { name: `Winner Prize Escrow`, quantity: 1, price: Number(data.prizeAmount || 0) }
-        ],
+        items,
       }
 
       const encodedData = btoa(encodeURIComponent(JSON.stringify(payload)));
@@ -289,18 +356,24 @@ export function CreateContestForm() {
     handleSubmit(async (data: ContestFormValues) => {
         setIsLoading(true);
         try {
-            const selectedRule = contestPricingRules.find(r => r.id === data.pricingRuleId);
-            if (!selectedRule || !selectedRule.contestPrice) {
-                throw new Error("Invalid pricing rule or price not found.");
+            const isIndividual = data.contestType === 'individual';
+            const entryFee = isIndividual ? 0 : Number(contestPricingRules.find(r => r.id === data.pricingRuleId)?.contestPrice || 0);
+            const maxParticipants = isIndividual ? 1 : (contestPricingRules.find(r => r.id === data.pricingRuleId)?.maxParticipants || 1);
+
+            if (!isIndividual) {
+                const selectedRule = contestPricingRules.find(r => r.id === data.pricingRuleId);
+                if (!selectedRule || !selectedRule.contestPrice) {
+                    throw new Error("Invalid pricing rule or price not found.");
+                }
             }
 
             const specsCost = calculatedCustomisationPrice?.totalCost || 0;
-            const totalAmount = specsCost + Number(selectedRule.contestPrice) + Number(data.prizeAmount || 0);
+            const totalAmount = specsCost + entryFee + Number(data.prizeAmount || 0);
 
             const contestData = {
                 ...data,
-                entryFee: Number(selectedRule.contestPrice),
-                maxFreelancers: selectedRule.maxParticipants,
+                entryFee,
+                maxFreelancers: maxParticipants,
                 customisation: {
                     ...customisation,
                     specsCost,
@@ -545,6 +618,51 @@ export function CreateContestForm() {
                                 {...register('description')} 
                             />
                         </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold text-foreground flex items-center justify-between tracking-tight">
+                                <span>Reference Image or Logo <span className="text-muted-foreground font-normal">(Optional)</span></span>
+                            </Label>
+                            
+                            {watchImageUrl ? (
+                                <div className="relative aspect-[16/10] max-w-sm rounded-2xl overflow-hidden border border-border shadow-sm bg-muted/30 flex items-center justify-center group">
+                                    <Image 
+                                        src={resolveImagePath(watchImageUrl)} 
+                                        alt="Contest reference" 
+                                        fill 
+                                        className="object-contain p-2" 
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <Button
+                                            type="button"
+                                            variant="destructive" 
+                                            size="icon"
+                                            className="h-8 w-8 rounded-full shadow-lg hover:scale-105 transition-transform"
+                                            onClick={handleRemoveImage}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center h-28 rounded-2xl border-2 border-dashed border-border cursor-pointer bg-background/50 hover:bg-rose-500/5 hover:border-rose-500/50 text-muted-foreground hover:text-rose-500 transition-all shadow-sm">
+                                    {isUploadingImage ? (
+                                        <Loader2 className="h-6 w-6 animate-spin text-rose-500" />
+                                    ) : (
+                                        <Upload className="h-6 w-6 mb-1 text-muted-foreground" />
+                                    )}
+                                    <span className="text-xs font-bold mt-1 text-center">Upload Reference Image</span>
+                                    <input 
+                                        type="file" 
+                                        ref={contestImageInputRef} 
+                                        className="hidden" 
+                                        accept="image/*" 
+                                        onChange={handleImageUpload} 
+                                        disabled={isUploadingImage} 
+                                    />
+                                </label>
+                            )}
+                        </div>
                     </div>
 
                     {/* Section 2: Product Selects */}
@@ -555,8 +673,8 @@ export function CreateContestForm() {
                                 name="productId"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value ? String(field.value) : ""}>
-                                        <SelectTrigger className="h-11 rounded-2xl bg-background/80 border-border font-bold text-xs shadow-sm focus:ring-rose-500">
+                                    <Select onValueChange={field.onChange} value={field.value ? String(field.value) : ""} disabled={true}>
+                                        <SelectTrigger className="h-11 rounded-2xl bg-background/80 border-border font-bold text-xs shadow-sm focus:ring-rose-500 disabled:opacity-50">
                                             <SelectValue placeholder="Select a product..." />
                                         </SelectTrigger>
                                         <SelectContent className="rounded-2xl border-border bg-card shadow-lg">
@@ -574,7 +692,7 @@ export function CreateContestForm() {
                                 name="subProductId"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value ? String(field.value) : ""} disabled={!selectedProduct}>
+                                    <Select onValueChange={field.onChange} value={field.value ? String(field.value) : ""} disabled={true}>
                                         <SelectTrigger className="h-11 rounded-2xl bg-background/80 border-border font-bold text-xs shadow-sm focus:ring-rose-500 disabled:opacity-50">
                                             <SelectValue placeholder="Select a variant..." />
                                         </SelectTrigger>
@@ -592,38 +710,118 @@ export function CreateContestForm() {
                         </div>
                     </div>
 
-                    {/* Section 3: Tier & Budget */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label className="text-xs font-bold text-foreground tracking-tight">Contest Tier <span className="text-rose-500">*</span></Label>
-                            <Controller
-                                name="pricingRuleId"
-                                control={control}
-                                render={({ field }) => (
-                                    <Select
-                                        onValueChange={field.onChange}
-                                        value={field.value ? String(field.value) : ""}
-                                        disabled={!selectedSubProductId || loadingPricing || contestPricingRules.length === 0}
+                    {/* Section 2.5: Contest Type Selection */}
+                    <div className="space-y-3">
+                        <Label className="text-xs font-bold text-foreground tracking-tight">Distribution Method <span className="text-rose-500">*</span></Label>
+                        <Controller
+                            name="contestType"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            field.onChange('tier');
+                                            setValue('assignedFreelancerId', null);
+                                        }}
+                                        className={cn(
+                                            "flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 text-center gap-1",
+                                            field.value === 'tier'
+                                                ? "border-rose-500 bg-rose-500/5 text-rose-500 shadow-sm ring-2 ring-rose-500/10"
+                                                : "border-border bg-background/50 hover:bg-muted/50 text-muted-foreground"
+                                        )}
                                     >
-                                        <SelectTrigger className="h-11 rounded-2xl bg-background/80 border-border font-bold text-xs shadow-sm focus:ring-rose-500 disabled:opacity-50">
-                                            <SelectValue placeholder="Select participant tier..." />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-border bg-card shadow-lg">
-                                            {loadingPricing ? (
-                                                <SelectItem value="loading" disabled className="py-2 text-xs font-semibold">Loading tiers...</SelectItem>
-                                            ) : (
-                                                contestPricingRules.map(rule => (
-                                                    <SelectItem key={rule.id} value={String(rule.id)} className="font-semibold text-xs py-2">
-                                                        {rule.minParticipants}-{rule.maxParticipants} Designers (₹{rule.contestPrice})
-                                                    </SelectItem>
-                                                ))
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                )}
-                            />
-                            {errors.pricingRuleId && <p className="text-[10px] font-semibold text-rose-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" /> {errors.pricingRuleId.message}</p>}
-                        </div>
+                                        <Trophy className="w-4 h-4 text-rose-500" />
+                                        <span className="text-xs font-bold">Tier Based</span>
+                                        <span className="text-[9px] opacity-75 font-semibold">Open to matching tier designers</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            field.onChange('individual');
+                                            setValue('pricingRuleId', null);
+                                        }}
+                                        className={cn(
+                                            "flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 text-center gap-1",
+                                            field.value === 'individual'
+                                                ? "border-rose-500 bg-rose-500/5 text-rose-500 shadow-sm ring-2 ring-rose-500/10"
+                                                : "border-border bg-background/50 hover:bg-muted/50 text-muted-foreground"
+                                        )}
+                                    >
+                                        <UserCheck className="w-4 h-4 text-indigo-500" />
+                                        <span className="text-xs font-bold">Individual Freelancer</span>
+                                        <span className="text-[9px] opacity-75 font-semibold">Assigned to one designer (₹0 Fee)</span>
+                                    </button>
+                                </div>
+                            )}
+                        />
+                    </div>
+
+                    {/* Section 3: Tier/Freelancer & Budget */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {watchContestType === 'tier' ? (
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-foreground tracking-tight">Contest Tier <span className="text-rose-500">*</span></Label>
+                                <Controller
+                                    name="pricingRuleId"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select
+                                            onValueChange={(val) => field.onChange(val ? Number(val) : null)}
+                                            value={field.value ? String(field.value) : ""}
+                                            disabled={!selectedSubProductId || loadingPricing || contestPricingRules.length === 0}
+                                        >
+                                            <SelectTrigger className="h-11 rounded-2xl bg-background/80 border-border font-bold text-xs shadow-sm focus:ring-rose-500 disabled:opacity-50">
+                                                <SelectValue placeholder="Select participant tier..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-border bg-card shadow-lg">
+                                                {loadingPricing ? (
+                                                    <SelectItem value="loading" disabled className="py-2 text-xs font-semibold">Loading tiers...</SelectItem>
+                                                ) : (
+                                                    contestPricingRules.map(rule => (
+                                                        <SelectItem key={rule.id} value={String(rule.id)} className="font-semibold text-xs py-2">
+                                                            {rule.minParticipants}-{rule.maxParticipants} Designers (₹{rule.contestPrice})
+                                                        </SelectItem>
+                                                    ))
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                                {errors.pricingRuleId && <p className="text-[10px] font-semibold text-rose-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" /> {errors.pricingRuleId.message}</p>}
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-foreground tracking-tight">Select Freelancer <span className="text-rose-500">*</span></Label>
+                                <Controller
+                                    name="assignedFreelancerId"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value || ""}
+                                        >
+                                            <SelectTrigger className="h-11 rounded-2xl bg-background/80 border-border font-bold text-xs shadow-sm focus:ring-rose-500">
+                                                <SelectValue placeholder="Select a freelancer..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-border bg-card shadow-lg">
+                                                {freelancers.length === 0 ? (
+                                                    <SelectItem value="none" disabled className="py-2 text-xs font-semibold">No active freelancers available</SelectItem>
+                                                ) : (
+                                                    freelancers.map(f => (
+                                                        <SelectItem key={f.id} value={f.id} className="font-semibold text-xs py-2">
+                                                            {f.name} ({f.email})
+                                                        </SelectItem>
+                                                    ))
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                                {errors.assignedFreelancerId && <p className="text-[10px] font-semibold text-rose-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" /> {errors.assignedFreelancerId.message}</p>}
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                             <Label htmlFor="prizeAmount" className="text-xs font-bold text-foreground tracking-tight">Winner Prize (₹) <span className="text-rose-500">*</span></Label>
@@ -672,7 +870,7 @@ export function CreateContestForm() {
                     </div>
 
                     {/* Selected Budget Breakdown Summary */}
-                    {selectedRuleObj && (
+                    {(selectedRuleObj || watchContestType === 'individual') && (
                         <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10 space-y-3 shadow-inner">
                             <h4 className="text-[10px] font-extrabold text-rose-500 tracking-wider flex items-center gap-1.5">
                                 <Coins className="w-3.5 h-3.5" /> Budget Breakdown
@@ -684,7 +882,7 @@ export function CreateContestForm() {
                                 </div>
                                 <div className="space-y-0.5 bg-background/60 p-2.5 rounded-xl border border-border/60">
                                     <p className="text-[9px] font-bold text-muted-foreground">Platform Fee</p>
-                                    <p className="text-xs font-black text-foreground">₹{Number(selectedRuleObj.contestPrice).toFixed(2)}</p>
+                                    <p className="text-xs font-black text-foreground">₹{watchContestType === 'individual' ? '0.00' : Number(selectedRuleObj?.contestPrice || 0).toFixed(2)}</p>
                                 </div>
                                 <div className="space-y-0.5 bg-background/60 p-2.5 rounded-xl border border-border/60">
                                     <p className="text-[9px] font-bold text-rose-500">Winner Prize</p>
@@ -692,7 +890,7 @@ export function CreateContestForm() {
                                 </div>
                                 <div className="space-y-0.5 bg-indigo-500/10 p-2.5 rounded-xl border border-indigo-500/20">
                                     <p className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider">Grand Total</p>
-                                    <p className="text-xs font-black text-indigo-600">₹{((calculatedCustomisationPrice?.totalCost || 0) + Number(selectedRuleObj.contestPrice) + Number(watchPrizeAmount || 0)).toFixed(2)}</p>
+                                    <p className="text-xs font-black text-indigo-600">₹{((calculatedCustomisationPrice?.totalCost || 0) + (watchContestType === 'individual' ? 0 : Number(selectedRuleObj?.contestPrice || 0)) + Number(watchPrizeAmount || 0)).toFixed(2)}</p>
                                 </div>
                             </div>
                         </div>

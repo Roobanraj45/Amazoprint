@@ -4,10 +4,9 @@
 import { z } from 'zod';
 import { db } from '@/db';
 import { contests, contestParticipants, products, subProducts, users, designs, contestWinners, orders, orderLogs } from '@/db/schema';
-import { and, eq, sql, desc, count, gt } from 'drizzle-orm';
+import { and, or, eq, sql, desc, count, gt } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
-
 const contestSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
@@ -18,6 +17,9 @@ const contestSchema = z.object({
   entryFee: z.coerce.number().optional(),
   endDate: z.coerce.date().refine(date => date > new Date(), { message: "End date must be in the future" }),
   customisation: z.any().optional(),
+  imageUrl: z.string().optional(),
+  contestType: z.enum(['tier', 'individual']).optional().default('tier'),
+  assignedFreelancerId: z.string().uuid().optional().nullable(),
 });
 
 const designSchema = z.object({
@@ -31,6 +33,17 @@ const designSchema = z.object({
   guides: z.any().optional(),
 });
 
+export async function getFreelancers() {
+    const session = await getSession();
+    if (!session?.sub) {
+        throw new Error('Not authenticated');
+    }
+    const data = await db.query.users.findMany({
+        where: and(eq(users.role, 'freelancer'), eq(users.isActive, true)),
+        orderBy: [desc(users.createdAt)],
+    });
+    return data.map(u => ({ id: u.id, name: u.name, email: u.email }));
+}
 
 export async function createContest(data: z.infer<typeof contestSchema>) {
     const session = await getSession();
@@ -46,18 +59,29 @@ export async function createContest(data: z.infer<typeof contestSchema>) {
         throw new Error('Invalid product selected.');
     }
 
-    const result = await db.insert(contests).values({
-        ...validated,
+    const { contestType, assignedFreelancerId, ...contestInsertData } = validated;
+
+    const [insertedContest] = await db.insert(contests).values({
+        ...contestInsertData,
         customisation: validated.customisation || {},
         userId: session.sub,
         productName: product.name,
         subProductName: subProduct.name,
         startDate: new Date(),
     }).returning();
+
+    if (validated.contestType === 'individual' && validated.assignedFreelancerId) {
+        await db.insert(contestParticipants).values({
+            contestId: insertedContest.id,
+            freelancerId: validated.assignedFreelancerId,
+            status: 'active',
+            joinedAt: new Date(),
+        });
+    }
     
     revalidatePath('/contests');
     revalidatePath('/client/contests');
-    return result[0];
+    return insertedContest;
 }
 
 export async function getContests() {

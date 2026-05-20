@@ -262,6 +262,7 @@ export const contests = pgTable('contests', {
   endDate: timestamp('end_date').notNull(),
   status: varchar('status', { length: 50, enum: ['active', 'completed', 'cancelled'] }).default('active'),
   customisation: jsonb('customisation').default({}),
+  imageUrl: text('image_url'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => {
