@@ -98,6 +98,19 @@ export function CreateContestForm() {
   const watchContestType = watch('contestType');
   const watchAssignedFreelancerId = watch('assignedFreelancerId');
   const [freelancers, setFreelancers] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [freelancerSearch, setFreelancerSearch] = useState('');
+  const [selectedFreelancerObj, setSelectedFreelancerObj] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [loadingFreelancers, setLoadingFreelancers] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const filteredFreelancers = useMemo(() => {
+    const list = [...freelancers];
+    if (selectedFreelancerObj && !list.some(f => f.id === selectedFreelancerObj.id)) {
+      list.push(selectedFreelancerObj);
+    }
+    return list;
+  }, [freelancers, selectedFreelancerObj]);
+
   const watchImageUrl = watch('imageUrl');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const contestImageInputRef = useRef<HTMLInputElement>(null);
@@ -140,8 +153,32 @@ export function CreateContestForm() {
     loadProducts();
     getDieCuts().then(setDieCuts);
     getCardTextures().then(setCardTextures);
-    getFreelancers().then(setFreelancers).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    const trimmed = freelancerSearch.trim();
+    if (trimmed.length >= 3) {
+      setLoadingFreelancers(true);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      searchTimeoutRef.current = setTimeout(() => {
+        getFreelancers(trimmed)
+          .then(setFreelancers)
+          .catch(console.error)
+          .finally(() => setLoadingFreelancers(false));
+      }, 300);
+    } else {
+      setFreelancers([]);
+      setLoadingFreelancers(false);
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [freelancerSearch]);
 
   useEffect(() => {
     if (selectedProductId) {
@@ -799,22 +836,62 @@ export function CreateContestForm() {
                                     control={control}
                                     render={({ field }) => (
                                         <Select
-                                            onValueChange={field.onChange}
+                                            onValueChange={(val) => {
+                                                field.onChange(val);
+                                                const found = freelancers.find(f => f.id === val);
+                                                if (found) {
+                                                    setSelectedFreelancerObj(found);
+                                                }
+                                            }}
                                             value={field.value || ""}
                                         >
                                             <SelectTrigger className="h-11 rounded-2xl bg-background/80 border-border font-bold text-xs shadow-sm focus:ring-rose-500">
                                                 <SelectValue placeholder="Select a freelancer..." />
                                             </SelectTrigger>
-                                            <SelectContent className="rounded-2xl border-border bg-card shadow-lg">
-                                                {freelancers.length === 0 ? (
-                                                    <SelectItem value="none" disabled className="py-2 text-xs font-semibold">No active freelancers available</SelectItem>
-                                                ) : (
-                                                    freelancers.map(f => (
-                                                        <SelectItem key={f.id} value={f.id} className="font-semibold text-xs py-2">
-                                                            {f.name} ({f.email})
-                                                        </SelectItem>
-                                                    ))
-                                                )}
+                                            <SelectContent className="rounded-2xl border-border bg-card shadow-lg p-2 min-w-[320px]">
+                                                <div className="px-2 py-1.5 border-b border-border sticky top-0 bg-card z-10" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                                                    <div className="relative">
+                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                                                        <Input
+                                                            placeholder="Search freelancer..."
+                                                            value={freelancerSearch}
+                                                            onChange={(e) => setFreelancerSearch(e.target.value)}
+                                                            onKeyDown={(e) => e.stopPropagation()}
+                                                            className="h-8 pl-8 text-[11px] font-semibold rounded-xl bg-background/50 border-border focus-visible:ring-rose-500"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="max-h-[220px] overflow-y-auto mt-1 space-y-0.5">
+                                                    {loadingFreelancers ? (
+                                                        <div className="py-6 text-center text-[10px] font-semibold text-muted-foreground animate-pulse">
+                                                            Searching...
+                                                        </div>
+                                                    ) : filteredFreelancers.length === 0 ? (
+                                                        <div className="py-6 text-center text-[10px] font-semibold text-muted-foreground">
+                                                            {freelancerSearch.trim().length < 3
+                                                                ? "Type at least 3 characters to search..."
+                                                                : "No freelancers found"}
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            {freelancerSearch.trim().length < 3 && (
+                                                                <div className="px-2 py-1 text-[9px] font-bold text-rose-500/80 uppercase tracking-wider">
+                                                                    Currently Selected
+                                                                </div>
+                                                            )}
+                                                            {filteredFreelancers.map(f => (
+                                                                <SelectItem key={f.id} value={f.id} className="font-semibold text-xs py-2">
+                                                                    {f.name} ({f.email})
+                                                                </SelectItem>
+                                                            ))}
+                                                            {freelancerSearch.trim().length < 3 && (
+                                                                <div className="py-3 text-center text-[9px] font-semibold text-muted-foreground border-t border-border/40 mt-1">
+                                                                    Type 3+ characters to search more...
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
                                             </SelectContent>
                                         </Select>
                                     )}

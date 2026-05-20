@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { db } from '@/db';
 import { contests, contestParticipants, products, subProducts, users, designs, contestWinners, orders, orderLogs } from '@/db/schema';
-import { and, or, eq, sql, desc, count, gt } from 'drizzle-orm';
+import { and, or, eq, sql, desc, count, gt, ilike } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 const contestSchema = z.object({
@@ -33,14 +33,30 @@ const designSchema = z.object({
   guides: z.any().optional(),
 });
 
-export async function getFreelancers() {
+export async function getFreelancers(search?: string) {
     const session = await getSession();
     if (!session?.sub) {
         throw new Error('Not authenticated');
     }
+
+    let queryCondition = and(eq(users.role, 'freelancer'), eq(users.isActive, true));
+    if (search && search.trim().length >= 3) {
+        const searchPattern = `%${search.trim()}%`;
+        queryCondition = and(
+            queryCondition,
+            or(
+                ilike(users.name, searchPattern),
+                ilike(users.email, searchPattern)
+            )
+        );
+    } else if (search) {
+        return [];
+    }
+
     const data = await db.query.users.findMany({
-        where: and(eq(users.role, 'freelancer'), eq(users.isActive, true)),
+        where: queryCondition,
         orderBy: [desc(users.createdAt)],
+        limit: 20,
     });
     return data.map(u => ({ id: u.id, name: u.name, email: u.email }));
 }
