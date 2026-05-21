@@ -69,7 +69,7 @@ import { buildBrushTip, renderBristleSegment, BristleProfile, BrushEngineTip } f
 import { ImageMaskEditor } from '@/components/design/image-mask-editor';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { getDesign, saveDesign, updateDesign, getMyDesigns } from '@/app/actions/design-actions';
-import { submitContestEntry } from '@/app/actions/contest-actions';
+import { submitContestEntry, linkDesignToContest } from '@/app/actions/contest-actions';
 import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from '@/components/design/load-design-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -1502,6 +1502,10 @@ function DesignEditorInternal({
         });
         toast({ title: 'Design Updated!' });
         setIsDirty(false);
+
+        if (contestId) {
+          await linkDesignToContest(Number(contestId), currentDesignId);
+        }
       } else {
         const defaultName = initialDesignName ? `${initialDesignName} (Copy)` : '';
         const designName = prompt('Enter a name for your design:', defaultName);
@@ -1514,6 +1518,8 @@ function DesignEditorInternal({
 
           if (verificationId) {
             await linkDesignToVerification(Number(verificationId), savedDesign.id);
+          } else if (contestId) {
+            await linkDesignToContest(Number(contestId), savedDesign.id);
           }
         } else {
           toast({ variant: 'destructive', title: 'Save Canceled', description: 'A design name is required to save for the first time.' });
@@ -1687,7 +1693,10 @@ function DesignEditorInternal({
         height: Math.round(product.height * PX_TO_MM),
         background: currentBackground,
       };
-      await submitContestEntry(Number(contestId), designData);
+      const result = await submitContestEntry(Number(contestId), designData, currentDesignId);
+      if (result.success && result.designId) {
+        setCurrentDesignId(result.designId);
+      }
       toast({ title: 'Submission Successful!' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Submission Failed' });

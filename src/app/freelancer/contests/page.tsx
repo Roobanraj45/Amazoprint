@@ -11,6 +11,7 @@ import { ConversationSheet } from "@/components/messaging/conversation-sheet";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { ContestSubmissionActions } from "@/components/contests/contest-submission-actions";
 
 export default async function MyContestsPage() {
   const session = await getSession();
@@ -66,7 +67,7 @@ export default async function MyContestsPage() {
         </Card>
       ) : (
         <div className="flex flex-col gap-4">
-          {joinedContests.map(({ contest, product, subProduct, user: client, participantsCount, winnerRank, designId }) => {
+          {joinedContests.map(({ contest, product, subProduct, user: client, participantsCount, winnerRank, designIds, templateIds }) => {
             const progressValue = (participantsCount / contest.maxFreelancers) * 100;
             const clientForSheet = {
               id: client.id,
@@ -135,17 +136,31 @@ export default async function MyContestsPage() {
                  {/* RIGHT: Actions */}
                  <div className="flex flex-row md:flex-col lg:flex-row items-center gap-2 w-full md:w-auto shrink-0 mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-border/40">
                    {isContestOpen ? (
-                     <div className="flex gap-2 w-full md:w-auto">
-                        <Button asChild className="flex-1 md:flex-none font-bold uppercase tracking-widest text-[10px] h-10 shadow-md group/btn bg-amber-500 hover:bg-amber-600 text-white px-4">
-                          <Link href={`/design/${product.slug}?subProductId=${subProduct.id}&contestId=${contest.id}${designId ? `&templateId=${designId}` : ''}`}>
-                            Editor
-                          </Link>
-                        </Button>
-                        <Button asChild variant="outline" className="flex-1 md:flex-none font-bold uppercase tracking-widest text-[10px] h-10 shadow-md border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 px-4">
-                          <Link href={`/design/${product.slug}/upload?subProductId=${subProduct.id}&contestId=${contest.id}`}>
-                            Upload
-                          </Link>
-                        </Button>
+                     <div className="flex gap-2 w-full md:w-auto flex-1 md:flex-initial">
+                       <ContestSubmissionActions
+                         contestId={contest.id}
+                         productSlug={product.slug}
+                         subProductId={subProduct.id}
+                         designIds={designIds ?? []}
+                         templateIds={templateIds ?? []}
+                         type="editor"
+                       >
+                         <Button className="w-full font-bold uppercase tracking-widest text-[10px] h-10 shadow-md group/btn bg-amber-500 hover:bg-amber-600 text-white px-4">
+                           Editor
+                         </Button>
+                       </ContestSubmissionActions>
+                       <ContestSubmissionActions
+                         contestId={contest.id}
+                         productSlug={product.slug}
+                         subProductId={subProduct.id}
+                         designIds={designIds ?? []}
+                         templateIds={templateIds ?? []}
+                         type="upload"
+                       >
+                         <Button variant="outline" className="w-full font-bold uppercase tracking-widest text-[10px] h-10 shadow-md border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 px-4">
+                           Upload
+                         </Button>
+                       </ContestSubmissionActions>
                      </div>
                    ) : (
                      <Button disabled variant="secondary" className="w-full md:w-auto uppercase text-[10px] font-bold tracking-widest px-4">

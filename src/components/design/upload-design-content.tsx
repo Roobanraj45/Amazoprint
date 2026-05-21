@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,7 +9,7 @@ import { getProductBySlug } from '@/app/actions/product-actions';
 import { getPricingRulesForSubProduct } from '@/app/actions/pricing-actions';
 import { getDieCuts } from '@/app/actions/die-cut-actions';
 import { getCardTextures } from '@/app/actions/card-texture-actions';
-import { uploadDesign } from '@/app/actions/upload-actions';
+import { uploadDesign, getDesignUpload } from '@/app/actions/upload-actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,23 +26,13 @@ type Product = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const THUMBNAIL_MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
-const uploadSchema = z.object({
-    name: z.string().min(3, 'Design name must be at least 3 characters.'),
-    description: z.string().optional(),
-    isPublic: z.boolean().default(false),
-    file: z
-        .custom<FileList>()
-        .refine((files) => files?.length > 0, "A print-ready file is required.")
-        .transform((files) => files[0]!)
-        .refine((file) => file.size <= MAX_FILE_SIZE, `File size must be less than 50MB.`),
-    thumbnail: z
-        .custom<FileList>()
-        .optional()
-        .transform((files) => files?.[0])
-        .refine((file) => !file || file.size <= THUMBNAIL_MAX_SIZE, `Thumbnail must be less than 5MB.`),
-});
-
-type UploadFormValues = z.infer<typeof uploadSchema>;
+type UploadFormValues = {
+    name: string;
+    description?: string;
+    isPublic: boolean;
+    file?: any;
+    thumbnail?: any;
+};
 
 export function UploadDesignContent() {
     const router = useRouter();
@@ -52,6 +42,7 @@ export function UploadDesignContent() {
     const subProductId = searchParams.get('subProductId');
     const quantity = searchParams.get('quantity');
     const contestId = searchParams.get('contestId');
+    const templateId = searchParams.get('templateId');
 
     const [product, setProduct] = useState<Product | null>(null);
     const [loadingProduct, setLoadingProduct] = useState(true);
@@ -61,10 +52,30 @@ export function UploadDesignContent() {
     const [isUploading, startUploading] = useTransition();
     const { toast } = useToast();
 
+    const [existingUpload, setExistingUpload] = useState<any>(null);
+    const [loadingUpload, setLoadingUpload] = useState(false);
+
     useEffect(() => {
         getDieCuts().then(setDieCuts);
         getCardTextures().then(setCardTextures);
     }, []);
+
+    useEffect(() => {
+        if (templateId) {
+            setLoadingUpload(true);
+            getDesignUpload(Number(templateId))
+                .then(upload => {
+                    if (upload) {
+                        setExistingUpload(upload);
+                    }
+                    setLoadingUpload(false);
+                })
+                .catch(err => {
+                    console.error('Failed to load existing design upload', err);
+                    setLoadingUpload(false);
+                });
+        }
+    }, [templateId]);
 
     useEffect(() => {
         if (productIdSlug) {
@@ -84,10 +95,50 @@ export function UploadDesignContent() {
         }
     }, [productIdSlug, subProductId]);
 
-    const { register, handleSubmit, control, watch, formState: { errors } } = useForm<UploadFormValues>({
-        resolver: zodResolver(uploadSchema),
+    const dynamicUploadSchema = useMemo(() => {
+        return z.object({
+            name: z.string().min(3, 'Design name must be at least 3 characters.'),
+            description: z.string().optional(),
+            isPublic: z.boolean().default(false),
+            file: z
+                .custom<FileList>()
+                .optional()
+                .transform((files) => files && files.length > 0 ? files[0] : undefined)
+                .refine(
+                    (file) => {
+                        if (!templateId) {
+                            return !!file;
+                        }
+                        return true;
+                    },
+                    "A print-ready file is required."
+                )
+                .refine(
+                    (file) => !file || file.size <= MAX_FILE_SIZE,
+                    `File size must be less than 50MB.`
+                ),
+            thumbnail: z
+                .custom<FileList>()
+                .optional()
+                .transform((files) => files?.[0])
+                .refine((file) => !file || file.size <= THUMBNAIL_MAX_SIZE, `Thumbnail must be less than 5MB.`),
+        });
+    }, [templateId]);
+
+    const { register, handleSubmit, control, watch, reset, formState: { errors } } = useForm<UploadFormValues>({
+        resolver: zodResolver(dynamicUploadSchema),
         defaultValues: { name: '', description: '', isPublic: false }
     });
+
+    useEffect(() => {
+        if (existingUpload) {
+            reset({
+                name: existingUpload.originalFilename || '',
+                description: (existingUpload.metadata as any)?.description || '',
+                isPublic: existingUpload.isPublic || false,
+            });
+        }
+    }, [existingUpload, reset]);
 
     const watchFile = watch('file') as any;
     const watchThumbnail = watch('thumbnail') as any;
@@ -95,7 +146,7 @@ export function UploadDesignContent() {
     const selectedFileObj = watchFile?.[0] || (watchFile instanceof File ? watchFile : null);
     const selectedThumbnailObj = watchThumbnail?.[0] || (watchThumbnail instanceof File ? watchThumbnail : null);
 
-    if (loadingProduct) {
+    if (loadingProduct || loadingUpload) {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-950">
                 <Loader2 className="h-12 w-12 animate-spin text-indigo-600 dark:text-indigo-400" />
@@ -233,11 +284,18 @@ export function UploadDesignContent() {
         }
 
         const formData = new FormData();
-        formData.append('file', data.file);
+        if (data.file) {
+            formData.append('file', data.file);
+        }
         formData.append('name', data.name);
         formData.append('isPublic', String(data.isPublic));
         if (data.description) formData.append('description', data.description);
-        if (data.thumbnail) formData.append('thumbnail', data.thumbnail);
+        if (data.thumbnail) {
+            formData.append('thumbnail', data.thumbnail);
+        }
+        if (templateId) {
+            formData.append('uploadId', templateId);
+        }
         
         if (product?.id) formData.append('productId', String(product.id));
         if (subProductId && subProductId !== 'null') formData.append('subProductId', subProductId);
@@ -265,7 +323,7 @@ export function UploadDesignContent() {
                 if (result.redirectTo) {
                     router.push(result.redirectTo);
                 } else {
-                    toast({ title: 'Upload successful!', description: "Your design has been added to 'My Uploads'." });
+                    toast({ title: 'Upload successful!', description: "Your design has been saved." });
                     router.push('/client/my-uploads');
                 }
             } else {
@@ -441,9 +499,11 @@ export function UploadDesignContent() {
                                             "flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden backdrop-blur-sm shadow-sm",
                                             selectedFileObj 
                                                 ? "border-emerald-500/50 bg-emerald-50 dark:bg-emerald-500/5 hover:bg-emerald-100 dark:hover:bg-emerald-500/10" 
-                                                : errors.file 
-                                                    ? "border-red-500/50 bg-red-50 dark:bg-red-500/5 hover:bg-red-100 dark:hover:bg-red-500/10" 
-                                                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-indigo-500/50"
+                                                : existingUpload
+                                                    ? "border-indigo-500/50 bg-indigo-50/30 dark:bg-indigo-500/5 hover:bg-indigo-100/50 dark:hover:bg-indigo-500/10"
+                                                    : errors.file 
+                                                        ? "border-red-500/50 bg-red-50 dark:bg-red-500/5 hover:bg-red-100 dark:hover:bg-red-500/10" 
+                                                        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-indigo-500/50"
                                         )}>
                                             <div className="flex flex-col items-center justify-center p-6 text-center z-10 w-full">
                                                 {selectedFileObj ? (
@@ -454,6 +514,17 @@ export function UploadDesignContent() {
                                                         <div className="flex flex-col items-center max-w-full px-4 space-y-1">
                                                             <p className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[280px] sm:max-w-[360px]">{selectedFileObj.name}</p>
                                                             <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{(selectedFileObj.size / (1024 * 1024)).toFixed(2)} MB • Ready for production</p>
+                                                        </div>
+                                                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 underline decoration-dotted mt-1 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Click or drag to replace file</span>
+                                                    </div>
+                                                ) : existingUpload ? (
+                                                    <div className="flex flex-col items-center gap-3 w-full animate-in fade-in-50 duration-300">
+                                                        <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/30 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm">
+                                                            <FileCheck className="w-7 h-7" />
+                                                        </div>
+                                                        <div className="flex flex-col items-center max-w-full px-4 space-y-1">
+                                                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[280px] sm:max-w-[360px]">{existingUpload.originalFilename}</p>
+                                                            <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{(existingUpload.fileSize / (1024 * 1024)).toFixed(2)} MB • Existing submission file</p>
                                                         </div>
                                                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 underline decoration-dotted mt-1 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Click or drag to replace file</span>
                                                     </div>
@@ -486,20 +557,37 @@ export function UploadDesignContent() {
                                         <label htmlFor="thumbnail-file" className={cn(
                                             "flex flex-col items-center justify-center w-full h-36 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden backdrop-blur-sm shadow-sm",
                                             selectedThumbnailObj 
-                                                ? "border-emerald-500/50 bg-indigo-50 dark:bg-indigo-500/5 hover:bg-indigo-100 dark:hover:bg-indigo-500/10" 
-                                                : errors.thumbnail 
-                                                    ? "border-red-500/50 bg-red-50 dark:bg-red-500/5 hover:bg-red-100 dark:hover:bg-red-500/10" 
-                                                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-955 hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-600"
+                                                ? "border-emerald-500/50 bg-emerald-50 dark:bg-emerald-500/5 hover:bg-emerald-100 dark:hover:bg-emerald-500/10" 
+                                                : existingUpload?.thumbnailPath
+                                                    ? "border-indigo-500/50 bg-indigo-50/30 dark:bg-indigo-500/5 hover:bg-indigo-100/50 dark:hover:bg-indigo-500/10"
+                                                    : errors.thumbnail 
+                                                        ? "border-red-500/50 bg-red-50 dark:bg-red-500/5 hover:bg-red-100 dark:hover:bg-red-500/10" 
+                                                        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-955 hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-600"
                                         )}>
                                             <div className="flex flex-col items-center justify-center p-4 text-center z-10 w-full">
                                                 {selectedThumbnailObj ? (
                                                     <div className="flex flex-col items-center gap-2 w-full animate-in fade-in-50 duration-300">
-                                                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/30 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm">
+                                                        <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm">
                                                             <CheckCircle2 className="w-5 h-5" />
                                                         </div>
                                                         <div className="flex flex-col items-center max-w-full px-4 space-y-0.5">
                                                             <p className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[240px] sm:max-w-[320px]">{selectedThumbnailObj.name}</p>
-                                                            <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">{(selectedThumbnailObj.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                                            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">{(selectedThumbnailObj.size / (1024 * 1024)).toFixed(2)} MB • Ready</p>
+                                                        </div>
+                                                    </div>
+                                                ) : existingUpload?.thumbnailPath ? (
+                                                    <div className="flex items-center gap-4 w-full px-6 animate-in fade-in-50 duration-300">
+                                                        <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-indigo-200 dark:border-indigo-500/30 shrink-0">
+                                                            <Image 
+                                                                src={resolveImagePath(existingUpload.thumbnailPath)} 
+                                                                alt="Current thumbnail" 
+                                                                fill 
+                                                                className="object-cover"
+                                                            />
+                                                        </div>
+                                                        <div className="flex flex-col items-start space-y-0.5 min-w-0 text-left">
+                                                            <p className="text-xs font-bold text-slate-900 dark:text-white">Existing Preview Thumbnail</p>
+                                                            <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">Click or drag to replace</p>
                                                         </div>
                                                     </div>
                                                 ) : (

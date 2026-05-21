@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { contests, contestParticipants, products, subProducts, users, designs, contestWinners, orders, orderLogs } from '@/db/schema';
+import { contests, contestParticipants, products, subProducts, users, designs, designUploads, contestWinners, orders, orderLogs } from '@/db/schema';
 import { and, or, eq, sql, desc, count, gt, ilike } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -191,7 +191,9 @@ export async function getJoinedContests() {
             contestId: contestParticipants.contestId, 
             joinedAt: contestParticipants.joinedAt,
             designId: contestParticipants.designId,
-            templateId: contestParticipants.templateId
+            templateId: contestParticipants.templateId,
+            designIds: contestParticipants.designIds,
+            templateIds: contestParticipants.templateIds,
         })
           .from(contestParticipants)
           .where(eq(contestParticipants.freelancerId, freelancerId))
@@ -210,8 +212,11 @@ export async function getJoinedContests() {
             },
             participantsCount: sql<number>`count(distinct ${contestParticipants.id})`.mapWith(Number),
             joinedAt: freelancerParticipations.joinedAt,
-            designId: freelancerParticipations.designId,
+            // Derive the active design from last element of design_ids array
+            designId: sql<number | null>`(${freelancerParticipations.designIds})[array_length(${freelancerParticipations.designIds}, 1)]`,
             templateId: freelancerParticipations.templateId,
+            designIds: freelancerParticipations.designIds,
+            templateIds: freelancerParticipations.templateIds,
             winnerRank: sql<number>`(SELECT rank FROM ${contestWinners} WHERE ${contestWinners.contestId} = ${contests.id} AND ${contestWinners.freelancerId} = ${freelancerId} LIMIT 1)`.mapWith(Number),
         })
         .from(contests)
@@ -226,14 +231,86 @@ export async function getJoinedContests() {
             subProducts.id, 
             users.id, 
             freelancerParticipations.joinedAt,
-            freelancerParticipations.designId,
-            freelancerParticipations.templateId
+            freelancerParticipations.templateId,
+            freelancerParticipations.designIds,
+            freelancerParticipations.templateIds,
         )
         .orderBy(desc(freelancerParticipations.joinedAt));
     
     return data;
 }
 
+/**
+ * Fetch lightweight preview data for existing editor designs and uploaded files.
+ * Used by the contest submission choice modal.
+ */
+export async function getSubmissionPreviews(
+    designIds: number[],
+    uploadIds: number[]
+) {
+    const session = await getSession();
+    if (!session?.sub) throw new Error('Not authenticated');
+
+    const designPreviews = designIds.length > 0
+        ? await db.query.designs.findMany({
+              where: (d, { and, eq, inArray }) => and(
+                  eq(d.userId, session.sub),
+                  inArray(d.id, designIds)
+              ),
+              columns: { id: true, name: true, thumbnailUrl: true, updatedAt: true },
+          })
+        : [];
+
+    const uploadPreviews = uploadIds.length > 0
+        ? await db.query.designUploads.findMany({
+              where: (u, { and, eq, inArray }) => and(
+                  eq(u.userId, session.sub),
+                  inArray(u.id, uploadIds)
+              ),
+              columns: { id: true, originalFilename: true, thumbnailPath: true, updatedAt: true },
+          })
+        : [];
+
+    return { designs: designPreviews, uploads: uploadPreviews };
+}
+
+/**
+ * Fetch FULL design and upload records by their IDs for the client contest detail page.
+ * Authenticated by contest ownership (not user ownership of designs).
+ * Returns all fields needed by SubmissionPreview canvas renderer.
+ */
+export async function getContestSubmissionDetails(
+    designIds: number[],
+    uploadIds: number[]
+) {
+    const session = await getSession();
+    if (!session?.sub) throw new Error('Not authenticated');
+
+    const designDetails = designIds.length > 0
+        ? await db.query.designs.findMany({
+              where: (d, { inArray }) => inArray(d.id, designIds),
+              columns: {
+                  id: true, name: true, thumbnailUrl: true,
+                  elements: true, background: true, guides: true,
+                  width: true, height: true, productSlug: true,
+                  createdAt: true, updatedAt: true,
+              },
+          })
+        : [];
+
+    const uploadDetails = uploadIds.length > 0
+        ? await db.query.designUploads.findMany({
+              where: (u, { inArray }) => inArray(u.id, uploadIds),
+              columns: {
+                  id: true, originalFilename: true, thumbnailPath: true,
+                  filePath: true, fileSize: true, mimeType: true,
+                  createdAt: true, updatedAt: true,
+              },
+          })
+        : [];
+
+    return { designs: designDetails, uploads: uploadDetails };
+}
 
 export async function getContestDetails(contestId: number) {
     const contestQuery = db
@@ -276,7 +353,11 @@ export async function getContestDetails(contestId: number) {
     };
 }
 
-export async function submitContestEntry(contestId: number, designData: Omit<z.infer<typeof designSchema>, 'name'>) {
+export async function submitContestEntry(
+    contestId: number, 
+    designData: Omit<z.infer<typeof designSchema>, 'name'>, 
+    designIdParam?: number | null
+) {
     const session = await getSession();
     if (!session?.sub || session.role !== 'freelancer') {
         throw new Error('Only authenticated freelancers can submit entries.');
@@ -305,15 +386,27 @@ export async function submitContestEntry(contestId: number, designData: Omit<z.i
     const designName = `Entry for Contest #${contestId} - ${participation.contest.title}`;
     let designId: number;
 
-    // 2. Check if a design has already been submitted and update it, otherwise create a new one.
-    if (participation.designId) {
+    // 2. Check if a design has already been submitted and we want to update it
+    if (designIdParam) {
+        // Verify design ownership
+        const existingDesign = await db.query.designs.findFirst({
+            where: and(
+                eq(designs.id, designIdParam),
+                eq(designs.userId, freelancerId)
+            )
+        });
+
+        if (!existingDesign) {
+            throw new Error('Design not found or not owned by you.');
+        }
+
         // Try to update existing design
         const [updatedDesign] = await db.update(designs)
             .set({
                 ...designData,
                 updatedAt: new Date(),
             })
-            .where(eq(designs.id, participation.designId))
+            .where(eq(designs.id, designIdParam))
             .returning({ id: designs.id });
         
         if (updatedDesign) {
@@ -331,7 +424,7 @@ export async function submitContestEntry(contestId: number, designData: Omit<z.i
         }
 
     } else {
-        // Create new design if it's the first submission
+        // Create new design if it's the first submission or if client is forcing a new submission
         const [newDesign] = await db.insert(designs).values({
             ...designData,
             name: designName,
@@ -344,13 +437,18 @@ export async function submitContestEntry(contestId: number, designData: Omit<z.i
         designId = newDesign.id;
     }
 
-    // 3. ALWAYS update the contest_participants table with the correct designId and status.
-    await db.update(contestParticipants)
-        .set({
-            designId: designId,
-            status: 'submitted'
-        })
-        .where(eq(contestParticipants.id, participation.id));
+    // 3. Append new designId to design_ids array (this is the source of truth for all submissions).
+    await db.execute(sql`
+        UPDATE contest_participants
+        SET
+            status     = 'submitted',
+            design_ids = CASE
+                WHEN design_ids IS NULL THEN ARRAY[${designId}]::integer[]
+                WHEN ${designId} = ANY(design_ids) THEN design_ids
+                ELSE array_append(design_ids, ${designId})
+            END
+        WHERE id = ${participation.id}
+    `);
 
 
     // 4. Revalidate paths
@@ -381,6 +479,17 @@ export async function getContestWithSubmissions(contestId: number) {
                 }
             },
             participants: {
+                columns: {
+                    id: true,
+                    contestId: true,
+                    freelancerId: true,
+                    joinedAt: true,
+                    designId: true,
+                    templateId: true,
+                    status: true,
+                    designIds: true,
+                    templateIds: true,
+                },
                 with: {
                     freelancer: {
                         columns: {
@@ -417,6 +526,7 @@ export async function getContestWithSubmissions(contestId: number) {
     
     return contestData;
 }
+
 
 
 const winnerSchema = z.object({
@@ -624,3 +734,50 @@ export async function orderContestSubmission(params: {
     revalidatePath('/client/orders');
     return { success: true, orderId: newOrder.id };
 }
+
+export async function linkDesignToContest(contestId: number, designId: number) {
+    const session = await getSession();
+    if (session?.role !== 'freelancer') {
+        throw new Error('Only freelancers can link designs to contests.');
+    }
+
+    const participant = await db.query.contestParticipants.findFirst({
+        where: and(
+            eq(contestParticipants.contestId, contestId),
+            eq(contestParticipants.freelancerId, session.sub)
+        ),
+    });
+
+    if (!participant) {
+        throw new Error('You are not a participant in this contest.');
+    }
+
+    const design = await db.query.designs.findFirst({
+        where: and(
+            eq(designs.id, designId),
+            eq(designs.userId, session.sub)
+        ),
+    });
+
+    if (!design) {
+        throw new Error('Design not found or you are not the owner.');
+    }
+
+    // Append to design_ids array — this is the source of truth for all submissions
+    await db.execute(sql`
+        UPDATE contest_participants
+        SET
+            status     = 'submitted',
+            design_ids = CASE
+                WHEN design_ids IS NULL THEN ARRAY[${designId}]::integer[]
+                WHEN ${designId} = ANY(design_ids) THEN design_ids
+                ELSE array_append(design_ids, ${designId})
+            END
+        WHERE id = ${participant.id}
+    `);
+
+    revalidatePath('/freelancer/contests');
+    revalidatePath(`/contests/${contestId}`);
+    return { success: true };
+}
+

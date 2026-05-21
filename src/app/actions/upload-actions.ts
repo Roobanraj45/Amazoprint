@@ -8,7 +8,7 @@ import { designUploads } from '@/db/schema';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { and, eq, desc } from 'drizzle-orm';
+import { and, eq, desc, sql } from 'drizzle-orm';
 import { contestParticipants } from '@/db/schema';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -21,6 +21,7 @@ const uploadSchema = z.object({
     subProductId: z.preprocess((val) => (val === undefined || val === 'null' || val === 'undefined' || val === '' || val === null ? undefined : Number(val)), z.number().optional()),
     quantity: z.preprocess((val) => (val === undefined || val === 'null' || val === 'undefined' || val === '' || val === null ? 100 : Number(val)), z.number().optional().default(100)),
     contestId: z.preprocess((val) => (val === undefined || val === 'null' || val === 'undefined' || val === '' || val === null ? undefined : Number(val)), z.number().optional()),
+    uploadId: z.preprocess((val) => (val === undefined || val === 'null' || val === 'undefined' || val === '' || val === null ? undefined : Number(val)), z.number().optional()),
 });
 
 
@@ -32,6 +33,23 @@ export async function getMyUploads() {
     return await db.query.designUploads.findMany({
         where: eq(designUploads.userId, session.sub),
         orderBy: [desc(designUploads.createdAt)],
+        with: {
+            product: true,
+            subProduct: true,
+        },
+    });
+}
+
+export async function getDesignUpload(id: number) {
+    const session = await getSession();
+    if (!session?.sub) {
+        throw new Error('Not authenticated');
+    }
+    return await db.query.designUploads.findFirst({
+        where: and(
+            eq(designUploads.id, id),
+            eq(designUploads.userId, session.sub)
+        ),
         with: {
             product: true,
             subProduct: true,
@@ -69,27 +87,22 @@ export async function uploadDesign(formData: FormData) {
     if (!validated.success) {
         return { success: false, error: validated.error.errors.map(e => e.message).join(', ') };
     }
-    const { name, isPublic, description, productId, subProductId, quantity, contestId } = validated.data;
+    const { name, isPublic, description, productId, subProductId, quantity, contestId, uploadId } = validated.data;
 
     const file = formData.get('file') as File | null;
-    if (!file) {
+    const isNewFile = file && file.size > 0 && file.name;
+
+    if (!uploadId && !isNewFile) {
         return { success: false, error: 'No file provided.' };
     }
 
-    if (file.size > MAX_FILE_SIZE) {
+    if (isNewFile && file.size > MAX_FILE_SIZE) {
         return { success: false, error: `File size must be less than 50MB.` };
     }
 
     try {
         const userFolder = session.sub;
-        const filePath = await processAndSaveFile(file, userFolder);
 
-        let thumbnailPath: string | undefined = undefined;
-        const thumbnailFile = formData.get('thumbnail') as File | null;
-        if (thumbnailFile && thumbnailFile.size > 0) {
-            thumbnailPath = await processAndSaveFile(thumbnailFile, userFolder);
-        }
-        
         let customisationObj: any = {};
         const customisationStr = formData.get('customisation') as string | null;
         if (customisationStr) {
@@ -99,44 +112,154 @@ export async function uploadDesign(formData: FormData) {
                 console.error('Failed to parse customisation JSON', err);
             }
         }
-        
-        const [newUpload] = await db.insert(designUploads).values({
-            userId: session.sub,
-            filePath: filePath,
-            originalFilename: name,
-            fileSize: file.size,
-            mimeType: file.type,
-            thumbnailPath: thumbnailPath,
-            uploadStatus: 'completed',
-            isPublic: isPublic,
-            metadata: description ? { description } : undefined,
-            productId: productId,
-            subProductId: subProductId,
-            customisation: customisationObj,
-        }).returning();
-        
-        if (contestId && newUpload.id) {
-            await db.update(contestParticipants)
-                .set({
-                    templateId: newUpload.id,
-                    status: 'submitted',
-                })
-                .where(and(eq(contestParticipants.contestId, contestId), eq(contestParticipants.freelancerId, session.sub)));
+
+        const thumbnailFile = formData.get('thumbnail') as File | null;
+
+        if (uploadId) {
+            // Update existing upload
+            const existingUpload = await db.query.designUploads.findFirst({
+                where: and(
+                    eq(designUploads.id, uploadId),
+                    eq(designUploads.userId, session.sub)
+                )
+            });
+
+            if (!existingUpload) {
+                return { success: false, error: 'Design upload not found or not owned by you.' };
+            }
+
+            const updateValues: Partial<typeof designUploads.$inferInsert> = {
+                originalFilename: name,
+                isPublic: isPublic,
+                metadata: description ? { description } : null,
+                updatedAt: new Date(),
+            };
+
+            if (isNewFile) {
+                // Delete old file
+                const oldFilePath = join(process.cwd(), 'public', existingUpload.filePath);
+                if (fs.existsSync(oldFilePath)) {
+                    try {
+                        fs.unlinkSync(oldFilePath);
+                    } catch (err) {
+                        console.error(`Failed to delete old file: ${oldFilePath}`, err);
+                    }
+                }
+                
+                const newFilePath = await processAndSaveFile(file, userFolder);
+                updateValues.filePath = newFilePath;
+                updateValues.fileSize = file.size;
+                updateValues.mimeType = file.type;
+            }
+
+            if (thumbnailFile && thumbnailFile.size > 0 && thumbnailFile.name) {
+                // Delete old thumbnail
+                if (existingUpload.thumbnailPath) {
+                    const oldThumbPath = join(process.cwd(), 'public', existingUpload.thumbnailPath);
+                    if (fs.existsSync(oldThumbPath)) {
+                        try {
+                            fs.unlinkSync(oldThumbPath);
+                        } catch (err) {
+                            console.error(`Failed to delete old thumbnail: ${oldThumbPath}`, err);
+                        }
+                    }
+                }
+
+                const newThumbPath = await processAndSaveFile(thumbnailFile, userFolder);
+                updateValues.thumbnailPath = newThumbPath;
+            }
+
+            if (customisationStr) {
+                updateValues.customisation = customisationObj;
+            }
+
+            await db.update(designUploads)
+                .set(updateValues)
+                .where(eq(designUploads.id, uploadId));
+
+            if (contestId) {
+                await db.execute(sql`
+                    UPDATE contest_participants
+                    SET
+                        template_id  = ${uploadId},
+                        status       = 'submitted',
+                        template_ids = CASE
+                            WHEN template_ids IS NULL THEN ARRAY[${uploadId}]::integer[]
+                            WHEN ${uploadId} = ANY(template_ids) THEN template_ids
+                            ELSE array_append(template_ids, ${uploadId})
+                        END
+                    WHERE contest_id = ${contestId}
+                      AND freelancer_id = ${session.sub}
+                `);
+                
+                revalidatePath(`/client/contests/${contestId}`);
+                revalidatePath('/freelancer/contests');
+                
+                return { success: true, url: updateValues.filePath || existingUpload.filePath, redirectTo: '/freelancer/contests' };
+            }
+
+            if (productId && subProductId) {
+                return { success: true, redirectTo: `/checkout?uploadId=${uploadId}&quantity=${quantity}` };
+            }
+
+            revalidatePath('/client/my-uploads');
+            revalidatePath('/freelancer/my-uploads');
+
+            return { success: true, url: updateValues.filePath || existingUpload.filePath };
+        } else {
+            // Create new upload
+            const filePath = await processAndSaveFile(file!, userFolder);
+
+            let thumbnailPath: string | undefined = undefined;
+            if (thumbnailFile && thumbnailFile.size > 0) {
+                thumbnailPath = await processAndSaveFile(thumbnailFile, userFolder);
+            }
+
+            const [newUpload] = await db.insert(designUploads).values({
+                userId: session.sub,
+                filePath: filePath,
+                originalFilename: name,
+                fileSize: file!.size,
+                mimeType: file!.type,
+                thumbnailPath: thumbnailPath,
+                uploadStatus: 'completed',
+                isPublic: isPublic,
+                metadata: description ? { description } : undefined,
+                productId: productId,
+                subProductId: subProductId,
+                customisation: customisationObj,
+            }).returning();
             
-            revalidatePath(`/client/contests/${contestId}`);
-            revalidatePath('/freelancer/contests');
-            
-            return { success: true, url: filePath, redirectTo: '/freelancer/contests' };
+            if (contestId && newUpload.id) {
+                await db.execute(sql`
+                    UPDATE contest_participants
+                    SET
+                        template_id  = ${newUpload.id},
+                        status       = 'submitted',
+                        template_ids = CASE
+                            WHEN template_ids IS NULL THEN ARRAY[${newUpload.id}]::integer[]
+                            WHEN ${newUpload.id} = ANY(template_ids) THEN template_ids
+                            ELSE array_append(template_ids, ${newUpload.id})
+                        END
+                    WHERE contest_id = ${contestId}
+                      AND freelancer_id = ${session.sub}
+                `);
+                
+                revalidatePath(`/client/contests/${contestId}`);
+                revalidatePath('/freelancer/contests');
+                
+                return { success: true, url: filePath, redirectTo: '/freelancer/contests' };
+            }
+
+            if (productId && subProductId && newUpload.id) {
+                return { success: true, redirectTo: `/checkout?uploadId=${newUpload.id}&quantity=${quantity}` };
+            }
+
+            revalidatePath('/client/my-uploads');
+            revalidatePath('/freelancer/my-uploads');
+
+            return { success: true, url: filePath };
         }
-
-        if (productId && subProductId && newUpload.id) {
-            return { success: true, redirectTo: `/checkout?uploadId=${newUpload.id}&quantity=${quantity}` };
-        }
-
-        revalidatePath('/client/my-uploads');
-        revalidatePath('/freelancer/my-uploads');
-
-        return { success: true, url: filePath };
     } catch (e) {
         console.error('Error in uploadDesign:', e);
         return { success: false, error: formatDatabaseError(e) };

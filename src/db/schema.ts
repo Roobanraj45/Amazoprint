@@ -282,6 +282,9 @@ export const contestParticipants = pgTable('contest_participants', {
     designId: integer('design_id').references(() => designs.id, { onDelete: 'set null' }),
     templateId: integer('template_id').references(() => designUploads.id, { onDelete: 'set null' }),
     status: varchar('status', { length: 50, enum: ['active', 'submitted', 'selected', 'rejected'] }).default('active'),
+    // Array columns: history of all design IDs and upload IDs submitted to this contest entry
+    designIds: integer('design_ids').array(),
+    templateIds: integer('template_ids').array(),
 }, (table) => {
     return {
         contestIdx: index('idx_cp_contest').on(table.contestId),

@@ -93,8 +93,7 @@ export function Navbar() {
           <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity" prefetch={false}>
             <AmazoprintLogo className={cn(
                 "transition-all duration-500 origin-left",
-                scrolled ? "scale-90" : "scale-100",
-                (!scrolled && isHome) && "brightness-0 invert"
+                scrolled ? "scale-90" : "scale-100"
             )} />
           </Link>
         </div>

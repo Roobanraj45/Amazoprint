@@ -1,4 +1,4 @@
-import { getContestWithSubmissions } from "@/app/actions/contest-actions";
+import { getContestWithSubmissions, getContestSubmissionDetails } from "@/app/actions/contest-actions";
 import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +43,21 @@ export default async function ClientContestDetailsPage({ params }: { params: { c
         notFound();
     }
 
-    const submittedEntries = contest.participants.filter(p => p.submission || p.template);
+    const submittedEntries = contest.participants.filter(
+        p => (p.designIds && p.designIds.length > 0) || (p.templateIds && p.templateIds.length > 0) || p.submission || p.template
+    );
+
+    // Fetch all submission details (designs + uploads) for all participants at once
+    const allDesignIds = [...new Set(submittedEntries.flatMap(p => p.designIds ?? []))];
+    const allTemplateIds = [...new Set(submittedEntries.flatMap(p => p.templateIds ?? []))];
+    const { designs: allDesignPreviews, uploads: allUploadPreviews } =
+        allDesignIds.length > 0 || allTemplateIds.length > 0
+            ? await getContestSubmissionDetails(allDesignIds, allTemplateIds)
+            : { designs: [], uploads: [] };
+
+    // Build per-participant maps
+    const designMap = new Map(allDesignPreviews.map(d => [d.id, d]));
+    const uploadMap = new Map(allUploadPreviews.map(u => [u.id, u]));
 
     // Order Fulfillment & Winners declaration eligibility
     const order = contest.orders && contest.orders[0];
@@ -225,6 +239,8 @@ export default async function ClientContestDetailsPage({ params }: { params: { c
                                             isThisSubmissionOrdered={!!isThisSubmissionOrdered}
                                             joinedAt={participant.joinedAt}
                                             isCompleted={isCompleted}
+                                            allDesigns={(participant.designIds ?? []).map(id => designMap.get(id)).filter(Boolean) as any[]}
+                                            allUploads={(participant.templateIds ?? []).map(id => uploadMap.get(id)).filter(Boolean) as any[]}
                                         />
                                     );
                                 })}
