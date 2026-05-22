@@ -2,40 +2,41 @@ import { NextResponse } from 'next/server';
 import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
 import fs from 'fs';
+import os from 'os';
 
 export async function GET() {
-  const storageDir = join(process.cwd(), 'storage', 'uploads');
-  const publicDir = join(process.cwd(), 'public', 'uploads');
   const folders: Record<string, Set<string>> = {};
 
-  try {
-    // Scan storage/uploads
-    if (fs.existsSync(storageDir)) {
-      const topLevelEntries = await readdir(storageDir);
+  const scanDir = async (baseDir: string, apiPrefix: string) => {
+    if (!fs.existsSync(baseDir)) return;
+    try {
+      const topLevelEntries = await readdir(baseDir);
       for (const entry of topLevelEntries) {
-        const entryPath = join(storageDir, entry);
+        const entryPath = join(baseDir, entry);
         const entryStat = await stat(entryPath);
         if (entryStat.isDirectory()) {
           const filenames = await readdir(entryPath);
           if (!folders[entry]) folders[entry] = new Set();
-          filenames.forEach(name => folders[entry].add(`/api/media/${entry}/${name}`));
+          filenames.forEach(name => {
+            if (!name.startsWith('.write_test_')) {
+              folders[entry].add(`${apiPrefix}/${entry}/${name}`);
+            }
+          });
         }
       }
+    } catch (e) {
+      console.error(`Error scanning directory ${baseDir}:`, e);
     }
+  };
 
-    // Scan public/uploads for backward compatibility
-    if (fs.existsSync(publicDir)) {
-      const topLevelEntries = await readdir(publicDir);
-      for (const entry of topLevelEntries) {
-        const entryPath = join(publicDir, entry);
-        const entryStat = await stat(entryPath);
-        if (entryStat.isDirectory()) {
-          const filenames = await readdir(entryPath);
-          if (!folders[entry]) folders[entry] = new Set();
-          filenames.forEach(name => folders[entry].add(`/api/media/${entry}/${name}`));
-        }
-      }
-    }
+  try {
+    // Scan storage/uploads in local and temp
+    await scanDir(join(process.cwd(), 'storage', 'uploads'), '/api/media');
+    await scanDir(join(os.tmpdir(), 'amazoprint', 'storage', 'uploads'), '/api/media');
+
+    // Scan public/uploads in local and temp for backward compatibility
+    await scanDir(join(process.cwd(), 'public', 'uploads'), '/api/media');
+    await scanDir(join(os.tmpdir(), 'amazoprint', 'public', 'uploads'), '/api/media');
 
     const result = Object.entries(folders).map(([name, files]) => ({
       name,

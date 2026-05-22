@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, unlink } from 'fs/promises';
-import { join, resolve } from 'path';
+import { join } from 'path';
 import fs from 'fs';
+import { getStorageDir, resolveUploadPath } from '@/lib/storage';
 
 // Helper to sanitize folder names
 const sanitizeFolderName = (name: string) => {
@@ -23,7 +24,8 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(bytes);
 
   // Ensure the specific uploads directory exists
-  const uploadsDir = join(process.cwd(), 'storage', 'uploads', folderName);
+  const storageUploadsDir = getStorageDir('storage');
+  const uploadsDir = join(storageUploadsDir, folderName);
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
@@ -54,15 +56,16 @@ export async function DELETE(req: NextRequest) {
 
     // Sanitize the path to prevent directory traversal
     const sanitizedPath = urlToDelete.replace('/api/media/', '').replace('/uploads/', '').replace(/\.\./g, '').replace(/^\/+/, '');
+    const pathParts = sanitizedPath.split('/');
     
-    // Check both storage and public
-    const storagePath = resolve(process.cwd(), 'storage', 'uploads', sanitizedPath);
-    const publicPath = resolve(process.cwd(), 'public', 'uploads', sanitizedPath);
+    // Resolve paths using our helper
+    const storagePath = resolveUploadPath('storage', pathParts);
+    const publicPath = resolveUploadPath('public', pathParts);
     
-    if (fs.existsSync(storagePath)) {
+    if (storagePath && fs.existsSync(storagePath)) {
       await unlink(storagePath);
       return NextResponse.json({ success: true });
-    } else if (fs.existsSync(publicPath)) {
+    } else if (publicPath && fs.existsSync(publicPath)) {
       await unlink(publicPath);
       return NextResponse.json({ success: true });
     } else {

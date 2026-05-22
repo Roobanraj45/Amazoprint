@@ -4,6 +4,7 @@ import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import fs from 'fs';
 import { db } from '@/db';
+import { getStorageDir, resolveUploadPath } from '@/lib/storage';
 import { designUploads } from '@/db/schema';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
@@ -61,7 +62,8 @@ async function processAndSaveFile(file: File, userFolder: string): Promise<strin
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'designs', userFolder);
+    const publicUploadsDir = getStorageDir('public');
+    const uploadsDir = join(publicUploadsDir, 'designs', userFolder);
     if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
     }
@@ -137,8 +139,9 @@ export async function uploadDesign(formData: FormData) {
 
             if (isNewFile) {
                 // Delete old file
-                const oldFilePath = join(process.cwd(), 'public', existingUpload.filePath);
-                if (fs.existsSync(oldFilePath)) {
+                const pathParts = existingUpload.filePath.replace('/uploads/', '').split('/');
+                const oldFilePath = resolveUploadPath('public', pathParts);
+                if (oldFilePath && fs.existsSync(oldFilePath)) {
                     try {
                         fs.unlinkSync(oldFilePath);
                     } catch (err) {
@@ -155,8 +158,9 @@ export async function uploadDesign(formData: FormData) {
             if (thumbnailFile && thumbnailFile.size > 0 && thumbnailFile.name) {
                 // Delete old thumbnail
                 if (existingUpload.thumbnailPath) {
-                    const oldThumbPath = join(process.cwd(), 'public', existingUpload.thumbnailPath);
-                    if (fs.existsSync(oldThumbPath)) {
+                    const pathParts = existingUpload.thumbnailPath.replace('/uploads/', '').split('/');
+                    const oldThumbPath = resolveUploadPath('public', pathParts);
+                    if (oldThumbPath && fs.existsSync(oldThumbPath)) {
                         try {
                             fs.unlinkSync(oldThumbPath);
                         } catch (err) {
@@ -318,8 +322,9 @@ export async function deleteUpload(id: number) {
     }
     
     // Delete main file from filesystem
-    const mainFilePath = join(process.cwd(), 'public', upload.filePath);
-    if (fs.existsSync(mainFilePath)) {
+    const mainPathParts = upload.filePath.replace('/uploads/', '').split('/');
+    const mainFilePath = resolveUploadPath('public', mainPathParts);
+    if (mainFilePath && fs.existsSync(mainFilePath)) {
         try {
             fs.unlinkSync(mainFilePath);
         } catch (e) {
@@ -329,8 +334,9 @@ export async function deleteUpload(id: number) {
     
     // Delete thumbnail file from filesystem
     if (upload.thumbnailPath) {
-        const thumbFilePath = join(process.cwd(), 'public', upload.thumbnailPath);
-        if (fs.existsSync(thumbFilePath)) {
+        const thumbPathParts = upload.thumbnailPath.replace('/uploads/', '').split('/');
+        const thumbFilePath = resolveUploadPath('public', thumbPathParts);
+        if (thumbFilePath && fs.existsSync(thumbFilePath)) {
             try {
                 fs.unlinkSync(thumbFilePath);
             } catch (e) {

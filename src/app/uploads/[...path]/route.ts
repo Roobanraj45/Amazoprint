@@ -13,14 +13,8 @@ export async function GET(
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  // 1. Try to find the file in storage uploads (local or temp)
-  let filePath = resolveUploadPath('storage', path);
-  
-  // 2. Fallback to public uploads (local or temp)
-  if (!filePath) {
-    filePath = resolveUploadPath('public', path);
-  }
-
+  // Find the file in either process.cwd()/public/uploads or /tmp/amazoprint/public/uploads
+  const filePath = resolveUploadPath('public', path);
   if (!filePath) {
     return new NextResponse('Not Found', { status: 404 });
   }
@@ -36,7 +30,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error reading media file:', error);
+    console.error('Error reading media file from uploads route:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

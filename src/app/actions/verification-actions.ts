@@ -10,6 +10,7 @@ import { getSession } from '@/lib/auth';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import fs from 'fs';
+import { getStorageDir, resolveUploadPath } from '@/lib/storage';
 
 const verificationSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -171,7 +172,8 @@ export async function uploadVerificationRevision(formData: FormData) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'designs', userFolder);
+    const publicUploadsDir = getStorageDir('public');
+    const uploadsDir = join(publicUploadsDir, 'designs', userFolder);
     if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
     }
@@ -188,8 +190,9 @@ export async function uploadVerificationRevision(formData: FormData) {
         try {
             const oldUpload = await db.query.designUploads.findFirst({ where: eq(designUploads.id, job.uploadId) });
             if (oldUpload?.filePath) {
-                const oldFilePath = join(process.cwd(), 'public', oldUpload.filePath);
-                 if (fs.existsSync(oldFilePath)) {
+                const pathParts = oldUpload.filePath.replace('/uploads/', '').split('/');
+                const oldFilePath = resolveUploadPath('public', pathParts);
+                 if (oldFilePath && fs.existsSync(oldFilePath)) {
                     fs.unlinkSync(oldFilePath);
                 }
             }
