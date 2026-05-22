@@ -383,15 +383,26 @@ export async function getAdminOrderStats({
 
     // 1. Total Overall Revenue & Count
     const [totalStats] = await db.select({ 
-        totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0)`,
+        totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0) + COALESCE(SUM(${payments.amount}::numeric), 0)`,
         count: count()
-    }).from(orders);
+    })
+    .from(orders)
+    .leftJoin(payments, and(
+        eq(payments.contestId, orders.contestId),
+        eq(payments.status, 'captured')
+    ));
 
     // 2. Today's Revenue & Count
     const [todayStats] = await db.select({ 
-        totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0)`,
+        totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0) + COALESCE(SUM(${payments.amount}::numeric), 0)`,
         count: count()
-    }).from(orders).where(gte(orders.createdAt, startOfToday));
+    })
+    .from(orders)
+    .leftJoin(payments, and(
+        eq(payments.contestId, orders.contestId),
+        eq(payments.status, 'captured')
+    ))
+    .where(gte(orders.createdAt, startOfToday));
 
     // 3. Filtered Revenue & Count
     const conditions = [];
@@ -435,9 +446,15 @@ export async function getAdminOrderStats({
     const finalCondition = conditions.length > 0 ? and(...conditions) : undefined;
 
     const [filteredStats] = await db.select({ 
-        totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0)`,
+        totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0) + COALESCE(SUM(${payments.amount}::numeric), 0)`,
         count: count()
-    }).from(orders).where(finalCondition);
+    })
+    .from(orders)
+    .leftJoin(payments, and(
+        eq(payments.contestId, orders.contestId),
+        eq(payments.status, 'captured')
+    ))
+    .where(finalCondition);
 
     return {
         total: { amount: Number(totalStats.totalAmount), count: totalStats.count },

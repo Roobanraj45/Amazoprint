@@ -13,6 +13,14 @@ export function resolveImagePath(path?: string): string {
     return path;
   }
 
+  // Rewrite dynamic /uploads/designs/ paths to /api/media/designs/ to bypass production CDN static routing 404
+  if (path.startsWith('/uploads/designs/')) {
+    return path.replace('/uploads/designs/', '/api/media/designs/');
+  }
+  if (path.startsWith('uploads/designs/')) {
+    return '/api/media/designs/' + path.substring('uploads/designs/'.length);
+  }
+
   if (path.includes('/public/')) {
     return path.split('/public')[1];
   }

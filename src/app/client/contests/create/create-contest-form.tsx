@@ -902,16 +902,27 @@ export function CreateContestForm() {
 
                         <div className="space-y-2">
                             <Label htmlFor="prizeAmount" className="text-xs font-bold text-foreground tracking-tight">Winner Prize (₹) <span className="text-rose-500">*</span></Label>
-                            <div className="relative">
-                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-xs text-muted-foreground">₹</span>
-                                <Input 
-                                    id="prizeAmount" 
-                                    type="number" 
-                                    placeholder="e.g., 5000" 
-                                    className="h-11 rounded-2xl bg-background/80 border-border text-foreground font-extrabold pl-7 placeholder:text-muted-foreground/60 focus-visible:ring-rose-500 text-xs shadow-sm"
-                                    {...register('prizeAmount')} 
-                                />
-                            </div>
+                            <Controller
+                                name="prizeAmount"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select 
+                                        onValueChange={(val) => field.onChange(val ? Number(val) : undefined)} 
+                                        value={field.value ? String(field.value) : ""}
+                                    >
+                                        <SelectTrigger className="h-11 rounded-2xl bg-background/80 border-border text-foreground font-extrabold text-xs shadow-sm focus:ring-rose-500">
+                                            <SelectValue placeholder="Select prize amount..." />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-border bg-card shadow-lg p-2 max-h-[220px] overflow-y-auto">
+                                            {Array.from({ length: 20 }, (_, i) => (i + 1) * 50).map(amount => (
+                                                <SelectItem key={amount} value={String(amount)} className="font-semibold text-xs py-2">
+                                                    ₹{amount}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
                             {errors.prizeAmount && <p className="text-[10px] font-semibold text-rose-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" /> {errors.prizeAmount.message}</p>}
                         </div>
                     </div>

@@ -41,7 +41,16 @@ export default async function AdminDashboard() {
   ]);
   const orders = ordersResult.orders;
 
-  const totalRevenue = orders.reduce((sum, order) => sum + parseFloat(order.totalAmount), 0);
+  const totalRevenue = orders.reduce((sum, order) => {
+    let orderTotal = parseFloat(order.totalAmount);
+    if (order.contestId && order.contest?.payments) {
+      const contestPaymentSum = order.contest.payments
+        .filter(p => p.status === 'captured')
+        .reduce((pSum, p) => pSum + parseFloat(p.amount), 0);
+      orderTotal += contestPaymentSum;
+    }
+    return sum + orderTotal;
+  }, 0);
   const activeContests = contests.filter(c => c.status === 'active').length;
   const pendingPrints = orders.filter(o => o.orderStatus === 'processing' || o.orderStatus === 'confirmed').length;
 

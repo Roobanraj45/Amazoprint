@@ -24,7 +24,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import { cn, resolveImagePath } from '@/lib/utils';
 
 type Order = Awaited<ReturnType<typeof getPrinterAssignedOrders>>[0];
 
@@ -124,7 +124,7 @@ export default function PrinterOrdersPage() {
                 console.error('Error opening preview:', error);
             }
         } else if (order.designUpload) {
-            window.open(order.designUpload.filePath, '_blank');
+            window.open(resolveImagePath(order.designUpload.filePath), '_blank');
         }
     };
 

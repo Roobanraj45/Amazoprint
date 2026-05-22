@@ -111,6 +111,7 @@ export async function getContests() {
         gt(contests.endDate, new Date())
       ))
       .groupBy(contests.id)
+      .having(sql`COUNT(${contestParticipants.id}) < ${contests.maxFreelancers}`)
       .orderBy(desc(contests.createdAt));
 
     return data;
