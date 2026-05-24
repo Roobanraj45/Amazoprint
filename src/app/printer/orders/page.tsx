@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from "@/components/ui/badge";
 import { format, isToday } from 'date-fns';
-import { IndianRupee, MoreVertical, Eye, Loader2, Search, Filter, Package, Printer, Clock, CheckCircle2, Settings } from "lucide-react";
+import { IndianRupee, MoreVertical, Eye, Loader2, Search, Filter, Package, Printer, Clock, CheckCircle2, Settings, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ export default function PrinterOrdersPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
     useEffect(() => {
         async function loadOrders() {
@@ -223,74 +224,174 @@ export default function PrinterOrdersPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredOrders.map((order) => (
-                                        <TableRow key={order.id} className="hover:bg-zinc-50/80 transition-all border-b border-slate-100 group">
-                                            <TableCell className="pl-10">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black text-[10px]">
-                                                        #{order.id}
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="font-black text-xs text-slate-900 uppercase tracking-tight">{order.user.name}</span>
-                                                    <span className="text-[10px] font-bold text-slate-400">{order.user.email}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
-                                                        <Package size={18} />
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-xs text-slate-700 truncate max-w-[200px]">
-                                                            {order.directSellingProduct?.name || order.product?.name || "Unspecified Unit"}
-                                                        </span>
-                                                        <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Qty: {order.quantity} Units</span>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <Badge 
+                                    {filteredOrders.map((order) => {
+                                        const isExpanded = expandedOrderId === order.id;
+                                        return (
+                                            <>
+                                                <TableRow 
+                                                    key={order.id} 
                                                     className={cn(
-                                                        "capitalize text-[9px] font-black tracking-widest px-3 py-1 rounded-full border-2",
-                                                        order.orderStatus === 'processing' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 
-                                                        order.orderStatus === 'delivered' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 
-                                                        'bg-slate-100 text-slate-600 border-slate-200'
+                                                        "hover:bg-zinc-50/80 transition-all border-b border-slate-100 group cursor-pointer",
+                                                        isExpanded && "bg-slate-50/50"
                                                     )}
+                                                    onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
                                                 >
-                                                    {order.orderStatus === 'processing' ? 'In Production' : order.orderStatus}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-xs text-slate-600 italic">{format(new Date(order.createdAt), 'MMM dd, yyyy')}</span>
-                                                    <span className="text-[10px] font-medium text-slate-400">{format(new Date(order.createdAt), 'hh:mm a')}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="pr-10 text-right">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-200 transition-colors">
-                                                            <MoreVertical className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-[200px] p-2 rounded-2xl border-2 shadow-2xl">
-                                                        <DropdownMenuItem 
-                                                            onClick={() => handlePreviewDesign(order)}
-                                                            className="rounded-xl h-10 font-bold text-xs cursor-pointer"
+                                                    <TableCell className="pl-10">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black text-[10px]">
+                                                                #{order.id}
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="font-black text-xs text-slate-900 uppercase tracking-tight">{order.user.name}</span>
+                                                            <span className="text-[10px] font-bold text-slate-400">{order.user.email}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                                                                <Package size={18} />
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold text-xs text-slate-700 truncate max-w-[200px]">
+                                                                    {order.directSellingProduct?.name || order.product?.name || "Unspecified Unit"}
+                                                                </span>
+                                                                <span className="text-[10px] font-black text-primary uppercase tracking-tighter">Qty: {order.quantity} Units</span>
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Badge 
+                                                            className={cn(
+                                                                "capitalize text-[9px] font-black tracking-widest px-3 py-1 rounded-full border-2",
+                                                                order.orderStatus === 'processing' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 
+                                                                order.orderStatus === 'delivered' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 
+                                                                'bg-slate-100 text-slate-600 border-slate-200'
+                                                            )}
                                                         >
-                                                            <Eye className="mr-3 h-4 w-4 text-blue-500" /> View Specifications
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem className="rounded-xl h-10 font-bold text-xs cursor-pointer text-amber-600">
-                                                            <Settings className="mr-3 h-4 w-4" /> Production Steps
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                                            {order.orderStatus === 'processing' ? 'In Production' : order.orderStatus}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-xs text-slate-600 italic">{format(new Date(order.createdAt), 'MMM dd, yyyy')}</span>
+                                                            <span className="text-[10px] font-medium text-slate-400">{format(new Date(order.createdAt), 'hh:mm a')}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="pr-10 text-right" onClick={(e) => e.stopPropagation()}>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-200 transition-colors">
+                                                                    <MoreVertical className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-[200px] p-2 rounded-2xl border-2 shadow-2xl">
+                                                                <DropdownMenuItem asChild className="rounded-xl h-10 font-bold text-xs cursor-pointer">
+                                                                    <Link href={`/printer/orders/${order.id}`}>
+                                                                        <Eye className="mr-3 h-4 w-4 text-blue-500" /> View Job Specs Sheet
+                                                                    </Link>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem className="rounded-xl h-10 font-bold text-xs cursor-pointer text-amber-600">
+                                                                    <Settings className="mr-3 h-4 w-4" /> Production Steps
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </TableCell>
+                                                </TableRow>
+                                                {isExpanded && (
+                                                    <TableRow className="bg-slate-50/50 hover:bg-slate-50/50 dark:bg-slate-900/30">
+                                                        <TableCell colSpan={6} className="p-6 border-b border-slate-100 dark:border-slate-800">
+                                                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+                                                                    <div>
+                                                                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Job Blueprint Specs</h4>
+                                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Verify manufacturing requirements below before printing</p>
+                                                                    </div>
+                                                                    
+                                                                    <div className="flex flex-wrap items-center gap-2">
+                                                                        <Button 
+                                                                            asChild
+                                                                            size="sm"
+                                                                            className="h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider bg-primary hover:bg-primary/95 text-white shadow-md shadow-primary/10 gap-1.5"
+                                                                        >
+                                                                            <Link href={`/printer/orders/${order.id}`}>
+                                                                                <Eye size={14} /> Open Specs Sheet
+                                                                            </Link>
+                                                                        </Button>
+                                                                        {order.designUpload && (
+                                                                            <Button asChild variant="outline" size="sm" className="h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider border-slate-200 transition-all gap-1.5">
+                                                                                <a href={resolveImagePath(order.designUpload.filePath)} download>
+                                                                                    <Download size={14} className="text-slate-400" /> Download Design File
+                                                                                </a>
+                                                                            </Button>
+                                                                        )}
+                                                                        {order.design && (
+                                                                            <Button 
+                                                                                onClick={() => handlePreviewDesign(order)}
+                                                                                variant="outline" 
+                                                                                size="sm" 
+                                                                                className="h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider border-slate-200 transition-all gap-1.5"
+                                                                            >
+                                                                                <Download size={14} className="text-slate-400" /> Generate Job File
+                                                                            </Button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                {(() => {
+                                                                    let parsedCustomisation: any = null;
+                                                                    try {
+                                                                        const rawCustomisation = order.design?.customisation || (order as any).customisation;
+                                                                        parsedCustomisation = typeof rawCustomisation === 'string' 
+                                                                            ? JSON.parse(rawCustomisation) 
+                                                                            : rawCustomisation;
+                                                                    } catch (e) {}
+
+                                                                    const pages = parsedCustomisation?.pages === 2 || parsedCustomisation?.pages === '2' ? 'Double Sided' : 'Single Sided';
+                                                                    const dimensions = `${order.design?.width || order.designUpload?.width || 'Custom'} x ${order.design?.height || order.designUpload?.height || 'Custom'} mm`;
+                                                                    const spotUv = parsedCustomisation?.spotUv ? 'Yes, Included' : 'No';
+                                                                    const dieCut = parsedCustomisation?.dieCut ? `Custom Shape (#${parsedCustomisation.dieCut})` : 'Standard Rectangular';
+                                                                    const lamination = parsedCustomisation?.lamination || 'None';
+                                                                    const foil = parsedCustomisation?.foilName || parsedCustomisation?.foil || (parsedCustomisation?.foilId ? `Foil ID #${parsedCustomisation.foilId}` : 'None');
+
+                                                                    return (
+                                                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                                                                            <div className="flex flex-col gap-0.5 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                                                                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Printing side</span>
+                                                                                <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">{pages}</span>
+                                                                            </div>
+                                                                            <div className="flex flex-col gap-0.5 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                                                                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Dimensions</span>
+                                                                                <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">{dimensions}</span>
+                                                                            </div>
+                                                                            <div className="flex flex-col gap-0.5 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                                                                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Spot UV Gloss</span>
+                                                                                <span className={cn("font-extrabold text-xs", parsedCustomisation?.spotUv ? "text-amber-600" : "text-slate-500")}>{spotUv}</span>
+                                                                            </div>
+                                                                            <div className="flex flex-col gap-0.5 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                                                                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Custom Foil</span>
+                                                                                <span className={cn("font-extrabold text-xs", (parsedCustomisation?.foilName || parsedCustomisation?.foil || parsedCustomisation?.foilId) ? "text-indigo-600" : "text-slate-500")}>{foil}</span>
+                                                                            </div>
+                                                                            <div className="flex flex-col gap-0.5 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                                                                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Die Cut / Shape</span>
+                                                                                <span className={cn("font-extrabold text-xs", parsedCustomisation?.dieCut ? "text-primary" : "text-slate-500")}>{dieCut}</span>
+                                                                            </div>
+                                                                            <div className="flex flex-col gap-0.5 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                                                                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Lamination</span>
+                                                                                <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs capitalize">{lamination}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </div>

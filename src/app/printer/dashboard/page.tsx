@@ -7,34 +7,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { List, Briefcase, CircleDollarSign, Wallet, ArrowRight } from 'lucide-react';
+import { Package, ArrowRight } from 'lucide-react';
 import React from 'react';
 
 export default function PrinterDashboard() {
   const menuItems = [
     {
-        href: '/printer/jobs/available',
-        label: 'Available Jobs',
-        icon: <List size={24} />,
-        description: 'Find new jobs to print.',
-    },
-    {
-        href: '/printer/jobs/assigned',
-        label: 'Assigned Jobs',
-        icon: <Briefcase size={24} />,
-        description: 'View your current jobs.',
-    },
-    {
-        href: '/printer/earnings',
-        label: 'Earnings',
-        icon: <CircleDollarSign size={24} />,
-        description: 'Track your earnings.',
-    },
-    {
-        href: '/printer/wallet',
-        label: 'Wallet',
-        icon: <Wallet size={24} />,
-        description: 'Manage your earnings & withdrawals.',
+        href: '/printer/orders',
+        label: 'Order Queue',
+        icon: <Package size={24} />,
+        description: 'View and manage your assigned printing orders.',
     },
   ];
 

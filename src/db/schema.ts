@@ -454,7 +454,7 @@ export const orders = pgTable('orders', {
   totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull(),
   shippingAddress: jsonb('shipping_address').notNull(),
   billingAddress: jsonb('billing_address'),
-  orderStatus: varchar('order_status', { length: 50, enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'] }).default('pending'),
+  orderStatus: varchar('order_status', { length: 50, enum: ['pending', 'confirmed', 'quality_check', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'] }).default('pending'),
   paymentStatus: varchar('payment_status', { length: 50, enum: ['pending', 'paid', 'failed', 'refunded'] }).default('pending'),
   paymentMethod: varchar('payment_method', { length: 50 }),
   trackingNumber: varchar('tracking_number', { length: 100 }),

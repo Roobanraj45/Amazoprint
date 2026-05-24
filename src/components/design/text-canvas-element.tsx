@@ -197,7 +197,8 @@ export const TextCanvasElement = React.memo(({
     return () => document.fonts.removeEventListener('loadingdone', handleFontLoad);
   }, []);
 
-  const isSpotUv = renderMode === 'spotuv' || renderMode === 'foil';
+  // Disable forcing black silhouettes for printer mask pages, keeping their original colors/styles
+  const isSpotUv = false;
   const warp = element.textWarp;
   const warpStyle = warp?.style;
 

@@ -598,6 +598,88 @@ export async function assignPrinterToOrder(orderId: number, printerId: string | 
     return { success: true };
 }
 
+export async function updateOrderStatus(
+    orderId: number,
+    newStatus: string,
+    message: string,
+    trackingNumber?: string | null,
+    estimatedDeliveryDate?: string | null,
+    actualDeliveryDate?: string | null
+) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const currentOrder = await db.query.orders.findFirst({
+        where: eq(orders.id, orderId),
+        columns: { 
+            orderStatus: true, 
+            trackingNumber: true, 
+            estimatedDeliveryDate: true, 
+            actualDeliveryDate: true 
+        }
+    });
+
+    if (!currentOrder) {
+        throw new Error('Order not found');
+    }
+
+    const updateFields: any = {
+        orderStatus: newStatus,
+        updatedAt: new Date()
+    };
+
+    if (trackingNumber !== undefined) {
+        updateFields.trackingNumber = trackingNumber || null;
+    }
+    if (estimatedDeliveryDate !== undefined) {
+        updateFields.estimatedDeliveryDate = estimatedDeliveryDate || null;
+    }
+    if (actualDeliveryDate !== undefined) {
+        updateFields.actualDeliveryDate = actualDeliveryDate || null;
+    } else if (newStatus === 'delivered' && !currentOrder.actualDeliveryDate) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        updateFields.actualDeliveryDate = `${yyyy}-${mm}-${dd}`;
+    }
+
+    await db.update(orders)
+        .set(updateFields)
+        .where(eq(orders.id, orderId));
+
+    try {
+        await recordOrderLog({
+            orderId,
+            actionType: 'status_changed',
+            oldValue: { 
+                status: currentOrder.orderStatus, 
+                trackingNumber: currentOrder.trackingNumber,
+                estimatedDeliveryDate: currentOrder.estimatedDeliveryDate,
+                actualDeliveryDate: currentOrder.actualDeliveryDate
+            },
+            newValue: { 
+                status: newStatus,
+                trackingNumber: trackingNumber !== undefined ? trackingNumber : currentOrder.trackingNumber,
+                estimatedDeliveryDate: estimatedDeliveryDate !== undefined ? estimatedDeliveryDate : currentOrder.estimatedDeliveryDate,
+                actualDeliveryDate: updateFields.actualDeliveryDate !== undefined ? updateFields.actualDeliveryDate : currentOrder.actualDeliveryDate
+            },
+            message: message || `Order status updated to ${newStatus.replace(/_/g, ' ')}`,
+            isCustomerVisible: true
+        });
+    } catch (e) {
+        console.error('Failed to log order status update:', e);
+    }
+
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath(`/client/orders/${orderId}`);
+    revalidatePath('/admin/orders');
+    return { success: true };
+}
+
 export async function getApprovedPrinters() {
     const session = await getSession();
     const adminRoles = ['admin', 'super_admin', 'company_admin'];
@@ -674,4 +756,35 @@ export async function getPrinterAssignedOrders() {
     });
 
     return assignedOrders;
+}
+
+export async function getPrinterOrderDetails(orderId: number) {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized');
+    }
+
+    const order = await db.query.orders.findFirst({
+        where: and(eq(orders.id, orderId), eq(orders.printerAssigned, session.sub)),
+        with: {
+            user: {
+                columns: {
+                    name: true,
+                    email: true,
+                    phone: true
+                }
+            },
+            product: true,
+            subProduct: true,
+            design: true,
+            designUpload: true,
+            directSellingProduct: true,
+            payment: true,
+            logs: {
+                orderBy: (logs, { desc }) => [desc(logs.createdAt)],
+            },
+        },
+    });
+
+    return order;
 }

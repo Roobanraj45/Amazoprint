@@ -302,7 +302,7 @@ export type Order = {
   totalAmount: string;
   shippingAddress: Address;
   billingAddress?: Address | null;
-  orderStatus: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  orderStatus: 'pending' | 'confirmed' | 'quality_check' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   createdAt: Date;
 };

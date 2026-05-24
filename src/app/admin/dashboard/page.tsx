@@ -18,6 +18,7 @@ import {
   Factory,
   Zap,
   Layers,
+  CircleDollarSign,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,7 @@ export default async function AdminDashboard() {
     { href: '/admin/orders', label: 'Orders', icon: <Package size={24} />, color: 'from-indigo-500 to-purple-500', description: 'Customer fulfillment tracking.' },
     { href: '/admin/addons', label: 'Product Add-ons', icon: <Layers size={24} />, color: 'from-purple-500 to-indigo-500', description: 'Manage die-cuts & specialty foils.' },
     { href: '/admin/contests', label: 'Contests', icon: <Trophy size={24} />, color: 'from-orange-500 to-amber-500', description: 'Community design battles.' },
+    { href: '/admin/payouts', label: 'Freelancer Payouts', icon: <CircleDollarSign size={24} />, color: 'from-emerald-500 to-teal-600', description: 'Authorize and ledger freelancer earnings.' },
     { href: '/admin/users', label: 'Directory', icon: <Users size={24} />, color: 'from-emerald-500 to-teal-500', description: 'User roles and permissions.' },
     { href: '/admin/printers', label: 'Production', icon: <Factory size={24} />, color: 'from-sky-500 to-blue-500', description: 'Printer partner management.' },
     { href: '/admin/designs', label: 'Creative', icon: <Palette size={24} />, color: 'from-rose-500 to-orange-500', description: 'Asset monitoring & library.' },

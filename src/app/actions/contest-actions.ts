@@ -782,3 +782,40 @@ export async function linkDesignToContest(contestId: number, designId: number) {
     return { success: true };
 }
 
+export async function getCompletedContestsWithWinners() {
+    const session = await getSession();
+    if (!session?.sub || !['super_admin', 'company_admin', 'accounts', 'admin'].includes(session.role || '')) {
+        throw new Error('Not authorized');
+    }
+
+    const data = await db.query.contests.findMany({
+        where: eq(contests.status, 'completed'),
+        orderBy: [desc(contests.updatedAt)],
+        with: {
+            user: {
+                columns: {
+                    id: true,
+                    name: true,
+                    email: true,
+                }
+            },
+            winners: {
+                with: {
+                    freelancer: {
+                        columns: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            profileImage: true,
+                        }
+                    }
+                },
+                orderBy: (contestWinners, { asc }) => [asc(contestWinners.rank)]
+            }
+        }
+    });
+
+    return data;
+}
+
+

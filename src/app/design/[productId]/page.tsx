@@ -142,7 +142,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
           notInArray(orders.orderStatus, ['completed', 'delivered', 'cancelled', 'refunded'])
         )
       });
-      if (activeOrder) {
+      if (activeOrder && !isAdmin) {
         isServerReadonly = true;
       }
     }

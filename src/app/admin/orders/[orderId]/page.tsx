@@ -12,6 +12,7 @@ import type { Product, DesignElement, Background, Guide, RenderData } from "@/li
 import { PrintPreviewButton } from "./PrintPreviewButton";
 import { Button } from "@/components/ui/button";
 import { PrinterAssignmentControl } from "./PrinterAssignmentControl";
+import { OrderStatusControl } from "./OrderStatusControl";
 
 const DPI = 300;
 const MM_TO_PX = DPI / 25.4;
@@ -161,6 +162,18 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                             <h3 className="text-base font-black tracking-tight text-slate-900 dark:text-white leading-tight">{productName}</h3>
                                             <p className="text-primary font-bold tracking-tight text-[10px] uppercase">{subProductName}</p>
                                         </div>
+                                    </div>
+                                    
+                                    {/* Quick Order Status Control */}
+                                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
+                                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Change Order Status</p>
+                                        <OrderStatusControl 
+                                            orderId={order.id}
+                                            currentStatus={order.orderStatus}
+                                            currentTrackingNumber={order.trackingNumber}
+                                            currentEstimatedDeliveryDate={order.estimatedDeliveryDate}
+                                            currentActualDeliveryDate={order.actualDeliveryDate}
+                                        />
                                     </div>                                    {(() => {
                                         let parsedCustomisation: any = null;
                                         try {
@@ -441,7 +454,8 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                 <div className="relative space-y-8 pl-8 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
                                     {[
                                         { status: 'pending', label: 'Order initiated', icon: FileText, date: order.createdAt, current: order.orderStatus === 'pending', done: true },
-                                        { status: 'confirmed', label: 'Order confirmed', icon: ShieldCheck, date: order.createdAt, current: order.orderStatus === 'confirmed', done: ['confirmed', 'processing', 'shipped', 'delivered'].includes(order.orderStatus) },
+                                        { status: 'confirmed', label: 'Order confirmed', icon: ShieldCheck, date: order.createdAt, current: order.orderStatus === 'confirmed', done: ['confirmed', 'quality_check', 'processing', 'shipped', 'delivered'].includes(order.orderStatus) },
+                                        { status: 'quality_check', label: 'Quality Check', icon: ShieldCheck, date: null, current: order.orderStatus === 'quality_check', done: ['quality_check', 'processing', 'shipped', 'delivered'].includes(order.orderStatus) },
                                         { status: 'processing', label: 'In production', icon: Package, date: null, current: order.orderStatus === 'processing', done: ['processing', 'shipped', 'delivered'].includes(order.orderStatus) },
                                         { status: 'shipped', label: 'Dispatched', icon: Truck, date: null, current: order.orderStatus === 'shipped', done: ['shipped', 'delivered'].includes(order.orderStatus) },
                                         { status: 'delivered', label: 'Delivered', icon: User, date: order.actualDeliveryDate, current: order.orderStatus === 'delivered', done: order.orderStatus === 'delivered' },

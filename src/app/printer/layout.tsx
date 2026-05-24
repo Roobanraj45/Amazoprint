@@ -17,11 +17,6 @@ export default function PrinterLayout({ children }: { children: React.ReactNode 
   const menuItems = [
     { href: "/printer/dashboard", label: "Dashboard", icon: <Home size={16} />, color: "text-blue-500" },
     { href: "/printer/orders", label: "Order Queue", icon: <Package size={16} />, color: "text-amber-500" },
-    { href: "/printer/jobs/available", label: "Available Jobs", icon: <List size={16} />, color: "text-rose-500" },
-    { href: "/printer/jobs/assigned", label: "Production Line", icon: <Briefcase size={16} />, color: "text-emerald-500" },
-    { href: "/printer/earnings", label: "Earnings", icon: <CircleDollarSign size={16} />, color: "text-indigo-500" },
-    { href: "/printer/wallet", label: "Wallet", icon: <Wallet size={16} />, color: "text-slate-500" },
-    { href: "/printer/settings", label: "Press Settings", icon: <Settings size={16} />, color: "text-zinc-500" },
   ];
   
   const handleLogout = async () => {

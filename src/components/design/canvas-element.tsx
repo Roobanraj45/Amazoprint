@@ -247,6 +247,19 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
     const scaleFactor = mScale * (element.width / 100);
     const transformStr = `translate(${element.width/2 + (mOffsetX * element.width/1000)}, ${element.height/2 + (mOffsetY * element.height/1000)}) scale(${scaleFactor}) translate(-50, -50)`;
 
+    if (element.shapeType === 'custom-svg' && element.src) {
+      defs.push(
+        <filter key={`to-white-${element.id}`} id={`to-white-${element.id}`}>
+          <feColorMatrix type="matrix" values="0 0 0 0 1   0 0 0 0 1   0 0 0 0 1   0 0 0 1 0" />
+        </filter>
+      );
+      defs.push(
+        <filter key={`to-black-${element.id}`} id={`to-black-${element.id}`}>
+          <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 1 0" />
+        </filter>
+      );
+    }
+
     defs.push(
       <mask 
           key={`mask-${element.id}`} 
@@ -267,7 +280,7 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
               preserveAspectRatio="xMidYMid meet"
               transform={`translate(${(element.maskOffsetX || 0) * element.width/1000}, ${(element.maskOffsetY || 0) * element.height/1000}) scale(${element.maskScale ?? 1})`}
               transform-origin="center"
-              style={{ filter: element.maskInvert ? 'brightness(0)' : 'brightness(0) invert(1)' }}
+              filter={`url(#${element.maskInvert ? 'to-black' : 'to-white'}-${element.id})`}
           />
         ) : (() => {
           const lucideName = element.shapeType.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
@@ -315,7 +328,7 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
   return <defs>{defs}</defs>;
 };
 
-const StyledQrCode = memo(function StyledQrCode({ element }: { element: DesignElement }) {
+const StyledQrCode = memo(function StyledQrCode({ element, isSpotUv }: { element: DesignElement, isSpotUv?: boolean }) {
     const [dataUrl, setDataUrl] = React.useState<string | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
     const prevUrlRef = React.useRef<string | null>(null);
@@ -335,19 +348,19 @@ const StyledQrCode = memo(function StyledQrCode({ element }: { element: DesignEl
                 type: 'svg',
                 data: element.qrValue || 'https://amazoprint.com',
                 dotsOptions: {
-                    color: element.qrColor || '#000000',
+                    color: isSpotUv ? '#000000' : (element.qrColor || '#000000'),
                     type: 'squares',
                 },
                 backgroundOptions: {
-                    color: element.qrBgColor || '#FFFFFF',
+                    color: isSpotUv ? 'transparent' : (element.qrBgColor || '#FFFFFF'),
                 },
                 cornersSquareOptions: {
                     type: 'square',
-                    color: element.qrColor || '#000000',
+                    color: isSpotUv ? '#000000' : (element.qrColor || '#000000'),
                 },
                 cornersDotOptions: {
                     type: 'square',
-                    color: element.qrColor || '#000000',
+                    color: isSpotUv ? '#000000' : (element.qrColor || '#000000'),
                 },
                 qrOptions: {
                     errorCorrectionLevel: element.qrLevel || 'M',
@@ -437,7 +450,8 @@ const StyledQrCode = memo(function StyledQrCode({ element }: { element: DesignEl
         element.qrLevel, 
         element.qrIconSrc, 
         element.qrIconSize, 
-        element.qrStylePreset
+        element.qrStylePreset,
+        isSpotUv
     ]);
     
     if (isLoading) {
@@ -452,12 +466,20 @@ const StyledQrCode = memo(function StyledQrCode({ element }: { element: DesignEl
         <div style={{
             width: '100%',
             height: '100%',
-            backgroundColor: element.qrBgColor || '#FFFFFF',
-            backgroundImage: `url("${dataUrl}")`,
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-        }} />
+            backgroundColor: isSpotUv ? 'transparent' : (element.qrBgColor || '#FFFFFF'),
+            position: 'relative'
+        }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+                src={dataUrl} 
+                alt="QR Code"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                }}
+            />
+        </div>
     );
 });
 StyledQrCode.displayName = 'StyledQrCode';
@@ -545,7 +567,8 @@ export const NonInteractiveContent = memo(({
   onUpdate?: (id: string, updates: Partial<DesignElement>) => void,
   isPreview?: boolean
 }) => {
-  const isSpotUv = renderMode === 'spotuv' || renderMode === 'foil';
+  // Disable forcing black silhouettes for printer mask pages, keeping their original colors/styles
+  const isSpotUv = false;
 
     switch (element.type) {
       case 'text': {
@@ -561,92 +584,14 @@ export const NonInteractiveContent = memo(({
         );
       }
       case 'image': {
-        if (isSpotUv) {
-          return <div style={{ width: '100%', height: '100%', backgroundColor: 'black' }} />;
-        }
-    
-        const filters = [
-          `brightness(${element.filterBrightness || 1})`,
-          `contrast(${element.filterContrast || 1})`,
-          `saturate(${element.filterSaturate || 1})`,
-          `grayscale(${element.filterGrayscale || 0})`,
-          `sepia(${element.filterSepia || 0})`,
-          `invert(${element.filterInvert || 0})`,
-          `hue-rotate(${element.filterHueRotate || 0}deg)`,
-          `blur(${element.filterBlur || 0}px)`,
-        ].join(' ');
-    
-        const transforms = [].join(' ');
-        
-        if (!element.src) {
-          return (
-            <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
-              <lucide.ImageIcon size={32} />
-            </div>
-          )
-        }
-    
-        const fillType = element.fillType || 'solid';
-        const hasSolidTint = fillType === 'solid' && element.color && element.color !== 'transparent';
-        const hasGradientTint = (fillType === 'gradient' || fillType === 'stepped-gradient') && element.gradientStops && element.gradientStops.length > 0;
-        const hasTint = (element.tintOpacity ?? 0) > 0 && (hasSolidTint || hasGradientTint);
-        const hasCrop = element.crop && (element.crop.top > 0 || element.crop.right > 0 || element.crop.bottom > 0 || element.crop.left > 0);
-        const tintMode = element.overlayMode || 'tint';
+        const crop = element.crop || { left: 0, top: 0, right: 0, bottom: 0 };
+        const cropWidthRatio = 1 - crop.left - crop.right;
+        const cropHeightRatio = 1 - crop.top - crop.bottom;
 
-        const getTintBackground = () => {
-            if (fillType === 'gradient' || fillType === 'stepped-gradient') return createGradientString(element);
-            return element.color;
-        };
-
-        if (hasTint && tintMode === 'tint') {
-            let maskSizeValue: 'cover' | 'contain' | '100% 100%' | 'auto' | undefined;
-            if (element.objectFit === 'fill') maskSizeValue = '100% 100%';
-            else if (element.objectFit === 'none') maskSizeValue = 'auto';
-            else if (element.objectFit === 'contain' || element.objectFit === 'cover') maskSizeValue = element.objectFit;
-            
-            let finalMaskSize: string | undefined = maskSizeValue;
-            let finalMaskPosition = 'center';
-    
-            if (hasCrop) {
-                const crop = element.crop!;
-                const cropWidthRatio = 1 - crop.left - crop.right;
-                const cropHeightRatio = 1 - crop.top - crop.bottom;
-                
-                finalMaskSize = `${100 / cropWidthRatio}% ${100 / cropHeightRatio}%`;
-                
-                const posX = -100 * crop.left / cropWidthRatio;
-                const posY = -100 * crop.top / cropHeightRatio;
-                finalMaskPosition = `${posX}% ${posY}%`;
-            }
-    
-            const tintedStyle: React.CSSProperties = {
-                width: '100%',
-                height: '100%',
-                background: getTintBackground(),
-                opacity: element.tintOpacity,
-                maskImage: `url("${element.src}")`,
-                WebkitMaskImage: `url("${element.src}")`,
-                maskSize: finalMaskSize,
-                WebkitMaskSize: finalMaskSize as any,
-                maskPosition: finalMaskPosition,
-                WebkitMaskPosition: finalMaskPosition,
-                maskRepeat: 'no-repeat',
-                WebkitMaskRepeat: 'no-repeat',
-                filter: filters,
-                transform: transforms,
-            };
-            return <div style={tintedStyle} />;
-        }
-        
-        const backgroundOverlay = hasTint && tintMode === 'background' ? (
-            <div style={{ 
-                position: 'absolute', 
-                inset: 0, 
-                background: getTintBackground(), 
-                opacity: element.tintOpacity,
-                zIndex: 0
-            }} />
-        ) : null;
+        const fullWidth = element.width / cropWidthRatio;
+        const fullHeight = element.height / cropHeightRatio;
+        const offsetX = -fullWidth * crop.left;
+        const offsetY = -fullHeight * crop.top;
 
         const eraserMaskId = `eraser-mask-${element.id}`;
         const eraserPaths = element.eraserPaths || [];
@@ -699,15 +644,139 @@ export const NonInteractiveContent = memo(({
             </mask>
         ) : null;
 
-        const crop = element.crop || { left: 0, top: 0, right: 0, bottom: 0 };
-        const cropWidthRatio = 1 - crop.left - crop.right;
-        const cropHeightRatio = 1 - crop.top - crop.bottom;
+        if (isSpotUv) {
+          if (!element.src) {
+            return <div style={{ width: '100%', height: '100%', backgroundColor: 'black' }} />;
+          }
 
-        const fullWidth = element.width / cropWidthRatio;
-        const fullHeight = element.height / cropHeightRatio;
-        const offsetX = -fullWidth * crop.left;
-        const offsetY = -fullHeight * crop.top;
-
+          return (
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              <svg 
+                  width="100%" 
+                  height="100%" 
+                  viewBox={`0 0 ${element.width} ${element.height}`} 
+                  preserveAspectRatio="none"
+                  style={{ display: 'block', overflow: 'visible' }}
+              >
+                  <defs>
+                      <filter id={`to-white-${element.id}`}>
+                          <feColorMatrix type="matrix" values="0 0 0 0 1   0 0 0 0 1   0 0 0 0 1   0 0 0 1 0" />
+                      </filter>
+                      <mask id={`mask-${element.id}`} maskUnits="userSpaceOnUse" x="0" y="0" width={element.width} height={element.height}>
+                          <image 
+                              href={resolveImagePath(element.src)} 
+                              x={offsetX}
+                              y={offsetY}
+                              width={fullWidth} 
+                              height={fullHeight} 
+                              preserveAspectRatio={element.objectFit === 'cover' ? 'xMidYMid slice' : (element.objectFit === 'contain' ? 'xMidYMid meet' : 'none')}
+                              filter={`url(#to-white-${element.id})`}
+                          />
+                      </mask>
+                      {eraserPaths.map((ep, i) => ep.brushTip === 'soft_round' && (
+                          <filter key={`filter-${i}`} id={`eraser-blur-${element.id}-${i}`} x="-50%" y="-50%" width="200%" height="200%">
+                              <feGaussianBlur stdDeviation={ep.strokeWidth * 0.25} />
+                          </filter>
+                      ))}
+                      {eraserMask}
+                  </defs>
+                  <g mask={eraserPaths.length ? `url(#${eraserMaskId})` : undefined}>
+                      <rect 
+                          width={element.width} 
+                          height={element.height} 
+                          fill="black" 
+                          mask={`url(#mask-${element.id})`} 
+                          shapeRendering="geometricPrecision"
+                      />
+                  </g>
+              </svg>
+            </div>
+          );
+        }
+    
+        const filters = [
+          `brightness(${element.filterBrightness || 1})`,
+          `contrast(${element.filterContrast || 1})`,
+          `saturate(${element.filterSaturate || 1})`,
+          `grayscale(${element.filterGrayscale || 0})`,
+          `sepia(${element.filterSepia || 0})`,
+          `invert(${element.filterInvert || 0})`,
+          `hue-rotate(${element.filterHueRotate || 0}deg)`,
+          `blur(${element.filterBlur || 0}px)`,
+        ].join(' ');
+    
+        const transforms = [].join(' ');
+        
+        if (!element.src) {
+          return (
+            <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
+              <lucide.ImageIcon size={32} />
+            </div>
+          )
+        }
+    
+        const fillType = element.fillType || 'solid';
+        const hasSolidTint = fillType === 'solid' && element.color && element.color !== 'transparent';
+        const hasGradientTint = (fillType === 'gradient' || fillType === 'stepped-gradient') && element.gradientStops && element.gradientStops.length > 0;
+        const hasTint = (element.tintOpacity ?? 0) > 0 && (hasSolidTint || hasGradientTint);
+        const hasCrop = element.crop && (element.crop.top > 0 || element.crop.right > 0 || element.crop.bottom > 0 || element.crop.left > 0);
+        const tintMode = element.overlayMode || 'tint';
+ 
+        const getTintBackground = () => {
+            if (fillType === 'gradient' || fillType === 'stepped-gradient') return createGradientString(element);
+            return element.color;
+        };
+ 
+        if (hasTint && tintMode === 'tint') {
+            let maskSizeValue: 'cover' | 'contain' | '100% 100%' | 'auto' | undefined;
+            if (element.objectFit === 'fill') maskSizeValue = '100% 100%';
+            else if (element.objectFit === 'none') maskSizeValue = 'auto';
+            else if (element.objectFit === 'contain' || element.objectFit === 'cover') maskSizeValue = element.objectFit;
+            
+            let finalMaskSize: string | undefined = maskSizeValue;
+            let finalMaskPosition = 'center';
+    
+            if (hasCrop) {
+                const crop = element.crop!;
+                const cropWidthRatio = 1 - crop.left - crop.right;
+                const cropHeightRatio = 1 - crop.top - crop.bottom;
+                
+                finalMaskSize = `${100 / cropWidthRatio}% ${100 / cropHeightRatio}%`;
+                
+                const posX = -100 * crop.left / cropWidthRatio;
+                const posY = -100 * crop.top / cropHeightRatio;
+                finalMaskPosition = `${posX}% ${posY}%`;
+            }
+    
+            const tintedStyle: React.CSSProperties = {
+                width: '100%',
+                height: '100%',
+                background: getTintBackground(),
+                opacity: element.tintOpacity,
+                maskImage: `url("${element.src}")`,
+                WebkitMaskImage: `url("${element.src}")`,
+                maskSize: finalMaskSize,
+                WebkitMaskSize: finalMaskSize as any,
+                maskPosition: finalMaskPosition,
+                WebkitMaskPosition: finalMaskPosition,
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat',
+                filter: filters,
+                transform: transforms,
+            };
+            return <div style={tintedStyle} />;
+        }
+        
+        const backgroundOverlay = hasTint && tintMode === 'background' ? (
+            <div style={{ 
+                position: 'absolute', 
+                inset: 0, 
+                background: getTintBackground(), 
+                opacity: element.tintOpacity,
+                zIndex: 0
+            }} />
+        ) : null;
+ 
         return (
           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             {backgroundOverlay}
@@ -744,13 +813,9 @@ export const NonInteractiveContent = memo(({
             </svg>
           </div>
         );
-    }
+      }
       case 'qrcode': {
-        if (isSpotUv) {
-          return <div style={{ width: '100%', height: '100%', backgroundColor: 'black' }} />;
-        }
-        
-        return <StyledQrCode element={element} />;
+        return <StyledQrCode element={element} isSpotUv={isSpotUv} />;
       }
       case 'path': {
         if (!element.pathPoints || element.pathPoints.length === 0) return null;
@@ -881,7 +946,7 @@ export const NonInteractiveContent = memo(({
 
             return (
                 <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }} shapeRendering="geometricPrecision">
-                    {!isSpotUv && <SvgFillDefs element={element} />}
+                    <SvgFillDefs element={element} />
                     <g mask={`url(#mask-${element.id})`}>
                         {element.shapeType === 'custom-svg' && element.fillType === 'none' ? (
                             <image href={resolveImagePath(element.src || '')} width={element.width} height={element.height} preserveAspectRatio="xMidYMid meet" />
