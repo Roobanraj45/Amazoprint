@@ -14,6 +14,7 @@ import Link from "next/link";
 import { resolveImagePath, cn } from "@/lib/utils";
 import type { DesignElement } from "@/lib/types";
 import { RenderPdfButton } from "./RenderPdfButton";
+import { OrderStatusDropdown } from "./OrderStatusDropdown";
 import * as lucide from "lucide-react";
 import { MASK_SHAPES } from "@/lib/mask-shapes";
 
@@ -245,10 +246,7 @@ export default async function PrinterOrderDetailPage({ params }: { params: { ord
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Client Name</span>
                             <span className="text-sm font-black text-slate-200 mt-0.5">{order.user.name}</span>
                         </div>
-                        <div className="px-4 py-2 rounded-xl bg-primary text-white shadow-xl shadow-primary/20 flex flex-col items-end">
-                            <span className="text-[9px] font-bold text-white/60 uppercase tracking-widest">Workflow stage</span>
-                            <span className="text-base font-bold tracking-tight capitalize">{order.orderStatus.replace(/_/g, ' ')}</span>
-                        </div>
+                        <OrderStatusDropdown orderId={order.id} initialStatus={order.orderStatus || 'pending'} />
                     </div>
                 </div>
             </div>

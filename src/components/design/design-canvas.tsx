@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useId } from 'react';
 import type { DesignElement, Product, Background, Guide, ViewState, PathPoint } from '@/lib/types';
 import { CanvasElement } from './canvas-element';
 import { Scissors } from 'lucide-react';
@@ -303,6 +303,7 @@ export function DesignCanvas({
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const liveBrushCanvasRef = useRef<HTMLCanvasElement>(null);
   const { zoom, pan } = viewState;
+  const canvasId = useId().replace(/:/g, '');
   
   useCustomFonts(); // Load custom fonts globally
 
@@ -683,6 +684,7 @@ export function DesignCanvas({
                 isEditing={editingTextId === element.id}
                 setEditingId={setEditingId}
                 isPreview={isPreview}
+                canvasId={canvasId}
                 />
             ))}
           </div>

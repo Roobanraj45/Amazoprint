@@ -788,3 +788,50 @@ export async function getPrinterOrderDetails(orderId: number) {
 
     return order;
 }
+
+export async function updatePrinterOrderStatus(orderId: number, newStatus: string) {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized');
+    }
+
+    const currentOrder = await db.query.orders.findFirst({
+        where: and(eq(orders.id, orderId), eq(orders.printerAssigned, session.sub)),
+        columns: { 
+            orderStatus: true,
+        }
+    });
+
+    if (!currentOrder) {
+        throw new Error('Order not found or not assigned to you');
+    }
+
+    const allowedStatuses = ['pending', 'confirmed', 'quality_check', 'processing', 'shipped'];
+    if (!allowedStatuses.includes(newStatus)) {
+        throw new Error('Invalid status for printer update');
+    }
+
+    await db.update(orders)
+        .set({
+            orderStatus: newStatus,
+            updatedAt: new Date()
+        })
+        .where(eq(orders.id, orderId));
+
+    try {
+        await recordOrderLog({
+            orderId,
+            actionType: 'status_changed',
+            oldValue: { status: currentOrder.orderStatus },
+            newValue: { status: newStatus },
+            message: `Printer updated status to ${newStatus.replace(/_/g, ' ')}`,
+            isCustomerVisible: true
+        });
+    } catch (e) {
+        console.error('Failed to log order status update:', e);
+    }
+
+    revalidatePath(`/printer/orders/${orderId}`);
+    revalidatePath('/printer/orders');
+    return { success: true };
+}

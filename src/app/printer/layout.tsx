@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
-import { Home, List, Briefcase, CircleDollarSign, Wallet, LogOut, Search, Bell, Factory, Package, Settings, Clock } from "lucide-react"
+import { Home, List, Briefcase, CircleDollarSign, Wallet, LogOut, Search, Bell, Factory, Package, Settings, Clock, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { AmazoprintLogo } from "@/components/ui/logo"
 import { useRouter } from "next/navigation";
@@ -17,6 +17,7 @@ export default function PrinterLayout({ children }: { children: React.ReactNode 
   const menuItems = [
     { href: "/printer/dashboard", label: "Dashboard", icon: <Home size={16} />, color: "text-blue-500" },
     { href: "/printer/orders", label: "Order Queue", icon: <Package size={16} />, color: "text-amber-500" },
+    { href: "/printer/design-options", label: "Design Options", icon: <Sparkles size={16} />, color: "text-indigo-500" },
   ];
   
   const handleLogout = async () => {

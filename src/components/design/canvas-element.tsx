@@ -115,7 +115,7 @@ const createGradientString = (element: DesignElement, { reversed = false } = {})
 };
 
 
-const SvgFillDefs = ({ element }: { element: DesignElement }) => {
+const SvgFillDefs = ({ element, canvasId }: { element: DesignElement, canvasId?: string }) => {
   const { fillType, fillImageSrc } = element;
   const isStepped = fillType === 'stepped-gradient';
   const stops = isStepped ? (element.steppedGradientStops || element.gradientStops) : element.gradientStops;
@@ -166,7 +166,7 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
         defs.push(
           <radialGradient
             key={`grad-${element.id}`}
-            id={`grad-${element.id}`}
+            id={`grad-${element.id}-${canvasId || ''}`}
             gradientUnits="objectBoundingBox"
             cx="0.5" cy="0.5" r="0.5" fx="0.5" fy="0.5"
           >
@@ -177,7 +177,7 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
         defs.push(
           <linearGradient
             key={`grad-${element.id}`}
-            id={`grad-${element.id}`}
+            id={`grad-${element.id}-${canvasId || ''}`}
             gradientUnits="objectBoundingBox"
             gradientTransform={`rotate(${direction - 90} 0.5 0.5)`}
           >
@@ -218,7 +218,7 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
     defs.push(
       <pattern 
         key={`img-fill-${element.id}`}
-        id={`img-fill-${element.id}`} 
+        id={`img-fill-${element.id}-${canvasId || ''}`} 
         patternUnits="objectBoundingBox" 
         patternContentUnits="objectBoundingBox"
         width="1" 
@@ -249,12 +249,12 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
 
     if (element.shapeType === 'custom-svg' && element.src) {
       defs.push(
-        <filter key={`to-white-${element.id}`} id={`to-white-${element.id}`}>
+        <filter key={`to-white-${element.id}`} id={`to-white-${element.id}-${canvasId || ''}`} x="0%" y="0%" width="100%" height="100%" colorInterpolationFilters="sRGB">
           <feColorMatrix type="matrix" values="0 0 0 0 1   0 0 0 0 1   0 0 0 0 1   0 0 0 1 0" />
         </filter>
       );
       defs.push(
-        <filter key={`to-black-${element.id}`} id={`to-black-${element.id}`}>
+        <filter key={`to-black-${element.id}`} id={`to-black-${element.id}-${canvasId || ''}`} x="0%" y="0%" width="100%" height="100%" colorInterpolationFilters="sRGB">
           <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 1 0" />
         </filter>
       );
@@ -263,12 +263,12 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
     defs.push(
       <mask 
           key={`mask-${element.id}`} 
-          id={`mask-${element.id}`}
+          id={`mask-${element.id}-${canvasId || ''}`}
           maskUnits="userSpaceOnUse"
-          x="-5000" y="-5000" width="10000" height="10000"
+          x="-50" y="-50" width={element.width + 100} height={element.height + 100}
       >
         <rect 
-          x="-5000" y="-5000" width="10000" height="10000" 
+          x="-50" y="-50" width={element.width + 100} height={element.height + 100} 
           fill={element.maskInvert ? "white" : "black"} 
         />
         {element.shapeType === 'custom-svg' && element.src ? (
@@ -280,7 +280,7 @@ const SvgFillDefs = ({ element }: { element: DesignElement }) => {
               preserveAspectRatio="xMidYMid meet"
               transform={`translate(${(element.maskOffsetX || 0) * element.width/1000}, ${(element.maskOffsetY || 0) * element.height/1000}) scale(${element.maskScale ?? 1})`}
               transform-origin="center"
-              filter={`url(#${element.maskInvert ? 'to-black' : 'to-white'}-${element.id})`}
+              filter={`url(#${element.maskInvert ? 'to-black' : 'to-white'}-${element.id}-${canvasId || ''})`}
           />
         ) : (() => {
           const lucideName = element.shapeType.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
@@ -506,6 +506,7 @@ type CanvasElementProps = {
   setEditingId?: (id: string | null) => void;
   isEditingPath?: boolean;
   isPreview?: boolean;
+  canvasId?: string;
 };
 
 type ResizeHandle = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top' | 'bottom' | 'left' | 'right';
@@ -557,7 +558,8 @@ export const NonInteractiveContent = memo(({
   isEditing,
   setEditingId,
   onUpdate,
-  isPreview
+  isPreview,
+  canvasId
 }: { 
   element: DesignElement, 
   product: Product, 
@@ -565,7 +567,8 @@ export const NonInteractiveContent = memo(({
   isEditing?: boolean,
   setEditingId?: (id: string | null) => void,
   onUpdate?: (id: string, updates: Partial<DesignElement>) => void,
-  isPreview?: boolean
+  isPreview?: boolean,
+  canvasId?: string
 }) => {
   // Disable forcing black silhouettes for printer mask pages, keeping their original colors/styles
   const isSpotUv = false;
@@ -593,7 +596,7 @@ export const NonInteractiveContent = memo(({
         const offsetX = -fullWidth * crop.left;
         const offsetY = -fullHeight * crop.top;
 
-        const eraserMaskId = `eraser-mask-${element.id}`;
+        const eraserMaskId = `eraser-mask-${element.id}-${canvasId || ''}`;
         const eraserPaths = element.eraserPaths || [];
         
         const eraserMask = eraserPaths.length ? (
@@ -602,7 +605,7 @@ export const NonInteractiveContent = memo(({
                 {eraserPaths.map((ep, i) => {
                     const pointsStr = ep.points.map(([px, py]) => `${px},${py}`).join(' ');
                     const isSoft = ep.brushTip === 'soft_round';
-                    const filterId = isSoft ? `eraser-blur-${element.id}-${i}` : undefined;
+                    const filterId = isSoft ? `eraser-blur-${element.id}-${i}-${canvasId || ''}` : undefined;
                     
                     return (
                         <React.Fragment key={i}>
@@ -659,10 +662,10 @@ export const NonInteractiveContent = memo(({
                   style={{ display: 'block', overflow: 'visible' }}
               >
                   <defs>
-                      <filter id={`to-white-${element.id}`}>
+                      <filter id={`to-white-${element.id}-${canvasId || ''}`} x="0%" y="0%" width="100%" height="100%" colorInterpolationFilters="sRGB">
                           <feColorMatrix type="matrix" values="0 0 0 0 1   0 0 0 0 1   0 0 0 0 1   0 0 0 1 0" />
                       </filter>
-                      <mask id={`mask-${element.id}`} maskUnits="userSpaceOnUse" x="0" y="0" width={element.width} height={element.height}>
+                      <mask id={`mask-${element.id}-${canvasId || ''}`} maskUnits="userSpaceOnUse" x="-50" y="-50" width={element.width + 100} height={element.height + 100}>
                           <image 
                               href={resolveImagePath(element.src)} 
                               x={offsetX}
@@ -670,11 +673,11 @@ export const NonInteractiveContent = memo(({
                               width={fullWidth} 
                               height={fullHeight} 
                               preserveAspectRatio={element.objectFit === 'cover' ? 'xMidYMid slice' : (element.objectFit === 'contain' ? 'xMidYMid meet' : 'none')}
-                              filter={`url(#to-white-${element.id})`}
+                              filter={`url(#to-white-${element.id}-${canvasId || ''})`}
                           />
                       </mask>
                       {eraserPaths.map((ep, i) => ep.brushTip === 'soft_round' && (
-                          <filter key={`filter-${i}`} id={`eraser-blur-${element.id}-${i}`} x="-50%" y="-50%" width="200%" height="200%">
+                          <filter key={`filter-${i}`} id={`eraser-blur-${element.id}-${i}-${canvasId || ''}`} x="-50%" y="-50%" width="200%" height="200%">
                               <feGaussianBlur stdDeviation={ep.strokeWidth * 0.25} />
                           </filter>
                       ))}
@@ -685,7 +688,7 @@ export const NonInteractiveContent = memo(({
                           width={element.width} 
                           height={element.height} 
                           fill="black" 
-                          mask={`url(#mask-${element.id})`} 
+                          mask={`url(#mask-${element.id}-${canvasId || ''})`} 
                           shapeRendering="geometricPrecision"
                       />
                   </g>
@@ -794,7 +797,7 @@ export const NonInteractiveContent = memo(({
             >
                 <defs>
                     {eraserPaths.map((ep, i) => ep.brushTip === 'soft_round' && (
-                        <filter key={`filter-${i}`} id={`eraser-blur-${element.id}-${i}`} x="-50%" y="-50%" width="200%" height="200%">
+                        <filter key={`filter-${i}`} id={`eraser-blur-${element.id}-${i}-${canvasId || ''}`} x="-50%" y="-50%" width="200%" height="200%">
                             <feGaussianBlur stdDeviation={ep.strokeWidth * 0.25} />
                         </filter>
                     ))}
@@ -825,9 +828,9 @@ export const NonInteractiveContent = memo(({
         const getFillForSvg = () => {
           if (isSpotUv) return 'black';
           if (element.fillType === 'none') return 'none';
-          if (element.fillType === 'image' && element.fillImageSrc) return `url(#img-fill-${element.id})`;
+          if (element.fillType === 'image' && element.fillImageSrc) return `url(#img-fill-${element.id}-${canvasId || ''})`;
           if ((element.fillType === 'gradient' || element.fillType === 'stepped-gradient') && element.gradientStops) {
-            return `url(#grad-${element.id})`;
+            return `url(#grad-${element.id}-${canvasId || ''})`;
           }
           if (element.fillType === 'solid') {
             return element.color;
@@ -859,7 +862,7 @@ export const NonInteractiveContent = memo(({
 
         return (
           <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }} preserveAspectRatio="none">
-            {!isSpotUv && <SvgFillDefs element={element} />}
+            {!isSpotUv && <SvgFillDefs element={element} canvasId={canvasId} />}
             <g style={{ filter: element.fillType === 'image' ? filters : undefined }}>
               <path
                 d={pathData}
@@ -907,9 +910,9 @@ export const NonInteractiveContent = memo(({
         const getFillForSvg = () => {
           if (isSpotUv) return 'black';
           if (element.fillType === 'none') return 'none';
-          if (element.fillType === 'image' && element.fillImageSrc) return `url(#img-fill-${element.id})`;
+          if (element.fillType === 'image' && element.fillImageSrc) return `url(#img-fill-${element.id}-${canvasId || ''})`;
           if ((element.fillType === 'gradient' || element.fillType === 'stepped-gradient') && element.gradientStops) {
-            return `url(#grad-${element.id})`;
+            return `url(#grad-${element.id}-${canvasId || ''})`;
           }
           if (element.fillType === 'solid') {
             return element.color;
@@ -943,59 +946,77 @@ export const NonInteractiveContent = memo(({
         const shapeContent = (() => {
             const lucideName = element.shapeType.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
             const LucideIcon = (lucide as any)[lucideName] || (lucide as any)[element.shapeType.charAt(0).toUpperCase() + element.shapeType.slice(1)];
+            const filters = [
+                `brightness(${element.filterBrightness || 1})`,
+                `contrast(${element.filterContrast || 1})`,
+                `saturate(${element.filterSaturate || 1})`,
+                `grayscale(${element.filterGrayscale || 0})`,
+                `sepia(${element.filterSepia || 0})`,
+                `invert(${element.filterInvert || 0})`,
+                `hue-rotate(${element.filterHueRotate || 0}deg)`,
+                `blur(${element.filterBlur || 0}px)`,
+            ].join(' ');
 
             return (
                 <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} style={{ overflow: 'visible' }} shapeRendering="geometricPrecision">
-                    <SvgFillDefs element={element} />
-                    <g mask={`url(#mask-${element.id})`}>
-                        {element.shapeType === 'custom-svg' && element.fillType === 'none' ? (
-                            <image href={resolveImagePath(element.src || '')} width={element.width} height={element.height} preserveAspectRatio="xMidYMid meet" />
-                        ) : (() => {
-                            const filters = [
-                                `brightness(${element.filterBrightness || 1})`,
-                                `contrast(${element.filterContrast || 1})`,
-                                `saturate(${element.filterSaturate || 1})`,
-                                `grayscale(${element.filterGrayscale || 0})`,
-                                `sepia(${element.filterSepia || 0})`,
-                                `invert(${element.filterInvert || 0})`,
-                                `hue-rotate(${element.filterHueRotate || 0}deg)`,
-                                `blur(${element.filterBlur || 0}px)`,
-                            ].join(' ');
-
-                            return (
-                                <g style={{ filter: element.fillType === 'image' ? filters : undefined }}>
-                                    <rect width={element.width} height={element.height} fill={getFillForSvg()} shapeRendering="geometricPrecision" />
-                                    {showTint && (
-                                        <rect width={element.width} height={element.height} fill={element.color} fillOpacity={element.tintOpacity} shapeRendering="geometricPrecision" />
-                                    )}
-                                </g>
-                            );
-                        })()}
-                    </g>
-                    
-                    {/* Render stroke outside the mask */}
-                    {!element.maskInvert && (
-                        (pathData && element.shapeType !== 'custom-svg') ? (
-                            <path 
-                                d={pathData} 
-                                fill="none" 
-                                {...svgStrokeProps} 
-                                transform={transformStr} 
-                                shapeRendering="geometricPrecision"
-                            />
-                        ) : LucideIcon ? (
-                            <g transform={transformStr}>
-                                <LucideIcon 
-                                    width="100" 
-                                    height="100" 
-                                    stroke={svgStrokeProps.stroke} 
-                                    strokeWidth={svgStrokeProps.strokeWidth}
-                                    strokeDasharray={svgStrokeProps.strokeDasharray}
-                                    fill="none"
+                    <SvgFillDefs element={element} canvasId={canvasId} />
+                    {pathData && element.shapeType !== 'custom-svg' ? (
+                        <g>
+                            <g style={{ filter: element.fillType === 'image' ? filters : undefined }}>
+                                <path 
+                                    d={pathData} 
+                                    fill={getFillForSvg()} 
+                                    transform={transformStr} 
                                     shapeRendering="geometricPrecision"
                                 />
+                                {showTint && (
+                                    <path 
+                                        d={pathData} 
+                                        fill={element.color} 
+                                        fillOpacity={element.tintOpacity} 
+                                        transform={transformStr} 
+                                        shapeRendering="geometricPrecision"
+                                    />
+                                )}
                             </g>
-                        ) : null
+                            {!element.maskInvert && (
+                                <path 
+                                    d={pathData} 
+                                    fill="none" 
+                                    {...svgStrokeProps} 
+                                    transform={transformStr} 
+                                    shapeRendering="geometricPrecision"
+                                />
+                            )}
+                        </g>
+                    ) : (
+                        <g>
+                            <g mask={`url(#mask-${element.id}-${canvasId || ''})`}>
+                                {element.shapeType === 'custom-svg' && element.fillType === 'none' ? (
+                                    <image href={resolveImagePath(element.src || '')} width={element.width} height={element.height} preserveAspectRatio="xMidYMid meet" />
+                                ) : (
+                                    <g style={{ filter: element.fillType === 'image' ? filters : undefined }}>
+                                        <rect x="-1" y="-1" width={element.width + 2} height={element.height + 2} fill={getFillForSvg()} shapeRendering="geometricPrecision" />
+                                        {showTint && (
+                                            <rect x="-1" y="-1" width={element.width + 2} height={element.height + 2} fill={element.color} fillOpacity={element.tintOpacity} shapeRendering="geometricPrecision" />
+                                        )}
+                                    </g>
+                                )}
+                            </g>
+                            {!element.maskInvert && LucideIcon && (
+                                <g transform={transformStr}>
+                                    <LucideIcon 
+                                        width="100" 
+                                        height="100" 
+                                        stroke={svgStrokeProps.stroke} 
+                                        strokeWidth={svgStrokeProps.strokeWidth}
+                                        strokeDasharray={svgStrokeProps.strokeDasharray}
+                                        fill="none"
+                                        shapeRendering="geometricPrecision"
+                                    />
+                                </g>
+                            )}
+                        </g>
                     )}
                 </svg>
             );
@@ -1090,6 +1111,7 @@ const _CanvasElement = ({
   setEditingId,
   isEditingPath = false,
   isPreview = false,
+  canvasId,
 }: CanvasElementProps) => {
   const elementRef = useRef<HTMLDivElement>(null);
   
@@ -1445,11 +1467,11 @@ const _CanvasElement = ({
     userSelect: 'none',
     boxShadow: (renderMode === 'spotuv' || renderMode === 'foil') ? 'none' : (element.spotUv ? `0 0 8px 2px hsla(var(--accent), 0.8), ${existingShadow}` : existingShadow),
     backgroundColor: (renderMode === 'spotuv' || renderMode === 'foil') ? 'transparent' : ((element.type === 'text' || element.type === 'group') ? element.backgroundColor : 'transparent'),
-    borderWidth: element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 0 : element.borderWidth,
-    borderColor: renderMode === 'spotuv' ? 'transparent' : (element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 'transparent' : element.borderColor),
-    borderStyle: element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 'solid' : element.borderStyle,
+    borderWidth: element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' ? 0 : (element.borderWidth || 0),
+    borderColor: (renderMode === 'spotuv' || element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' || !element.borderWidth) ? 'transparent' : element.borderColor,
+    borderStyle: (element.type === 'shape' || element.type === 'qrcode' || element.type === 'path' || !element.borderWidth) ? 'none' : element.borderStyle,
     borderRadius: renderMode === 'spotuv' ? 0 : (element.type !== 'shape' ? element.borderRadius : 0),
-    overflow: (isWarped || element.type === 'path' || element.type === 'text') ? 'visible' : 'hidden', // Ensure text and paths don't crop unnecessarily
+    overflow: (isWarped || element.type === 'path' || element.type === 'text' || element.type === 'shape') ? 'visible' : 'hidden', // Ensure text and paths don't crop unnecessarily
   };
   
   const resizeHandles: ResizeHandle[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top', 'bottom', 'left', 'right'];
@@ -1519,6 +1541,7 @@ const _CanvasElement = ({
                   setEditingId={setEditingId}
                   onUpdate={onUpdate}
                   isPreview={isPreview}
+                  canvasId={canvasId}
                 />
               </div>
             );
@@ -1535,6 +1558,7 @@ const _CanvasElement = ({
         setEditingId={setEditingId}
         onUpdate={onUpdate}
         isPreview={isPreview}
+        canvasId={canvasId}
       />
     );
   };

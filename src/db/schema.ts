@@ -126,6 +126,7 @@ export const printPressUsers = pgTable('print_press_users', {
 
 export const printPressUsersRelations = relations(printPressUsers, ({ many }) => ({
   assignedOrders: many(orders),
+  designProposals: many(newDesignOptions),
 }));
 
 
@@ -786,4 +787,29 @@ export const paymentsRelations = relations(payments, ({ one, many }) => ({
         references: [contests.id],
     }),
     orders: many(orders),
+}));
+
+export const newDesignOptions = pgTable('new_design_options', {
+  id: serial('id').primaryKey(),
+  printerId: uuid('printer_id').notNull().references(() => printPressUsers.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description').notNull(),
+  optionType: varchar('option_type', { length: 50 }).notNull(), // 'foil', 'texture', 'die_cut', 'lamination', 'other'
+  estimatedCost: numeric('estimated_cost', { precision: 10, scale: 2 }),
+  status: varchar('status', { length: 20, enum: ['pending', 'approved', 'rejected'] }).default('pending').notNull(),
+  images: text('images').array().default([]),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => {
+  return {
+    printerIdx: index('idx_ndo_printer_id').on(table.printerId),
+    statusIdx: index('idx_ndo_status').on(table.status),
+  };
+});
+
+export const newDesignOptionsRelations = relations(newDesignOptions, ({ one }) => ({
+  printer: one(printPressUsers, {
+    fields: [newDesignOptions.printerId],
+    references: [printPressUsers.id],
+  }),
 }));
