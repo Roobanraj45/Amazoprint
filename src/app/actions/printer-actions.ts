@@ -61,6 +61,11 @@ export async function getPrinters() {
     await verifyAdmin();
     return await db.query.printPressUsers.findMany({
         orderBy: [desc(printPressUsers.createdAt)],
+        with: {
+            priceLists: {
+                orderBy: (priceLists, { desc }) => [desc(priceLists.createdAt)]
+            }
+        }
     });
 }
 

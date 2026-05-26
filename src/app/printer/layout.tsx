@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
-import { Home, List, Briefcase, CircleDollarSign, Wallet, LogOut, Search, Bell, Factory, Package, Settings, Clock, Sparkles } from "lucide-react"
+import { Home, List, Briefcase, CircleDollarSign, Wallet, LogOut, Search, Bell, Factory, Package, Settings, Clock, Sparkles, FileText } from "lucide-react"
 import Link from "next/link"
 import { AmazoprintLogo } from "@/components/ui/logo"
 import { useRouter } from "next/navigation";
@@ -17,7 +17,9 @@ export default function PrinterLayout({ children }: { children: React.ReactNode 
   const menuItems = [
     { href: "/printer/dashboard", label: "Dashboard", icon: <Home size={16} />, color: "text-blue-500" },
     { href: "/printer/orders", label: "Order Queue", icon: <Package size={16} />, color: "text-amber-500" },
-    { href: "/printer/design-options", label: "Design Options", icon: <Sparkles size={16} />, color: "text-indigo-500" },
+    { href: "/printer/invoices", label: "Invoices", icon: <FileText size={16} />, color: "text-violet-500" },
+    { href: "/printer/design-options", label: "Design Update", icon: <Sparkles size={16} />, color: "text-indigo-500" },
+    { href: "/printer/price-list", label: "Price List", icon: <List size={16} />, color: "text-emerald-500" },
   ];
   
   const handleLogout = async () => {
@@ -32,7 +34,7 @@ export default function PrinterLayout({ children }: { children: React.ReactNode 
             <Sidebar className="w-56 border-r border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 backdrop-blur-xl">
                 <SidebarHeader className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-zinc-800/50 px-4">
                     <Link href="/" className="w-full flex items-center justify-center transition-transform hover:scale-[1.02]">
-                        <AmazoprintLogo className="w-full h-auto" />
+                        <AmazoprintLogo variant="sidebar" className="w-full h-auto" />
                     </Link>
                 </SidebarHeader>
                 <SidebarContent className="px-2 py-4">

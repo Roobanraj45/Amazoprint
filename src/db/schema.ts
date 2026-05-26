@@ -34,6 +34,8 @@ export const paymentProviderEnum = pgEnum('payment_provider', [
 
 export const printerStatusEnum = pgEnum('printer_status', ['pending', 'approved', 'rejected']);
 
+export const printerInvoiceStatusEnum = pgEnum('printer_invoice_status', ['pending', 'approved', 'paid', 'rejected']);
+
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 150 }).notNull(),
@@ -127,6 +129,7 @@ export const printPressUsers = pgTable('print_press_users', {
 export const printPressUsersRelations = relations(printPressUsers, ({ many }) => ({
   assignedOrders: many(orders),
   designProposals: many(newDesignOptions),
+  priceLists: many(printPriceLists),
 }));
 
 
@@ -467,6 +470,8 @@ export const orders = pgTable('orders', {
   updatedAt: timestamp('updated_at').defaultNow(),
   paymentId: integer('payment_id').references(() => payments.id, { onDelete: 'set null' }),
   printerAssigned: uuid('printer_assigned').references(() => printPressUsers.id, { onDelete: 'set null' }),
+  printerAssignedAt: timestamp('printer_assigned_at'),
+  printingAmount: numeric('printing_amount', { precision: 12, scale: 2 }).default('0.00').notNull(),
   customisation: jsonb('customisation').default({}),
   contestId: integer('contest_id').references(() => contests.id, { onDelete: 'set null' }),
 }, (table) => {
@@ -812,4 +817,89 @@ export const newDesignOptionsRelations = relations(newDesignOptions, ({ one }) =
     fields: [newDesignOptions.printerId],
     references: [printPressUsers.id],
   }),
+}));
+
+export const printPriceLists = pgTable('print_price_lists', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  printPressUserId: uuid('print_press_user_id').notNull().references(() => printPressUsers.id, { onDelete: 'cascade' }),
+  catalogName: varchar('catalog_name', { length: 255 }),
+  imageUrl: text('image_url').notNull(),
+  categoryName: varchar('category_name', { length: 255 }).notNull(),
+  subCategory: varchar('sub_category', { length: 255 }),
+  productName: varchar('product_name', { length: 255 }).notNull(),
+  size: varchar('size', { length: 100 }),
+  gsm: varchar('gsm', { length: 50 }),
+  paperType: varchar('paper_type', { length: 100 }),
+  finishType: varchar('finish_type', { length: 100 }),
+  colorType: varchar('color_type', { length: 100 }),
+  laminationType: varchar('lamination_type', { length: 100 }),
+  qty250: numeric('qty_250', { precision: 12, scale: 2 }),
+  qty500: numeric('qty_500', { precision: 12, scale: 2 }),
+  qty1000: numeric('qty_1000', { precision: 12, scale: 2 }),
+  qty5000: numeric('qty_5000', { precision: 12, scale: 2 }),
+  currency: varchar('currency', { length: 10 }).default('INR'),
+  isGlossy: boolean('is_glossy').default(false),
+  isMatt: boolean('is_matt').default(false),
+  isFAndB: boolean('is_f_and_b').default(false),
+  isActive: boolean('is_active').default(true),
+  displayOrder: integer('display_order').default(0),
+  remarks: text('remarks'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => {
+  return {
+    ppUserIdx: index('idx_pp_user').on(table.printPressUserId),
+    ppCategoryIdx: index('idx_pp_category').on(table.categoryName),
+    ppProductIdx: index('idx_pp_product').on(table.productName),
+    ppGsmIdx: index('idx_pp_gsm').on(table.gsm),
+    ppActiveIdx: index('idx_pp_active').on(table.isActive),
+    ppCatProductIdx: index('idx_pp_category_product').on(table.categoryName, table.productName),
+  };
+});
+
+export const printPriceListsRelations = relations(printPriceLists, ({ one }) => ({
+  printer: one(printPressUsers, {
+    fields: [printPriceLists.printPressUserId],
+    references: [printPressUsers.id],
+  }),
+}));
+
+// ── Printer Invoices ─────────────────────────────────────────────────────────
+export const printerInvoices = pgTable('printer_invoices', {
+  id: serial('id').primaryKey(),
+  printerId: uuid('printer_id').notNull().references(() => printPressUsers.id, { onDelete: 'cascade' }),
+  orderId: integer('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  invoiceNumber: varchar('invoice_number', { length: 50 }).notNull().unique(),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  invoiceItems: jsonb('invoice_items'),
+  notes: text('notes'),
+  status: printerInvoiceStatusEnum('status').notNull().default('pending'),
+  adminNote: text('admin_note'),
+  sentAt: timestamp('sent_at').defaultNow(),
+  approvedAt: timestamp('approved_at'),
+  paidAt: timestamp('paid_at'),
+  rejectedAt: timestamp('rejected_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  printerIdx: index('idx_pi_printer_id').on(table.printerId),
+  orderIdx: index('idx_pi_order_id').on(table.orderId),
+  statusIdx: index('idx_pi_status').on(table.status),
+  invoiceNumberIdx: uniqueIndex('idx_pi_invoice_number').on(table.invoiceNumber),
+  createdAtIdx: index('idx_pi_created_at').on(table.createdAt),
+}));
+
+export const printerInvoicesRelations = relations(printerInvoices, ({ one }) => ({
+  printer: one(printPressUsers, {
+    fields: [printerInvoices.printerId],
+    references: [printPressUsers.id],
+  }),
+  order: one(orders, {
+    fields: [printerInvoices.orderId],
+    references: [orders.id],
+  }),
+}));
+
+export const printPressUsersInvoicesRelations = relations(printPressUsers, ({ many }) => ({
+  invoices: many(printerInvoices),
 }));

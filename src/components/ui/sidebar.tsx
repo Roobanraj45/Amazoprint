@@ -76,7 +76,7 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
-    const [leftWidth, setLeftWidth] = React.useState(12)
+    const [leftWidth, setLeftWidth] = React.useState(14)
     const [rightWidth, setRightWidth] = React.useState(20)
 
     const [_leftOpen, _setLeftOpen] = React.useState(defaultLeftOpen)

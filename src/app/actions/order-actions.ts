@@ -5,7 +5,7 @@
 import { z } from 'zod';
 import { db } from '@/db';
 import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs, users, payments } from '@/db/schema';
-import { and, eq, desc, count, ilike, sql, gte, lte, or, inArray } from 'drizzle-orm';
+import { and, eq, desc, count, ilike, sql, gte, lte, or, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import type { Address } from '@/lib/types';
@@ -272,6 +272,7 @@ export async function getAdminAllOrders({
     limit = 10,
     searchQuery = '',
     statusFilter = 'all',
+    assignmentFilter = 'all',
     startDate = '',
     endDate = ''
 }: {
@@ -279,6 +280,7 @@ export async function getAdminAllOrders({
     limit?: number;
     searchQuery?: string;
     statusFilter?: string;
+    assignmentFilter?: string;
     startDate?: string;
     endDate?: string;
 } = {}) {
@@ -292,6 +294,19 @@ export async function getAdminAllOrders({
 
     if (statusFilter && statusFilter !== 'all') {
         conditions.push(eq(orders.orderStatus, statusFilter));
+    }
+
+    if (assignmentFilter === 'assigned') {
+        conditions.push(isNotNull(orders.printerAssigned));
+    } else if (assignmentFilter === 'unassigned') {
+        conditions.push(isNull(orders.printerAssigned));
+    } else if (assignmentFilter === 'unresponsive') {
+        const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+        conditions.push(and(
+            eq(orders.orderStatus, 'pending'),
+            isNotNull(orders.printerAssigned),
+            lte(orders.printerAssignedAt, sixHoursAgo)
+        ));
     }
 
     if (startDate && endDate) {
@@ -347,6 +362,12 @@ export async function getAdminAllOrders({
             product: true,
             subProduct: true,
             directSellingProduct: true,
+            printer: {
+                columns: {
+                    fullName: true,
+                    companyName: true,
+                }
+            },
             contest: {
                 with: {
                     payments: true
@@ -380,6 +401,7 @@ export async function getAdminOrderStats({
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // 1. Total Overall Revenue & Count
     const [totalStats] = await db.select({ 
@@ -403,6 +425,18 @@ export async function getAdminOrderStats({
         eq(payments.status, 'captured')
     ))
     .where(gte(orders.createdAt, startOfToday));
+
+    // 2.5 This Month's Revenue & Count
+    const [thisMonthStats] = await db.select({ 
+        totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0) + COALESCE(SUM(${payments.amount}::numeric), 0)`,
+        count: count()
+    })
+    .from(orders)
+    .leftJoin(payments, and(
+        eq(payments.contestId, orders.contestId),
+        eq(payments.status, 'captured')
+    ))
+    .where(gte(orders.createdAt, startOfThisMonth));
 
     // 3. Filtered Revenue & Count
     const conditions = [];
@@ -456,10 +490,35 @@ export async function getAdminOrderStats({
     ))
     .where(finalCondition);
 
+    // 4. Printer Assignment Stats
+    const [assignedStats] = await db.select({ count: count() })
+        .from(orders)
+        .where(isNotNull(orders.printerAssigned));
+
+    const [unassignedStats] = await db.select({ count: count() })
+        .from(orders)
+        .where(isNull(orders.printerAssigned));
+
+    // 5. Unresponsive Printers (pending status, assigned, and > 6 hours old since assignment)
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const [unresponsiveStats] = await db.select({ count: count() })
+        .from(orders)
+        .where(and(
+            eq(orders.orderStatus, 'pending'),
+            isNotNull(orders.printerAssigned),
+            lte(orders.printerAssignedAt, sixHoursAgo)
+        ));
+
     return {
         total: { amount: Number(totalStats.totalAmount), count: totalStats.count },
-        today: { amount: Number(todayStats.totalAmount), count: todayStats.count },
-        filtered: { amount: Number(filteredStats.totalAmount), count: filteredStats.count }
+        today: { amount: Number(todayStats.amount || todayStats.totalAmount), count: todayStats.count },
+        thisMonth: { amount: Number(thisMonthStats.totalAmount), count: thisMonthStats.count },
+        filtered: { amount: Number(filteredStats.totalAmount), count: filteredStats.count },
+        printers: {
+            assigned: assignedStats.count,
+            unassigned: unassignedStats.count,
+            unresponsive: unresponsiveStats.count,
+        }
     };
 }
 
@@ -556,7 +615,7 @@ export async function getMyOrderDetails(orderId: number) {
     return order;
 }
 
-export async function assignPrinterToOrder(orderId: number, printerId: string | null) {
+export async function assignPrinterToOrder(orderId: number, printerId: string | null, printingAmount?: string) {
     const session = await getSession();
     const adminRoles = ['admin', 'super_admin', 'company_admin'];
     if (!session?.sub || !adminRoles.includes(session.role)) {
@@ -564,20 +623,27 @@ export async function assignPrinterToOrder(orderId: number, printerId: string | 
     }
 
     // Automatically update order status when printer is assigned
-    const newStatus = printerId ? 'processing' : 'confirmed';
+    const newStatus = printerId ? 'pending' : 'confirmed';
 
     // Get current order state for logging
     const currentOrder = await db.query.orders.findFirst({
         where: eq(orders.id, orderId),
-        columns: { printerAssigned: true, orderStatus: true }
+        columns: { printerAssigned: true, orderStatus: true, printingAmount: true }
     });
 
+    const updateFields: any = { 
+        printerAssigned: printerId, 
+        orderStatus: newStatus,
+        printerAssignedAt: printerId ? new Date() : null,
+        updatedAt: new Date() 
+    };
+
+    if (printingAmount !== undefined) {
+        updateFields.printingAmount = printingAmount;
+    }
+
     await db.update(orders)
-        .set({ 
-            printerAssigned: printerId, 
-            orderStatus: newStatus,
-            updatedAt: new Date() 
-        })
+        .set(updateFields)
         .where(eq(orders.id, orderId));
 
     // Log printer assignment
@@ -585,9 +651,9 @@ export async function assignPrinterToOrder(orderId: number, printerId: string | 
         await recordOrderLog({
             orderId,
             actionType: 'printer_assigned',
-            oldValue: { printer: currentOrder?.printerAssigned, status: currentOrder?.orderStatus },
-            newValue: { printer: printerId, status: newStatus },
-            message: printerId ? `Order assigned to printer and moved to production` : `Order unassigned and returned to confirmed status`
+            oldValue: { printer: currentOrder?.printerAssigned, status: currentOrder?.orderStatus, printingAmount: currentOrder?.printingAmount },
+            newValue: { printer: printerId, status: newStatus, printingAmount: printingAmount || currentOrder?.printingAmount },
+            message: printerId ? `Order assigned to printer (Amount: ₹${printingAmount || '0.00'}) and moved to pending approval` : `Order unassigned and returned to confirmed status`
         });
     } catch (e) {
         console.error('Failed to log printer assignment:', e);

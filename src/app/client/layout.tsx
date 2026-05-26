@@ -38,7 +38,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             <Sidebar className="w-56 border-r border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 backdrop-blur-xl print:!hidden">
                 <SidebarHeader className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-zinc-800/50 px-4">
                     <Link href="/" className="w-full flex items-center justify-center transition-transform hover:scale-[1.02]">
-                        <AmazoprintLogo className="w-full h-auto" />
+                        <AmazoprintLogo variant="sidebar" className="w-full h-auto" />
                     </Link>
                 </SidebarHeader>
                 <SidebarContent className="px-2 py-4">

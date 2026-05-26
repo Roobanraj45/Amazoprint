@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 interface LogoProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'wide' | 'banner' | 'large';
+  variant?: 'wide' | 'banner' | 'large' | 'sidebar';
   isSimple?: boolean;
 }
 
@@ -42,6 +42,8 @@ export function AmazoprintLogo(logoProps: LogoProps) {
     dimensions = "h-24 w-72";
   } else if (variant === 'banner') {
     dimensions = "h-32 w-96";
+  } else if (variant === 'sidebar') {
+    dimensions = "h-12 w-40";
   } else {
     dimensions = "h-20 w-60"; // Enlarged default wide logo
   }
