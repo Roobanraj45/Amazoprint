@@ -1,4 +1,6 @@
 import { getUserProfile, getUserStats } from "@/app/actions/user-actions";
+import { getBankDetails } from "@/app/actions/bank-actions";
+import { BankDetailsForm } from "@/components/BankDetailsForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,6 +10,7 @@ import { Trophy, Package, ShieldCheck, Mail, CalendarDays, Phone } from "lucide-
 export default async function ClientProfilePage() {
     const profile = await getUserProfile();
     const stats: any = await getUserStats();
+    const bankData = await getBankDetails();
 
     return (
         <div className="min-h-full p-4 md:p-8 lg:p-10 space-y-8">
@@ -105,6 +108,10 @@ export default async function ClientProfilePage() {
                                 </div>
                             </CardContent>
                         </Card>
+                    </div>
+
+                    <div className="pt-2">
+                        <BankDetailsForm initialData={bankData} />
                     </div>
                 </div>
             </div>

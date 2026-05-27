@@ -30,22 +30,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         });
     }, []);
 
-    const menuItems = [
-        { href: "/admin/dashboard", label: "Dashboard", icon: <Home size={14} />, color: "group-hover:text-blue-500" },
-        { href: "/admin/products", label: "Products", icon: <ShoppingBag size={14} />, color: "group-hover:text-cyan-500" },
-        { href: "/admin/pricing", label: "Pricing", icon: <DollarSign size={14} />, color: "group-hover:text-emerald-500" },
-        { href: "/admin/direct-selling", label: "Direct Selling", icon: <Store size={14} />, color: "group-hover:text-lime-500" },
-        { href: "/admin/orders", label: "Orders", icon: <Package size={14} />, color: "group-hover:text-indigo-500" },
-        { href: "/admin/addons", label: "Product Add-ons", icon: <Layers size={14} />, color: "group-hover:text-purple-500" },
-        { href: "/admin/contests", label: "Contests", icon: <Trophy size={14} />, color: "group-hover:text-orange-500" },
-        { href: "/admin/payouts", label: "Freelancer Payouts", icon: <CircleDollarSign size={14} />, color: "group-hover:text-emerald-600" },
-        { href: "/admin/users", label: "Users", icon: <Users size={14} />, color: "group-hover:text-sky-500" },
-        { href: "/admin/printers", label: "Printers", icon: <Factory size={14} />, color: "group-hover:text-blue-600" },
-        { href: "/admin/printer-invoices", label: "Printer Invoices", icon: <Receipt size={14} />, color: "group-hover:text-violet-500" },
-        { href: "/admin/printer-proposals", label: "Printer Suggestions", icon: <Sparkles size={14} />, color: "group-hover:text-indigo-500" },
-        { href: "/admin/designs", label: "Designs", icon: <Palette size={14} />, color: "group-hover:text-rose-500" },
-        { href: "/admin/extract", label: "File Extract", icon: <FileArchive size={14} />, color: "group-hover:text-amber-600" },
-        { href: "/admin/reports", label: "Reports", icon: <BarChart3 size={14} />, color: "group-hover:text-violet-500" },
+    const menuSections = [
+        {
+            title: "Core Overview",
+            items: [
+                { href: "/admin/dashboard", label: "Dashboard", icon: <Home size={14} />, color: "group-hover:text-blue-500" },
+                { href: "/admin/reports", label: "Reports", icon: <BarChart3 size={14} />, color: "group-hover:text-violet-500" },
+            ]
+        },
+        {
+            title: "Store & Catalog",
+            items: [
+                { href: "/admin/products", label: "Products", icon: <ShoppingBag size={14} />, color: "group-hover:text-cyan-500" },
+                { href: "/admin/pricing", label: "Pricing", icon: <DollarSign size={14} />, color: "group-hover:text-emerald-500" },
+                { href: "/admin/addons", label: "Product Add-ons", icon: <Layers size={14} />, color: "group-hover:text-purple-500" },
+                { href: "/admin/direct-selling", label: "Direct Selling", icon: <Store size={14} />, color: "group-hover:text-lime-500" },
+            ]
+        },
+        {
+            title: "Fulfillment",
+            items: [
+                { href: "/admin/orders", label: "Orders", icon: <Package size={14} />, color: "group-hover:text-indigo-500" },
+                { href: "/admin/extract", label: "File Extract", icon: <FileArchive size={14} />, color: "group-hover:text-amber-600" },
+            ]
+        },
+        {
+            title: "Partner Networks",
+            items: [
+                { href: "/admin/users", label: "Users", icon: <Users size={14} />, color: "group-hover:text-sky-500" },
+                { href: "/admin/printers", label: "Printers", icon: <Factory size={14} />, color: "group-hover:text-blue-600" },
+                { href: "/admin/printer-invoices", label: "Printer Invoices", icon: <Receipt size={14} />, color: "group-hover:text-violet-500" },
+                { href: "/admin/printer-proposals", label: "Printer Suggestions", icon: <Sparkles size={14} />, color: "group-hover:text-indigo-500" },
+            ]
+        },
+        {
+            title: "Creative Hub",
+            items: [
+                { href: "/admin/contests", label: "Contests", icon: <Trophy size={14} />, color: "group-hover:text-orange-500" },
+                { href: "/admin/payouts", label: "Freelancer Payouts", icon: <CircleDollarSign size={14} />, color: "group-hover:text-emerald-600" },
+                { href: "/admin/designs", label: "Designs", icon: <Palette size={14} />, color: "group-hover:text-rose-500" },
+            ]
+        }
     ];
 
     const handleLogout = async () => {
@@ -64,44 +89,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         </Link>
                     </SidebarHeader>
                     
-                    <SidebarContent className="px-2 pt-2 flex-1 space-y-0.5">
-                        <div className="px-3 mb-1 group-data-[collapsible=icon]:hidden">
-                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">Management</span>
-                        </div>
-                        <SidebarMenu>
-                            {menuItems.map((item) => {
-                                const isActive = item.href === '/admin/dashboard'
-                                    ? pathname === item.href
-                                    : pathname.startsWith(item.href);
-                                return (
-                                    <SidebarMenuItem key={item.label}>
-                                        <SidebarMenuButton 
-                                            asChild 
-                                            className={cn(
-                                                "h-9 transition-all duration-200 rounded-lg group px-2",
-                                                isActive 
-                                                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:text-white" 
-                                                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-900 dark:text-slate-400"
-                                            )}
-                                            tooltip={item.label}
-                                        >
-                                            <Link href={item.href} className="flex items-center gap-2">
-                                                <div className={cn(
-                                                    "transition-transform group-hover:scale-110",
-                                                    !isActive && item.color
-                                                )}>
-                                                    {item.icon}
-                                                </div>
-                                                <span className="font-bold text-xs tracking-tight group-data-[collapsible=icon]:hidden">{item.label}</span>
-                                                {isActive && (
-                                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse group-data-[collapsible=icon]:hidden" />
-                                                )}
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                );
-                            })}
-                        </SidebarMenu>
+                    <SidebarContent className="px-2 pt-2 flex-1 space-y-4 overflow-y-auto no-scrollbar">
+                        {menuSections.map((section) => (
+                            <div key={section.title} className="space-y-1">
+                                <div className="px-3 py-1 group-data-[collapsible=icon]:hidden">
+                                    <span className="text-[9px] font-black text-slate-400 dark:text-zinc-500 uppercase tracking-widest">{section.title}</span>
+                                </div>
+                                <SidebarMenu>
+                                    {section.items.map((item) => {
+                                        const isActive = item.href === '/admin/dashboard'
+                                            ? pathname === item.href
+                                            : pathname.startsWith(item.href);
+                                        return (
+                                            <SidebarMenuItem key={item.label}>
+                                                <SidebarMenuButton 
+                                                    asChild 
+                                                    className={cn(
+                                                        "h-9 transition-all duration-200 rounded-lg group px-2",
+                                                        isActive 
+                                                            ? "bg-blue-600 text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 hover:text-white" 
+                                                            : "text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-900 dark:text-slate-400"
+                                                    )}
+                                                    tooltip={item.label}
+                                                >
+                                                    <Link href={item.href} className="flex items-center gap-2">
+                                                        <div className={cn(
+                                                            "transition-transform group-hover:scale-110",
+                                                            !isActive && item.color
+                                                        )}>
+                                                            {item.icon}
+                                                        </div>
+                                                        <span className="font-bold text-xs tracking-tight group-data-[collapsible=icon]:hidden">{item.label}</span>
+                                                        {isActive && (
+                                                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse group-data-[collapsible=icon]:hidden" />
+                                                        )}
+                                                    </Link>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                        );
+                                    })}
+                                </SidebarMenu>
+                            </div>
+                        ))}
                     </SidebarContent>
 
                     <SidebarFooter className="p-2 border-t border-slate-200/60 dark:border-zinc-800/60 mt-auto bg-slate-50/50 dark:bg-zinc-900/30">

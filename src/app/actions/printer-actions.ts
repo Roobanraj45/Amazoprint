@@ -64,7 +64,8 @@ export async function getPrinters() {
         with: {
             priceLists: {
                 orderBy: (priceLists, { desc }) => [desc(priceLists.createdAt)]
-            }
+            },
+            bankDetails: true,
         }
     });
 }

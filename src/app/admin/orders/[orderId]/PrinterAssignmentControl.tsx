@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useTransition } from "react";
-import { assignPrinterToOrder } from "@/app/actions/order-actions";
+import { assignPrinterToOrder, recordPrinterPayment } from "@/app/actions/order-actions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Printer, IndianRupee } from "lucide-react";
+import { Loader2, Printer, IndianRupee, Calendar, CreditCard, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface Printer {
     id: string;
@@ -16,47 +17,145 @@ interface Printer {
     city: string | null;
 }
 
+interface PrinterPayment {
+    id: string;
+    amount: string;
+    paymentDate: Date | string;
+    paymentMethod: string;
+    referenceNumber: string | null;
+    notes: string | null;
+}
+
 interface PrinterAssignmentControlProps {
     orderId: number;
     currentPrinterId: string | null;
     currentPrintingAmount: string;
     printers: Printer[];
+    printerPayments?: PrinterPayment[];
 }
 
-export function PrinterAssignmentControl({ orderId, currentPrinterId, currentPrintingAmount, printers }: PrinterAssignmentControlProps) {
+export function PrinterAssignmentControl({ 
+    orderId, 
+    currentPrinterId, 
+    currentPrintingAmount, 
+    printers,
+    printerPayments = []
+}: PrinterAssignmentControlProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+    
+    // Core states
     const [selectedPrinter, setSelectedPrinter] = useState<string>(currentPrinterId || "none");
     const [amount, setAmount] = useState<string>(currentPrintingAmount || "0.00");
+    const [advancePaid, setAdvancePaid] = useState<string>("0.00");
 
-    const handleSave = () => {
+    // Add installment payment states
+    const [installmentAmount, setInstallmentAmount] = useState<string>("");
+    const [refNumber, setRefNumber] = useState<string>("");
+    const [paymentNotes, setPaymentNotes] = useState<string>("");
+
+    // Calculate payouts totals
+    const totalPaid = printerPayments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
+    const printingCost = parseFloat(amount) || 0;
+    const remainingBalance = printingCost - totalPaid;
+
+    const handleSaveAssignment = () => {
         const targetId = selectedPrinter === "none" ? null : selectedPrinter;
+        const advVal = parseFloat(advancePaid) || 0;
+        const costVal = parseFloat(amount) || 0;
+
+        if (targetId && advVal > costVal) {
+            toast({
+                title: "Invalid advance amount",
+                description: "Advance payment cannot exceed the total printing cost.",
+                variant: "destructive"
+            });
+            return;
+        }
         
         startTransition(async () => {
             try {
-                const result = await assignPrinterToOrder(orderId, targetId, targetId ? amount : "0.00");
+                const result = await assignPrinterToOrder(
+                    orderId, 
+                    targetId, 
+                    targetId ? amount : "0.00",
+                    targetId && advVal > 0 ? advancePaid : undefined,
+                    'bank_transfer',
+                    'Advance Payment',
+                    'Initial advance payment'
+                );
                 if (result.success) {
                     toast({
                         title: "Assignment updated",
-                        description: "Printer and cost saved successfully"
+                        description: "Printer details saved successfully"
                     });
+                    setAdvancePaid("0.00");
                 }
-            } catch (error) {
+            } catch (error: any) {
                 toast({
                     title: "Update failed",
-                    description: "Failed to assign printer",
+                    description: error.message || "Failed to assign printer",
                     variant: "destructive"
                 });
             }
         });
     };
 
-    const hasChanges = selectedPrinter !== (currentPrinterId || "none") || amount !== (currentPrintingAmount || "0.00");
+    const handleAddInstallment = () => {
+        const instVal = parseFloat(installmentAmount);
+        if (isNaN(instVal) || instVal <= 0) {
+            toast({
+                title: "Invalid amount",
+                description: "Please enter a positive amount.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        if (instVal > remainingBalance) {
+            toast({
+                title: "Exceeds remaining balance",
+                description: `Payment cannot exceed remaining balance of ₹${remainingBalance.toFixed(2)}`,
+                variant: "destructive"
+            });
+            return;
+        }
+
+        startTransition(async () => {
+            try {
+                const result = await recordPrinterPayment({
+                    orderId,
+                    printerId: currentPrinterId!,
+                    amount: installmentAmount,
+                    paymentMethod: "bank_transfer",
+                    referenceNumber: refNumber,
+                    notes: paymentNotes
+                });
+                if (result.success) {
+                    toast({
+                        title: "Payment Recorded",
+                        description: `Installment payout of ₹${instVal} successfully registered.`
+                    });
+                    setInstallmentAmount("");
+                    setRefNumber("");
+                    setPaymentNotes("");
+                }
+            } catch (error: any) {
+                toast({
+                    title: "Failed to record payment",
+                    description: error.message || "Something went wrong.",
+                    variant: "destructive"
+                });
+            }
+        });
+    };
+
+    const hasAssignmentChanges = selectedPrinter !== (currentPrinterId || "none") || amount !== (currentPrintingAmount || "0.00");
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Printer assignment</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Printer Assignment</span>
                 {isPending && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
             </div>
             
@@ -89,31 +188,148 @@ export function PrinterAssignmentControl({ orderId, currentPrinterId, currentPri
             </Select>
 
             {selectedPrinter !== "none" && (
-                <div className="space-y-1.5 animate-in slide-in-from-top-1 duration-200">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Printing Cost (Payout)</label>
-                    <div className="relative">
-                        <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                        <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="0.00"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            disabled={isPending}
-                            className="h-9 pl-8 text-[11px] font-bold rounded-xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 transition-all focus:ring-primary/20"
-                        />
+                <div className="space-y-3 animate-in slide-in-from-top-1 duration-200">
+                    <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Printing Cost (Payout)</label>
+                        <div className="relative">
+                            <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                            <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                disabled={isPending || !!currentPrinterId}
+                                className="h-9 pl-8 text-[11px] font-bold rounded-xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 transition-all focus:ring-primary/20"
+                            />
+                        </div>
                     </div>
+
+                    {/* Show advance paid amount input only on initial assignment */}
+                    {!currentPrinterId && (
+                        <div className="space-y-1 animate-in slide-in-from-top-1 duration-200">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Advance Payment (Optional)</label>
+                            <div className="relative">
+                                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    value={advancePaid}
+                                    onChange={(e) => setAdvancePaid(e.target.value)}
+                                    disabled={isPending}
+                                    className="h-9 pl-8 text-[11px] font-bold rounded-xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 transition-all focus:ring-primary/20"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
-            <Button
-                onClick={handleSave}
-                disabled={isPending || !hasChanges}
-                className="w-full h-9 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-primary text-white hover:bg-primary/95 transition-all shadow-md shadow-primary/10"
-            >
-                {isPending ? "Saving..." : "Save Assignment"}
-            </Button>
+            {!currentPrinterId && (
+                <Button
+                    onClick={handleSaveAssignment}
+                    disabled={isPending || !hasAssignmentChanges}
+                    className="w-full h-9 rounded-xl text-[10px] font-bold uppercase tracking-wider bg-primary text-white hover:bg-primary/95 transition-all shadow-md shadow-primary/10"
+                >
+                    {isPending ? "Assigning..." : "Assign Printer & Cost"}
+                </Button>
+            )}
+
+            {/* Display payments history, total paid, remaining balance if printer already assigned */}
+            {currentPrinterId && (
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                    <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-[10px]">
+                        <div>
+                            <span className="text-slate-400 font-bold block">TOTAL PAID</span>
+                            <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200">₹{totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div>
+                            <span className="text-slate-400 font-bold block">OUTSTANDING BALANCE</span>
+                            <span className={cn(
+                                "font-extrabold text-xs",
+                                remainingBalance > 0 ? "text-amber-600 dark:text-amber-500" : "text-emerald-600 dark:text-emerald-500"
+                            )}>
+                                ₹{remainingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Payments Timeline / History Ledger */}
+                    {printerPayments.length > 0 && (
+                        <div className="space-y-2">
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <History className="w-3.5 h-3.5 text-slate-400" /> Payout History
+                            </span>
+                            <div className="space-y-1.5 max-h-[150px] overflow-y-auto pr-1 no-scrollbar">
+                                {printerPayments.map((p) => (
+                                    <div key={p.id} className="p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl text-[10px] space-y-1">
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-slate-700 dark:text-slate-350">₹{parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span className="text-[8px] text-slate-400 font-bold">
+                                                {format(new Date(p.paymentDate), 'dd MMM yyyy')}
+                                            </span>
+                                        </div>
+                                        {p.referenceNumber && (
+                                            <p className="text-[8px] text-slate-400 font-mono">Ref: {p.referenceNumber}</p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Form to add subsequent installment payments */}
+                    {remainingBalance > 0 && (
+                        <div className="bg-slate-50/50 dark:bg-slate-950/20 p-3 rounded-2xl border border-slate-100 dark:border-slate-850 space-y-3">
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Record installment Payment</span>
+                            <div className="space-y-2">
+                                <div className="relative">
+                                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="Amount to pay"
+                                        value={installmentAmount}
+                                        onChange={(e) => setInstallmentAmount(e.target.value)}
+                                        disabled={isPending}
+                                        className="h-8 pl-8 text-[11px] font-bold rounded-xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 transition-all focus:ring-primary/20"
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                    <Input
+                                        type="text"
+                                        placeholder="Reference Transaction ID"
+                                        value={refNumber}
+                                        onChange={(e) => setRefNumber(e.target.value)}
+                                        disabled={isPending}
+                                        className="h-8 pl-8 text-[11px] font-semibold rounded-xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 transition-all focus:ring-primary/20"
+                                    />
+                                </div>
+                                <Input
+                                    type="text"
+                                    placeholder="Add payment notes..."
+                                    value={paymentNotes}
+                                    onChange={(e) => setPaymentNotes(e.target.value)}
+                                    disabled={isPending}
+                                    className="h-8 text-[11px] font-semibold rounded-xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 transition-all focus:ring-primary/20"
+                                />
+                                <Button
+                                    onClick={handleAddInstallment}
+                                    disabled={isPending || !installmentAmount}
+                                    className="w-full h-8 rounded-xl text-[9px] font-bold uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-600/90 transition-all shadow-md shadow-emerald-500/10"
+                                >
+                                    {isPending ? "Recording..." : "Record Payment"}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

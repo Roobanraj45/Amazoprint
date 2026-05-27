@@ -156,6 +156,60 @@ export async function sendPrinterInvoice({
     return invoice;
 }
 
+/** Fetch details for a specific invoice. Securely accessible to either the owning printer or any admin. */
+export async function getPrinterInvoiceById(invoiceId: number) {
+    const session = await getSession();
+    if (!session?.sub) {
+        throw new Error('Unauthorized');
+    }
+
+    const isAdmin = ['admin', 'super_admin', 'company_admin'].includes(session.role);
+    const isPrinter = session.role === 'printer';
+
+    if (!isAdmin && !isPrinter) {
+        throw new Error('Unauthorized');
+    }
+
+    const invoice = await db.query.printerInvoices.findFirst({
+        where: eq(printerInvoices.id, invoiceId),
+        with: {
+            printer: {
+                columns: {
+                    fullName: true,
+                    companyName: true,
+                    email: true,
+                    phone: true,
+                    address: true,
+                    city: true,
+                    state: true,
+                    postalCode: true,
+                    country: true,
+                    gstNumber: true,
+                },
+            },
+            order: {
+                with: {
+                    product: true,
+                    directSellingProduct: true,
+                    user: { columns: { name: true, email: true } },
+                    printerPayments: true,
+                },
+            },
+        },
+    });
+
+    if (!invoice) {
+        return null;
+    }
+
+    // Security check: if printer, they must own the invoice
+    if (isPrinter && invoice.printerId !== session.sub) {
+        throw new Error('Unauthorized: you do not own this invoice.');
+    }
+
+    return invoice;
+}
+
 // ── Admin Actions ──────────────────────────────────────────────────────────────
 
 export async function getAdminAllInvoices({

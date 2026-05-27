@@ -447,11 +447,27 @@ function OrderCard({
                     <div className="flex flex-col items-end gap-2 shrink-0">
                         {/* Printing amount (what printer earns) */}
                         <div className="text-right">
-                            <p className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-0.5">
+                            <p className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-0.5 justify-end">
                                 <IndianRupee className="h-3.5 w-3.5" />
                                 {parseFloat(order.printingAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </p>
-                            <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Your Payout</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Your Payout</p>
+                            {(() => {
+                                const paymentsList = (order as any).printerPayments || [];
+                                const totalPaid = paymentsList.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0);
+                                const balance = parseFloat(order.printingAmount || '0') - totalPaid;
+                                if (totalPaid > 0) {
+                                    return (
+                                        <div className="text-[10px] space-y-0.5">
+                                            <p className="font-bold text-emerald-600 dark:text-emerald-400">Paid: ₹{totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                                            <p className={cn("font-bold", balance > 0 ? "text-amber-600 dark:text-amber-500" : "text-emerald-600 dark:text-emerald-500")}>
+                                                Bal: ₹{balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </p>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
                         {/* Advance status button */}
                         {nextCfg && nextStatus && (
@@ -604,6 +620,29 @@ function OrderCard({
                                 )}
                             </div>
                         </div>
+
+                        {/* Payout History Ledger */}
+                        {((order as any).printerPayments && (order as any).printerPayments.length > 0) && (
+                            <div>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-2">Payout History</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                                    {(order as any).printerPayments.map((p: any) => (
+                                        <div key={p.id} className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-xl p-3 flex flex-col justify-between gap-1">
+                                            <div className="flex justify-between items-center text-xs font-extrabold text-slate-800 dark:text-zinc-200">
+                                                <span>₹{parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                <span className="text-[9px] text-slate-400 font-bold">{format(new Date(p.paymentDate), 'dd MMM yyyy')}</span>
+                                            </div>
+                                            {p.referenceNumber && (
+                                                <p className="text-[9px] font-mono text-slate-400">Ref: {p.referenceNumber}</p>
+                                            )}
+                                            {p.notes && (
+                                                <p className="text-[9px] text-slate-500 italic font-medium">{p.notes}</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

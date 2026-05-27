@@ -34,6 +34,7 @@ import {
     Banknote,
     Receipt,
     CircleCheck,
+    Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -696,6 +697,7 @@ export default function PrinterInvoicesPage() {
                                             <th className="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
                                             <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Sent</th>
                                             <th className="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Admin Note</th>
+                                            <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -733,6 +735,13 @@ export default function PrinterInvoicesPage() {
                                                         ) : (
                                                             <span className="text-[10px] text-slate-300 dark:text-zinc-600">—</span>
                                                         )}
+                                                    </td>
+                                                    <td className="px-4 py-3.5 text-right">
+                                                        <Button asChild variant="outline" size="sm" className="h-7 text-xs font-bold gap-1 rounded-lg border-slate-200 dark:border-zinc-700">
+                                                            <Link href={`/printer-invoices/${inv.id}`} target="_blank">
+                                                                <Download className="h-3 w-3 text-violet-500 animate-pulse" /> PDF
+                                                            </Link>
+                                                        </Button>
                                                     </td>
                                                 </tr>
                                             );

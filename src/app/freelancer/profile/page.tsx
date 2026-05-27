@@ -1,4 +1,6 @@
 import { getUserProfile, getUserStats } from "@/app/actions/user-actions";
+import { getBankDetails } from "@/app/actions/bank-actions";
+import { BankDetailsForm } from "@/components/BankDetailsForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,6 +10,7 @@ import { Trophy, ShieldCheck, Mail, CalendarDays, Phone, Briefcase, Code, Sparkl
 export default async function FreelancerProfilePage() {
     const profile = await getUserProfile();
     const stats: any = await getUserStats();
+    const bankData = await getBankDetails();
 
     // Format hourly rate
     const hourlyRateFormatted = profile.hourlyRate 
@@ -199,6 +202,10 @@ export default async function FreelancerProfilePage() {
                                 </CardContent>
                             </Card>
                         </div>
+                    </div>
+
+                    <div className="pt-2">
+                        <BankDetailsForm initialData={bankData} />
                     </div>
                 </div>
             </div>

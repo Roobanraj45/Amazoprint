@@ -35,6 +35,9 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
         notFound();
     }
 
+    const totalPrinterPaid = (order as any).printerPayments?.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0) || 0;
+    const remainingPrinterBalance = (parseFloat(order.printingAmount) || 0) - totalPrinterPaid;
+
     const isDirectSale = !!order.directSellingProduct;
     const isDesignOrder = !!order.design;
     const isUploadOrder = !!order.designUpload;
@@ -420,6 +423,24 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                         <span>Shipping & Logistics Cost</span>
                                         <span className="text-emerald-600 font-bold uppercase text-[9px] tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/10">Free Express</span>
                                     </div>
+
+                                    {order.printerAssigned && (
+                                        <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 space-y-2">
+                                            <p className="text-[9px] font-extrabold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Printer Payout Settlement</p>
+                                            <div className="flex justify-between items-center text-xs">
+                                                <span className="text-slate-500 font-medium">Printer Cost (Total Payout):</span>
+                                                <span className="text-slate-900 dark:text-white font-bold">₹{parseFloat(order.printingAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-xs">
+                                                <span className="text-slate-500 font-medium">Paid to Printer:</span>
+                                                <span className="text-emerald-600 dark:text-emerald-405 font-extrabold">₹{totalPrinterPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-xs">
+                                                <span className="text-slate-500 font-medium">Outstanding Printer Balance:</span>
+                                                <span className="text-amber-600 dark:text-amber-500 font-extrabold">₹{remainingPrinterBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Right side: summary and gateway details */}
@@ -584,6 +605,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                 currentPrinterId={order.printerAssigned} 
                                 currentPrintingAmount={order.printingAmount}
                                 printers={approvedPrinters as any} 
+                                printerPayments={(order as any).printerPayments}
                             />
                         </CardContent>
                     </Card>

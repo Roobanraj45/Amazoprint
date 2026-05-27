@@ -130,6 +130,9 @@ export const printPressUsersRelations = relations(printPressUsers, ({ many }) =>
   assignedOrders: many(orders),
   designProposals: many(newDesignOptions),
   priceLists: many(printPriceLists),
+  invoices: many(printerInvoices),
+  bankDetails: many(bankDetails),
+  printerPayments: many(printerPayments),
 }));
 
 
@@ -572,6 +575,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   verificationRequests: many(designVerifications, { relationName: 'client' }),
   assignedVerifications: many(designVerifications, { relationName: 'freelancer' }),
   orders: many(orders),
+  bankDetails: many(bankDetails),
 }));
 
 export const productsRelations = relations(products, ({ many }) => ({
@@ -773,6 +777,7 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
         references: [contests.id],
     }),
     logs: many(orderLogs),
+    printerPayments: many(printerPayments),
 }));
 
 export const orderLogsRelations = relations(orderLogs, ({ one }) => ({
@@ -900,6 +905,64 @@ export const printerInvoicesRelations = relations(printerInvoices, ({ one }) => 
   }),
 }));
 
-export const printPressUsersInvoicesRelations = relations(printPressUsers, ({ many }) => ({
-  invoices: many(printerInvoices),
+
+
+// ── Bank Details ─────────────────────────────────────────────────────────────
+export const bankDetails = pgTable('bank_details', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  printPressUserId: uuid('print_press_user_id').references(() => printPressUsers.id, { onDelete: 'cascade' }),
+  accountHolderName: varchar('account_holder_name', { length: 150 }).notNull(),
+  accountNumber: varchar('account_number', { length: 50 }).notNull(),
+  bankName: varchar('bank_name', { length: 100 }).notNull(),
+  branchName: varchar('branch_name', { length: 100 }),
+  ifscCode: varchar('ifsc_code', { length: 20 }).notNull(),
+  accountType: varchar('account_type', { length: 20 }).default('savings').notNull(),
+  isPrimary: boolean('is_primary').default(true).notNull(),
+  isVerified: boolean('is_verified').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index('idx_bank_details_user_id').on(table.userId),
+  printPressUserIdIdx: index('idx_bank_details_print_press_user_id').on(table.printPressUserId),
+  isPrimaryIdx: index('idx_bank_details_is_primary').on(table.isPrimary),
 }));
+
+export const bankDetailsRelations = relations(bankDetails, ({ one }) => ({
+  user: one(users, {
+    fields: [bankDetails.userId],
+    references: [users.id],
+  }),
+  printer: one(printPressUsers, {
+    fields: [bankDetails.printPressUserId],
+    references: [printPressUsers.id],
+  }),
+}));
+
+export const printerPayments = pgTable('printer_payments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  orderId: integer('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  printerId: uuid('printer_id').notNull().references(() => printPressUsers.id, { onDelete: 'cascade' }),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  paymentDate: timestamp('payment_date').defaultNow().notNull(),
+  paymentMethod: varchar('payment_method', { length: 50 }).default('bank_transfer').notNull(),
+  referenceNumber: varchar('reference_number', { length: 100 }),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  orderIdIdx: index('idx_printer_payments_order_id').on(table.orderId),
+  printerIdIdx: index('idx_printer_payments_printer_id').on(table.printerId),
+}));
+
+export const printerPaymentsRelations = relations(printerPayments, ({ one }) => ({
+  order: one(orders, {
+    fields: [printerPayments.orderId],
+    references: [orders.id],
+  }),
+  printer: one(printPressUsers, {
+    fields: [printerPayments.printerId],
+    references: [printPressUsers.id],
+  }),
+}));
+

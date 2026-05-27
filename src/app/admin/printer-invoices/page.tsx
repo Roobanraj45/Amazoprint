@@ -32,7 +32,9 @@ import {
     ShieldCheck,
     CreditCard,
     Package,
+    Download,
 } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -622,6 +624,11 @@ export default function AdminPrinterInvoicesPage() {
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center justify-end gap-1.5">
+                                                    <Button asChild variant="outline" size="sm" className="h-7 px-2.5 rounded-lg text-[10px] font-black gap-1 border-slate-200 dark:border-zinc-800">
+                                                        <Link href={`/printer-invoices/${inv.id}`} target="_blank">
+                                                            <Download className="h-3 w-3 text-violet-500" /> PDF
+                                                        </Link>
+                                                    </Button>
                                                     {canApprove && (
                                                         <button
                                                             onClick={() => setActionDialog({ invoice: inv, type: 'approved' })}

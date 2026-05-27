@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs, users, payments } from '@/db/schema';
+import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs, users, payments, printerPayments } from '@/db/schema';
 import { and, eq, desc, count, ilike, sql, gte, lte, or, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -548,6 +548,9 @@ export async function getAdminOrderDetails(orderId: number) {
             logs: {
                 orderBy: (logs, { desc }) => [desc(logs.createdAt)],
             },
+            printerPayments: {
+                orderBy: (p, { desc }) => [desc(p.createdAt)],
+            },
         },
     });
 
@@ -615,7 +618,15 @@ export async function getMyOrderDetails(orderId: number) {
     return order;
 }
 
-export async function assignPrinterToOrder(orderId: number, printerId: string | null, printingAmount?: string) {
+export async function assignPrinterToOrder(
+    orderId: number, 
+    printerId: string | null, 
+    printingAmount?: string,
+    printerPaidAmount?: string,
+    paymentMethod = 'bank_transfer',
+    referenceNumber?: string,
+    notes?: string
+) {
     const session = await getSession();
     const adminRoles = ['admin', 'super_admin', 'company_admin'];
     if (!session?.sub || !adminRoles.includes(session.role)) {
@@ -646,17 +657,104 @@ export async function assignPrinterToOrder(orderId: number, printerId: string | 
         .set(updateFields)
         .where(eq(orders.id, orderId));
 
+    // If a printer is being assigned and there is an advance payment, insert it
+    if (printerId && printerPaidAmount && parseFloat(printerPaidAmount) > 0) {
+        await db.insert(printerPayments).values({
+            orderId,
+            printerId,
+            amount: printerPaidAmount,
+            paymentMethod,
+            referenceNumber: referenceNumber || 'Advance Payment',
+            notes: notes || 'Initial advance payment',
+            paymentDate: new Date(),
+        });
+    }
+
     // Log printer assignment
     try {
         await recordOrderLog({
             orderId,
             actionType: 'printer_assigned',
             oldValue: { printer: currentOrder?.printerAssigned, status: currentOrder?.orderStatus, printingAmount: currentOrder?.printingAmount },
-            newValue: { printer: printerId, status: newStatus, printingAmount: printingAmount || currentOrder?.printingAmount },
-            message: printerId ? `Order assigned to printer (Amount: ₹${printingAmount || '0.00'}) and moved to pending approval` : `Order unassigned and returned to confirmed status`
+            newValue: { printer: printerId, status: newStatus, printingAmount: printingAmount || currentOrder?.printingAmount, advancePayment: printerPaidAmount },
+            message: printerId ? `Order assigned to printer (Amount: ₹${printingAmount || '0.00'}, Advance: ₹${printerPaidAmount || '0.00'}) and moved to pending approval` : `Order unassigned and returned to confirmed status`
         });
     } catch (e) {
         console.error('Failed to log printer assignment:', e);
+    }
+
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath('/admin/orders');
+    return { success: true };
+}
+
+export async function recordPrinterPayment({
+    orderId,
+    printerId,
+    amount,
+    paymentMethod = 'bank_transfer',
+    referenceNumber,
+    notes,
+}: {
+    orderId: number;
+    printerId: string;
+    amount: string;
+    paymentMethod?: string;
+    referenceNumber?: string;
+    notes?: string;
+}) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const amt = parseFloat(amount);
+    if (isNaN(amt) || amt <= 0) {
+        throw new Error('Payment amount must be a positive number.');
+    }
+
+    // Fetch order details to verify limits
+    const order = await db.query.orders.findFirst({
+        where: eq(orders.id, orderId),
+        columns: { printingAmount: true }
+    });
+
+    if (!order) {
+        throw new Error('Order not found');
+    }
+
+    // Sum existing payments
+    const existingPayments = await db.query.printerPayments.findMany({
+        where: eq(printerPayments.orderId, orderId)
+    });
+    const totalPaid = existingPayments.reduce((acc, p) => acc + parseFloat(p.amount), 0);
+    const limit = parseFloat(order.printingAmount);
+
+    if (totalPaid + amt > limit) {
+        throw new Error(`Total payments (₹${(totalPaid + amt).toFixed(2)}) cannot exceed the printing cost of ₹${limit.toFixed(2)}.`);
+    }
+
+    await db.insert(printerPayments).values({
+        orderId,
+        printerId,
+        amount,
+        paymentMethod,
+        referenceNumber: referenceNumber || null,
+        notes: notes || null,
+        paymentDate: new Date(),
+    });
+
+    // Record order log
+    try {
+        await recordOrderLog({
+            orderId,
+            actionType: 'printer_payment',
+            newValue: { amount, paymentMethod, referenceNumber },
+            message: `Printer payout payment of ₹${amount} recorded (Ref: ${referenceNumber || 'N/A'})`
+        });
+    } catch (e) {
+        console.error('Failed to log printer payment:', e);
     }
 
     revalidatePath(`/admin/orders/${orderId}`);
@@ -817,6 +915,9 @@ export async function getPrinterAssignedOrders() {
             design: true,
             designUpload: true,
             directSellingProduct: true,
+            printerPayments: {
+                orderBy: (p, { desc }) => [desc(p.createdAt)],
+            },
         },
         orderBy: [desc(orders.updatedAt)]
     });
@@ -848,6 +949,9 @@ export async function getPrinterOrderDetails(orderId: number) {
             payment: true,
             logs: {
                 orderBy: (logs, { desc }) => [desc(logs.createdAt)],
+            },
+            printerPayments: {
+                orderBy: (p, { desc }) => [desc(p.createdAt)],
             },
         },
     });

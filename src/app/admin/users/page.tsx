@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import { getUsers, updateUserStatus } from '@/app/actions/user-actions';
+import { toggleBankVerification } from '@/app/actions/bank-actions';
 import {
   Card,
   CardContent,
@@ -14,13 +15,57 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
-import { Loader2, Search, Filter, X, ShieldCheck, UserCheck, UserX, Calendar, Mail, Sparkles, Users, RefreshCw } from 'lucide-react';
+import { Loader2, Search, Filter, X, ShieldCheck, UserCheck, UserX, Calendar, Mail, Sparkles, Users, RefreshCw, Landmark, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type User = Awaited<ReturnType<typeof getUsers>>[0];
+
+function BankVerificationToggle({
+    bankDetail,
+    onVerificationChange
+}: {
+    bankDetail: { id: string; isVerified: boolean };
+    onVerificationChange: (bankDetailsId: string, isVerified: boolean) => void;
+}) {
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+
+    const handleToggle = (isVerified: boolean) => {
+        startTransition(async () => {
+            try {
+                await toggleBankVerification(bankDetail.id, isVerified);
+                onVerificationChange(bankDetail.id, isVerified);
+                toast({
+                    title: 'Verification Status Updated',
+                    description: `Bank details verification status updated successfully.`,
+                });
+            } catch (error: any) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error updating verification',
+                    description: error.message,
+                });
+            }
+        });
+    };
+
+    return (
+        <div className="flex items-center gap-2">
+            <span className={`text-[10px] font-extrabold uppercase tracking-wider ${bankDetail.isVerified ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-500'}`}>
+                {isPending ? 'Updating...' : bankDetail.isVerified ? 'Verified' : 'Unverified'}
+            </span>
+            <Switch
+                checked={bankDetail.isVerified}
+                onCheckedChange={handleToggle}
+                disabled={isPending}
+                className="data-[state=checked]:bg-emerald-600 dark:data-[state=checked]:bg-emerald-500 shadow-sm scale-90"
+            />
+        </div>
+    );
+}
 
 function UserStatusToggle({ user, onStatusChange }: { user: User; onStatusChange?: (userId: string, isActive: boolean) => void }) {
     const [isPending, startTransition] = useTransition();
@@ -63,6 +108,114 @@ function UserStatusToggle({ user, onStatusChange }: { user: User; onStatusChange
     );
 }
 
+function UserCard({
+    user,
+    onStatusChange,
+    onBankVerificationChange
+}: {
+    user: User;
+    onStatusChange: (userId: string, isActive: boolean) => void;
+    onBankVerificationChange: (userId: string, bankDetailsId: string, isVerified: boolean) => void;
+}) {
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <Card className="group border border-slate-200/80 dark:border-slate-800/80 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col">
+            <CardHeader className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex flex-row justify-between items-start gap-4 bg-slate-50/50 dark:bg-slate-950/50">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <Avatar className="h-14 w-14 rounded-2xl border-2 border-white dark:border-slate-800 shadow-md flex-shrink-0">
+                        <AvatarImage src={user.profileImage || undefined} className="object-cover" />
+                        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-extrabold text-lg rounded-2xl">
+                            {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                        <CardTitle className="text-lg font-extrabold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+                            {user.name || <span className="italic text-slate-400 dark:text-slate-600">No Name Provided</span>}
+                        </CardTitle>
+                        <CardDescription className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5 truncate flex items-center gap-1.5">
+                            <Mail className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" /> {user.email}
+                        </CardDescription>
+                    </div>
+                </div>
+                {user.bankDetails && user.bankDetails.length > 0 && (
+                    <button
+                        onClick={() => setExpanded(e => !e)}
+                        className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-700 transition-colors shrink-0"
+                    >
+                        {expanded ? <><ChevronUp className="h-3 h-3" /> Hide Bank</> : <><ChevronDown className="h-3 h-3" /> Bank Details</>}
+                    </button>
+                )}
+            </CardHeader>
+            <CardContent className="p-6 flex-1 flex flex-col justify-between space-y-6">
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <div>
+                            <p className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Assigned Role</p>
+                            <Badge variant="outline" className={`h-7 px-3 rounded-xl font-extrabold text-xs capitalize shadow-sm ${
+                                user.role === 'admin' ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border-purple-200 dark:border-purple-800' :
+                                user.role === 'printer' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200 dark:border-amber-800' :
+                                'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+                            }`}>
+                                {user.role}
+                            </Badge>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                <Calendar className="w-3 h-3" /> Joined Date
+                            </p>
+                            <p className="text-xs font-extrabold text-slate-700 dark:text-slate-300 pt-1">
+                                {user.createdAt ? format(new Date(user.createdAt), 'MMM d, yyyy') : 'N/A'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {user.bankDetails && user.bankDetails.length > 0 && expanded && (
+                        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                                    <Landmark className="w-3.5 h-3.5 text-indigo-500" /> Bank Account
+                                </h4>
+                                <BankVerificationToggle 
+                                    bankDetail={user.bankDetails[0]} 
+                                    onVerificationChange={(bankDetailsId, isVerified) => {
+                                        onBankVerificationChange(user.id, bankDetailsId, isVerified);
+                                    }} 
+                                />
+                            </div>
+                            <div className="bg-slate-50/50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-[11px] space-y-1.5">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500 dark:text-slate-400">Holder:</span>
+                                    <span className="font-bold text-slate-800 dark:text-zinc-200 truncate max-w-[150px]">{user.bankDetails[0].accountHolderName}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500 dark:text-slate-400">Bank:</span>
+                                    <span className="font-medium text-slate-800 dark:text-zinc-200 truncate max-w-[150px]">{user.bankDetails[0].bankName}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500 dark:text-slate-400">A/C No:</span>
+                                    <span className="font-mono font-bold text-slate-800 dark:text-zinc-200">{user.bankDetails[0].accountNumber}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500 dark:text-slate-400">IFSC:</span>
+                                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{user.bankDetails[0].ifscCode}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </CardContent>
+            <CardFooter className="p-4 bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 flex-shrink-0">
+                <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Account Access</p>
+                </div>
+                <UserStatusToggle user={user} onStatusChange={onStatusChange} />
+            </CardFooter>
+        </Card>
+    );
+}
+
+
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -95,6 +248,18 @@ export default function AdminUsersPage() {
 
     const handleLocalStatusUpdate = (userId: string, isActive: boolean) => {
         setUsers(prevUsers => prevUsers.map(u => u.id === userId ? { ...u, isActive } : u));
+    };
+
+    const handleLocalBankVerificationUpdate = (userId: string, bankDetailsId: string, isVerified: boolean) => {
+        setUsers(prevUsers => prevUsers.map(u => {
+            if (u.id === userId && u.bankDetails) {
+                return {
+                    ...u,
+                    bankDetails: u.bankDetails.map(bd => bd.id === bankDetailsId ? { ...bd, isVerified } : bd)
+                };
+            }
+            return u;
+        }));
     };
 
     const clearFilters = () => {
@@ -234,54 +399,12 @@ export default function AdminUsersPage() {
             ) : filteredUsers.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredUsers.map((user) => (
-                        <Card key={user.id} className="group border border-slate-200/80 dark:border-slate-800/80 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col">
-                            <CardHeader className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex flex-row justify-between items-start gap-4 bg-slate-50/50 dark:bg-slate-950/50">
-                                <div className="flex items-center gap-4 min-w-0 flex-1">
-                                    <Avatar className="h-14 w-14 rounded-2xl border-2 border-white dark:border-slate-800 shadow-md flex-shrink-0">
-                                        <AvatarImage src={user.profileImage || undefined} className="object-cover" />
-                                        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-extrabold text-lg rounded-2xl">
-                                            {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="min-w-0 flex-1">
-                                        <CardTitle className="text-lg font-extrabold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
-                                            {user.name || <span className="italic text-slate-400 dark:text-slate-600">No Name Provided</span>}
-                                        </CardTitle>
-                                        <CardDescription className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5 truncate flex items-center gap-1.5">
-                                            <Mail className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" /> {user.email}
-                                        </CardDescription>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-6 flex-1 flex flex-col justify-between space-y-6">
-                                <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                    <div>
-                                        <p className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Assigned Role</p>
-                                        <Badge variant="outline" className={`h-7 px-3 rounded-xl font-extrabold text-xs capitalize shadow-sm ${
-                                            user.role === 'admin' ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border-purple-200 dark:border-purple-800' :
-                                            user.role === 'printer' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200 dark:border-amber-800' :
-                                            'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
-                                        }`}>
-                                            {user.role}
-                                        </Badge>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                            <Calendar className="w-3 h-3" /> Joined Date
-                                        </p>
-                                        <p className="text-xs font-extrabold text-slate-700 dark:text-slate-300 pt-1">
-                                            {user.createdAt ? format(new Date(user.createdAt), 'MMM d, yyyy') : 'N/A'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                            <CardFooter className="p-4 bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 flex-shrink-0">
-                                <div className="space-y-0.5">
-                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Account Access</p>
-                                </div>
-                                <UserStatusToggle user={user} onStatusChange={handleLocalStatusUpdate} />
-                            </CardFooter>
-                        </Card>
+                        <UserCard
+                            key={user.id}
+                            user={user}
+                            onStatusChange={handleLocalStatusUpdate}
+                            onBankVerificationChange={handleLocalBankVerificationUpdate}
+                        />
                     ))}
                 </div>
             ) : (

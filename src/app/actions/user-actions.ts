@@ -20,6 +20,9 @@ export async function getUsers() {
     await verifyAdmin();
     const data = await db.query.users.findMany({
         orderBy: [desc(users.createdAt)],
+        with: {
+            bankDetails: true,
+        }
     });
     return data;
 }

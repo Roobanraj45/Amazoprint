@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import { getPrinters, updatePrinterApproval } from '@/app/actions/printer-actions';
+import { toggleBankVerification } from '@/app/actions/bank-actions';
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
@@ -13,6 +14,7 @@ import {
     XCircle,
     RefreshCw,
     CheckCircle2,
+    Landmark,
     AlertTriangle,
     Ban,
     Clock,
@@ -236,13 +238,60 @@ function ConfirmDialog({
     );
 }
 
+// ── Bank Verification Toggle ──────────────────────────────────────────────────
+function BankVerificationToggle({
+    bankDetail,
+    onVerificationChange
+}: {
+    bankDetail: { id: string; isVerified: boolean };
+    onVerificationChange: (bankDetailsId: string, isVerified: boolean) => void;
+}) {
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+
+    const handleToggle = (isVerified: boolean) => {
+        startTransition(async () => {
+            try {
+                await toggleBankVerification(bankDetail.id, isVerified);
+                onVerificationChange(bankDetail.id, isVerified);
+                toast({
+                    title: 'Verification Status Updated',
+                    description: `Bank details verification status updated successfully.`,
+                });
+            } catch (error: any) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error updating verification',
+                    description: error.message,
+                });
+            }
+        });
+    };
+
+    return (
+        <div className="flex items-center gap-2">
+            <span className={`text-[10px] font-extrabold uppercase tracking-wider ${bankDetail.isVerified ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-500'}`}>
+                {isPending ? 'Updating...' : bankDetail.isVerified ? 'Verified' : 'Unverified'}
+            </span>
+            <Switch
+                checked={bankDetail.isVerified}
+                onCheckedChange={handleToggle}
+                disabled={isPending}
+                className="data-[state=checked]:bg-emerald-600 dark:data-[state=checked]:bg-emerald-500 shadow-sm scale-90"
+            />
+        </div>
+    );
+}
+
 // ── Printer card ──────────────────────────────────────────────────────────────
 function PrinterCard({
     printer,
     onApprovalChange,
+    onBankVerificationChange,
 }: {
     printer: Printer;
     onApprovalChange: (id: string, newVal: boolean) => void;
+    onBankVerificationChange: (printerId: string, bankDetailsId: string, isVerified: boolean) => void;
 }) {
     const [expanded, setExpanded] = useState(false);
     const totalPayout = printer.priceLists?.length ?? 0;
@@ -450,6 +499,44 @@ function PrinterCard({
                             </div>
                         </div>
 
+                        {printer.bankDetails && printer.bankDetails.length > 0 && (
+                            <div className="bg-slate-50 dark:bg-zinc-800/40 p-4 rounded-xl border border-slate-200/60 dark:border-zinc-800 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 flex items-center gap-1.5">
+                                        <Landmark className="w-3.5 h-3.5 text-indigo-500" /> Bank Account Details
+                                    </h4>
+                                    <BankVerificationToggle 
+                                        bankDetail={printer.bankDetails[0]} 
+                                        onVerificationChange={(bankDetailsId, isVerified) => {
+                                            onBankVerificationChange(printer.id, bankDetailsId, isVerified);
+                                        }} 
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 text-xs">
+                                    <div className="space-y-0.5">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Holder Name</span>
+                                        <p className="font-bold text-slate-800 dark:text-zinc-200">{printer.bankDetails[0].accountHolderName}</p>
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Bank Name</span>
+                                        <p className="font-bold text-slate-800 dark:text-zinc-200">{printer.bankDetails[0].bankName}</p>
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Account Number</span>
+                                        <p className="font-mono font-bold text-slate-800 dark:text-zinc-200">{printer.bankDetails[0].accountNumber}</p>
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">IFSC Code</span>
+                                        <p className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{printer.bankDetails[0].ifscCode}</p>
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Account Type</span>
+                                        <p className="font-bold text-slate-700 dark:text-zinc-300 capitalize">{printer.bankDetails[0].accountType}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Shop images */}
                         {printer.shopImages && printer.shopImages.length > 0 && (
                             <div>
@@ -592,6 +679,18 @@ export default function AdminPrintersPage() {
         if (!printer) return;
         const name = printer.companyName || printer.fullName || 'this printer';
         setConfirmDialog({ isOpen: true, printerId, printerName: name, newStatus: newVal });
+    };
+
+    const handleBankVerificationChange = (printerId: string, bankDetailsId: string, isVerified: boolean) => {
+        setPrinters(prevPrinters => prevPrinters.map(p => {
+            if (p.id === printerId && p.bankDetails) {
+                return {
+                    ...p,
+                    bankDetails: p.bankDetails.map(bd => bd.id === bankDetailsId ? { ...bd, isVerified } : bd)
+                };
+            }
+            return p;
+        }));
     };
 
     const handleConfirmApproval = () => {
@@ -1001,6 +1100,7 @@ export default function AdminPrintersPage() {
                             key={printer.id}
                             printer={printer}
                             onApprovalChange={handleApprovalChange}
+                            onBankVerificationChange={handleBankVerificationChange}
                         />
                     ))}
                 </div>
