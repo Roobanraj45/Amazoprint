@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
-import { Home, List, Briefcase, CircleDollarSign, Wallet, LogOut, Search, Bell, Factory, Package, Settings, Clock, Sparkles, FileText, CreditCard } from "lucide-react"
+import { Home, List, Briefcase, CircleDollarSign, Wallet, LogOut, Search, Bell, Factory, Package, Settings, Clock, Sparkles, FileText, CreditCard, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { AmazoprintLogo } from "@/components/ui/logo"
 import { useRouter } from "next/navigation";
@@ -18,6 +18,7 @@ export default function PrinterLayout({ children }: { children: React.ReactNode 
     { href: "/printer/dashboard", label: "Dashboard", icon: <Home size={16} />, color: "text-blue-500" },
     { href: "/printer/orders", label: "Order Queue", icon: <Package size={16} />, color: "text-amber-500" },
     { href: "/printer/invoices", label: "Invoices", icon: <FileText size={16} />, color: "text-violet-500" },
+    { href: "/printer/reports", label: "Reports", icon: <BarChart3 size={16} />, color: "text-indigo-500" },
     { href: "/printer/design-options", label: "Design Update", icon: <Sparkles size={16} />, color: "text-indigo-500" },
     { href: "/printer/price-list", label: "Price List", icon: <List size={16} />, color: "text-emerald-500" },
     { href: "/printer/bank-details", label: "Bank Details", icon: <CreditCard size={16} />, color: "text-slate-500" },

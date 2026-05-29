@@ -201,12 +201,12 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
             {/* Quick Metrics Bar */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'Order Total', value: `₹${parseFloat(order.totalAmount).toLocaleString('en-IN')}`, icon: IndianRupee, color: 'bg-primary/10 text-primary' },
-                    { label: 'Total Units', value: `${order.quantity} Units`, icon: Package, color: 'bg-blue-500/10 text-blue-500' },
-                    { label: 'Printer Cost', value: `₹${parseFloat(order.printingAmount || '0').toLocaleString('en-IN')}`, icon: Receipt, color: 'bg-indigo-500/10 text-indigo-500' },
-                    { label: 'Delivery Target', value: order.estimatedDeliveryDate ? format(new Date(order.estimatedDeliveryDate), 'MMM dd, yyyy') : 'TBD', icon: Truck, color: 'bg-emerald-500/10 text-emerald-500' },
+                    { label: 'Order Total', value: `₹${parseFloat(order.totalAmount).toLocaleString('en-IN')}`, icon: IndianRupee, color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20' },
+                    { label: 'Total Units', value: `${order.quantity} Units`, icon: Package, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' },
+                    { label: 'Printer Cost', value: `₹${parseFloat(order.printingAmount || '0').toLocaleString('en-IN')}`, icon: Receipt, color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' },
+                    { label: 'Delivery Target', value: order.estimatedDeliveryDate ? format(new Date(order.estimatedDeliveryDate), 'MMM dd, yyyy') : 'TBD', icon: Truck, color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' },
                 ].map((stat, i) => (
-                    <Card key={i} className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
+                    <Card key={i} className="border border-slate-200/60 dark:border-slate-800/80 shadow-md bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-950/50 rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300">
                         <CardContent className="p-4 flex items-center gap-3">
                             <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-bold", stat.color)}>
                                 <stat.icon size={18} />
@@ -227,7 +227,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                 <div className="lg:col-span-8 space-y-6">
                     
                     {/* Visual Blueprint & Specs */}
-                    <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden">
+                    <Card className="border border-slate-200/60 dark:border-slate-800/80 shadow-md bg-gradient-to-b from-white to-slate-50/20 dark:from-slate-900 dark:to-slate-950/20 rounded-[2rem] overflow-hidden">
                         <CardHeader className="p-6 pb-2 border-b border-slate-100 dark:border-zinc-800">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
@@ -260,21 +260,21 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                     <div className="md:col-span-8 space-y-1.5">
                                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Attributes Grid</span>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/50 dark:bg-zinc-800/20 border border-slate-100/50">
+                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80">
                                                 <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Printing side</span>
                                                 <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
                                                     {parsedCustomisation?.pages === 2 || parsedCustomisation?.pages === '2' ? 'Double sided' : 'Single sided'}
                                                 </span>
                                             </div>
                                             
-                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/50 dark:bg-zinc-800/20 border border-slate-100/50">
+                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80">
                                                 <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Spot UV gloss</span>
                                                 <span className={cn("font-bold text-[11px]", parsedCustomisation?.spotUv ? "text-amber-600" : "text-slate-400")}>
                                                     {parsedCustomisation?.spotUv ? 'Added' : 'None'}
                                                 </span>
                                             </div>
 
-                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/50 dark:bg-zinc-800/20 border border-slate-100/50">
+                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80">
                                                 <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Dimensions</span>
                                                 <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] uppercase">
                                                      {parsedCustomisation?.sizeDisplay || (
@@ -285,7 +285,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                                 </span>
                                             </div>
 
-                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/50 dark:bg-zinc-800/20 border border-slate-100/50">
+                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80">
                                                 <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Custom shape</span>
                                                 <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate">
                                                      {parsedCustomisation?.dieCut ? (
@@ -296,7 +296,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                                  </span>
                                             </div>
 
-                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/50 dark:bg-zinc-800/20 border border-slate-100/50">
+                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80">
                                                 <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Quantity</span>
                                                 <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
                                                      {parsedCustomisation?.quantity || order.quantity || '1'} Units
@@ -304,7 +304,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                             </div>
 
                                             {parsedCustomisation?.lamination && (
-                                                <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/50 dark:bg-zinc-800/20 border border-slate-100/50">
+                                                <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80">
                                                     <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Lamination</span>
                                                     <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">Enabled</span>
                                                 </div>
@@ -323,7 +323,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                                     .trim();
 
                                                 return (
-                                                    <div key={key} className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/50 dark:bg-zinc-800/20 border border-slate-100/50 capitalize">
+                                                    <div key={key} className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80 capitalize">
                                                         <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider text-ellipsis overflow-hidden whitespace-nowrap">{label}</span>
                                                         <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate" title={displayVal}>{displayVal}</span>
                                                     </div>
@@ -354,7 +354,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                     </Card>
 
                     {/* Financial Breakdown Ledger */}
-                    <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden">
+                    <Card className="border border-slate-200/60 dark:border-slate-800/80 shadow-md bg-gradient-to-b from-white to-slate-50/20 dark:from-slate-900 dark:to-slate-950/20 rounded-[2rem] overflow-hidden">
                         <CardHeader className="p-6 pb-2 border-b border-slate-100 dark:border-zinc-800">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
@@ -485,7 +485,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
 
                     {/* Timeline logs */}
                     {order.logs && order.logs.length > 0 && (
-                        <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden">
+                        <Card className="border border-slate-200/60 dark:border-slate-800/80 shadow-md bg-gradient-to-b from-white to-slate-50/20 dark:from-slate-900 dark:to-slate-950/20 rounded-[2rem] overflow-hidden">
                             <CardHeader className="p-6 pb-2 border-b border-slate-100 dark:border-zinc-800">
                                 <div className="flex items-center gap-2">
                                     <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
@@ -535,7 +535,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                 <div className="lg:col-span-4 space-y-6">
                     
                     {/* Operational Guard & Status Picker */}
-                    <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden">
+                    <Card className="border border-slate-200/60 dark:border-slate-800/80 shadow-md bg-gradient-to-b from-white to-slate-50/20 dark:from-slate-900 dark:to-slate-950/20 rounded-[2rem] overflow-hidden">
                         <CardHeader className="p-6 pb-2 border-b border-slate-100 dark:border-zinc-800">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
@@ -590,7 +590,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                     </Card>
 
                     {/* Printer Assignment & cost payout */}
-                    <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden">
+                    <Card className="border border-slate-200/60 dark:border-slate-800/80 shadow-md bg-gradient-to-b from-white to-slate-50/20 dark:from-slate-900 dark:to-slate-950/20 rounded-[2rem] overflow-hidden">
                         <CardHeader className="p-6 pb-2 border-b border-slate-100 dark:border-zinc-800">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
@@ -611,7 +611,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                     </Card>
 
                     {/* Customer Identity */}
-                    <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden">
+                    <Card className="border border-slate-200/60 dark:border-slate-800/80 shadow-md bg-gradient-to-b from-white to-slate-50/20 dark:from-slate-900 dark:to-slate-950/20 rounded-[2rem] overflow-hidden">
                         <CardHeader className="p-6 pb-2 border-b border-slate-100 dark:border-zinc-800">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
@@ -645,7 +645,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                     </Card>
 
                     {/* Logistics Nexus (Shipping and Billing) */}
-                    <Card className="border-none shadow-sm bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden">
+                    <Card className="border border-slate-200/60 dark:border-slate-800/80 shadow-md bg-gradient-to-b from-white to-slate-50/20 dark:from-slate-900 dark:to-slate-950/20 rounded-[2rem] overflow-hidden">
                         <CardHeader className="p-6 pb-2 border-b border-slate-100 dark:border-zinc-800">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-lg bg-violet-500/10 text-violet-500 flex items-center justify-center">

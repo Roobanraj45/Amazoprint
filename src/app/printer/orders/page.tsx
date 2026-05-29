@@ -433,7 +433,7 @@ function OrderCard({
                             <span className="flex items-center gap-1">
                                 <User2 className="h-3 w-3" /> {order.user.name}
                             </span>
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-black text-[10px] border border-indigo-500/10">
                                 <Layers className="h-3 w-3" /> {order.quantity} pcs
                             </span>
                             <span className="flex items-center gap-1">
@@ -499,28 +499,37 @@ function OrderCard({
 
                 {/* Quick stats grid */}
                 <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    <div className="bg-slate-50 dark:bg-zinc-800/60 rounded-xl p-3 border border-slate-100 dark:border-zinc-800">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-1">Order Value</p>
-                        <p className="text-sm font-black text-slate-900 dark:text-white">
-                            ₹{parseFloat(order.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    <div className="bg-gradient-to-br from-violet-50 to-white dark:from-violet-950/20 dark:to-zinc-900 rounded-xl p-3 border border-violet-200 dark:border-violet-900/60 shadow-sm">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400 mb-1">Your Payout</p>
+                        <p className="text-sm font-black text-violet-700 dark:text-violet-300">
+                            ₹{parseFloat(order.printingAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </p>
-                        <p className="text-[9px] text-slate-400 font-medium mt-0.5">
-                            <span className={cn(
-                                'font-bold',
-                                order.paymentStatus === 'paid' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                        <p className="text-[9px] text-slate-400 dark:text-zinc-550 font-medium mt-0.5">Total contract rate</p>
+                    </div>
+                    {(() => {
+                        const paymentsList = (order as any).printerPayments || [];
+                        const totalPaid = paymentsList.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0);
+                        const balance = parseFloat(order.printingAmount || '0') - totalPaid;
+                        return (
+                            <div className={cn(
+                                "rounded-xl p-3 border shadow-sm",
+                                balance > 0 
+                                    ? "bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/10 dark:to-zinc-900 border-amber-200 dark:border-amber-900/60"
+                                    : "bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/10 dark:to-zinc-900 border-emerald-200 dark:border-emerald-900/60"
                             )}>
-                                {order.paymentStatus === 'paid' ? '✓ Paid' : '⏳ Pending'}
-                            </span>
-                            {' '}payment
-                        </p>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-zinc-800/60 rounded-xl p-3 border border-slate-100 dark:border-zinc-800">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-1">Unit Price</p>
-                        <p className="text-sm font-black text-slate-900 dark:text-white">
-                            ₹{parseFloat(order.unitPrice).toFixed(2)}
-                        </p>
-                        <p className="text-[9px] text-slate-400 font-medium mt-0.5">{order.quantity} units</p>
-                    </div>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-1">Payout Balance</p>
+                                <p className={cn(
+                                    "text-sm font-black",
+                                    balance > 0 ? "text-amber-605 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+                                )}>
+                                    ₹{balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </p>
+                                <p className="text-[9px] text-slate-400 dark:text-zinc-550 font-medium mt-0.5">
+                                    {balance > 0 ? `${((totalPaid / (parseFloat(order.printingAmount || '1') || 1)) * 100).toFixed(0)}% paid` : 'Fully settled'}
+                                </p>
+                            </div>
+                        );
+                    })()}
                     <div className="bg-slate-50 dark:bg-zinc-800/60 rounded-xl p-3 border border-slate-100 dark:border-zinc-800">
                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-1">Assigned At</p>
                         <p className="text-sm font-black text-slate-900 dark:text-white">
@@ -763,8 +772,6 @@ export default function PrinterOrdersPage() {
         return [...filtered].sort((a, b) => {
             if (sortBy === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-            if (sortBy === 'amount_high') return parseFloat(b.totalAmount) - parseFloat(a.totalAmount);
-            if (sortBy === 'amount_low') return parseFloat(a.totalAmount) - parseFloat(b.totalAmount);
             if (sortBy === 'payout_high') return parseFloat(b.printingAmount || '0') - parseFloat(a.printingAmount || '0');
             return 0;
         });
@@ -1012,8 +1019,6 @@ export default function PrinterOrdersPage() {
                                 <SelectContent>
                                     <SelectItem value="newest">Newest First</SelectItem>
                                     <SelectItem value="oldest">Oldest First</SelectItem>
-                                    <SelectItem value="amount_high">Order Value ↓</SelectItem>
-                                    <SelectItem value="amount_low">Order Value ↑</SelectItem>
                                     <SelectItem value="payout_high">My Payout ↓</SelectItem>
                                 </SelectContent>
                             </Select>

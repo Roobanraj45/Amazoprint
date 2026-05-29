@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { orders, payments, contests, contestParticipants, contestWinners, designVerifications, users } from '@/db/schema';
+import { orders, payments, contests, contestParticipants, contestWinners, designVerifications, users, printPressUsers, printerPayments } from '@/db/schema';
 import { and, eq, gte, lte, count, sum, avg, countDistinct, sql, isNull, isNotNull } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 
@@ -384,3 +384,393 @@ export async function getUserReport({
         }
     };
 }
+
+// ─────────────────────────────────────────────────────────────
+// 6. PRINTER PAYOUT REPORT (ADMIN VIEW)
+// ─────────────────────────────────────────────────────────────
+export async function getAdminPayoutReport({
+    startDate = '',
+    endDate = '',
+    printerId = 'all',
+    payoutStatus = 'all',
+}: {
+    startDate?: string;
+    endDate?: string;
+    printerId?: string;
+    payoutStatus?: string;
+} = {}) {
+    await verifyAdmin();
+
+    const printersList = await db.select({
+        id: printPressUsers.id,
+        fullName: printPressUsers.fullName,
+        companyName: printPressUsers.companyName,
+    }).from(printPressUsers).orderBy(printPressUsers.companyName);
+
+    const orderConds = [
+        isNotNull(orders.printerAssigned),
+        sql`${orders.printingAmount}::numeric > 0`
+    ];
+
+    if (printerId !== 'all') {
+        orderConds.push(eq(orders.printerAssigned, printerId));
+    }
+
+    const allAssignedOrders = await db.query.orders.findMany({
+        where: and(...orderConds),
+        with: {
+            product: true,
+            directSellingProduct: true,
+            printer: {
+                columns: {
+                    fullName: true,
+                    companyName: true,
+                }
+            },
+            printerPayments: true,
+        },
+        orderBy: [sql`${orders.createdAt} DESC`],
+    });
+
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+
+    if (start) start.setHours(0, 0, 0, 0);
+    if (end) end.setHours(23, 59, 59, 999);
+
+    const processed = allAssignedOrders.map(order => {
+        const cost = parseFloat(order.printingAmount || '0');
+        const rawPayments = order.printerPayments || [];
+        const filteredPayments = rawPayments.filter(p => {
+            const pDate = new Date(p.paymentDate);
+            if (start && pDate < start) return false;
+            if (end && pDate > end) return false;
+            return true;
+        });
+
+        const totalPaid = rawPayments.reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0);
+        const remaining = Math.max(0, cost - totalPaid);
+
+        let status = 'unpaid';
+        if (totalPaid >= cost) {
+            status = 'fully_paid';
+        } else if (totalPaid > 0) {
+            status = 'partially_paid';
+        }
+
+        return {
+            id: order.id,
+            createdAt: order.createdAt,
+            orderStatus: order.orderStatus,
+            productName: order.directSellingProduct?.name || order.product?.name || 'Custom Product',
+            printerName: order.printer?.companyName || order.printer?.fullName || 'Print Partner',
+            printerId: order.printerAssigned,
+            printingAmount: cost,
+            totalPaid,
+            remaining,
+            status,
+            payments: filteredPayments,
+        };
+    });
+
+    const filtered = processed.filter(item => {
+        if (payoutStatus !== 'all' && item.status !== payoutStatus) return false;
+        
+        if (start || end) {
+            const itemDate = new Date(item.createdAt);
+            const matchesOrderDate = (!start || itemDate >= start) && (!end || itemDate <= end);
+            const matchesPaymentDate = item.payments.length > 0;
+            return matchesOrderDate || matchesPaymentDate;
+        }
+
+        return true;
+    });
+
+    const totals = filtered.reduce((acc, item) => {
+        acc.committed += item.printingAmount;
+        acc.cleared += item.totalPaid;
+        acc.pending += item.remaining;
+        return acc;
+    }, { committed: 0, cleared: 0, pending: 0 });
+
+    return {
+        printers: printersList,
+        orders: filtered,
+        summary: {
+            totalCommitted: totals.committed,
+            totalCleared: totals.cleared,
+            totalPending: totals.pending,
+            count: filtered.length,
+        }
+    };
+}
+
+// ─────────────────────────────────────────────────────────────
+// 7. PRINTER PAYOUT REPORT (PRINTER SELF VIEW)
+// ─────────────────────────────────────────────────────────────
+export async function getPrinterPayoutReport({
+    startDate = '',
+    endDate = '',
+    payoutStatus = 'all',
+}: {
+    startDate?: string;
+    endDate?: string;
+    payoutStatus?: string;
+} = {}) {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized');
+    }
+
+    const printerId = session.sub;
+
+    const orderConds = [
+        eq(orders.printerAssigned, printerId),
+        sql`${orders.printingAmount}::numeric > 0`
+    ];
+
+    const assignedOrders = await db.query.orders.findMany({
+        where: and(...orderConds),
+        with: {
+            product: true,
+            directSellingProduct: true,
+            printerPayments: true,
+        },
+        orderBy: [sql`${orders.createdAt} DESC`],
+    });
+
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+
+    if (start) start.setHours(0, 0, 0, 0);
+    if (end) end.setHours(23, 59, 59, 999);
+
+    const processed = assignedOrders.map(order => {
+        const cost = parseFloat(order.printingAmount || '0');
+        const rawPayments = order.printerPayments || [];
+        const filteredPayments = rawPayments.filter(p => {
+            const pDate = new Date(p.paymentDate);
+            if (start && pDate < start) return false;
+            if (end && pDate > end) return false;
+            return true;
+        });
+
+        const totalPaid = rawPayments.reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0);
+        const remaining = Math.max(0, cost - totalPaid);
+
+        let status = 'unpaid';
+        if (totalPaid >= cost) {
+            status = 'fully_paid';
+        } else if (totalPaid > 0) {
+            status = 'partially_paid';
+        }
+
+        return {
+            id: order.id,
+            createdAt: order.createdAt,
+            orderStatus: order.orderStatus,
+            productName: order.directSellingProduct?.name || order.product?.name || 'Custom Product',
+            printingAmount: cost,
+            totalPaid,
+            remaining,
+            status,
+            payments: filteredPayments,
+        };
+    });
+
+    const filtered = processed.filter(item => {
+        if (payoutStatus !== 'all' && item.status !== payoutStatus) return false;
+        
+        if (start || end) {
+            const itemDate = new Date(item.createdAt);
+            const matchesOrderDate = (!start || itemDate >= start) && (!end || itemDate <= end);
+            const matchesPaymentDate = item.payments.length > 0;
+            return matchesOrderDate || matchesPaymentDate;
+        }
+
+        return true;
+    });
+
+    const totals = filtered.reduce((acc, item) => {
+        acc.committed += item.printingAmount;
+        acc.cleared += item.totalPaid;
+        acc.pending += item.remaining;
+        return acc;
+    }, { committed: 0, cleared: 0, pending: 0 });
+
+    return {
+        orders: filtered,
+        summary: {
+            totalCommitted: totals.committed,
+            totalCleared: totals.cleared,
+            totalPending: totals.pending,
+            count: filtered.length,
+        }
+    };
+}
+
+// ─────────────────────────────────────────────────────────────
+// 8. PAYMENT GATEWAY RECONCILIATION REPORT
+// ─────────────────────────────────────────────────────────────
+export async function getPaymentGatewayReport({
+    startDate = '',
+    endDate = '',
+    provider = 'all',
+    status = 'all',
+    onlyDiscrepancies = false,
+}: {
+    startDate?: string;
+    endDate?: string;
+    provider?: string;
+    status?: string;
+    onlyDiscrepancies?: boolean;
+} = {}) {
+    await verifyAdmin();
+
+    const conditions = [];
+
+    if (provider !== 'all') {
+        conditions.push(eq(payments.provider, provider as any));
+    }
+    if (status !== 'all') {
+        conditions.push(eq(payments.status, status as any));
+    }
+
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+
+    if (start) {
+        start.setHours(0, 0, 0, 0);
+        conditions.push(gte(payments.createdAt, start));
+    }
+    if (end) {
+        end.setHours(23, 59, 59, 999);
+        conditions.push(lte(payments.createdAt, end));
+    }
+
+    const gatewayPayments = await db.query.payments.findMany({
+        where: conditions.length > 0 ? and(...conditions) : undefined,
+        with: {
+            user: {
+                columns: {
+                    name: true,
+                    email: true,
+                }
+            },
+            orders: true,
+            contest: true,
+        },
+        orderBy: [sql`${payments.createdAt} DESC`],
+    });
+
+    const processed = gatewayPayments.map(pay => {
+        const payAmount = parseFloat(pay.amount || '0');
+        const orderList = pay.orders || [];
+        
+        let statusMismatch = false;
+        let amountMismatch = false;
+        let isOrphan = orderList.length === 0 && !pay.contestId;
+
+        // If payment is captured, the linked orders should be marked as 'paid'
+        if (pay.status === 'captured') {
+            const hasUnpaidOrder = orderList.some(o => o.paymentStatus !== 'paid');
+            if (hasUnpaidOrder) {
+                statusMismatch = true;
+            }
+        } else if (pay.status === 'failed') {
+            const hasPaidOrder = orderList.some(o => o.paymentStatus === 'paid');
+            if (hasPaidOrder) {
+                statusMismatch = true;
+            }
+        }
+
+        // Amount matching check
+        if (orderList.length > 0) {
+            const totalOrdersAmount = orderList.reduce((sum, o) => sum + parseFloat(o.totalAmount || '0'), 0);
+            if (Math.abs(payAmount - totalOrdersAmount) > 0.01) {
+                amountMismatch = true;
+            }
+        }
+
+        const hasDiscrepancy = statusMismatch || amountMismatch || isOrphan;
+
+        return {
+            id: pay.id,
+            createdAt: pay.createdAt,
+            amount: payAmount,
+            currency: pay.currency,
+            status: pay.status,
+            provider: pay.provider,
+            providerOrderId: pay.providerOrderId,
+            providerPaymentId: pay.providerPaymentId,
+            userName: pay.user?.name || 'Unknown User',
+            userEmail: pay.user?.email || 'N/A',
+            contestId: pay.contestId,
+            contestTitle: pay.contest?.title || null,
+            orders: orderList.map(o => ({
+                id: o.id,
+                totalAmount: parseFloat(o.totalAmount || '0'),
+                paymentStatus: o.paymentStatus,
+                orderStatus: o.orderStatus,
+            })),
+            discrepancy: {
+                hasDiscrepancy,
+                statusMismatch,
+                amountMismatch,
+                isOrphan,
+            }
+        };
+    });
+
+    const filtered = onlyDiscrepancies 
+        ? processed.filter(p => p.discrepancy.hasDiscrepancy) 
+        : processed;
+
+    // Calculate metrics
+    const metrics = filtered.reduce((acc, pay) => {
+        acc.totalCount += 1;
+        if (pay.status === 'captured') {
+            acc.capturedCount += 1;
+            acc.capturedVolume += pay.amount;
+        } else if (pay.status === 'failed') {
+            acc.failedCount += 1;
+            acc.failedVolume += pay.amount;
+        } else if (pay.status === 'refunded') {
+            acc.refundedCount += 1;
+            acc.refundedVolume += pay.amount;
+        } else {
+            acc.otherCount += 1;
+            acc.otherVolume += pay.amount;
+        }
+
+        if (pay.discrepancy.hasDiscrepancy) {
+            acc.discrepancyCount += 1;
+        }
+
+        return acc;
+    }, {
+        totalCount: 0,
+        capturedCount: 0,
+        capturedVolume: 0,
+        failedCount: 0,
+        failedVolume: 0,
+        refundedCount: 0,
+        refundedVolume: 0,
+        otherCount: 0,
+        otherVolume: 0,
+        discrepancyCount: 0,
+    });
+
+    const successRate = metrics.totalCount > 0 
+        ? Math.round((metrics.capturedCount / metrics.totalCount) * 100) 
+        : 0;
+
+    return {
+        payments: filtered,
+        summary: {
+            ...metrics,
+            successRate,
+        }
+    };
+}
+

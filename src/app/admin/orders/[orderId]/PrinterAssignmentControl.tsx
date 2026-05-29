@@ -283,47 +283,80 @@ export function PrinterAssignmentControl({
 
                     {/* Form to add subsequent installment payments */}
                     {remainingBalance > 0 && (
-                        <div className="bg-slate-50/50 dark:bg-slate-950/20 p-3 rounded-2xl border border-slate-100 dark:border-slate-850 space-y-3">
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Record installment Payment</span>
-                            <div className="space-y-2">
-                                <div className="relative">
-                                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                    <Input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        placeholder="Amount to pay"
-                                        value={installmentAmount}
-                                        onChange={(e) => setInstallmentAmount(e.target.value)}
-                                        disabled={isPending}
-                                        className="h-8 pl-8 text-[11px] font-bold rounded-xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 transition-all focus:ring-primary/20"
-                                    />
+                        <div className="relative overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-950 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800/80 shadow-sm space-y-2.5 transition-all duration-300 hover:shadow-md hover:border-slate-350 dark:hover:border-slate-700/80">
+                            {/* Decorative ambient background blur */}
+                            <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 rounded-full blur-xl -mr-8 -mt-8 pointer-events-none" />
+                            
+                            <div className="flex items-center justify-between relative z-10">
+                                <span className="text-[9px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    Record Installment
+                                </span>
+                                <span className="text-[8px] font-extrabold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
+                                    Bal: ₹{remainingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                            </div>
+
+                            <div className="space-y-2 relative z-10">
+                                {/* Amount Input */}
+                                <div className="space-y-0.5">
+                                    <span className="text-[7.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Payout Amount (₹)</span>
+                                    <div className="relative group">
+                                        <IndianRupee className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            placeholder="Enter amount..."
+                                            value={installmentAmount}
+                                            onChange={(e) => setInstallmentAmount(e.target.value)}
+                                            disabled={isPending}
+                                            className="h-8 pl-7 text-[10px] placeholder:text-[9px] font-bold rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/80 transition-all focus:border-emerald-500/50 focus:ring-emerald-500/10 dark:focus:border-emerald-500/50"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="relative">
-                                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+
+                                {/* Transaction Ref ID Input */}
+                                <div className="space-y-0.5">
+                                    <span className="text-[7.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Transaction Ref ID</span>
+                                    <div className="relative group">
+                                        <CreditCard className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                        <Input
+                                            type="text"
+                                            placeholder="e.g. TXN123456"
+                                            value={refNumber}
+                                            onChange={(e) => setRefNumber(e.target.value)}
+                                            disabled={isPending}
+                                            className="h-8 pl-7 text-[10px] placeholder:text-[9px] font-semibold rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/80 transition-all focus:border-emerald-500/50 focus:ring-emerald-500/10 dark:focus:border-emerald-500/50"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Payment Notes Input */}
+                                <div className="space-y-0.5">
+                                    <span className="text-[7.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Internal Remarks / Notes</span>
                                     <Input
                                         type="text"
-                                        placeholder="Reference Transaction ID"
-                                        value={refNumber}
-                                        onChange={(e) => setRefNumber(e.target.value)}
+                                        placeholder="Add remarks..."
+                                        value={paymentNotes}
+                                        onChange={(e) => setPaymentNotes(e.target.value)}
                                         disabled={isPending}
-                                        className="h-8 pl-8 text-[11px] font-semibold rounded-xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 transition-all focus:ring-primary/20"
+                                        className="h-8 text-[10px] placeholder:text-[9px] font-semibold rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/80 transition-all focus:border-emerald-500/50 focus:ring-emerald-500/10 dark:focus:border-emerald-500/50"
                                     />
                                 </div>
-                                <Input
-                                    type="text"
-                                    placeholder="Add payment notes..."
-                                    value={paymentNotes}
-                                    onChange={(e) => setPaymentNotes(e.target.value)}
-                                    disabled={isPending}
-                                    className="h-8 text-[11px] font-semibold rounded-xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 transition-all focus:ring-primary/20"
-                                />
+
                                 <Button
                                     onClick={handleAddInstallment}
                                     disabled={isPending || !installmentAmount}
-                                    className="w-full h-8 rounded-xl text-[9px] font-bold uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-600/90 transition-all shadow-md shadow-emerald-500/10"
+                                    className="w-full h-8 rounded-lg text-[8.5px] font-bold uppercase tracking-wider bg-emerald-600 dark:bg-emerald-500 text-white hover:bg-emerald-500 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-md shadow-emerald-500/10 flex items-center justify-center gap-1"
                                 >
-                                    {isPending ? "Recording..." : "Record Payment"}
+                                    {isPending ? (
+                                        <>
+                                            <Loader2 className="w-2.5 h-2.5 animate-spin" /> Recording...
+                                        </>
+                                    ) : (
+                                        "Register Payout"
+                                    )}
                                 </Button>
                             </div>
                         </div>
