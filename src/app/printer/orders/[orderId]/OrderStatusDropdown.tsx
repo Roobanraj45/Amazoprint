@@ -22,7 +22,6 @@ const statusOptions = [
     { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-500' },
     { value: 'quality_check', label: 'Quality Check', color: 'bg-amber-500' },
     { value: 'processing', label: 'Processing', color: 'bg-indigo-500' },
-    { value: 'shipped', label: 'Shipped', color: 'bg-emerald-500' },
 ];
 
 export function OrderStatusDropdown({ orderId, initialStatus }: OrderStatusDropdownProps) {

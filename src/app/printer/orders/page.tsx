@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
 import { getPrinterAssignedOrders, updatePrinterOrderStatus } from "@/app/actions/order-actions";
+import { uploadShipmentAttachment } from "@/app/actions/upload-actions";
 import {
     IndianRupee,
     Eye,
@@ -23,6 +24,7 @@ import {
     Ban,
     Zap,
     BarChart3,
+    UploadCloud,
     CalendarDays,
     SlidersHorizontal,
     TrendingUp,
@@ -227,21 +229,53 @@ function ConfirmStatusDialog({
     isOpen, order, from, to, onClose, onConfirm, isPending,
 }: {
     isOpen: boolean; order: Order; from: string; to: string;
-    onClose: () => void; onConfirm: (dimensions?: { length: number; breadth: number; height: number; weight: number }) => void; isPending: boolean;
+    onClose: () => void; onConfirm: (dimensions?: { length: number; breadth: number; height: number; weight: number }, attachmentsUrl?: string) => void; isPending: boolean;
 }) {
     const [length, setLength] = useState(15);
     const [breadth, setBreadth] = useState(15);
     const [height, setHeight] = useState(10);
     const [weight, setWeight] = useState(0.5);
 
+    const [attachmentsUrl, setAttachmentsUrl] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
+
     if (!isOpen) return null;
     const fromCfg = STATUS_CONFIG[from];
     const toCfg = STATUS_CONFIG[to];
     const isShipped = to === 'shipped';
 
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        setUploadError(null);
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await uploadShipmentAttachment(formData);
+            if (res.success && res.url) {
+                setAttachmentsUrl(res.url);
+            } else {
+                setUploadError(res.error || 'Upload failed');
+            }
+        } catch (err: any) {
+            setUploadError(err.message || 'Error uploading file');
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleConfirm = () => {
         if (isShipped) {
-            onConfirm({ length, breadth, height, weight });
+            if (!attachmentsUrl) {
+                setUploadError('Please upload an image or video of the shipment package before confirming.');
+                return;
+            }
+            onConfirm({ length, breadth, height, weight }, attachmentsUrl);
         } else {
             onConfirm();
         }
@@ -261,10 +295,10 @@ function ConfirmStatusDialog({
     const foil = parsedCustomisation?.foilName || parsedCustomisation?.foil || (parsedCustomisation?.foilId ? `Foil #${parsedCustomisation.foilId}` : 'None');
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-md transition-opacity duration-300" onClick={onClose} />
             <div className={cn(
-                "relative bg-white dark:bg-zinc-950 rounded-3xl border border-slate-100 dark:border-zinc-900 shadow-2xl p-6 w-full animate-in zoom-in-95 fade-in duration-200 max-h-[95vh] overflow-y-auto",
+                "relative bg-white dark:bg-zinc-950 rounded-3xl border border-slate-100 dark:border-zinc-900 shadow-2xl p-6 w-full animate-in zoom-in-95 fade-in duration-200 max-h-[90vh] overflow-y-auto",
                 isShipped ? "max-w-lg" : "max-w-md"
             )}>
                 {/* Header Pills */}
@@ -413,17 +447,55 @@ function ConfirmStatusDialog({
                                 </div>
                             </div>
                         </div>
+
+                        {/* Shipment Proof Upload */}
+                        <div className="space-y-2 border-t border-slate-100 dark:border-zinc-900 pt-5">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">
+                                Shipment Package Proof (Image or Video) <span className="text-rose-500 font-bold">*</span>
+                            </p>
+                            <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl p-4 hover:bg-slate-50/50 dark:hover:bg-zinc-900/10 transition relative">
+                                <input 
+                                    type="file" 
+                                    accept="image/*,video/*"
+                                    onChange={handleFileChange}
+                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                    disabled={uploading || isPending}
+                                />
+                                {uploading ? (
+                                    <div className="flex flex-col items-center gap-1.5 py-2">
+                                        <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />
+                                        <p className="text-xs text-slate-500 dark:text-zinc-400 font-bold">Uploading proof...</p>
+                                    </div>
+                                ) : attachmentsUrl ? (
+                                    <div className="flex flex-col items-center gap-1.5 py-1">
+                                        <CheckCircle2 className="h-6 w-6 text-emerald-500 animate-bounce" />
+                                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Proof Uploaded Successfully!</p>
+                                        <p className="text-[10px] text-slate-400 truncate max-w-[250px]">{attachmentsUrl.split('/').pop()}</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-1.5 py-2">
+                                        <UploadCloud className="h-6 w-6 text-slate-400" />
+                                        <p className="text-xs text-slate-500 dark:text-zinc-400 font-bold">Click or drag image/video here</p>
+                                        <p className="text-[9px] text-slate-400">Supported formats: JPG, PNG, MP4 (Max 50MB)</p>
+                                    </div>
+                                )}
+                            </div>
+                            {uploadError && (
+                                <p className="text-xs text-rose-500 font-bold mt-1">{uploadError}</p>
+                            )}
+                        </div>
+
                     </div>
                 )}
 
                 <div className="flex gap-3 mt-2">
-                    <Button variant="outline" className="flex-1 rounded-2xl font-bold h-11" onClick={onClose} disabled={isPending}>
+                    <Button variant="outline" className="flex-1 rounded-2xl font-bold h-11" onClick={onClose} disabled={isPending || uploading}>
                         Cancel
                     </Button>
                     <Button
                         className="flex-1 rounded-2xl font-bold h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 transition-all active:scale-[0.98]"
                         onClick={handleConfirm}
-                        disabled={isPending}
+                        disabled={isPending || uploading}
                     >
                         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Update'}
                     </Button>
@@ -878,7 +950,10 @@ export default function PrinterOrdersPage() {
         setConfirmDialog({ isOpen: true, order, from: order.orderStatus ?? '', to: nextStatus });
     };
 
-    const handleConfirmAdvance = (dimensions?: { length: number; breadth: number; height: number; weight: number }) => {
+    const handleConfirmAdvance = (
+        dimensions?: { length: number; breadth: number; height: number; weight: number },
+        attachmentsUrl?: string
+    ) => {
         if (!confirmDialog) return;
         const { order, to } = confirmDialog;
         setAdvancingId(order.id);
@@ -886,7 +961,7 @@ export default function PrinterOrdersPage() {
 
         startTransition(async () => {
             try {
-                await updatePrinterOrderStatus(order.id, to, dimensions);
+                await updatePrinterOrderStatus(order.id, to, dimensions, attachmentsUrl);
                 setOrders(prev => prev.map(o => o.id === order.id ? { ...o, orderStatus: to } : o));
                 const toCfg = STATUS_CONFIG[to];
                 addAlert('success', 'Status Updated!',
@@ -1010,7 +1085,7 @@ export default function PrinterOrdersPage() {
 
             {/* ── Floating alerts */}
             {alerts.length > 0 && (
-                <div className="fixed top-24 right-4 z-[9999] w-full max-w-sm space-y-2">
+                <div className="fixed top-28 right-4 z-[9999] w-full max-w-sm space-y-2">
                     {alerts.map(alert => (
                         <AlertBanner
                             key={alert.id}

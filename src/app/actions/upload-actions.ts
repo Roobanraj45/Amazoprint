@@ -353,3 +353,41 @@ export async function deleteUpload(id: number) {
 
     return { success: true };
 }
+
+export async function uploadShipmentAttachment(formData: FormData) {
+    const session = await getSession();
+    if (!session?.sub) {
+        return { success: false, error: 'Not authenticated' };
+    }
+
+    const file = formData.get('file') as File | null;
+    if (!file || file.size === 0) {
+        return { success: false, error: 'No file provided.' };
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+        return { success: false, error: 'File size must be less than 50MB.' };
+    }
+
+    try {
+        const userFolder = session.sub;
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+
+        const publicUploadsDir = getStorageDir('public');
+        const uploadsDir = join(publicUploadsDir, 'shipments', userFolder);
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        const uniqueFilename = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+        const filePath = join(uploadsDir, uniqueFilename);
+        const relativePath = `/uploads/shipments/${userFolder}/${uniqueFilename}`;
+        
+        await writeFile(filePath, buffer);
+        return { success: true, url: relativePath };
+    } catch (e) {
+        console.error('Error in uploadShipmentAttachment:', e);
+        return { success: false, error: e instanceof Error ? e.message : String(e) };
+    }
+}

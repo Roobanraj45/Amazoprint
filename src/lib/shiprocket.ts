@@ -158,7 +158,8 @@ export async function registerPickupLocation(printer: PrinterLocation): Promise<
 export async function createShiprocketShipment(
     order: OrderDetails, 
     printer: PrinterLocation,
-    dimensions?: { length?: number; breadth?: number; height?: number; weight?: number }
+    dimensions?: { length?: number; breadth?: number; height?: number; weight?: number },
+    attachmentsUrl?: string
 ) {
     const pickupNickname = await registerPickupLocation(printer);
 
@@ -274,6 +275,7 @@ export async function createShiprocketShipment(
         status: status,
         currentStatus: status,
         trackingUrl: awbCode ? `https://shiprocket.co/tracking/${awbCode}` : null,
+        attachmentsUrl: attachmentsUrl || null,
     }).returning();
 
     // If AWB generation was successful, update orders tracking number
@@ -491,14 +493,20 @@ export async function generateManifest(shipmentId: string) {
 
 // ── Schedule Pickup ───────────────────────────────────────────────────────────
 
-export async function schedulePickup(shipmentId: string) {
-    console.log(`[Shiprocket] Scheduling pickup for shipment: ${shipmentId}`);
+export async function schedulePickup(shipmentId: string, pickupDate?: string, scheduledTimestamp?: Date) {
+    console.log(`[Shiprocket] Scheduling pickup for shipment: ${shipmentId} (Date: ${pickupDate || 'default'})`);
+
+    const payload: any = {
+        shipment_id: [parseInt(shipmentId)],
+    };
+
+    if (pickupDate) {
+        payload.pickup_date = pickupDate;
+    }
 
     const res = await shiprocketFetch("/courier/generate/pickup", {
         method: "POST",
-        body: JSON.stringify({
-            shipment_id: [parseInt(shipmentId)],
-        }),
+        body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
@@ -516,7 +524,7 @@ export async function schedulePickup(shipmentId: string) {
         .set({
             status: "pickup_scheduled",
             currentStatus: "pickup_scheduled",
-            pickupScheduledDate: new Date(),
+            pickupScheduledDate: scheduledTimestamp || new Date(),
             updatedAt: new Date(),
         })
         .where(eq(shipments.shipmentId, shipmentId));

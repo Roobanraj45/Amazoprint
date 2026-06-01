@@ -986,6 +986,7 @@ export const shipments = pgTable('shipments', {
   currentStatus: varchar('current_status', { length: 100 }),
   lastTrackingUpdate: timestamp('last_tracking_update'),
   trackingData: jsonb('tracking_data'),
+  attachmentsUrl: text('attachments_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({

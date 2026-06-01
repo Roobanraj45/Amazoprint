@@ -963,7 +963,8 @@ export async function getPrinterOrderDetails(orderId: number) {
 export async function updatePrinterOrderStatus(
     orderId: number, 
     newStatus: string,
-    dimensions?: { length?: number; breadth?: number; height?: number; weight?: number }
+    dimensions?: { length?: number; breadth?: number; height?: number; weight?: number },
+    attachmentsUrl?: string
 ) {
     // Self-healing migration to ensure shipments table exists in the active DB
     try {
@@ -987,6 +988,7 @@ export async function updatePrinterOrderStatus(
               current_status VARCHAR(100),
               last_tracking_update TIMESTAMP,
               tracking_data JSONB,
+              attachments_url TEXT,
               created_at TIMESTAMP DEFAULT NOW() NOT NULL,
               updated_at TIMESTAMP DEFAULT NOW() NOT NULL
             );
@@ -1005,6 +1007,7 @@ export async function updatePrinterOrderStatus(
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS current_status VARCHAR(100);`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS last_tracking_update TIMESTAMP;`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS tracking_data JSONB;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS attachments_url TEXT;`);
     } catch (dbErr) {
         console.error("Self-healing table creation failed:", dbErr);
     }
@@ -1052,7 +1055,7 @@ export async function updatePrinterOrderStatus(
             });
 
             if (printer && fullOrder) {
-                await createShiprocketShipment(fullOrder, printer, dimensions);
+                await createShiprocketShipment(fullOrder, printer, dimensions, attachmentsUrl);
             } else {
                 throw new Error("Could not find printer or order details to initiate shipping");
             }
@@ -1254,7 +1257,7 @@ export async function generateShipmentManifest(orderId: number) {
     return result;
 }
 
-export async function schedulePrinterPickup(orderId: number) {
+export async function schedulePrinterPickup(orderId: number, pickupDateStr?: string) {
     const session = await getSession();
     if (!session?.sub || session.role !== 'printer') {
         throw new Error('Unauthorized');
@@ -1273,14 +1276,26 @@ export async function schedulePrinterPickup(orderId: number) {
         throw new Error('No shipment record found for this order');
     }
 
-    const result = await schedulePickup(shipment.shipmentId);
+    let shiprocketDate: string | undefined;
+    let scheduledTimestamp: Date | undefined;
+    if (pickupDateStr) {
+        scheduledTimestamp = new Date(pickupDateStr);
+        if (!isNaN(scheduledTimestamp.getTime())) {
+            const yyyy = scheduledTimestamp.getFullYear();
+            const mm = String(scheduledTimestamp.getMonth() + 1).padStart(2, '0');
+            const dd = String(scheduledTimestamp.getDate()).padStart(2, '0');
+            shiprocketDate = `${yyyy}-${mm}-${dd}`;
+        }
+    }
+
+    const result = await schedulePickup(shipment.shipmentId, shiprocketDate, scheduledTimestamp);
     
     // Log the event
     try {
         await recordOrderLog({
             orderId,
             actionType: 'pickup_scheduled',
-            message: `Printer scheduled pickup for shipment.`,
+            message: `Printer scheduled pickup for shipment${pickupDateStr ? ` on ${pickupDateStr.replace('T', ' ')}` : ''}.`,
             isCustomerVisible: true,
         });
     } catch (e) {
@@ -1444,7 +1459,7 @@ export async function adminGenerateShipmentManifest(orderId: number) {
     return result;
 }
 
-export async function adminScheduleShipmentPickup(orderId: number) {
+export async function adminScheduleShipmentPickup(orderId: number, pickupDateStr?: string) {
     const session = await getSession();
     const adminRoles = ['admin', 'super_admin', 'company_admin'];
     if (!session?.sub || !adminRoles.includes(session.role)) {
@@ -1458,13 +1473,25 @@ export async function adminScheduleShipmentPickup(orderId: number) {
         throw new Error('No shipment record found for this order');
     }
 
-    const result = await schedulePickup(shipment.shipmentId);
+    let shiprocketDate: string | undefined;
+    let scheduledTimestamp: Date | undefined;
+    if (pickupDateStr) {
+        scheduledTimestamp = new Date(pickupDateStr);
+        if (!isNaN(scheduledTimestamp.getTime())) {
+            const yyyy = scheduledTimestamp.getFullYear();
+            const mm = String(scheduledTimestamp.getMonth() + 1).padStart(2, '0');
+            const dd = String(scheduledTimestamp.getDate()).padStart(2, '0');
+            shiprocketDate = `${yyyy}-${mm}-${dd}`;
+        }
+    }
+
+    const result = await schedulePickup(shipment.shipmentId, shiprocketDate, scheduledTimestamp);
     
     try {
         await recordOrderLog({
             orderId,
             actionType: 'pickup_scheduled',
-            message: `Administrator scheduled pickup for shipment.`,
+            message: `Administrator scheduled pickup for shipment${pickupDateStr ? ` on ${pickupDateStr.replace('T', ' ')}` : ''}.`,
             isCustomerVisible: true,
         });
     } catch (e) {

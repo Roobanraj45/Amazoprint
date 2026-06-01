@@ -399,6 +399,70 @@ function CancelConfirmModal({ isOpen, onClose, onConfirm, isPending, orderId }: 
     );
 }
 
+function SchedulePickupModal({ isOpen, onClose, onConfirm, isPending }: {
+    isOpen: boolean; onClose: () => void; onConfirm: (dateTime: string) => void; isPending: boolean;
+}) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const defaultDate = tomorrow.toISOString().split('T')[0];
+    const [date, setDate] = useState(defaultDate);
+    const [time, setTime] = useState('11:00');
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-2xl p-6 max-w-sm w-full animate-in zoom-in-95 duration-200">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center">
+                        <Clock className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div>
+                        <h3 className="text-base font-black text-slate-900 dark:text-white">Schedule Pickup Date & Time</h3>
+                        <p className="text-[11px] text-slate-500">Choose preferred timing</p>
+                    </div>
+                </div>
+
+                <div className="space-y-3 mb-5">
+                    <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Pickup Date</Label>
+                        <Input
+                            type="date"
+                            className="rounded-xl"
+                            value={date}
+                            min={new Date().toISOString().split('T')[0]}
+                            onChange={e => setDate(e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Pickup Time</Label>
+                        <Input
+                            type="time"
+                            className="rounded-xl"
+                            value={time}
+                            onChange={e => setTime(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <div className="flex gap-3">
+                    <Button variant="outline" className="flex-1 rounded-xl font-bold" onClick={onClose} disabled={isPending}>
+                        Dismiss
+                    </Button>
+                    <Button
+                        className="flex-1 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/25"
+                        onClick={() => onConfirm(`${date}T${time}`)}
+                        disabled={isPending}
+                    >
+                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm'}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ── Filter chip ───────────────────────────────────────────────────────────────
 function FilterChip({ label, active, onClick, count }: { label: string; active: boolean; onClick: () => void; count?: number }) {
     return (
@@ -460,6 +524,12 @@ export default function PrinterShipmentsPage() {
 
     // Cancel modal
     const [cancelModal, setCancelModal] = useState<{ isOpen: boolean; orderId: number } | null>(null);
+
+    // Pickup scheduling modal state
+    const [pickupModal, setPickupModal] = useState<{ isOpen: boolean; shipment: Shipment | null }>({
+        isOpen: false,
+        shipment: null,
+    });
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
@@ -529,10 +599,13 @@ export default function PrinterShipmentsPage() {
         }
     };
 
-    const handleSchedulePickup = async (shipment: Shipment) => {
+    const handleSchedulePickupConfirm = async (pickupDateStr: string) => {
+        const shipment = pickupModal.shipment;
+        if (!shipment) return;
+        setPickupModal({ isOpen: false, shipment: null });
         setActionLoadingId(shipment.id);
         try {
-            await schedulePrinterPickup(shipment.orderId);
+            await schedulePrinterPickup(shipment.orderId, pickupDateStr);
             addAlert('success', 'Pickup Scheduled', `Pickup has been successfully scheduled for Order #${shipment.orderId}.`);
             fetchShipments();
         } catch (err: any) {
@@ -561,28 +634,31 @@ export default function PrinterShipmentsPage() {
         });
     };
 
-    // Filter
     const filtered = useMemo(() => {
-        return shipmentsList.filter(s => {
-            if (searchQuery) {
-                const q = searchQuery.toLowerCase();
-                const hit = [
-                    s.orderId.toString(),
-                    s.awbCode,
-                    s.courierName,
-                    s.shiprocketOrderId,
-                    s.order?.user?.name,
-                    s.order?.product?.name,
-                    s.order?.directSellingProduct?.name,
-                ].some(f => f?.toLowerCase().includes(q));
-                if (!hit) return false;
-            }
-            if (statusFilter !== 'all') {
-                const effectiveStatus = s.currentStatus || s.status;
-                if (effectiveStatus !== statusFilter) return false;
-            }
-            return true;
-        });
+        const STATUS_ORDER = ['order_created', 'awb_assigned', 'pickup_scheduled', 'in_transit', 'out_for_delivery', 'delivered', 'cancelled', 'rto_initiated'];
+
+        return shipmentsList
+            .filter(s => {
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    const hit = [
+                        s.orderId.toString(),
+                        s.awbCode,
+                        s.courierName,
+                        s.shiprocketOrderId,
+                        s.order?.user?.name,
+                        s.order?.product?.name,
+                        s.order?.directSellingProduct?.name,
+                    ].some(f => f?.toLowerCase().includes(q));
+                    if (!hit) return false;
+                }
+                if (statusFilter !== 'all') {
+                    const effectiveStatus = s.currentStatus || s.status;
+                    if (effectiveStatus !== statusFilter) return false;
+                }
+                return true;
+            })
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }, [shipmentsList, searchQuery, statusFilter]);
 
     // Stats
@@ -625,9 +701,17 @@ export default function PrinterShipmentsPage() {
                 />
             )}
 
+            {/* Schedule Pickup Modal */}
+            <SchedulePickupModal
+                isOpen={pickupModal.isOpen}
+                onClose={() => setPickupModal({ isOpen: false, shipment: null })}
+                onConfirm={handleSchedulePickupConfirm}
+                isPending={isPending}
+            />
+
             {/* Floating alerts */}
             {alerts.length > 0 && (
-                <div className="fixed top-20 right-4 z-[9999] w-full max-w-sm space-y-2">
+                <div className="fixed top-28 right-4 z-[9999] w-full max-w-sm space-y-2">
                     {alerts.map(alert => (
                         <AlertBanner
                             key={alert.id}
@@ -868,9 +952,9 @@ export default function PrinterShipmentsPage() {
                                         </button>
 
                                         {/* Schedule Pickup */}
-                                        {effectiveStatus === 'awb_assigned' && (
+                                        {shipment.awbCode && !['pickup_scheduled', 'in_transit', 'out_for_delivery', 'delivered', 'cancelled', 'rto_initiated'].includes(effectiveStatus || '') && (
                                             <button
-                                                onClick={() => handleSchedulePickup(shipment)}
+                                                onClick={() => setPickupModal({ isOpen: true, shipment })}
                                                 disabled={isActionLoading || isCancelled}
                                                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors disabled:opacity-50"
                                                 title="Schedule Pickup"
