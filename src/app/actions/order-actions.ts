@@ -4,12 +4,13 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs, users, payments, printerPayments } from '@/db/schema';
+import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs, users, payments, printerPayments, shipments } from '@/db/schema';
 import { and, eq, desc, count, ilike, sql, gte, lte, or, inArray, isNotNull, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import type { Address } from '@/lib/types';
 import { getPricingRulesForSubProduct } from './pricing-actions';
+import { createShiprocketShipment, trackShipment, cancelShipment, generateLabel, generateManifest, schedulePickup } from '@/lib/shiprocket';
 
 const addressSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -959,7 +960,55 @@ export async function getPrinterOrderDetails(orderId: number) {
     return order;
 }
 
-export async function updatePrinterOrderStatus(orderId: number, newStatus: string) {
+export async function updatePrinterOrderStatus(
+    orderId: number, 
+    newStatus: string,
+    dimensions?: { length?: number; breadth?: number; height?: number; weight?: number }
+) {
+    // Self-healing migration to ensure shipments table exists in the active DB
+    try {
+        await db.execute(sql`
+            CREATE TABLE IF NOT EXISTS shipments (
+              id SERIAL PRIMARY KEY,
+              order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+              shipment_id VARCHAR(100),
+              shiprocket_order_id VARCHAR(100),
+              awb_code VARCHAR(100),
+              courier_name VARCHAR(100),
+              status VARCHAR(100),
+              label_url TEXT,
+              manifest_url TEXT,
+              tracking_url TEXT,
+              pickup_scheduled_date TIMESTAMP,
+              delivered_date TIMESTAMP,
+              cancelled_at TIMESTAMP,
+              cancel_reason TEXT,
+              estimated_delivery VARCHAR(100),
+              current_status VARCHAR(100),
+              last_tracking_update TIMESTAMP,
+              tracking_data JSONB,
+              created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+              updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+            );
+        `);
+        await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_shipments_order_id ON shipments(order_id);`);
+        await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_shipments_shipment_id ON shipments(shipment_id);`);
+        await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_shipments_awb_code ON shipments(awb_code);`);
+        await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_shipments_status ON shipments(status);`);
+        // Add new columns if they don't exist (for existing tables)
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS tracking_url TEXT;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS pickup_scheduled_date TIMESTAMP;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS delivered_date TIMESTAMP;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS cancel_reason TEXT;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS estimated_delivery VARCHAR(100);`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS current_status VARCHAR(100);`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS last_tracking_update TIMESTAMP;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS tracking_data JSONB;`);
+    } catch (dbErr) {
+        console.error("Self-healing table creation failed:", dbErr);
+    }
+
     const session = await getSession();
     if (!session?.sub || session.role !== 'printer') {
         throw new Error('Unauthorized');
@@ -979,6 +1028,38 @@ export async function updatePrinterOrderStatus(orderId: number, newStatus: strin
     const allowedStatuses = ['pending', 'confirmed', 'quality_check', 'processing', 'shipped'];
     if (!allowedStatuses.includes(newStatus)) {
         throw new Error('Invalid status for printer update');
+    }
+
+    if (newStatus === 'shipped') {
+        try {
+            const printer = await db.query.printPressUsers.findFirst({
+                where: eq(printPressUsers.id, session.sub)
+            });
+            const fullOrder = await db.query.orders.findFirst({
+                where: eq(orders.id, orderId),
+                with: {
+                    user: {
+                        columns: {
+                            name: true,
+                            email: true,
+                            phone: true
+                        }
+                    },
+                    product: true,
+                    subProduct: true,
+                    directSellingProduct: true
+                }
+            });
+
+            if (printer && fullOrder) {
+                await createShiprocketShipment(fullOrder, printer, dimensions);
+            } else {
+                throw new Error("Could not find printer or order details to initiate shipping");
+            }
+        } catch (shipErr) {
+            console.error("Failed to process Shiprocket shipment:", shipErr);
+            throw new Error(`Shiprocket shipping generation failed, order was NOT marked as Shipped: ${shipErr instanceof Error ? shipErr.message : String(shipErr)}`);
+        }
     }
 
     await db.update(orders)
@@ -1005,3 +1086,391 @@ export async function updatePrinterOrderStatus(orderId: number, newStatus: strin
     revalidatePath('/printer/orders');
     return { success: true };
 }
+
+// ── Shiprocket Shipping Report Server Actions ─────────────────────────────────
+
+export async function getPrinterShipments() {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized');
+    }
+
+    // Get all orders assigned to this printer that have shipment records
+    const printerOrders = await db.query.orders.findMany({
+        where: eq(orders.printerAssigned, session.sub),
+        columns: { id: true },
+    });
+
+    const orderIds = printerOrders.map(o => o.id);
+    if (orderIds.length === 0) return [];
+
+    const allShipments = await db.query.shipments.findMany({
+        where: inArray(shipments.orderId, orderIds),
+        with: {
+            order: {
+                columns: {
+                    id: true,
+                    orderStatus: true,
+                    totalAmount: true,
+                    quantity: true,
+                    trackingNumber: true,
+                    createdAt: true,
+                },
+                with: {
+                    user: {
+                        columns: { name: true, email: true, phone: true },
+                    },
+                    product: { columns: { name: true } },
+                    directSellingProduct: { columns: { name: true } },
+                },
+            },
+        },
+        orderBy: [desc(shipments.createdAt)],
+    });
+
+    return allShipments;
+}
+
+export async function trackPrinterShipment(orderId: number) {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized');
+    }
+
+    // Verify this order belongs to this printer
+    const order = await db.query.orders.findFirst({
+        where: and(eq(orders.id, orderId), eq(orders.printerAssigned, session.sub)),
+        columns: { id: true },
+    });
+    if (!order) throw new Error('Order not found or not assigned to you');
+
+    // Find the shipment record
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shiprocketOrderId) {
+        throw new Error('No shipment record found for this order');
+    }
+
+    const trackingResult = await trackShipment(shipment.shiprocketOrderId);
+    return trackingResult;
+}
+
+export async function cancelPrinterShipment(orderId: number, reason?: string) {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized');
+    }
+
+    const order = await db.query.orders.findFirst({
+        where: and(eq(orders.id, orderId), eq(orders.printerAssigned, session.sub)),
+        columns: { id: true, orderStatus: true },
+    });
+    if (!order) throw new Error('Order not found or not assigned to you');
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shiprocketOrderId) {
+        throw new Error('No shipment record found for this order');
+    }
+
+    // Cancel via Shiprocket API
+    await cancelShipment([parseInt(shipment.shiprocketOrderId)], reason);
+
+    // Revert order status back to processing
+    await db.update(orders)
+        .set({
+            orderStatus: 'processing',
+            trackingNumber: null,
+            updatedAt: new Date(),
+        })
+        .where(eq(orders.id, orderId));
+
+    try {
+        await recordOrderLog({
+            orderId,
+            actionType: 'shipment_cancelled',
+            oldValue: { status: order.orderStatus },
+            newValue: { status: 'processing', reason },
+            message: `Shipment cancelled by printer. Reason: ${reason || 'N/A'}. Order reverted to processing.`,
+            isCustomerVisible: true,
+        });
+    } catch (e) {
+        console.error('Failed to log shipment cancellation:', e);
+    }
+
+    revalidatePath(`/printer/orders/${orderId}`);
+    revalidatePath('/printer/orders');
+    revalidatePath('/printer/shipments');
+    return { success: true };
+}
+
+export async function generateShipmentLabel(orderId: number) {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized');
+    }
+
+    const order = await db.query.orders.findFirst({
+        where: and(eq(orders.id, orderId), eq(orders.printerAssigned, session.sub)),
+        columns: { id: true },
+    });
+    if (!order) throw new Error('Order not found or not assigned to you');
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shipmentId) {
+        throw new Error('No shipment record found for this order');
+    }
+
+    const result = await generateLabel(shipment.shipmentId);
+    revalidatePath('/printer/shipments');
+    return result;
+}
+
+export async function generateShipmentManifest(orderId: number) {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized');
+    }
+
+    const order = await db.query.orders.findFirst({
+        where: and(eq(orders.id, orderId), eq(orders.printerAssigned, session.sub)),
+        columns: { id: true },
+    });
+    if (!order) throw new Error('Order not found or not assigned to you');
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shipmentId) {
+        throw new Error('No shipment record found for this order');
+    }
+
+    const result = await generateManifest(shipment.shipmentId);
+    revalidatePath('/printer/shipments');
+    return result;
+}
+
+export async function schedulePrinterPickup(orderId: number) {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized');
+    }
+
+    const order = await db.query.orders.findFirst({
+        where: and(eq(orders.id, orderId), eq(orders.printerAssigned, session.sub)),
+        columns: { id: true },
+    });
+    if (!order) throw new Error('Order not found or not assigned to you');
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shipmentId) {
+        throw new Error('No shipment record found for this order');
+    }
+
+    const result = await schedulePickup(shipment.shipmentId);
+    
+    // Log the event
+    try {
+        await recordOrderLog({
+            orderId,
+            actionType: 'pickup_scheduled',
+            message: `Printer scheduled pickup for shipment.`,
+            isCustomerVisible: true,
+        });
+    } catch (e) {
+        console.error('Failed to log pickup scheduling:', e);
+    }
+    
+    revalidatePath('/printer/shipments');
+    return result;
+}
+
+// ── Admin Shiprocket Shipping Operations & Report Actions ───────────────────
+
+export async function getAdminShipments() {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const allShipments = await db.query.shipments.findMany({
+        with: {
+            order: {
+                columns: {
+                    id: true,
+                    orderStatus: true,
+                    totalAmount: true,
+                    quantity: true,
+                    trackingNumber: true,
+                    createdAt: true,
+                    printerAssigned: true,
+                },
+                with: {
+                    user: {
+                        columns: { name: true, email: true, phone: true },
+                    },
+                    product: { columns: { name: true } },
+                    directSellingProduct: { columns: { name: true } },
+                },
+            },
+        },
+        orderBy: [desc(shipments.createdAt)],
+    });
+
+    const printerIds = [...new Set(allShipments.map(s => s.order?.printerAssigned).filter(Boolean))] as string[];
+    let printerMap: Record<string, string> = {};
+    if (printerIds.length > 0) {
+        const printersList = await db.query.users.findMany({
+            where: inArray(users.id, printerIds),
+            columns: { id: true, name: true }
+        });
+        printersList.forEach(p => {
+            printerMap[p.id] = p.name;
+        });
+    }
+
+    return allShipments.map(s => ({
+        ...s,
+        printerName: s.order?.printerAssigned ? (printerMap[s.order.printerAssigned] || 'Unknown Printer') : 'Unassigned'
+    }));
+}
+
+export async function adminTrackShipment(orderId: number) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shiprocketOrderId) {
+        throw new Error('No shipment record found for this order');
+    }
+
+    const trackingResult = await trackShipment(shipment.shiprocketOrderId);
+    return trackingResult;
+}
+
+export async function adminCancelShipment(orderId: number, reason?: string) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const order = await db.query.orders.findFirst({
+        where: eq(orders.id, orderId),
+        columns: { id: true, orderStatus: true },
+    });
+    if (!order) throw new Error('Order not found');
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shiprocketOrderId) {
+        throw new Error('No shipment record found for this order');
+    }
+
+    await cancelShipment([parseInt(shipment.shiprocketOrderId)], reason);
+
+    await db.update(orders)
+        .set({
+            orderStatus: 'processing',
+            trackingNumber: null,
+            updatedAt: new Date(),
+        })
+        .where(eq(orders.id, orderId));
+
+    try {
+        await recordOrderLog({
+            orderId,
+            actionType: 'shipment_cancelled',
+            oldValue: { status: order.orderStatus },
+            newValue: { status: 'processing', reason },
+            message: `Shipment cancelled by Administrator. Reason: ${reason || 'N/A'}. Order reverted to processing.`,
+            isCustomerVisible: true,
+        });
+    } catch (e) {
+        console.error('Failed to log admin shipment cancellation:', e);
+    }
+
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath('/admin/printers/shipments');
+    return { success: true };
+}
+
+export async function adminGenerateShipmentLabel(orderId: number) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shipmentId) {
+        throw new Error('No shipment record found for this order');
+    }
+
+    const result = await generateLabel(shipment.shipmentId);
+    return result;
+}
+
+export async function adminGenerateShipmentManifest(orderId: number) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shipmentId) {
+        throw new Error('No shipment record found for this order');
+    }
+
+    const result = await generateManifest(shipment.shipmentId);
+    return result;
+}
+
+export async function adminScheduleShipmentPickup(orderId: number) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shipmentId) {
+        throw new Error('No shipment record found for this order');
+    }
+
+    const result = await schedulePickup(shipment.shipmentId);
+    
+    try {
+        await recordOrderLog({
+            orderId,
+            actionType: 'pickup_scheduled',
+            message: `Administrator scheduled pickup for shipment.`,
+            isCustomerVisible: true,
+        });
+    } catch (e) {
+        console.error('Failed to log admin pickup scheduling:', e);
+    }
+    
+    return result;
+}
+

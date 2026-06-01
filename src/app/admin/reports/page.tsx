@@ -203,6 +203,72 @@ export default function ReportsPage() {
                   ? `✓ Reconciled — Order Revenue (₹${fmt(revData.reconciliation.orderRevenue)}) matches Payments Captured (₹${fmt(revData.reconciliation.paymentsCollected)})`
                   : `⚠ Gap of ₹${fmt(Math.abs(revData.reconciliation.diff))} between order revenue and captured payments — review pending/failed transactions.`}
               />
+
+              {Math.abs(revData.reconciliation.diff) >= 1 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                  {/* Mismatched Orders */}
+                  {revData.reconciliation.mismatchedOrders?.length > 0 && (
+                    <Card className="border-rose-200/60 dark:border-rose-900/30 bg-rose-50/5">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-black uppercase tracking-widest text-rose-800 dark:text-rose-400">
+                          Mismatched Orders (Paid Status, No Success Txn)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {revData.reconciliation.mismatchedOrders.map((o: any) => (
+                          <div key={o.id} className="flex justify-between items-center py-2 border-b border-border/30 last:border-0 text-xs">
+                            <div>
+                              <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Order #{o.id}</span>
+                              <span className="text-[10px] text-muted-foreground ml-2">({format(new Date(o.createdAt), 'dd MMM yyyy')})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground font-semibold text-[10px]">{o.paymentMethod || 'N/A'}</span>
+                              <span className="font-extrabold text-slate-800 dark:text-slate-200">₹{fmt(parseFloat(o.totalAmount))}</span>
+                              <Badge className="bg-rose-500 hover:bg-rose-500 border-none text-white text-[8px] font-black uppercase tracking-wider py-0.5 px-1 rounded">No Txn</Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Mismatched Payments */}
+                  {revData.reconciliation.mismatchedPayments?.length > 0 && (
+                    <Card className="border-rose-200/60 dark:border-rose-900/30 bg-rose-50/5">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-black uppercase tracking-widest text-rose-800 dark:text-rose-400">
+                          Mismatched Payments (Captured Txn, Unpaid Orders)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {revData.reconciliation.mismatchedPayments.map((p: any) => (
+                          <div key={p.id} className="flex flex-col py-2 border-b border-border/30 last:border-0 text-xs gap-1">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">Txn #{p.id}</span>
+                                <span className="text-[10px] text-muted-foreground ml-2">({format(new Date(p.createdAt), 'dd MMM yyyy')})</span>
+                              </div>
+                              <span className="font-extrabold text-slate-800 dark:text-slate-200">₹{fmt(p.amount)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+                              <span>Provider: {p.provider} ({p.userName})</span>
+                              {p.orders.length === 0 ? (
+                                <Badge className="bg-rose-500 hover:bg-rose-500 border-none text-white text-[8px] font-black uppercase tracking-wider py-0 px-1 rounded">Unlinked</Badge>
+                              ) : (
+                                <div className="flex gap-1.5 items-center">
+                                  {p.orders.map((o: any) => (
+                                    <span key={o.id} className="font-semibold text-rose-600">Order #{o.id} ({o.paymentStatus})</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
             </>
           )}
         </TabsContent>

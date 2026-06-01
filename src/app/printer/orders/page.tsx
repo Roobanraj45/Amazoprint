@@ -34,6 +34,8 @@ import {
     Activity,
     CreditCard,
     User2,
+    MapPin,
+    Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -222,49 +224,215 @@ function AlertBanner({ type, title, message, onDismiss }: {
 
 // ── Status advance confirm ────────────────────────────────────────────────────
 function ConfirmStatusDialog({
-    isOpen, orderId, orderRef, from, to, onClose, onConfirm, isPending,
+    isOpen, order, from, to, onClose, onConfirm, isPending,
 }: {
-    isOpen: boolean; orderId: number; orderRef: string; from: string; to: string;
-    onClose: () => void; onConfirm: () => void; isPending: boolean;
+    isOpen: boolean; order: Order; from: string; to: string;
+    onClose: () => void; onConfirm: (dimensions?: { length: number; breadth: number; height: number; weight: number }) => void; isPending: boolean;
 }) {
+    const [length, setLength] = useState(15);
+    const [breadth, setBreadth] = useState(15);
+    const [height, setHeight] = useState(10);
+    const [weight, setWeight] = useState(0.5);
+
     if (!isOpen) return null;
     const fromCfg = STATUS_CONFIG[from];
     const toCfg = STATUS_CONFIG[to];
+    const isShipped = to === 'shipped';
+
+    const handleConfirm = () => {
+        if (isShipped) {
+            onConfirm({ length, breadth, height, weight });
+        } else {
+            onConfirm();
+        }
+    };
+
+    // Parse customisation
+    let parsedCustomisation: any = null;
+    try {
+        const raw = order.design?.customisation || (order as any).customisation;
+        parsedCustomisation = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch { }
+
+    const pages = parsedCustomisation?.pages === 2 || parsedCustomisation?.pages === '2' ? 'Double Sided' : 'Single Sided';
+    const dimensions = `${order.design?.width || order.designUpload?.width || 'N/A'} × ${order.design?.height || order.designUpload?.height || 'N/A'} mm`;
+    const lamination = parsedCustomisation?.lamination || 'None';
+    const spotUv = parsedCustomisation?.spotUv ? 'Yes' : 'No';
+    const foil = parsedCustomisation?.foilName || parsedCustomisation?.foil || (parsedCustomisation?.foilId ? `Foil #${parsedCustomisation.foilId}` : 'None');
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-2xl p-6 max-w-sm w-full animate-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-center gap-3 mb-4">
-                    <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border', fromCfg?.color, fromCfg?.bg)}>
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-md transition-opacity duration-300" onClick={onClose} />
+            <div className={cn(
+                "relative bg-white dark:bg-zinc-950 rounded-3xl border border-slate-100 dark:border-zinc-900 shadow-2xl p-6 w-full animate-in zoom-in-95 fade-in duration-200 max-h-[95vh] overflow-y-auto",
+                isShipped ? "max-w-lg" : "max-w-md"
+            )}>
+                {/* Header Pills */}
+                <div className="flex items-center justify-center gap-3 mb-6 bg-slate-50 dark:bg-zinc-900/50 p-2 rounded-2xl w-fit mx-auto border border-slate-100 dark:border-zinc-900">
+                    <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all', fromCfg?.color, fromCfg?.bg)}>
                         {fromCfg?.icon} {fromCfg?.label}
                     </span>
                     <ArrowRight className="h-4 w-4 text-slate-400" />
-                    <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border', toCfg?.color, toCfg?.bg)}>
+                    <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all', toCfg?.color, toCfg?.bg)}>
                         {toCfg?.icon} {toCfg?.label}
                     </span>
                 </div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white text-center mb-1">Update Order Status</h3>
-                <p className="text-sm text-slate-500 dark:text-zinc-400 text-center mb-5">
-                    Advance <span className="font-bold text-slate-700 dark:text-zinc-300">Order #{orderRef}</span> to{' '}
-                    <span className={cn('font-bold', toCfg?.color)}>{toCfg?.label}</span>?
+                <h3 className="text-xl font-black text-slate-900 dark:text-white text-center mb-1">Update Order Status</h3>
+                <p className="text-sm text-slate-500 dark:text-zinc-400 text-center mb-6">
+                    Advance <span className="font-extrabold text-blue-600 dark:text-blue-400">Order #{order.id}</span> to{' '}
+                    <span className={cn('font-black', toCfg?.color)}>{toCfg?.label}</span>?
                 </p>
-                <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1 rounded-xl font-bold" onClick={onClose} disabled={isPending}>
+
+                {isShipped && (
+                    <div className="space-y-5 mb-6 border-t border-slate-100 dark:border-zinc-900 pt-5">
+                        
+                        {/* Elegant Shipping & Order Details Card */}
+                        <div className="rounded-2xl border border-slate-100 dark:border-zinc-900 overflow-hidden bg-gradient-to-b from-slate-50/50 to-white dark:from-zinc-900/50 dark:to-zinc-950 shadow-sm">
+                            {/* Destination Section */}
+                            <div className="p-4 space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 flex items-center gap-1.5">
+                                    <MapPin className="h-3 w-3 text-rose-500" /> Destination Address
+                                </p>
+                                <div className="space-y-2 text-xs">
+                                    <div className="flex items-center gap-2">
+                                        <User2 className="h-3.5 w-3.5 text-slate-400" />
+                                        <p className="font-bold text-slate-800 dark:text-zinc-200">
+                                            Recipient: <span className="font-medium text-slate-600 dark:text-zinc-400">{order.user.name}</span>
+                                        </p>
+                                    </div>
+                                    {order.user.phone && (
+                                        <div className="flex items-center gap-2">
+                                            <Phone className="h-3.5 w-3.5 text-slate-400" />
+                                            <p className="font-bold text-slate-800 dark:text-zinc-200">
+                                                Phone: <span className="font-medium text-slate-600 dark:text-zinc-400">{order.user.phone}</span>
+                                            </p>
+                                        </div>
+                                    )}
+                                    {order.shippingAddress && (
+                                        <div className="flex items-start gap-2">
+                                            <MapPin className="h-3.5 w-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                            <p className="font-bold text-slate-800 dark:text-zinc-200 leading-relaxed">
+                                                Address: <span className="font-medium text-slate-600 dark:text-zinc-400">
+                                                    {(() => {
+                                                        const addr = order.shippingAddress as any;
+                                                        return [addr?.addressLine1, addr?.addressLine2, addr?.city, addr?.state, addr?.zip, addr?.country]
+                                                            .filter(Boolean).join(', ');
+                                                    })()}
+                                                </span>
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Specifications & Payout Section */}
+                            <div className="p-4 border-t border-slate-100 dark:border-zinc-900 bg-slate-50/30 dark:bg-zinc-900/10 space-y-3">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 flex items-center gap-1.5">
+                                    <Package className="h-3 w-3 text-indigo-500" /> Order Specifications
+                                </p>
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div className="space-y-1">
+                                        <p className="font-bold text-slate-800 dark:text-zinc-200">
+                                            Product: <span className="font-medium text-slate-600 dark:text-zinc-400 block truncate max-w-[200px]" title={order.directSellingProduct?.name || order.product?.name}>{order.directSellingProduct?.name || order.product?.name || 'Unspecified Product'}</span>
+                                        </p>
+                                        <p className="font-bold text-slate-800 dark:text-zinc-200">
+                                            Quantity: <span className="font-semibold text-slate-600 dark:text-zinc-400">{order.quantity} pcs</span>
+                                        </p>
+                                        <p className="font-bold text-slate-800 dark:text-zinc-200">
+                                            Payout: <span className="font-black text-emerald-600 dark:text-emerald-400">₹{parseFloat(order.printingAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                        </p>
+                                    </div>
+                                    <div className="space-y-1 border-l border-slate-200/60 dark:border-zinc-800/80 pl-3">
+                                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold">
+                                            Sides: <span className="font-normal">{pages}</span>
+                                        </p>
+                                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold">
+                                            Size: <span className="font-normal">{dimensions}</span>
+                                        </p>
+                                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold">
+                                            Lamination: <span className="font-normal">{lamination}</span>
+                                        </p>
+                                        {(spotUv === 'Yes' || foil !== 'None') && (
+                                            <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-950/20 px-1.5 py-0.5 rounded w-fit mt-1 border border-purple-100 dark:border-purple-900/40">
+                                                Special Finish Addon
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Informative Tip Box */}
+                        <div className="flex gap-2.5 p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-950/10 border border-blue-100 dark:border-blue-900/30 text-[11px] text-blue-700 dark:text-blue-400 font-medium">
+                            <Zap className="h-4 w-4 shrink-0 text-blue-500" />
+                            <div>
+                                <span className="font-bold">Shiprocket Automation:</span> Confirming this state registers the shipment, creates a ready-to-ship order inside Shiprocket, and generates your tracking AWB.
+                            </div>
+                        </div>
+
+                        {/* Shiprocket Package Details Inputs */}
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Package Outer Dimensions</p>
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Length (cm)</label>
+                                    <Input 
+                                        type="number" 
+                                        className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                        value={length} 
+                                        onChange={(e) => setLength(parseFloat(e.target.value) || 0)} 
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Breadth (cm)</label>
+                                    <Input 
+                                        type="number" 
+                                        className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                        value={breadth} 
+                                        onChange={(e) => setBreadth(parseFloat(e.target.value) || 0)} 
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Height (cm)</label>
+                                    <Input 
+                                        type="number" 
+                                        className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                        value={height} 
+                                        onChange={(e) => setHeight(parseFloat(e.target.value) || 0)} 
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Weight (kg)</label>
+                                    <Input 
+                                        type="number" 
+                                        step="0.01"
+                                        className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                        value={weight} 
+                                        onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex gap-3 mt-2">
+                    <Button variant="outline" className="flex-1 rounded-2xl font-bold h-11" onClick={onClose} disabled={isPending}>
                         Cancel
                     </Button>
                     <Button
-                        className="flex-1 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25"
-                        onClick={onConfirm}
+                        className="flex-1 rounded-2xl font-bold h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 transition-all active:scale-[0.98]"
+                        onClick={handleConfirm}
                         disabled={isPending}
                     >
-                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm'}
+                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Update'}
                     </Button>
                 </div>
             </div>
         </div>
     );
 }
+
 
 // ── Spec chip ─────────────────────────────────────────────────────────────────
 function SpecChip({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
@@ -685,7 +853,7 @@ export default function PrinterOrdersPage() {
     const [dateFilter, setDateFilter] = useState('all');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [sortBy, setSortBy] = useState('newest');
+    const [sortBy, setSortBy] = useState('assigned_newest');
     const [showFilters, setShowFilters] = useState(false);
 
     // Fetch
@@ -710,7 +878,7 @@ export default function PrinterOrdersPage() {
         setConfirmDialog({ isOpen: true, order, from: order.orderStatus ?? '', to: nextStatus });
     };
 
-    const handleConfirmAdvance = () => {
+    const handleConfirmAdvance = (dimensions?: { length: number; breadth: number; height: number; weight: number }) => {
         if (!confirmDialog) return;
         const { order, to } = confirmDialog;
         setAdvancingId(order.id);
@@ -718,7 +886,7 @@ export default function PrinterOrdersPage() {
 
         startTransition(async () => {
             try {
-                await updatePrinterOrderStatus(order.id, to);
+                await updatePrinterOrderStatus(order.id, to, dimensions);
                 setOrders(prev => prev.map(o => o.id === order.id ? { ...o, orderStatus: to } : o));
                 const toCfg = STATUS_CONFIG[to];
                 addAlert('success', 'Status Updated!',
@@ -751,16 +919,18 @@ export default function PrinterOrdersPage() {
             if (statusFilter !== 'all' && order.orderStatus !== statusFilter) return false;
 
             // Date
-            if (order.createdAt) {
-                const created = new Date(order.createdAt);
-                const now = new Date();
-                if (dateFilter === 'today' && !isToday(created)) return false;
-                if (dateFilter === 'this_week' && !isThisWeek(created)) return false;
-                if (dateFilter === 'this_month' && !isThisMonth(created)) return false;
+            if (dateFilter !== 'all') {
+                if (!order.printerAssignedAt) {
+                    return false;
+                }
+                const assigned = new Date(order.printerAssignedAt);
+                if (dateFilter === 'today' && !isToday(assigned)) return false;
+                if (dateFilter === 'this_week' && !isThisWeek(assigned)) return false;
+                if (dateFilter === 'this_month' && !isThisMonth(assigned)) return false;
                 if (dateFilter === 'custom' && startDate && endDate) {
                     const s = startOfDay(new Date(startDate));
                     const e = endOfDay(new Date(endDate));
-                    if (created < s || created > e) return false;
+                    if (assigned < s || assigned > e) return false;
                 }
             }
 
@@ -770,6 +940,18 @@ export default function PrinterOrdersPage() {
 
     const sorted = useMemo(() => {
         return [...filtered].sort((a, b) => {
+            if (sortBy === 'assigned_newest') {
+                const timeA = a.printerAssignedAt ? new Date(a.printerAssignedAt).getTime() : 0;
+                const timeB = b.printerAssignedAt ? new Date(b.printerAssignedAt).getTime() : 0;
+                if (timeA !== timeB) return timeB - timeA;
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            }
+            if (sortBy === 'assigned_oldest') {
+                const timeA = a.printerAssignedAt ? new Date(a.printerAssignedAt).getTime() : Infinity;
+                const timeB = b.printerAssignedAt ? new Date(b.printerAssignedAt).getTime() : Infinity;
+                if (timeA !== timeB) return timeA - timeB;
+                return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            }
             if (sortBy === 'newest') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
             if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
             if (sortBy === 'payout_high') return parseFloat(b.printingAmount || '0') - parseFloat(a.printingAmount || '0');
@@ -789,7 +971,7 @@ export default function PrinterOrdersPage() {
             (Date.now() - new Date(o.printerAssignedAt).getTime()) / 3600000 > 6
         ).length,
         totalPayout: orders.reduce((sum, o) => sum + parseFloat(o.printingAmount || '0'), 0),
-        todayOrders: orders.filter(o => isToday(new Date(o.createdAt))).length,
+        todayOrders: orders.filter(o => o.printerAssignedAt && isToday(new Date(o.printerAssignedAt))).length,
     };
 
     const timeChips = [
@@ -817,8 +999,7 @@ export default function PrinterOrdersPage() {
             {confirmDialog && (
                 <ConfirmStatusDialog
                     isOpen={confirmDialog.isOpen}
-                    orderId={confirmDialog.order.id}
-                    orderRef={String(confirmDialog.order.id)}
+                    order={confirmDialog.order}
                     from={confirmDialog.from}
                     to={confirmDialog.to}
                     onClose={() => setConfirmDialog(null)}
@@ -829,7 +1010,7 @@ export default function PrinterOrdersPage() {
 
             {/* ── Floating alerts */}
             {alerts.length > 0 && (
-                <div className="fixed top-4 right-4 z-50 w-full max-w-sm space-y-2">
+                <div className="fixed top-24 right-4 z-[9999] w-full max-w-sm space-y-2">
                     {alerts.map(alert => (
                         <AlertBanner
                             key={alert.id}
@@ -1017,6 +1198,8 @@ export default function PrinterOrdersPage() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="assigned_newest">Newest Assigned</SelectItem>
+                                    <SelectItem value="assigned_oldest">Oldest Assigned</SelectItem>
                                     <SelectItem value="newest">Newest First</SelectItem>
                                     <SelectItem value="oldest">Oldest First</SelectItem>
                                     <SelectItem value="payout_high">My Payout ↓</SelectItem>

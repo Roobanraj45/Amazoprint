@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar"
-import { LogOut, KeyRound, ShoppingBag, Home, Trophy, Users, Palette, Sparkles, Store, Package, DollarSign, Factory, ShieldCheck, Search, Scissors, FileArchive, Layers, BarChart3, CircleDollarSign, Receipt } from "lucide-react"
+import { LogOut, KeyRound, ShoppingBag, Home, Trophy, Users, Palette, Sparkles, Store, Package, DollarSign, Factory, ShieldCheck, Search, Scissors, FileArchive, Layers, BarChart3, CircleDollarSign, Receipt, Truck } from "lucide-react"
 import Link from "next/link"
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { useRouter, usePathname } from "next/navigation";
@@ -59,6 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             items: [
                 { href: "/admin/users", label: "Users", icon: <Users size={14} />, color: "group-hover:text-sky-500" },
                 { href: "/admin/printers", label: "Printers", icon: <Factory size={14} />, color: "group-hover:text-blue-600" },
+                { href: "/admin/printers/shipments", label: "Shipping Reports", icon: <Truck size={14} />, color: "group-hover:text-cyan-600" },
                 { href: "/admin/printer-invoices", label: "Printer Invoices", icon: <Receipt size={14} />, color: "group-hover:text-violet-500" },
                 { href: "/admin/printer-proposals", label: "Printer Suggestions", icon: <Sparkles size={14} />, color: "group-hover:text-indigo-500" },
             ]

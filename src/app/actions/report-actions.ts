@@ -96,6 +96,62 @@ export async function getRevenueReport({
         total: sql<string>`COALESCE(SUM(${orders.totalAmount}::numeric), 0)`,
     }).from(orders).where(and(...orderConds, eq(orders.paymentStatus, 'paid'))).groupBy(orders.paymentMethod);
 
+    // Fetch mismatched orders (marked paid, but no successful payment transaction)
+    const mismatchedOrders = await db.select({
+        id: orders.id,
+        createdAt: orders.createdAt,
+        totalAmount: orders.totalAmount,
+        paymentStatus: orders.paymentStatus,
+        paymentMethod: orders.paymentMethod,
+        paymentId: orders.paymentId,
+    }).from(orders)
+      .leftJoin(payments, eq(orders.paymentId, payments.id))
+      .where(and(
+          ...orderConds,
+          eq(orders.paymentStatus, 'paid'),
+          sql`(${payments.id} IS NULL OR ${payments.status} != 'captured')`
+      ))
+      .limit(10);
+
+    // Fetch mismatched payments (captured transaction, but order is not paid or missing, excluding contest payments)
+    const capturedPaymentsList = await db.query.payments.findMany({
+        where: and(...paymentConds, eq(payments.status, 'captured')),
+        with: {
+            orders: true,
+            user: {
+                columns: {
+                    name: true,
+                    email: true,
+                }
+            },
+            contest: true,
+        },
+        orderBy: [sql`${payments.createdAt} DESC`],
+    });
+
+    const mismatchedPayments = capturedPaymentsList.filter(pay => {
+        const orderList = pay.orders || [];
+        // Mismatch if there are no linked orders and no contestId (orphaned)
+        if (orderList.length === 0 && !pay.contestId) return true;
+        // Mismatch if any linked order is not paid
+        if (orderList.length > 0 && orderList.some(o => o.paymentStatus !== 'paid')) return true;
+        return false;
+    }).slice(0, 10).map(pay => ({
+        id: pay.id,
+        createdAt: pay.createdAt,
+        amount: parseFloat(pay.amount || '0'),
+        provider: pay.provider,
+        providerPaymentId: pay.providerPaymentId,
+        userName: pay.user?.name || 'Unknown User',
+        userEmail: pay.user?.email || 'N/A',
+        contestId: pay.contestId,
+        orders: pay.orders.map(o => ({
+            id: o.id,
+            totalAmount: parseFloat(o.totalAmount || '0'),
+            paymentStatus: o.paymentStatus,
+        }))
+    }));
+
     return {
         totalOrderRevenue: { total: Number(totalOrderRevenue.total), count: totalOrderRevenue.count },
         contestOrderRevenue: { total: Number(contestOrderRevenue.total), count: contestOrderRevenue.count },
@@ -112,6 +168,8 @@ export async function getRevenueReport({
             paymentsCollected: Number(capturedPayments.total),
             // diff: positive = uncollected, negative = over-collected
             diff: Number(capturedPayments.total) - Number(totalOrderRevenue.total),
+            mismatchedOrders,
+            mismatchedPayments,
         }
     };
 }

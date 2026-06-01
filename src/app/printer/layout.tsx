@@ -17,6 +17,7 @@ export default function PrinterLayout({ children }: { children: React.ReactNode 
   const menuItems = [
     { href: "/printer/dashboard", label: "Dashboard", icon: <Home size={16} />, color: "text-blue-500" },
     { href: "/printer/orders", label: "Order Queue", icon: <Package size={16} />, color: "text-amber-500" },
+    { href: "/printer/shipments", label: "Shipping", icon: <Factory size={16} />, color: "text-cyan-500" },
     { href: "/printer/invoices", label: "Invoices", icon: <FileText size={16} />, color: "text-violet-500" },
     { href: "/printer/reports", label: "Reports", icon: <BarChart3 size={16} />, color: "text-indigo-500" },
     { href: "/printer/design-options", label: "Design Update", icon: <Sparkles size={16} />, color: "text-indigo-500" },

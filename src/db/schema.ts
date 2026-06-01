@@ -778,6 +778,7 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     }),
     logs: many(orderLogs),
     printerPayments: many(printerPayments),
+    shipment: one(shipments),
 }));
 
 export const orderLogsRelations = relations(orderLogs, ({ one }) => ({
@@ -963,6 +964,41 @@ export const printerPaymentsRelations = relations(printerPayments, ({ one }) => 
   printer: one(printPressUsers, {
     fields: [printerPayments.printerId],
     references: [printPressUsers.id],
+  }),
+}));
+
+export const shipments = pgTable('shipments', {
+  id: serial('id').primaryKey(),
+  orderId: integer('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  shipmentId: varchar('shipment_id', { length: 100 }),
+  shiprocketOrderId: varchar('shiprocket_order_id', { length: 100 }),
+  awbCode: varchar('awb_code', { length: 100 }),
+  courierName: varchar('courier_name', { length: 100 }),
+  status: varchar('status', { length: 100 }),
+  labelUrl: text('label_url'),
+  manifestUrl: text('manifest_url'),
+  trackingUrl: text('tracking_url'),
+  pickupScheduledDate: timestamp('pickup_scheduled_date'),
+  deliveredDate: timestamp('delivered_date'),
+  cancelledAt: timestamp('cancelled_at'),
+  cancelReason: text('cancel_reason'),
+  estimatedDelivery: varchar('estimated_delivery', { length: 100 }),
+  currentStatus: varchar('current_status', { length: 100 }),
+  lastTrackingUpdate: timestamp('last_tracking_update'),
+  trackingData: jsonb('tracking_data'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  orderIdIdx: index('idx_shipments_order_id').on(table.orderId),
+  shipmentIdIdx: index('idx_shipments_shipment_id').on(table.shipmentId),
+  awbCodeIdx: index('idx_shipments_awb_code').on(table.awbCode),
+  statusIdx: index('idx_shipments_status').on(table.status),
+}));
+
+export const shipmentsRelations = relations(shipments, ({ one }) => ({
+  order: one(orders, {
+    fields: [shipments.orderId],
+    references: [orders.id],
   }),
 }));
 
