@@ -477,6 +477,13 @@ export async function generateLabel(shipmentId: string) {
 export async function generateManifest(shipmentId: string) {
     console.log(`[Shiprocket] Generating manifest for shipment: ${shipmentId}`);
 
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.shipmentId, shipmentId),
+    });
+    if (!shipment || !shipment.shiprocketOrderId) {
+        throw new Error("No Shiprocket Order ID associated with this shipment to print manifest.");
+    }
+
     // Step 1: Generate manifest
     const genRes = await shiprocketFetch("/manifests/generate", {
         method: "POST",
@@ -485,19 +492,24 @@ export async function generateManifest(shipmentId: string) {
         }),
     });
 
+    let genData = {};
     if (!genRes.ok) {
         const errText = await genRes.text();
-        throw new Error(`Manifest generation failed: ${genRes.status} - ${errText}`);
+        if (errText.includes("already generated") || errText.includes("Manifest already generated")) {
+            console.log("[Shiprocket] Manifest is already generated, attempting to fetch printing URL directly...");
+        } else {
+            throw new Error(`Manifest generation failed: ${genRes.status} - ${errText}`);
+        }
+    } else {
+        genData = await genRes.json();
+        console.log("[Shiprocket] Manifest generate response:", genData);
     }
 
-    const genData = await genRes.json();
-    console.log("[Shiprocket] Manifest generate response:", genData);
-
-    // Step 2: Print manifest to get the PDF URL
+    // Step 2: Print manifest using order_ids (Shiprocket Order IDs)
     const printRes = await shiprocketFetch("/manifests/print", {
         method: "POST",
         body: JSON.stringify({
-            order_ids: [parseInt(shipmentId)],
+            order_ids: [parseInt(shipment.shiprocketOrderId)],
         }),
     });
 
@@ -509,7 +521,6 @@ export async function generateManifest(shipmentId: string) {
         manifestUrl = printData.manifest_url || printData.response?.manifest_url || null;
     } else {
         console.error("[Shiprocket] Manifest print failed:", await printRes.text());
-        // Still continue; the manifest was generated even if we can't get the PDF URL
     }
 
     // Update shipments table
@@ -530,13 +541,9 @@ export async function generateManifest(shipmentId: string) {
 export async function schedulePickup(shipmentId: string, pickupDate?: string, scheduledTimestamp?: Date) {
     console.log(`[Shiprocket] Scheduling pickup for shipment: ${shipmentId} (Date: ${pickupDate || 'default'})`);
 
-    const payload: any = {
+    const payload = {
         shipment_id: [parseInt(shipmentId)],
     };
-
-    if (pickupDate) {
-        payload.pickup_date = pickupDate;
-    }
 
     const res = await shiprocketFetch("/courier/generate/pickup", {
         method: "POST",
@@ -561,7 +568,25 @@ export async function schedulePickup(shipmentId: string, pickupDate?: string, sc
         String(responseData.pickup_status) === "1";
 
     if (!isSuccess) {
-        const errorMsg = responseData.message || data.message || "Shiprocket failed to schedule pickup. Please check courier availability or date slot.";
+        let errorMsg = "";
+        if (typeof data.response === "string" && data.response !== "error") {
+            errorMsg = data.response;
+        } else {
+            errorMsg = responseData.message || data.message || "";
+        }
+        
+        const errObj = data.errors || responseData.errors;
+        if (errObj && typeof errObj === "object") {
+            const errorDetails = Object.entries(errObj)
+                .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : String(msgs)}`)
+                .join(" | ");
+            if (errorDetails) {
+                errorMsg = errorMsg ? `${errorMsg} (${errorDetails})` : errorDetails;
+            }
+        }
+        if (!errorMsg) {
+            errorMsg = "Shiprocket failed to schedule pickup. Please check courier availability or date slot.";
+        }
         throw new Error(errorMsg);
     }
 

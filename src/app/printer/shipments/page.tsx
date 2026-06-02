@@ -468,7 +468,7 @@ function SchedulePickupModal({ isOpen, onClose, onConfirm, isPending }: {
                     </Button>
                     <Button
                         className="flex-1 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/25"
-                        onClick={() => onConfirm(`${date}T${time}`)}
+                        onClick={() => onConfirm(date)}
                         disabled={isPending}
                     >
                         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm'}
@@ -976,6 +976,32 @@ export default function PrinterShipmentsPage() {
                                                         <Download className="h-3 w-3" /> Download Label
                                                     </a>
                                                 )}
+
+                                                {/* Manifest */}
+                                                {shipment.manifestUrl ? (
+                                                    <a
+                                                        href={shipment.manifestUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-800 hover:bg-sky-100 transition-colors"
+                                                        title="Download Manifest"
+                                                    >
+                                                        <Download className="h-3 w-3" /> Manifest
+                                                    </a>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleGenerateManifest(shipment)}
+                                                        disabled={isActionLoading || isCancelled}
+                                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors disabled:opacity-50"
+                                                        title="Generate Manifest"
+                                                    >
+                                                        {isActionLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                                                        Generate Manifest
+                                                    </button>
+                                                )}
+
+
+
                                             </>
                                         ) : (
                                             <span className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium italic">

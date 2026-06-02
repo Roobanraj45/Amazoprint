@@ -1300,12 +1300,17 @@ export async function schedulePrinterPickup(orderId: number, pickupDateStr?: str
     let shiprocketDate: string | undefined;
     let scheduledTimestamp: Date | undefined;
     if (pickupDateStr) {
-        scheduledTimestamp = new Date(pickupDateStr);
-        if (!isNaN(scheduledTimestamp.getTime())) {
-            const yyyy = scheduledTimestamp.getFullYear();
-            const mm = String(scheduledTimestamp.getMonth() + 1).padStart(2, '0');
-            const dd = String(scheduledTimestamp.getDate()).padStart(2, '0');
-            shiprocketDate = `${yyyy}-${mm}-${dd}`;
+        if (pickupDateStr.includes('T')) {
+            scheduledTimestamp = new Date(pickupDateStr);
+            if (!isNaN(scheduledTimestamp.getTime())) {
+                const yyyy = scheduledTimestamp.getFullYear();
+                const mm = String(scheduledTimestamp.getMonth() + 1).padStart(2, '0');
+                const dd = String(scheduledTimestamp.getDate()).padStart(2, '0');
+                shiprocketDate = `${yyyy}-${mm}-${dd}`;
+            }
+        } else {
+            shiprocketDate = pickupDateStr;
+            scheduledTimestamp = new Date(pickupDateStr);
         }
     }
 
@@ -1616,12 +1621,17 @@ export async function adminScheduleShipmentPickup(orderId: number, pickupDateStr
     let shiprocketDate: string | undefined;
     let scheduledTimestamp: Date | undefined;
     if (pickupDateStr) {
-        scheduledTimestamp = new Date(pickupDateStr);
-        if (!isNaN(scheduledTimestamp.getTime())) {
-            const yyyy = scheduledTimestamp.getFullYear();
-            const mm = String(scheduledTimestamp.getMonth() + 1).padStart(2, '0');
-            const dd = String(scheduledTimestamp.getDate()).padStart(2, '0');
-            shiprocketDate = `${yyyy}-${mm}-${dd}`;
+        if (pickupDateStr.includes('T')) {
+            scheduledTimestamp = new Date(pickupDateStr);
+            if (!isNaN(scheduledTimestamp.getTime())) {
+                const yyyy = scheduledTimestamp.getFullYear();
+                const mm = String(scheduledTimestamp.getMonth() + 1).padStart(2, '0');
+                const dd = String(scheduledTimestamp.getDate()).padStart(2, '0');
+                shiprocketDate = `${yyyy}-${mm}-${dd}`;
+            }
+        } else {
+            shiprocketDate = pickupDateStr;
+            scheduledTimestamp = new Date(pickupDateStr);
         }
     }
 

@@ -420,7 +420,7 @@ function SchedulePickupModal({ isOpen, onClose, onConfirm, isPending }: {
                     </Button>
                     <Button
                         className="flex-1 rounded-2xl font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/25"
-                        onClick={() => onConfirm(`${date}T${time}`)}
+                        onClick={() => onConfirm(date)}
                         disabled={isPending}
                     >
                         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm'}
@@ -1429,7 +1429,8 @@ export default function AdminShippingReportPage() {
                                         )}
 
                                         {/* Cancellation */}
-                                        {['order_created', 'awb_assigned', 'pickup_scheduled'].includes(shipment.currentStatus || shipment.status || '') && (
+                                        {((shipment.shiprocketOrderId || ['order_created', 'awb_assigned', 'pickup_scheduled'].includes(shipment.currentStatus || shipment.status || '')) && 
+                                         !['cancelled', 'delivered'].includes(shipment.currentStatus || shipment.status || '')) && (
                                             <Button
                                                 onClick={() => setCancelModal({ isOpen: true, orderId: shipment.orderId })}
                                                 disabled={isActionLoading}
