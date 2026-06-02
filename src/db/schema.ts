@@ -987,6 +987,13 @@ export const shipments = pgTable('shipments', {
   lastTrackingUpdate: timestamp('last_tracking_update'),
   trackingData: jsonb('tracking_data'),
   attachmentsUrl: text('attachments_url'),
+  // ── Shipping request workflow ─────────────────────────────────────────────────
+  shippingRequestStatus: varchar('shipping_request_status', { length: 30, enum: ['requested', 'approved', 'rejected'] }).default('requested'),
+  shippingRequestedAt: timestamp('shipping_requested_at'),
+  shippingApprovedAt: timestamp('shipping_approved_at'),
+  shippingRejectedAt: timestamp('shipping_rejected_at'),
+  shippingRejectionReason: text('shipping_rejection_reason'),
+  requestedDimensions: jsonb('requested_dimensions').$type<{ length?: number; breadth?: number; height?: number; weight?: number }>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({

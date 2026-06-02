@@ -265,18 +265,45 @@ export async function createShiprocketShipment(
         console.error("[Shiprocket] AWB generation failed:", await awbRes.text());
     }
 
-    // Insert shipment record in our db
-    const [insertedShipment] = await db.insert(shipments).values({
-        orderId: order.id,
-        shipmentId: String(shipmentId),
-        shiprocketOrderId: String(shiprocketOrderId),
-        awbCode: awbCode || "",
-        courierName: courierName || "Shiprocket Courier",
-        status: status,
-        currentStatus: status,
-        trackingUrl: awbCode ? `https://shiprocket.co/tracking/${awbCode}` : null,
-        attachmentsUrl: attachmentsUrl || null,
-    }).returning();
+    // Check if a shipment record already exists (printer request flow) and update it,
+    // otherwise insert a new one (legacy flow).
+    const existing = await db.select().from(shipments).where(eq(shipments.orderId, order.id)).limit(1);
+
+    const trackingUrl = awbCode ? `https://shiprocket.co/tracking/${awbCode}` : null;
+
+    if (existing.length > 0) {
+        // Update the existing shipping request record with Shiprocket data
+        await db.update(shipments)
+            .set({
+                shipmentId: String(shipmentId),
+                shiprocketOrderId: String(shiprocketOrderId),
+                awbCode: awbCode || '',
+                courierName: courierName || 'Shiprocket Courier',
+                status: status,
+                currentStatus: status,
+                trackingUrl,
+                attachmentsUrl: attachmentsUrl || existing[0].attachmentsUrl,
+                shippingRequestStatus: 'approved',
+                shippingApprovedAt: new Date(),
+                updatedAt: new Date(),
+            })
+            .where(eq(shipments.orderId, order.id));
+    } else {
+        // Legacy insert flow
+        await db.insert(shipments).values({
+            orderId: order.id,
+            shipmentId: String(shipmentId),
+            shiprocketOrderId: String(shiprocketOrderId),
+            awbCode: awbCode || '',
+            courierName: courierName || 'Shiprocket Courier',
+            status: status,
+            currentStatus: status,
+            trackingUrl,
+            attachmentsUrl: attachmentsUrl || null,
+            shippingRequestStatus: 'approved',
+            shippingApprovedAt: new Date(),
+        });
+    }
 
     // If AWB generation was successful, update orders tracking number
     if (awbCode) {
@@ -288,7 +315,14 @@ export async function createShiprocketShipment(
             .where(eq(orders.id, order.id));
     }
 
-    return insertedShipment;
+    return {
+        shipmentId: String(shipmentId),
+        shiprocketOrderId: String(shiprocketOrderId),
+        awbCode: awbCode || '',
+        courierName: courierName || 'Shiprocket Courier',
+        status,
+        trackingUrl,
+    };
 }
 
 // ── Track Shipment ────────────────────────────────────────────────────────────
@@ -518,6 +552,18 @@ export async function schedulePickup(shipmentId: string, pickupDate?: string, sc
     console.log("[Shiprocket] Schedule pickup response:", data);
     
     const responseData = data.response || data;
+    
+    // Validate if the pickup scheduling was actually successful on Shiprocket
+    const isSuccess = 
+        String(data.status).toLowerCase() === "success" || 
+        String(responseData.status).toLowerCase() === "success" ||
+        String(data.pickup_status) === "1" ||
+        String(responseData.pickup_status) === "1";
+
+    if (!isSuccess) {
+        const errorMsg = responseData.message || data.message || "Shiprocket failed to schedule pickup. Please check courier availability or date slot.";
+        throw new Error(errorMsg);
+    }
 
     // The status usually moves to pickup_scheduled.
     await db.update(shipments)

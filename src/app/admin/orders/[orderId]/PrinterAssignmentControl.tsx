@@ -48,6 +48,9 @@ export function PrinterAssignmentControl({
     const [selectedPrinter, setSelectedPrinter] = useState<string>(currentPrinterId || "none");
     const [amount, setAmount] = useState<string>(currentPrintingAmount || "0.00");
     const [advancePaid, setAdvancePaid] = useState<string>("0.00");
+    const [advanceRefNumber, setAdvanceRefNumber] = useState<string>("");
+    const [advancePaymentMethod, setAdvancePaymentMethod] = useState<string>("bank_transfer");
+    const [advanceNotes, setAdvanceNotes] = useState<string>("");
 
     // Add installment payment states
     const [installmentAmount, setInstallmentAmount] = useState<string>("");
@@ -80,9 +83,9 @@ export function PrinterAssignmentControl({
                     targetId, 
                     targetId ? amount : "0.00",
                     targetId && advVal > 0 ? advancePaid : undefined,
-                    'bank_transfer',
-                    'Advance Payment',
-                    'Initial advance payment'
+                    advancePaymentMethod,
+                    advanceRefNumber || undefined,
+                    advanceNotes || undefined
                 );
                 if (result.success) {
                     toast({
@@ -90,6 +93,9 @@ export function PrinterAssignmentControl({
                         description: "Printer details saved successfully"
                     });
                     setAdvancePaid("0.00");
+                    setAdvanceRefNumber("");
+                    setAdvancePaymentMethod("bank_transfer");
+                    setAdvanceNotes("");
                 }
             } catch (error: any) {
                 toast({
@@ -208,20 +214,53 @@ export function PrinterAssignmentControl({
 
                     {/* Show advance paid amount input only on initial assignment */}
                     {!currentPrinterId && (
-                        <div className="space-y-1 animate-in slide-in-from-top-1 duration-200">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Advance Payment (Optional)</label>
-                            <div className="relative">
-                                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    value={advancePaid}
-                                    onChange={(e) => setAdvancePaid(e.target.value)}
-                                    disabled={isPending}
-                                    className="h-9 pl-8 text-[11px] font-bold rounded-xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 transition-all focus:ring-primary/20"
-                                />
+                        <div className="space-y-3 animate-in slide-in-from-top-1 duration-200">
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Advance Payment (Optional)</label>
+                                <div className="relative">
+                                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="0.00"
+                                        value={advancePaid}
+                                        onChange={(e) => setAdvancePaid(e.target.value)}
+                                        disabled={isPending}
+                                        className="h-9 pl-8 text-[11px] font-bold rounded-xl bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 transition-all focus:ring-primary/20"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 animate-in slide-in-from-top-1 duration-200">
+                                {/* Reference Number */}
+                                <div className="space-y-1">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Transaction Ref ID (Optional)</label>
+                                    <div className="relative group">
+                                        <CreditCard className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                                        <Input
+                                            type="text"
+                                            placeholder="e.g. Transaction / UPI ID"
+                                            value={advanceRefNumber}
+                                            onChange={(e) => setAdvanceRefNumber(e.target.value)}
+                                            disabled={isPending}
+                                            className="h-8 pl-7 text-[10px] placeholder:text-[9px] font-semibold rounded-lg bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-850 focus:ring-primary/20"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Notes / Remarks */}
+                                <div className="space-y-1">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Notes (Optional)</label>
+                                    <Input
+                                        type="text"
+                                        placeholder="Initial advance payment remarks"
+                                        value={advanceNotes}
+                                        onChange={(e) => setAdvanceNotes(e.target.value)}
+                                        disabled={isPending}
+                                        className="h-8 text-[10px] placeholder:text-[9px] font-semibold rounded-lg bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-850 focus:ring-primary/20"
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}

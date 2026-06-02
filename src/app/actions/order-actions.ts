@@ -5,7 +5,7 @@
 import { z } from 'zod';
 import { db } from '@/db';
 import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs, users, payments, printerPayments, shipments } from '@/db/schema';
-import { and, eq, desc, count, ilike, sql, gte, lte, or, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { and, eq, desc, count, ilike, sql, gte, lte, or, inArray, isNotNull, isNull, notInArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import type { Address } from '@/lib/types';
@@ -221,7 +221,7 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
                 discountDescription = `${discountRule.discountValue}% off`;
             } else if (discountRule.discountType === 'fixed') {
                 perItemDiscount = Number(discountRule.discountValue);
-                discountDescription = `₹${discountRule.discountValue} off per item`;
+                discountDescription = `ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${discountRule.discountValue} off per item`;
             }
             finalUnitPrice -= perItemDiscount;
             totalDiscount = perItemDiscount * quantity;
@@ -678,7 +678,7 @@ export async function assignPrinterToOrder(
             actionType: 'printer_assigned',
             oldValue: { printer: currentOrder?.printerAssigned, status: currentOrder?.orderStatus, printingAmount: currentOrder?.printingAmount },
             newValue: { printer: printerId, status: newStatus, printingAmount: printingAmount || currentOrder?.printingAmount, advancePayment: printerPaidAmount },
-            message: printerId ? `Order assigned to printer (Amount: ₹${printingAmount || '0.00'}, Advance: ₹${printerPaidAmount || '0.00'}) and moved to pending approval` : `Order unassigned and returned to confirmed status`
+            message: printerId ? `Order assigned to printer (Amount: ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${printingAmount || '0.00'}, Advance: ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${printerPaidAmount || '0.00'}) and moved to pending approval` : `Order unassigned and returned to confirmed status`
         });
     } catch (e) {
         console.error('Failed to log printer assignment:', e);
@@ -733,7 +733,7 @@ export async function recordPrinterPayment({
     const limit = parseFloat(order.printingAmount);
 
     if (totalPaid + amt > limit) {
-        throw new Error(`Total payments (₹${(totalPaid + amt).toFixed(2)}) cannot exceed the printing cost of ₹${limit.toFixed(2)}.`);
+        throw new Error(`Total payments (ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${(totalPaid + amt).toFixed(2)}) cannot exceed the printing cost of ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${limit.toFixed(2)}.`);
     }
 
     await db.insert(printerPayments).values({
@@ -752,7 +752,7 @@ export async function recordPrinterPayment({
             orderId,
             actionType: 'printer_payment',
             newValue: { amount, paymentMethod, referenceNumber },
-            message: `Printer payout payment of ₹${amount} recorded (Ref: ${referenceNumber || 'N/A'})`
+            message: `Printer payout payment of ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${amount} recorded (Ref: ${referenceNumber || 'N/A'})`
         });
     } catch (e) {
         console.error('Failed to log printer payment:', e);
@@ -1008,6 +1008,13 @@ export async function updatePrinterOrderStatus(
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS last_tracking_update TIMESTAMP;`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS tracking_data JSONB;`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS attachments_url TEXT;`);
+        // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Shipping request workflow columns ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_request_status VARCHAR(30) DEFAULT 'requested';`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_requested_at TIMESTAMP;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_approved_at TIMESTAMP;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_rejected_at TIMESTAMP;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_rejection_reason TEXT;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS requested_dimensions JSONB;`);
     } catch (dbErr) {
         console.error("Self-healing table creation failed:", dbErr);
     }
@@ -1034,34 +1041,43 @@ export async function updatePrinterOrderStatus(
     }
 
     if (newStatus === 'shipped') {
+        // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ New flow: create a shipping REQUEST record only (no Shiprocket API call) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
         try {
-            const printer = await db.query.printPressUsers.findFirst({
-                where: eq(printPressUsers.id, session.sub)
-            });
-            const fullOrder = await db.query.orders.findFirst({
-                where: eq(orders.id, orderId),
-                with: {
-                    user: {
-                        columns: {
-                            name: true,
-                            email: true,
-                            phone: true
-                        }
-                    },
-                    product: true,
-                    subProduct: true,
-                    directSellingProduct: true
-                }
+            // Check if a shipping request already exists for this order
+            const existingShipment = await db.query.shipments.findFirst({
+                where: eq(shipments.orderId, orderId),
             });
 
-            if (printer && fullOrder) {
-                await createShiprocketShipment(fullOrder, printer, dimensions, attachmentsUrl);
+            if (!existingShipment) {
+                // Create the shipping request record
+                await db.insert(shipments).values({
+                    orderId,
+                    status: 'shipping_requested',
+                    currentStatus: 'shipping_requested',
+                    shippingRequestStatus: 'requested',
+                    shippingRequestedAt: new Date(),
+                    attachmentsUrl: attachmentsUrl || null,
+                    requestedDimensions: dimensions || null,
+                });
             } else {
-                throw new Error("Could not find printer or order details to initiate shipping");
+                // Update existing record to re-request shipping
+                await db.update(shipments)
+                    .set({
+                        status: 'shipping_requested',
+                        currentStatus: 'shipping_requested',
+                        shippingRequestStatus: 'requested',
+                        shippingRequestedAt: new Date(),
+                        shippingRejectedAt: null,
+                        shippingRejectionReason: null,
+                        attachmentsUrl: attachmentsUrl || existingShipment.attachmentsUrl,
+                        requestedDimensions: dimensions || existingShipment.requestedDimensions,
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(shipments.orderId, orderId));
             }
-        } catch (shipErr) {
-            console.error("Failed to process Shiprocket shipment:", shipErr);
-            throw new Error(`Shiprocket shipping generation failed, order was NOT marked as Shipped: ${shipErr instanceof Error ? shipErr.message : String(shipErr)}`);
+        } catch (reqErr) {
+            console.error("Failed to create shipping request record:", reqErr);
+            throw new Error(`Failed to create shipping request: ${reqErr instanceof Error ? reqErr.message : String(reqErr)}`);
         }
     }
 
@@ -1075,10 +1091,12 @@ export async function updatePrinterOrderStatus(
     try {
         await recordOrderLog({
             orderId,
-            actionType: 'status_changed',
+            actionType: newStatus === 'shipped' ? 'shipping_requested' : 'status_changed',
             oldValue: { status: currentOrder.orderStatus },
             newValue: { status: newStatus },
-            message: `Printer updated status to ${newStatus.replace(/_/g, ' ')}`,
+            message: newStatus === 'shipped'
+                ? `Printer sent a shipping request for this order. Awaiting admin approval.`
+                : `Printer updated status to ${newStatus.replace(/_/g, ' ')}`,
             isCustomerVisible: true
         });
     } catch (e) {
@@ -1087,10 +1105,13 @@ export async function updatePrinterOrderStatus(
 
     revalidatePath(`/printer/orders/${orderId}`);
     revalidatePath('/printer/orders');
+    revalidatePath('/printer/shipments');
+    revalidatePath('/admin/printers/shipments');
     return { success: true };
 }
 
-// ── Shiprocket Shipping Report Server Actions ─────────────────────────────────
+
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Shiprocket Shipping Report Server Actions ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 
 export async function getPrinterShipments() {
     const session = await getSession();
@@ -1306,7 +1327,11 @@ export async function schedulePrinterPickup(orderId: number, pickupDateStr?: str
     return result;
 }
 
-// ── Admin Shiprocket Shipping Operations & Report Actions ───────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Admin Shiprocket Shipping Operations & Report Actions ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+
+
+
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Admin Shiprocket Shipping Operations & Report Actions Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 export async function getAdminShipments() {
     const session = await getSession();
@@ -1326,6 +1351,7 @@ export async function getAdminShipments() {
                     trackingNumber: true,
                     createdAt: true,
                     printerAssigned: true,
+                    shippingAddress: true,
                 },
                 with: {
                     user: {
@@ -1339,22 +1365,108 @@ export async function getAdminShipments() {
         orderBy: [desc(shipments.createdAt)],
     });
 
-    const printerIds = [...new Set(allShipments.map(s => s.order?.printerAssigned).filter(Boolean))] as string[];
-    let printerMap: Record<string, string> = {};
+    const existingShipmentOrderIds = allShipments.map(s => s.orderId).filter(Boolean) as number[];
+
+    const missingOrders = await db.query.orders.findMany({
+        where: and(
+            isNotNull(orders.printerAssigned),
+            existingShipmentOrderIds.length > 0
+                ? notInArray(orders.id, existingShipmentOrderIds)
+                : undefined
+        ),
+        columns: {
+            id: true,
+            orderStatus: true,
+            totalAmount: true,
+            quantity: true,
+            trackingNumber: true,
+            createdAt: true,
+            printerAssigned: true,
+            shippingAddress: true,
+        },
+        with: {
+            user: {
+                columns: { name: true, email: true, phone: true },
+            },
+            product: { columns: { name: true } },
+            directSellingProduct: { columns: { name: true } },
+        },
+    });
+
+    const virtualShipments = missingOrders.map(order => {
+        return {
+            id: -order.id,
+            orderId: order.id,
+            shipmentId: null,
+            shiprocketOrderId: null,
+            awbCode: null,
+            courierName: null,
+            status: 'assigned',
+            labelUrl: null,
+            manifestUrl: null,
+            trackingUrl: null,
+            pickupScheduledDate: null,
+            deliveredDate: null,
+            cancelledAt: null,
+            cancelReason: null,
+            estimatedDelivery: null,
+            currentStatus: 'assigned',
+            lastTrackingUpdate: null,
+            trackingData: null,
+            attachmentsUrl: null,
+            shippingRequestStatus: 'not_requested' as const,
+            shippingRequestedAt: null,
+            shippingApprovedAt: null,
+            shippingRejectedAt: null,
+            shippingRejectionReason: null,
+            requestedDimensions: null,
+            createdAt: order.createdAt || new Date(),
+            updatedAt: order.createdAt || new Date(),
+            order: {
+                id: order.id,
+                orderStatus: order.orderStatus,
+                totalAmount: order.totalAmount,
+                quantity: order.quantity,
+                trackingNumber: order.trackingNumber,
+                createdAt: order.createdAt,
+                printerAssigned: order.printerAssigned,
+                shippingAddress: order.shippingAddress,
+                user: order.user,
+                product: order.product,
+                directSellingProduct: order.directSellingProduct,
+            },
+        };
+    });
+
+    const combinedShipments = [...allShipments, ...virtualShipments];
+
+    const printerIds = [...new Set(combinedShipments.map(s => s.order?.printerAssigned).filter(Boolean))] as string[];
+    let printersList: any[] = [];
     if (printerIds.length > 0) {
-        const printersList = await db.query.users.findMany({
-            where: inArray(users.id, printerIds),
-            columns: { id: true, name: true }
-        });
-        printersList.forEach(p => {
-            printerMap[p.id] = p.name;
+        printersList = await db.query.printPressUsers.findMany({
+            where: inArray(printPressUsers.id, printerIds),
+            columns: {
+                id: true,
+                fullName: true,
+                companyName: true,
+                phone: true,
+                address: true,
+                city: true,
+                state: true,
+                postalCode: true,
+                country: true,
+            }
         });
     }
 
-    return allShipments.map(s => ({
-        ...s,
-        printerName: s.order?.printerAssigned ? (printerMap[s.order.printerAssigned] || 'Unknown Printer') : 'Unassigned'
-    }));
+    return combinedShipments.map(s => {
+        const printer = s.order?.printerAssigned ? printersList.find(p => p.id === s.order.printerAssigned) : null;
+        return {
+            ...s,
+            printerName: printer ? (printer.companyName || printer.fullName || 'Unknown Printer') : 'Unassigned',
+            printerDetails: printer,
+        };
+    });
 }
 
 export async function adminTrackShipment(orderId: number) {
@@ -1396,6 +1508,34 @@ export async function adminCancelShipment(orderId: number, reason?: string) {
     }
 
     await cancelShipment([parseInt(shipment.shiprocketOrderId)], reason);
+
+    await db.update(shipments)
+        .set({
+            shipmentId: null,
+            shiprocketOrderId: null,
+            awbCode: null,
+            courierName: null,
+            status: 'assigned',
+            currentStatus: 'assigned',
+            labelUrl: null,
+            manifestUrl: null,
+            trackingUrl: null,
+            pickupScheduledDate: null,
+            estimatedDelivery: null,
+            lastTrackingUpdate: null,
+            trackingData: null,
+            attachmentsUrl: null,
+            shippingRequestStatus: 'not_requested',
+            shippingRequestedAt: null,
+            shippingApprovedAt: null,
+            shippingRejectedAt: null,
+            shippingRejectionReason: null,
+            requestedDimensions: null,
+            cancelledAt: new Date(),
+            cancelReason: reason || null,
+            updatedAt: new Date(),
+        })
+        .where(eq(shipments.orderId, orderId));
 
     await db.update(orders)
         .set({
@@ -1486,7 +1626,7 @@ export async function adminScheduleShipmentPickup(orderId: number, pickupDateStr
     }
 
     const result = await schedulePickup(shipment.shipmentId, shiprocketDate, scheduledTimestamp);
-    
+
     try {
         await recordOrderLog({
             orderId,
@@ -1497,7 +1637,189 @@ export async function adminScheduleShipmentPickup(orderId: number, pickupDateStr
     } catch (e) {
         console.error('Failed to log admin pickup scheduling:', e);
     }
-    
+
     return result;
 }
 
+// Admin: Approve Shipping Request
+export async function adminApproveShippingRequest(
+    orderId: number,
+    dimensionOverrides?: { length?: number; breadth?: number; height?: number; weight?: number },
+    customerAddressOverride?: {
+        name?: string;
+        phone?: string;
+        addressLine1?: string;
+        addressLine2?: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+        country?: string;
+    },
+    printerAddressOverride?: {
+        fullName?: string;
+        phone?: string;
+        address?: string;
+        city?: string;
+        state?: string;
+        postalCode?: string;
+        country?: string;
+    }
+) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+
+    if (!shipment) {
+        throw new Error('No shipping request found for this order');
+    }
+
+    if (shipment.shippingRequestStatus !== 'requested') {
+        throw new Error('This shipping request has already been processed');
+    }
+
+    const fullOrder = await db.query.orders.findFirst({
+        where: eq(orders.id, orderId),
+        with: {
+            user: { columns: { name: true, email: true, phone: true } },
+            product: true,
+            subProduct: true,
+            directSellingProduct: true,
+            printer: true,
+        },
+    });
+
+    if (!fullOrder || !fullOrder.printer) {
+        throw new Error('Could not find order or assigned printer details');
+    }
+
+    if (customerAddressOverride) {
+        const existingAddress = (fullOrder.shippingAddress as any) || {};
+        const updatedAddress = {
+            ...existingAddress,
+            ...customerAddressOverride
+        };
+        await db.update(orders)
+            .set({ shippingAddress: updatedAddress })
+            .where(eq(orders.id, orderId));
+    }
+
+    if (printerAddressOverride && fullOrder.printerAssigned) {
+        await db.update(printPressUsers)
+            .set({
+                fullName: printerAddressOverride.fullName,
+                phone: printerAddressOverride.phone,
+                address: printerAddressOverride.address,
+                city: printerAddressOverride.city,
+                state: printerAddressOverride.state,
+                postalCode: printerAddressOverride.postalCode,
+                country: printerAddressOverride.country,
+                updatedAt: new Date()
+            })
+            .where(eq(printPressUsers.id, fullOrder.printerAssigned));
+    }
+
+    const updatedOrder = (customerAddressOverride || printerAddressOverride)
+        ? await db.query.orders.findFirst({
+            where: eq(orders.id, orderId),
+            with: {
+                user: { columns: { name: true, email: true, phone: true } },
+                product: true,
+                subProduct: true,
+                directSellingProduct: true,
+                printer: true,
+            },
+          })
+        : fullOrder;
+
+    if (!updatedOrder || !updatedOrder.printer) {
+        throw new Error('Could not find order or assigned printer details after updating');
+    }
+
+    const requestedDims = shipment.requestedDimensions as { length?: number; breadth?: number; height?: number; weight?: number } | null;
+    const finalDimensions = {
+        length: dimensionOverrides?.length ?? requestedDims?.length,
+        breadth: dimensionOverrides?.breadth ?? requestedDims?.breadth,
+        height: dimensionOverrides?.height ?? requestedDims?.height,
+        weight: dimensionOverrides?.weight ?? requestedDims?.weight,
+    };
+
+    const shiprocketResult = await createShiprocketShipment(
+        updatedOrder,
+        updatedOrder.printer,
+        finalDimensions,
+        shipment.attachmentsUrl || undefined
+    );
+
+    try {
+        await recordOrderLog({
+            orderId,
+            actionType: 'shipping_approved',
+            message: `Admin approved shipping request. Shiprocket order created. AWB: ${shiprocketResult.awbCode || 'Pending'}, Courier: ${shiprocketResult.courierName || 'Assigned'}.`,
+            isCustomerVisible: true,
+        });
+    } catch (e) {
+        console.error('Failed to log shipping approval:', e);
+    }
+
+    revalidatePath('/admin/printers/shipments');
+    revalidatePath('/printer/shipments');
+    revalidatePath(`/admin/orders/${orderId}`);
+    return { success: true, awbCode: shiprocketResult.awbCode };
+}
+
+// Admin: Reject Shipping Request
+export async function adminRejectShippingRequest(orderId: number, reason: string) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+
+    if (!shipment) {
+        throw new Error('No shipping request found for this order');
+    }
+
+    await db.update(shipments)
+        .set({
+            shippingRequestStatus: 'rejected',
+            shippingRejectedAt: new Date(),
+            shippingRejectionReason: reason || 'No reason provided',
+            status: 'shipping_rejected',
+            currentStatus: 'shipping_rejected',
+            updatedAt: new Date(),
+        })
+        .where(eq(shipments.orderId, orderId));
+
+    await db.update(orders)
+        .set({
+            orderStatus: 'processing',
+            updatedAt: new Date(),
+        })
+        .where(eq(orders.id, orderId));
+
+    try {
+        await recordOrderLog({
+            orderId,
+            actionType: 'shipping_rejected',
+            message: `Admin rejected shipping request. Reason: ${reason || 'N/A'}. Order reverted to processing.`,
+            isCustomerVisible: true,
+        });
+    } catch (e) {
+        console.error('Failed to log shipping rejection:', e);
+    }
+
+    revalidatePath('/admin/printers/shipments');
+    revalidatePath('/printer/shipments');
+    revalidatePath(`/admin/orders/${orderId}`);
+    return { success: true };
+}

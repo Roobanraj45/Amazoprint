@@ -38,6 +38,8 @@ import {
     SlidersHorizontal,
     BarChart3,
     TrendingUp,
+    ShieldAlert,
+    Hourglass,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +54,20 @@ type Shipment = Awaited<ReturnType<typeof getPrinterShipments>>[0];
 const SHIPMENT_STATUS_CONFIG: Record<string, {
     label: string; color: string; bg: string; dot: string; icon: React.ReactNode;
 }> = {
+    shipping_requested: {
+        label: 'Approval Pending',
+        color: 'text-amber-700 dark:text-amber-400',
+        bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800',
+        dot: 'bg-amber-500',
+        icon: <Hourglass className="h-3 w-3" />,
+    },
+    shipping_rejected: {
+        label: 'Request Rejected',
+        color: 'text-rose-700 dark:text-rose-400',
+        bg: 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800',
+        dot: 'bg-rose-500',
+        icon: <XCircle className="h-3 w-3" />,
+    },
     order_created: {
         label: 'Order Created',
         color: 'text-blue-700 dark:text-blue-400',
@@ -860,7 +876,10 @@ export default function PrinterShipmentsPage() {
                             const statusCfg = getStatusConfig(effectiveStatus);
                             const productName = shipment.order?.directSellingProduct?.name || shipment.order?.product?.name || 'Print Order';
                             const isCancelled = effectiveStatus === 'cancelled';
+                            const isPendingApproval = effectiveStatus === 'shipping_requested';
+                            const isRejected = effectiveStatus === 'shipping_rejected';
                             const isActionLoading = actionLoadingId === shipment.id;
+                            const rejectionReason = (shipment as any).shippingRejectionReason;
 
                             return (
                                 <div
@@ -908,6 +927,7 @@ export default function PrinterShipmentsPage() {
                                         <StatusPill status={effectiveStatus} />
                                     </div>
 
+
                                     {/* Date */}
                                     <div className="mb-2 lg:mb-0">
                                         <p className="text-[11px] font-bold text-slate-600 dark:text-zinc-400">
@@ -916,77 +936,51 @@ export default function PrinterShipmentsPage() {
                                         <p className="text-[10px] text-slate-400">
                                             {shipment.createdAt ? format(new Date(shipment.createdAt), 'h:mm a') : ''}
                                         </p>
+                                        {isPendingApproval && (
+                                            <p className="text-[9px] font-bold text-amber-600 dark:text-amber-400 mt-1">⏳ Awaiting admin</p>
+                                        )}
                                     </div>
+
+                                    {/* Rejection callout */}
+                                    {isRejected && rejectionReason && (
+                                        <div className="col-span-full mt-2 flex items-start gap-1.5 bg-rose-50 dark:bg-rose-950/20 rounded-xl px-3 py-2 border border-rose-100 dark:border-rose-900">
+                                            <AlertTriangle className="h-3.5 w-3.5 text-rose-500 mt-0.5 shrink-0" />
+                                            <p className="text-[10px] text-rose-700 dark:text-rose-400"><span className="font-bold">Rejected by admin:</span> {rejectionReason}. Please update the order and re-submit a shipping request.</p>
+                                        </div>
+                                    )}
 
                                     {/* Actions */}
                                     <div className="flex flex-wrap items-center gap-1.5">
-                                        {/* Track */}
-                                        <button
-                                            onClick={() => handleTrack(shipment)}
-                                            disabled={isActionLoading}
-                                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-cyan-50 dark:bg-cyan-950/30 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 transition-colors disabled:opacity-50"
-                                            title="Track Shipment"
-                                        >
-                                            <MapPin className="h-3 w-3" /> Track
-                                        </button>
+                                        {shipment.shippingRequestStatus === 'approved' ? (
+                                            <>
+                                                {/* Label */}
+                                                <button
+                                                    onClick={() => handleGenerateLabel(shipment)}
+                                                    disabled={isActionLoading || isCancelled}
+                                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors disabled:opacity-50"
+                                                    title="Generate Label"
+                                                >
+                                                    {isActionLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Tag className="h-3 w-3" />}
+                                                    Generate Label
+                                                </button>
 
-                                        {/* Label */}
-                                        <button
-                                            onClick={() => handleGenerateLabel(shipment)}
-                                            disabled={isActionLoading || isCancelled}
-                                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors disabled:opacity-50"
-                                            title="Generate Label"
-                                        >
-                                            {isActionLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Tag className="h-3 w-3" />}
-                                            Label
-                                        </button>
-
-                                        {/* Manifest */}
-                                        <button
-                                            onClick={() => handleGenerateManifest(shipment)}
-                                            disabled={isActionLoading || isCancelled}
-                                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors disabled:opacity-50"
-                                            title="Generate Manifest"
-                                        >
-                                            <FileText className="h-3 w-3" /> Manifest
-                                        </button>
-
-                                        {/* Schedule Pickup */}
-                                        {shipment.awbCode && !['pickup_scheduled', 'in_transit', 'out_for_delivery', 'delivered', 'cancelled', 'rto_initiated'].includes(effectiveStatus || '') && (
-                                            <button
-                                                onClick={() => setPickupModal({ isOpen: true, shipment })}
-                                                disabled={isActionLoading || isCancelled}
-                                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors disabled:opacity-50"
-                                                title="Schedule Pickup"
-                                            >
-                                                {isActionLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Clock className="h-3 w-3" />}
-                                                Schedule Pickup
-                                            </button>
-                                        )}
-
-                                        {/* Existing label/manifest downloads */}
-                                        {shipment.labelUrl && (
-                                            <a
-                                                href={shipment.labelUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors"
-                                                title="Download Label"
-                                            >
-                                                <Download className="h-3 w-3" />
-                                            </a>
-                                        )}
-
-                                        {/* Cancel */}
-                                        {!isCancelled && effectiveStatus !== 'delivered' && (
-                                            <button
-                                                onClick={() => setCancelModal({ isOpen: true, orderId: shipment.orderId })}
-                                                disabled={isActionLoading}
-                                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors disabled:opacity-50"
-                                                title="Cancel Shipment"
-                                            >
-                                                <Ban className="h-3 w-3" /> Cancel
-                                            </button>
+                                                {/* Existing label downloads */}
+                                                {shipment.labelUrl && (
+                                                    <a
+                                                        href={shipment.labelUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors"
+                                                        title="Download Label"
+                                                    >
+                                                        <Download className="h-3 w-3" /> Download Label
+                                                    </a>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <span className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium italic">
+                                                {isRejected ? 'Rejected' : 'Awaiting Approval'}
+                                            </span>
                                         )}
                                     </div>
                                 </div>
