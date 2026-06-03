@@ -4,13 +4,13 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs, users, payments, printerPayments, shipments } from '@/db/schema';
+import { orders, designs, designUploads, products, subProducts, printPressUsers, orderLogs, users, payments, printerPayments, shipments, printerSubscriptions } from '@/db/schema';
 import { and, eq, desc, count, ilike, sql, gte, lte, or, inArray, isNotNull, isNull, notInArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import type { Address } from '@/lib/types';
 import { getPricingRulesForSubProduct } from './pricing-actions';
-import { createShiprocketShipment, trackShipment, cancelShipment, generateLabel, generateManifest, schedulePickup } from '@/lib/shiprocket';
+import { createShiprocketShipment, trackShipment, cancelShipment, generateLabel, generateManifest, schedulePickup, printShiprocketInvoice } from '@/lib/shiprocket';
 
 const addressSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -852,7 +852,7 @@ export async function getApprovedPrinters() {
         throw new Error('Unauthorized');
     }
 
-    return await db.query.printPressUsers.findMany({
+    const printersList = await db.query.printPressUsers.findMany({
         where: eq(printPressUsers.isApproved, true),
         columns: {
             id: true,
@@ -861,6 +861,29 @@ export async function getApprovedPrinters() {
             city: true
         }
     });
+
+    const activeSubs = await db.query.printerSubscriptions.findMany({
+        where: eq(printerSubscriptions.status, 'active'),
+        with: {
+            plan: true
+        }
+    });
+
+    const printersWithPlans = printersList.map(printer => {
+        const activeSub = activeSubs.find(sub => sub.printerId === printer.id);
+        return {
+            ...printer,
+            planName: activeSub?.plan?.name || null
+        };
+    });
+
+    printersWithPlans.sort((a, b) => {
+        if (a.planName && !b.planName) return -1;
+        if (!a.planName && b.planName) return 1;
+        return 0;
+    });
+
+    return printersWithPlans;
 }
 
 export async function recordOrderLog({
@@ -964,7 +987,8 @@ export async function updatePrinterOrderStatus(
     orderId: number, 
     newStatus: string,
     dimensions?: { length?: number; breadth?: number; height?: number; weight?: number },
-    attachmentsUrl?: string
+    attachmentsUrl?: string,
+    customShipping?: { courierName: string; awbCode: string }
 ) {
     // Self-healing migration to ensure shipments table exists in the active DB
     try {
@@ -1008,13 +1032,14 @@ export async function updatePrinterOrderStatus(
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS last_tracking_update TIMESTAMP;`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS tracking_data JSONB;`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS attachments_url TEXT;`);
-        // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Shipping request workflow columns ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+        // Shipping request workflow columns
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_request_status VARCHAR(30) DEFAULT 'requested';`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_requested_at TIMESTAMP;`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_approved_at TIMESTAMP;`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_rejected_at TIMESTAMP;`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_rejection_reason TEXT;`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS requested_dimensions JSONB;`);
+        await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_method VARCHAR(30) DEFAULT 'shiprocket';`);
     } catch (dbErr) {
         console.error("Self-healing table creation failed:", dbErr);
     }
@@ -1041,43 +1066,79 @@ export async function updatePrinterOrderStatus(
     }
 
     if (newStatus === 'shipped') {
-        // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ New flow: create a shipping REQUEST record only (no Shiprocket API call) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+        const isCustom = !!customShipping;
         try {
             // Check if a shipping request already exists for this order
             const existingShipment = await db.query.shipments.findFirst({
                 where: eq(shipments.orderId, orderId),
             });
 
-            if (!existingShipment) {
-                // Create the shipping request record
-                await db.insert(shipments).values({
-                    orderId,
-                    status: 'shipping_requested',
-                    currentStatus: 'shipping_requested',
-                    shippingRequestStatus: 'requested',
-                    shippingRequestedAt: new Date(),
-                    attachmentsUrl: attachmentsUrl || null,
-                    requestedDimensions: dimensions || null,
-                });
+            if (isCustom) {
+                // Custom Shipping: Approve immediately without admin permission
+                if (!existingShipment) {
+                    await db.insert(shipments).values({
+                        orderId,
+                        status: 'shipped',
+                        currentStatus: 'shipped',
+                        shippingRequestStatus: 'approved',
+                        shippingMethod: 'custom',
+                        courierName: customShipping!.courierName,
+                        awbCode: customShipping!.awbCode,
+                        shippingRequestedAt: new Date(),
+                        shippingApprovedAt: new Date(),
+                        attachmentsUrl: attachmentsUrl || null,
+                    });
+                } else {
+                    await db.update(shipments)
+                        .set({
+                            status: 'shipped',
+                            currentStatus: 'shipped',
+                            shippingRequestStatus: 'approved',
+                            shippingMethod: 'custom',
+                            courierName: customShipping!.courierName,
+                            awbCode: customShipping!.awbCode,
+                            shippingRequestedAt: new Date(),
+                            shippingApprovedAt: new Date(),
+                            shippingRejectedAt: null,
+                            shippingRejectionReason: null,
+                            attachmentsUrl: attachmentsUrl || existingShipment.attachmentsUrl,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(shipments.orderId, orderId));
+                }
             } else {
-                // Update existing record to re-request shipping
-                await db.update(shipments)
-                    .set({
+                // Shiprocket Shipping: Create a pending approval request
+                if (!existingShipment) {
+                    await db.insert(shipments).values({
+                        orderId,
                         status: 'shipping_requested',
                         currentStatus: 'shipping_requested',
                         shippingRequestStatus: 'requested',
+                        shippingMethod: 'shiprocket',
                         shippingRequestedAt: new Date(),
-                        shippingRejectedAt: null,
-                        shippingRejectionReason: null,
-                        attachmentsUrl: attachmentsUrl || existingShipment.attachmentsUrl,
-                        requestedDimensions: dimensions || existingShipment.requestedDimensions,
-                        updatedAt: new Date(),
-                    })
-                    .where(eq(shipments.orderId, orderId));
+                        attachmentsUrl: attachmentsUrl || null,
+                        requestedDimensions: dimensions || null,
+                    });
+                } else {
+                    await db.update(shipments)
+                        .set({
+                            status: 'shipping_requested',
+                            currentStatus: 'shipping_requested',
+                            shippingRequestStatus: 'requested',
+                            shippingMethod: 'shiprocket',
+                            shippingRequestedAt: new Date(),
+                            shippingRejectedAt: null,
+                            shippingRejectionReason: null,
+                            attachmentsUrl: attachmentsUrl || existingShipment.attachmentsUrl,
+                            requestedDimensions: dimensions || existingShipment.requestedDimensions,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(shipments.orderId, orderId));
+                }
             }
         } catch (reqErr) {
-            console.error("Failed to create shipping request record:", reqErr);
-            throw new Error(`Failed to create shipping request: ${reqErr instanceof Error ? reqErr.message : String(reqErr)}`);
+            console.error("Failed to process shipping record:", reqErr);
+            throw new Error(`Failed to process shipping: ${reqErr instanceof Error ? reqErr.message : String(reqErr)}`);
         }
     }
 
@@ -1091,11 +1152,15 @@ export async function updatePrinterOrderStatus(
     try {
         await recordOrderLog({
             orderId,
-            actionType: newStatus === 'shipped' ? 'shipping_requested' : 'status_changed',
+            actionType: newStatus === 'shipped' 
+                ? (customShipping ? 'custom_shipped' : 'shipping_requested') 
+                : 'status_changed',
             oldValue: { status: currentOrder.orderStatus },
             newValue: { status: newStatus },
             message: newStatus === 'shipped'
-                ? `Printer sent a shipping request for this order. Awaiting admin approval.`
+                ? (customShipping 
+                    ? `Printer marked order as shipped via Custom Shipping: ${customShipping.courierName} (AWB/Tracking: ${customShipping.awbCode}).` 
+                    : `Printer sent a shipping request for this order. Awaiting admin approval.`)
                 : `Printer updated status to ${newStatus.replace(/_/g, ' ')}`,
             isCustomerVisible: true
         });
@@ -1832,4 +1897,47 @@ export async function adminRejectShippingRequest(orderId: number, reason: string
     revalidatePath('/printer/shipments');
     revalidatePath(`/admin/orders/${orderId}`);
     return { success: true };
+}
+
+// Admin: Download Shiprocket Invoice
+export async function adminDownloadShiprocketInvoice(orderId: number) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shiprocketOrderId) {
+        throw new Error('No Shiprocket order found for this shipment. Invoice is only available for Shiprocket-shipped orders.');
+    }
+
+    const result = await printShiprocketInvoice([shipment.shiprocketOrderId]);
+    return result;
+}
+
+// Printer: Download Shiprocket Invoice
+export async function downloadShiprocketInvoice(orderId: number) {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized');
+    }
+
+    const order = await db.query.orders.findFirst({
+        where: and(eq(orders.id, orderId), eq(orders.printerAssigned, session.sub)),
+        columns: { id: true },
+    });
+    if (!order) throw new Error('Order not found or not assigned to you');
+
+    const shipment = await db.query.shipments.findFirst({
+        where: eq(shipments.orderId, orderId),
+    });
+    if (!shipment || !shipment.shiprocketOrderId) {
+        throw new Error('No Shiprocket order found for this shipment. Invoice is only available for Shiprocket-shipped orders.');
+    }
+
+    const result = await printShiprocketInvoice([shipment.shiprocketOrderId]);
+    return result;
 }

@@ -34,7 +34,8 @@ export async function createSession(userId: string, userRole: string, userName: 
   const session = await encrypt({ sub: userId, role: userRole, name: userName }, expiresIn);
 
   // Store the session in a secure, HTTP-only cookie
-  cookies().set('session', session, { 
+  const cookieStore = await cookies();
+  cookieStore.set('session', session, { 
     expires, 
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -44,11 +45,13 @@ export async function createSession(userId: string, userRole: string, userName: 
 }
 
 export async function getSession() {
-  const sessionCookie = cookies().get('session')?.value;
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('session')?.value;
   if (!sessionCookie) return null;
   return await decrypt(sessionCookie);
 }
 
 export async function deleteSession() {
-  cookies().set('session', '', { expires: new Date(0), path: '/' });
+  const cookieStore = await cookies();
+  cookieStore.set('session', '', { expires: new Date(0), path: '/' });
 }

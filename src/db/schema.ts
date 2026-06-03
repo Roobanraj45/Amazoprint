@@ -987,6 +987,7 @@ export const shipments = pgTable('shipments', {
   lastTrackingUpdate: timestamp('last_tracking_update'),
   trackingData: jsonb('tracking_data'),
   attachmentsUrl: text('attachments_url'),
+  shippingMethod: varchar('shipping_method', { length: 30, enum: ['shiprocket', 'custom'] }).default('shiprocket'),
   // ── Shipping request workflow ─────────────────────────────────────────────────
   shippingRequestStatus: varchar('shipping_request_status', { length: 30, enum: ['requested', 'approved', 'rejected'] }).default('requested'),
   shippingRequestedAt: timestamp('shipping_requested_at'),
@@ -1009,4 +1010,130 @@ export const shipmentsRelations = relations(shipments, ({ one }) => ({
     references: [orders.id],
   }),
 }));
+
+export const printersMessaging = pgTable('printers_messaging', {
+  id: serial('id').primaryKey(),
+  senderId: uuid('sender_id').notNull(),
+  senderType: varchar('sender_type', { length: 20, enum: ['printer', 'admin'] }).notNull(),
+  receiverId: uuid('receiver_id').notNull(),
+  receiverType: varchar('receiver_type', { length: 20, enum: ['printer', 'admin'] }).notNull(),
+  message: text('message').notNull(),
+  attachmentUrl: text('attachment_url'),
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    senderIdx: index('idx_printers_messaging_sender').on(table.senderId, table.senderType),
+    receiverIdx: index('idx_printers_messaging_receiver').on(table.receiverId, table.receiverType),
+    createdAtIdx: index('idx_printers_messaging_created_at').on(table.createdAt),
+    isReadIdx: index('idx_printers_messaging_is_read').on(table.isRead),
+  };
+});
+
+export const printersMessagingRelations = relations(printersMessaging, ({ one }) => ({
+  senderPrinter: one(printPressUsers, {
+    fields: [printersMessaging.senderId],
+    references: [printPressUsers.id],
+  }),
+  receiverPrinter: one(printPressUsers, {
+    fields: [printersMessaging.receiverId],
+    references: [printPressUsers.id],
+  }),
+  senderAdmin: one(admins, {
+    fields: [printersMessaging.senderId],
+    references: [admins.id],
+  }),
+  receiverAdmin: one(admins, {
+    fields: [printersMessaging.receiverId],
+    references: [admins.id],
+  }),
+}));
+
+export const usersMessaging = pgTable('users_messaging', {
+  id: serial('id').primaryKey(),
+  senderId: uuid('sender_id').notNull(),
+  senderType: varchar('sender_type', { length: 20, enum: ['user', 'admin'] }).notNull(),
+  receiverId: uuid('receiver_id').notNull(),
+  receiverType: varchar('receiver_type', { length: 20, enum: ['user', 'admin'] }).notNull(),
+  message: text('message').notNull(),
+  attachmentUrl: text('attachment_url'),
+  isRead: boolean('is_read').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    senderIdx: index('idx_users_messaging_sender').on(table.senderId, table.senderType),
+    receiverIdx: index('idx_users_messaging_receiver').on(table.receiverId, table.receiverType),
+    createdAtIdx: index('idx_users_messaging_created_at').on(table.createdAt),
+    isReadIdx: index('idx_users_messaging_is_read').on(table.isRead),
+  };
+});
+
+export const usersMessagingRelations = relations(usersMessaging, ({ one }) => ({
+  senderUser: one(users, {
+    fields: [usersMessaging.senderId],
+    references: [users.id],
+  }),
+  receiverUser: one(users, {
+    fields: [usersMessaging.receiverId],
+    references: [users.id],
+  }),
+  senderAdmin: one(admins, {
+    fields: [usersMessaging.senderId],
+    references: [admins.id],
+  }),
+  receiverAdmin: one(admins, {
+    fields: [usersMessaging.receiverId],
+    references: [admins.id],
+  }),
+}));
+
+export const printerSubscriptionPlans = pgTable('printer_subscription_plans', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 150 }).notNull(),
+  price: numeric('price', { precision: 10, scale: 2 }).default('0.00').notNull(),
+  durationType: varchar('duration_type', { length: 20, enum: ['monthly', 'yearly', 'lifetime'] }).notNull(),
+  description: text('description'),
+  features: text('features').array(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const printerSubscriptions = pgTable('printer_subscriptions', {
+  id: serial('id').primaryKey(),
+  printerId: uuid('printer_id').notNull(),
+  planId: integer('plan_id').notNull().references(() => printerSubscriptionPlans.id),
+  status: varchar('status', { length: 20, enum: ['active', 'expired', 'cancelled', 'pending'] }).default('pending').notNull(),
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date'),
+  paymentStatus: varchar('payment_status', { length: 50 }),
+  paymentId: varchar('payment_id', { length: 100 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => {
+  return {
+    printerIdx: index('idx_printer_subscriptions_printer').on(table.printerId),
+    statusIdx: index('idx_printer_subscriptions_status').on(table.status),
+  };
+});
+
+export const printerSubscriptionPlansRelations = relations(printerSubscriptionPlans, ({ many }) => ({
+  subscriptions: many(printerSubscriptions),
+}));
+
+export const printerSubscriptionsRelations = relations(printerSubscriptions, ({ one }) => ({
+  printer: one(printPressUsers, {
+    fields: [printerSubscriptions.printerId],
+    references: [printPressUsers.id],
+  }),
+  plan: one(printerSubscriptionPlans, {
+    fields: [printerSubscriptions.planId],
+    references: [printerSubscriptionPlans.id],
+  }),
+}));
+
+
+
 

@@ -1,18 +1,61 @@
 'use client';
 
+import React, { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
-import { Home, Trophy, CheckSquare, LogOut, PenSquare, UploadCloud, Palette, ShieldCheck, Package, Bell, Search, User } from "lucide-react"
+import { Home, Trophy, CheckSquare, LogOut, PenSquare, UploadCloud, Palette, ShieldCheck, Package, Bell, Search, User, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import { AmazoprintLogo } from "@/components/ui/logo"
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { getUnreadUserMessageCount } from "@/app/actions/user-message-actions";
 
 export default function FreelancerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const prevCountRef = useRef(0);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.permission === 'default' && Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const checkUnread = () => {
+      getUnreadUserMessageCount().then(count => {
+        setUnreadCount(count);
+        if (count > prevCountRef.current) {
+          // Play audio chime
+          try {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-500.wav');
+            audio.volume = 0.45;
+            audio.play();
+          } catch (e) {
+            console.log('Audio playback blocked');
+          }
+
+          // Native Notification
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('New Support Message', {
+              body: 'You have new messages from support team.',
+              icon: '/favicon.ico',
+            });
+          }
+        }
+        prevCountRef.current = count;
+      }).catch(err => console.error(err));
+    };
+
+    checkUnread();
+    const interval = setInterval(checkUnread, 8000);
+    return () => clearInterval(interval);
+  }, [pathname]);
 
   const menuItems = [
     { href: "/freelancer/dashboard", label: "Dashboard", icon: <Home size={16} />, color: "text-blue-500" },
@@ -20,6 +63,7 @@ export default function FreelancerLayout({ children }: { children: React.ReactNo
     { href: "/contests", label: "Browse Contests", icon: <Trophy size={16} />, color: "text-rose-500" },
     { href: "/freelancer/contests", label: "My Contests", icon: <CheckSquare size={16} />, color: "text-emerald-500" },
     { href: "/freelancer/orders", label: "My Orders", icon: <Package size={16} />, color: "text-amber-500" },
+    { href: "/freelancer/messages", label: "Support Chat", icon: <MessageSquare size={16} />, color: "text-pink-500" },
     { href: "/freelancer/verifications", label: "Verification Jobs", icon: <ShieldCheck size={16} />, color: "text-indigo-500" },
     { href: "/freelancer/designs", label: "My Designs", icon: <PenSquare size={16} />, color: "text-pink-500" },
     { href: "/freelancer/my-uploads", label: "My Uploads", icon: <UploadCloud size={16} />, color: "text-teal-500" },
@@ -131,6 +175,19 @@ export default function FreelancerLayout({ children }: { children: React.ReactNo
                       {children}
                     </div>
                 </main>
+                {pathname !== '/freelancer/messages' && (
+                    <Link
+                        href="/freelancer/messages"
+                        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 text-white shadow-xl shadow-violet-600/35 transition-all duration-300 hover:scale-105 hover:bg-violet-700 active:scale-95 group"
+                    >
+                        <MessageSquare className="h-6 w-6 transition-transform group-hover:rotate-6" />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white ring-4 ring-zinc-50 dark:ring-zinc-950 animate-bounce">
+                                {unreadCount}
+                            </span>
+                        )}
+                    </Link>
+                )}
             </SidebarInset>
         </div>
     </SidebarProvider>

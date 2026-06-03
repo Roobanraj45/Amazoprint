@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
-import { getPrinterAssignedOrders, updatePrinterOrderStatus } from "@/app/actions/order-actions";
+import { getPrinterAssignedOrders, updatePrinterOrderStatus, downloadShiprocketInvoice } from "@/app/actions/order-actions";
 import { uploadShipmentAttachment } from "@/app/actions/upload-actions";
 import {
     IndianRupee,
@@ -229,12 +229,22 @@ function ConfirmStatusDialog({
     isOpen, order, from, to, onClose, onConfirm, isPending,
 }: {
     isOpen: boolean; order: Order; from: string; to: string;
-    onClose: () => void; onConfirm: (dimensions?: { length: number; breadth: number; height: number; weight: number }, attachmentsUrl?: string) => void; isPending: boolean;
+    onClose: () => void;
+    onConfirm: (
+        dimensions?: { length: number; breadth: number; height: number; weight: number },
+        attachmentsUrl?: string,
+        customShipping?: { courierName: string; awbCode: string }
+    ) => void;
+    isPending: boolean;
 }) {
     const [length, setLength] = useState(15);
     const [breadth, setBreadth] = useState(15);
     const [height, setHeight] = useState(10);
     const [weight, setWeight] = useState(0.5);
+
+    const [shippingMethod, setShippingMethod] = useState<'shiprocket' | 'custom'>('shiprocket');
+    const [courierName, setCourierName] = useState('');
+    const [awbCode, setAwbCode] = useState('');
 
     const [attachmentsUrl, setAttachmentsUrl] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -271,11 +281,19 @@ function ConfirmStatusDialog({
 
     const handleConfirm = () => {
         if (isShipped) {
-            if (!attachmentsUrl) {
-                setUploadError('Please upload an image or video of the shipment package before confirming.');
-                return;
+            if (shippingMethod === 'custom') {
+                if (!courierName.trim() || !awbCode.trim()) {
+                    setUploadError('Please enter both the Courier Partner name and the AWB/Tracking ID.');
+                    return;
+                }
+                onConfirm(undefined, attachmentsUrl || undefined, { courierName: courierName.trim(), awbCode: awbCode.trim() });
+            } else {
+                if (!attachmentsUrl) {
+                    setUploadError('Please upload an image or video of the shipment package before confirming.');
+                    return;
+                }
+                onConfirm({ length, breadth, height, weight }, attachmentsUrl, undefined);
             }
-            onConfirm({ length, breadth, height, weight }, attachmentsUrl);
         } else {
             onConfirm();
         }
@@ -386,72 +404,138 @@ function ConfirmStatusDialog({
                                         <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold">
                                             Lamination: <span className="font-normal">{lamination}</span>
                                         </p>
-                                        {(spotUv === 'Yes' || foil !== 'None') && (
-                                            <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-950/20 px-1.5 py-0.5 rounded w-fit mt-1 border border-purple-100 dark:border-purple-900/40">
-                                                Special Finish Addon
-                                            </p>
-                                        )}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Informative Tip Box */}
-                        <div className="flex gap-2.5 p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-950/10 border border-blue-100 dark:border-blue-900/30 text-[11px] text-blue-700 dark:text-blue-400 font-medium">
-                            <Zap className="h-4 w-4 shrink-0 text-blue-500" />
-                            <div>
-                                <span className="font-bold">Shiprocket Automation:</span> Confirming this state registers the shipment, creates a ready-to-ship order inside Shiprocket, and generates your tracking AWB.
+                        {/* Shipping Method Selector */}
+                        <div className="space-y-2">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Shipping Method</p>
+                            <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-zinc-900 p-1 rounded-xl">
+                                <button
+                                    type="button"
+                                    onClick={() => { setShippingMethod('shiprocket'); setUploadError(null); }}
+                                    className={cn(
+                                        "py-1.5 text-xs font-bold rounded-lg transition-all",
+                                        shippingMethod === 'shiprocket'
+                                            ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                                            : "text-slate-500 dark:text-zinc-400 hover:text-slate-800"
+                                    )}
+                                >
+                                    Shiprocket (Admin Approval)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setShippingMethod('custom'); setUploadError(null); }}
+                                    className={cn(
+                                        "py-1.5 text-xs font-bold rounded-lg transition-all",
+                                        shippingMethod === 'custom'
+                                            ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                                            : "text-slate-500 dark:text-zinc-400 hover:text-slate-800"
+                                    )}
+                                >
+                                    Custom Courier (Direct Ship)
+                                </button>
                             </div>
                         </div>
 
-                        {/* Shiprocket Package Details Inputs */}
-                        <div className="space-y-3">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Package Outer Dimensions</p>
-                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Length (cm)</label>
-                                    <Input 
-                                        type="number" 
-                                        className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
-                                        value={length} 
-                                        onChange={(e) => setLength(parseFloat(e.target.value) || 0)} 
-                                    />
+                        {shippingMethod === 'shiprocket' ? (
+                            <>
+                                {/* Informative Tip Box */}
+                                <div className="flex gap-2.5 p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-950/10 border border-blue-100 dark:border-blue-900/30 text-[11px] text-blue-700 dark:text-blue-400 font-medium">
+                                    <Zap className="h-4 w-4 shrink-0 text-blue-500" />
+                                    <div>
+                                        <span className="font-bold">Shiprocket Automation:</span> Confirming this state registers the shipment, creates a ready-to-ship order inside Shiprocket, and generates your tracking AWB.
+                                    </div>
                                 </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Breadth (cm)</label>
-                                    <Input 
-                                        type="number" 
-                                        className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
-                                        value={breadth} 
-                                        onChange={(e) => setBreadth(parseFloat(e.target.value) || 0)} 
-                                    />
+
+                                {/* Shiprocket Package Details Inputs */}
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Package Outer Dimensions</p>
+                                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Length (cm)</label>
+                                            <Input 
+                                                type="number" 
+                                                className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                                value={length} 
+                                                onChange={(e) => setLength(parseFloat(e.target.value) || 0)} 
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Breadth (cm)</label>
+                                            <Input 
+                                                type="number" 
+                                                className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                                value={breadth} 
+                                                onChange={(e) => setBreadth(parseFloat(e.target.value) || 0)} 
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Height (cm)</label>
+                                            <Input 
+                                                type="number" 
+                                                className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                                value={height} 
+                                                onChange={(e) => setHeight(parseFloat(e.target.value) || 0)} 
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Weight (kg)</label>
+                                            <Input 
+                                                type="number" 
+                                                step="0.01"
+                                                className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                                value={weight} 
+                                                onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} 
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Height (cm)</label>
-                                    <Input 
-                                        type="number" 
-                                        className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
-                                        value={height} 
-                                        onChange={(e) => setHeight(parseFloat(e.target.value) || 0)} 
-                                    />
+                            </>
+                        ) : (
+                            <>
+                                {/* Informative Tip Box */}
+                                <div className="flex gap-2.5 p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                                    <PackageCheck className="h-4 w-4 shrink-0 text-emerald-500" />
+                                    <div>
+                                        <span className="font-bold">Direct Dispatched:</span> Fill the courier partner and tracking details below. The order will be immediately marked as Shipped without requiring admin approval.
+                                    </div>
                                 </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Weight (kg)</label>
-                                    <Input 
-                                        type="number" 
-                                        step="0.01"
-                                        className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
-                                        value={weight} 
-                                        onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} 
-                                    />
+
+                                {/* Custom Courier Details Inputs */}
+                                <div className="space-y-3.5">
+                                    <div className="flex flex-col gap-1.5">
+                                        <Label htmlFor="custom-courier" className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Courier Partner Name <span className="text-rose-500 font-bold">*</span></Label>
+                                        <Input
+                                            id="custom-courier"
+                                            type="text"
+                                            placeholder="e.g. BlueDart, DTDC, Professional, Self"
+                                            className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                            value={courierName}
+                                            onChange={(e) => setCourierName(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <Label htmlFor="custom-awb" className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">AWB / Tracking Number <span className="text-rose-500 font-bold">*</span></Label>
+                                        <Input
+                                            id="custom-awb"
+                                            type="text"
+                                            placeholder="e.g. AWB12345678"
+                                            className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                            value={awbCode}
+                                            onChange={(e) => setAwbCode(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                            </>
+                        )}
 
                         {/* Shipment Proof Upload */}
                         <div className="space-y-2 border-t border-slate-100 dark:border-zinc-900 pt-5">
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">
-                                Shipment Package Proof (Image or Video) <span className="text-rose-500 font-bold">*</span>
+                                Shipment Package Proof (Image or Video) {shippingMethod === 'shiprocket' && <span className="text-rose-500 font-bold">*</span>}
                             </p>
                             <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl p-4 hover:bg-slate-50/50 dark:hover:bg-zinc-900/10 transition relative">
                                 <input 
@@ -565,6 +649,46 @@ function SkeletonCard() {
                     <div key={i} className="h-16 rounded-xl bg-slate-100 dark:bg-zinc-800" />
                 ))}
             </div>
+        </div>
+    );
+}
+// ── Invoice Download Button ────────────────────────────────────────────────────
+function InvoiceDownloadButton({ orderId }: { orderId: number }) {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleClick = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const result = await downloadShiprocketInvoice(orderId);
+            if (result.invoiceUrl) {
+                window.open(result.invoiceUrl, '_blank');
+            } else {
+                setError('Invoice not available yet. The order may not have been dispatched via Shiprocket.');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Could not download invoice.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-1">
+            <Button
+                onClick={handleClick}
+                disabled={loading}
+                variant="outline"
+                size="sm"
+                className="h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 gap-1.5"
+            >
+                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                {loading ? 'Fetching...' : 'Download Invoice'}
+            </Button>
+            {error && (
+                <p className="text-[9px] text-rose-500 font-bold max-w-[200px]">{error}</p>
+            )}
         </div>
     );
 }
@@ -822,6 +946,10 @@ function OrderCard({
                                     <FileText className="h-3.5 w-3.5 text-slate-400" /> Generate PDF
                                 </Button>
                             )}
+                            {/* Shiprocket Invoice Download — only for shipped orders */}
+                            {order.orderStatus === 'shipped' && order.trackingNumber && (
+                                <InvoiceDownloadButton orderId={order.id} />
+                            )}
                         </div>
 
                         {/* Print specs grid */}
@@ -952,7 +1080,8 @@ export default function PrinterOrdersPage() {
 
     const handleConfirmAdvance = (
         dimensions?: { length: number; breadth: number; height: number; weight: number },
-        attachmentsUrl?: string
+        attachmentsUrl?: string,
+        customShipping?: { courierName: string; awbCode: string }
     ) => {
         if (!confirmDialog) return;
         const { order, to } = confirmDialog;
@@ -961,7 +1090,7 @@ export default function PrinterOrdersPage() {
 
         startTransition(async () => {
             try {
-                await updatePrinterOrderStatus(order.id, to, dimensions, attachmentsUrl);
+                await updatePrinterOrderStatus(order.id, to, dimensions, attachmentsUrl, customShipping);
                 setOrders(prev => prev.map(o => o.id === order.id ? { ...o, orderStatus: to } : o));
                 const toCfg = STATUS_CONFIG[to];
                 addAlert('success', 'Status Updated!',

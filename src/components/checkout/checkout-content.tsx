@@ -12,8 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, ArrowRight, File, CreditCard, ShieldCheck, Truck, Lock, Package2 } from 'lucide-react';
-import { processDummyPayment } from '@/app/actions/payment-actions';
+import { Loader2, ArrowRight, File, ShieldCheck, Truck, Lock, Package2 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { resolveImagePath } from '@/lib/utils';
@@ -175,33 +174,7 @@ export function CheckoutContent() {
         }
     };
 
-    const handleDummyPayment = async (data: CheckoutFormValues) => {
-        if (!details) return;
-        setIsPlacingOrder(true);
-        try {
-            const result = await processDummyPayment({
-                amount: details.total,
-                orderType: 'design',
-                orderData: {
-                    designId: details.design?.id,
-                    uploadId: details.upload?.id,
-                    quantity: details.quantity,
-                    ...data,
-                }
-            });
 
-            if (result.success) {
-                toast({ title: 'Success', description: 'Order placed using Dummy PG.' });
-                router.push('/client/orders');
-            } else {
-                throw new Error(result.error);
-            }
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Dummy payment failed.' });
-        } finally {
-            setIsPlacingOrder(false);
-        }
-    };
 
     if (isLoading) {
         return (
@@ -313,21 +286,10 @@ export function CheckoutContent() {
                                 )}
 
                                 {/* Action CTAs */}
-                                <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                                    <Button type="submit" size="default" className="flex-1 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold shadow-md hover:shadow-indigo-500/25 hover:-translate-y-0.5 transition-all text-xs gap-1.5" disabled={isPlacingOrder}>
+                                <div className="w-full pt-2">
+                                    <Button type="submit" size="default" className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold shadow-md hover:shadow-indigo-500/25 hover:-translate-y-0.5 transition-all text-xs gap-1.5" disabled={isPlacingOrder}>
                                         {isPlacingOrder ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Lock className="mr-1.5 h-4 w-4" />}
                                         Proceed to Secure Payment <ArrowRight className="ml-1 h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                        type="button" 
-                                        variant="outline" 
-                                        size="default" 
-                                        className="flex-1 h-11 rounded-xl border border-indigo-500/30 hover:border-indigo-500 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-extrabold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-xs gap-1.5" 
-                                        disabled={isPlacingOrder}
-                                        onClick={handleSubmit(handleDummyPayment)}
-                                    >
-                                        <CreditCard className="mr-1.5 h-4 w-4" />
-                                        Dummy PG (Instant Test)
                                     </Button>
                                 </div>
                             </form>

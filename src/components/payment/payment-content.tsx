@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { createRazorpayOrder, captureAndVerifyPayment, processDummyPayment } from '@/app/actions/payment-actions';
+import { createRazorpayOrder, captureAndVerifyPayment } from '@/app/actions/payment-actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Loader2, IndianRupee, ShieldCheck, Coins, Sparkles, Trophy } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import Script from 'next/script';
 
 // Define a type for the order details
@@ -23,6 +25,7 @@ export function PaymentContent() {
     const { toast } = useToast();
     
     const [orderPayload, setOrderPayload] = useState<OrderPayload | null>(null);
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [razorpayOrder, setRazorpayOrder] = useState<any>(null);
     const [paymentRecordId, setPaymentRecordId] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -117,28 +120,6 @@ export function PaymentContent() {
         // @ts-ignore
         const rzp = new window.Razorpay(options);
         rzp.open();
-    };
-
-    const handleDummyPayment = async () => {
-        if (!orderPayload) return;
-        setIsProcessing(true);
-        try {
-            const result = await processDummyPayment({
-                amount: orderPayload.amount,
-                orderType: orderType,
-                orderData: orderPayload.orderData
-            });
-
-            if (result.success) {
-                toast({ title: 'Success', description: 'Order placed using Dummy PG.' });
-                router.push('/client/orders');
-            } else {
-                throw new Error(result.error);
-            }
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Dummy payment failed.' });
-            setIsProcessing(false);
-        }
     };
 
     if (!orderPayload) {
@@ -254,10 +235,21 @@ export function PaymentContent() {
                     )}
                 </CardContent>
                 <CardFooter className="flex-col gap-4">
+                    <div className="flex items-start space-x-2.5 w-full pb-2 select-none">
+                        <Checkbox
+                            id="terms-and-conditions"
+                            checked={agreedToTerms}
+                            onCheckedChange={(checked) => setAgreedToTerms(!!checked)}
+                            className="mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-zinc-700 text-[#2563EB] focus:ring-[#2563EB]"
+                        />
+                        <Label htmlFor="terms-and-conditions" className="text-xs font-semibold text-slate-700 dark:text-zinc-300 cursor-pointer leading-normal">
+                            I agree to the <span className="underline font-bold text-[#2563EB] hover:text-blue-600 transition-colors">Terms and Conditions</span>, privacy policy, and refund rules.
+                        </Label>
+                    </div>
                      <Button 
                         className="w-full h-12 text-lg font-bold" 
                         onClick={handlePayment} 
-                        disabled={isLoading || isProcessing}
+                        disabled={isLoading || isProcessing || !agreedToTerms}
                     >
                         {isProcessing ? (
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -266,14 +258,6 @@ export function PaymentContent() {
                         ) : (
                            'Pay Now'
                         )}
-                    </Button>
-                    <Button 
-                        variant="outline" 
-                        className="w-full border-dashed" 
-                        onClick={handleDummyPayment}
-                        disabled={isLoading || isProcessing}
-                    >
-                        Skip to Dummy PG (Testing)
                     </Button>
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                         <ShieldCheck size={14}/> Securely processed by Razorpay

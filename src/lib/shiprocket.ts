@@ -536,6 +536,32 @@ export async function generateManifest(shipmentId: string) {
     return { manifestUrl, rawData: genData };
 }
 
+// ── Print Invoice ─────────────────────────────────────────────────────────────
+
+export async function printShiprocketInvoice(shiprocketOrderIds: string[]) {
+    console.log(`[Shiprocket] Printing invoice for orders: ${shiprocketOrderIds.join(", ")}`);
+
+    const res = await shiprocketFetch("/orders/print/invoice", {
+        method: "POST",
+        body: JSON.stringify({
+            ids: shiprocketOrderIds,
+        }),
+    });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Invoice print failed: ${res.status} - ${errText}`);
+    }
+
+    const data = await res.json();
+    console.log("[Shiprocket] Invoice print response:", data);
+
+    // Shiprocket returns invoice_url in the response
+    const invoiceUrl = data.invoice_url || data.response?.invoice_url || null;
+
+    return { invoiceUrl, rawData: data };
+}
+
 // ── Schedule Pickup ───────────────────────────────────────────────────────────
 
 export async function schedulePickup(shipmentId: string, pickupDate?: string, scheduledTimestamp?: Date) {

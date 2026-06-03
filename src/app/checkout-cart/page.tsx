@@ -11,8 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, IndianRupee, ShoppingCart, CreditCard } from 'lucide-react';
-import { processDummyPayment } from '@/app/actions/payment-actions';
+import { Loader2, ArrowRight, IndianRupee, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import { resolveImagePath } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -123,31 +122,7 @@ export default function CartCheckoutPage() {
         }
     };
 
-    const handleDummyPayment = async (data: CheckoutFormValues) => {
-        setIsPlacingOrder(true);
-        try {
-            const result = await processDummyPayment({
-                amount: subtotal,
-                orderType: 'direct',
-                orderData: {
-                    items,
-                    shippingAddress: data.shippingAddress,
-                }
-            });
 
-            if (result.success) {
-                toast({ title: 'Success', description: 'Order placed using Dummy PG.' });
-                clearCart();
-                router.push('/client/orders');
-            } else {
-                throw new Error(result.error);
-            }
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Dummy payment failed.' });
-        } finally {
-            setIsPlacingOrder(false);
-        }
-    };
     
     if (!isMounted) {
         return (
@@ -176,21 +151,10 @@ export default function CartCheckoutPage() {
                                 <CardHeader><CardTitle>Shipping Address</CardTitle></CardHeader>
                                 <CardContent><AddressForm register={register} errors={errors} /></CardContent>
                             </Card>
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <Button type="submit" size="lg" className="flex-1" disabled={isPlacingOrder}>
+                            <div className="w-full">
+                                <Button type="submit" size="lg" className="w-full" disabled={isPlacingOrder}>
                                     {isPlacingOrder && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Proceed to Payment <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    size="lg" 
-                                    className="flex-1 border-dashed border-primary/50 text-primary hover:bg-primary/5" 
-                                    disabled={isPlacingOrder}
-                                    onClick={handleSubmit(handleDummyPayment)}
-                                >
-                                    <CreditCard className="mr-2 h-4 w-4" />
-                                    Dummy PG (Fast)
                                 </Button>
                             </div>
                         </form>

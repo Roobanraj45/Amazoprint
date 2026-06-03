@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Printer, IndianRupee, Calendar, CreditCard, History } from "lucide-react";
+import { Loader2, Printer, IndianRupee, Calendar, CreditCard, History, Crown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -15,6 +15,7 @@ interface Printer {
     fullName: string;
     companyName: string | null;
     city: string | null;
+    planName?: string | null;
 }
 
 interface PrinterPayment {
@@ -179,11 +180,32 @@ export function PrinterAssignmentControl({
                 <SelectContent className="rounded-xl border-slate-100 dark:border-slate-800 shadow-2xl">
                     <SelectItem value="none" className="text-[11px] font-bold text-slate-400">Unassigned</SelectItem>
                     {printers.map((printer) => (
-                        <SelectItem key={printer.id} value={printer.id} className="text-[11px] font-bold">
-                            <div className="flex flex-col">
-                                <span>{printer.fullName}</span>
+                        <SelectItem 
+                            key={printer.id} 
+                            value={printer.id} 
+                            className="text-[11px] font-bold p-1"
+                        >
+                            <div className={cn(
+                                "flex flex-col w-full p-2 rounded-lg transition-all text-left",
+                                printer.planName 
+                                    ? "bg-amber-500/10 border-l-4 border-amber-500 pl-3 dark:bg-amber-500/20" 
+                                    : ""
+                            )}>
+                                <div className="flex items-center justify-between gap-4 w-full">
+                                    <div className="flex items-center gap-1.5">
+                                        {printer.planName && <Crown size={12} className="text-amber-500 fill-amber-500 shrink-0 animate-pulse" />}
+                                        <span className={cn(printer.planName ? "text-amber-950 dark:text-amber-300 font-black" : "")}>
+                                            {printer.fullName}
+                                        </span>
+                                    </div>
+                                    {printer.planName && (
+                                        <span className="text-[7px] font-black px-2 py-0.5 bg-amber-500 text-white rounded uppercase tracking-widest scale-95 shrink-0 shadow-sm">
+                                            {printer.planName}
+                                        </span>
+                                    )}
+                                </div>
                                 {printer.companyName && (
-                                    <span className="text-[9px] text-slate-400 font-medium">
+                                    <span className="text-[9px] text-slate-400 font-medium mt-1">
                                         {printer.companyName} {printer.city ? `(${printer.city})` : ''}
                                     </span>
                                 )}

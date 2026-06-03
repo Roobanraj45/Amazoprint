@@ -2,13 +2,14 @@
 
 import * as React from 'react';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar"
-import { LogOut, KeyRound, ShoppingBag, Home, Trophy, Users, Palette, Sparkles, Store, Package, DollarSign, Factory, ShieldCheck, Search, Scissors, FileArchive, Layers, BarChart3, CircleDollarSign, Receipt, Truck } from "lucide-react"
+import { LogOut, KeyRound, ShoppingBag, Home, Trophy, Users, Palette, Sparkles, Store, Package, DollarSign, Factory, ShieldCheck, Search, Scissors, FileArchive, Layers, BarChart3, CircleDollarSign, Receipt, Truck, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { getSession } from '@/app/actions/user-actions';
+import { getUnreadMessageCount } from '@/app/actions/message-actions';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -22,6 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname();
     const [session, setSession] = React.useState<Session | null>(null);
     const [loadingSession, setLoadingSession] = React.useState(true);
+    const [unreadCount, setUnreadCount] = React.useState(0);
 
     React.useEffect(() => {
         getSession().then(s => {
@@ -29,6 +31,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             setLoadingSession(false);
         });
     }, []);
+
+    const prevCountRef = React.useRef(0);
+
+    React.useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission === 'default') {
+                Notification.permission === 'default' && Notification.requestPermission();
+            }
+        }
+    }, []);
+
+    React.useEffect(() => {
+        const checkUnread = () => {
+            getUnreadMessageCount().then(count => {
+                setUnreadCount(count);
+                if (count > prevCountRef.current) {
+                    // Play audio chime
+                    try {
+                        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-500.wav');
+                        audio.volume = 0.45;
+                        audio.play();
+                    } catch (e) {
+                        console.log('Audio playback blocked');
+                    }
+
+                    // Native Notification
+                    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                        new Notification('New Chat Message', {
+                            body: 'You have new messages from print partners.',
+                            icon: '/favicon.ico',
+                        });
+                    }
+                }
+                prevCountRef.current = count;
+            }).catch(err => console.error(err));
+        };
+
+        checkUnread();
+        const interval = setInterval(checkUnread, 8000);
+        return () => clearInterval(interval);
+    }, [pathname]);
 
     const menuSections = [
         {
@@ -58,9 +101,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             title: "Partner Networks",
             items: [
                 { href: "/admin/users", label: "Users", icon: <Users size={14} />, color: "group-hover:text-sky-500" },
+                { href: "/admin/users/messages", label: "Users Chat", icon: <MessageSquare size={14} />, color: "group-hover:text-indigo-500" },
                 { href: "/admin/printers", label: "Printers", icon: <Factory size={14} />, color: "group-hover:text-blue-600" },
+                { href: "/admin/printers/messages", label: "Printers Chat", icon: <MessageSquare size={14} />, color: "group-hover:text-emerald-500" },
                 { href: "/admin/printers/shipments", label: "Shipping Reports", icon: <Truck size={14} />, color: "group-hover:text-cyan-600" },
                 { href: "/admin/printer-invoices", label: "Printer Invoices", icon: <Receipt size={14} />, color: "group-hover:text-violet-500" },
+                { href: "/admin/printers/subscriptions", label: "Printer Subscriptions", icon: <CircleDollarSign size={14} />, color: "group-hover:text-emerald-500" },
                 { href: "/admin/printer-proposals", label: "Printer Suggestions", icon: <Sparkles size={14} />, color: "group-hover:text-indigo-500" },
             ]
         },
@@ -204,6 +250,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <main className="flex-1 overflow-y-auto no-scrollbar p-6">
                         {children}
                     </main>
+                    {pathname !== '/admin/printers/messages' && (
+                        <Link
+                            href="/admin/printers/messages"
+                            className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl shadow-blue-600/35 transition-all duration-300 hover:scale-105 hover:bg-blue-700 active:scale-95 group"
+                        >
+                            <MessageSquare className="h-6 w-6 transition-transform group-hover:rotate-6" />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white ring-4 ring-[#f8fafc] dark:ring-zinc-950 animate-bounce">
+                                    {unreadCount}
+                                </span>
+                            )}
+                        </Link>
+                    )}
                 </SidebarInset>
             </div>
         </SidebarProvider>

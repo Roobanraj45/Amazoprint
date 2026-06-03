@@ -11,6 +11,7 @@ import {
     adminScheduleShipmentPickup,
     adminApproveShippingRequest,
     adminRejectShippingRequest,
+    adminDownloadShiprocketInvoice,
 } from '@/app/actions/order-actions';
 import {
     Truck,
@@ -592,6 +593,23 @@ export default function AdminShippingReportPage() {
             fetchShipments();
         } catch (err: any) {
             addAlert('error', 'Manifest Generation Failed', err.message || 'Could not generate manifest.');
+        } finally {
+            setActionLoadingId(null);
+        }
+    };
+
+    const handleDownloadInvoice = async (shipment: Shipment) => {
+        setActionLoadingId(shipment.id);
+        try {
+            const result = await adminDownloadShiprocketInvoice(shipment.orderId);
+            if (result.invoiceUrl) {
+                window.open(result.invoiceUrl, '_blank');
+                addAlert('success', 'Invoice Downloaded', `Shiprocket invoice opened for Order #${shipment.orderId}.`);
+            } else {
+                addAlert('warning', 'Invoice Not Available', 'Shiprocket returned no invoice URL. The order may not have been dispatched yet.');
+            }
+        } catch (err: any) {
+            addAlert('error', 'Invoice Download Failed', err.message || 'Could not download invoice.');
         } finally {
             setActionLoadingId(null);
         }
@@ -1425,6 +1443,20 @@ export default function AdminShippingReportPage() {
                                             >
                                                 <FileText className="h-3.5 w-3.5 text-purple-500" />
                                                 Manifest
+                                            </Button>
+                                        )}
+
+                                        {/* Invoice Download (Shiprocket only) */}
+                                        {shipment.shiprocketOrderId && (
+                                            <Button
+                                                onClick={() => handleDownloadInvoice(shipment)}
+                                                disabled={isActionLoading}
+                                                variant="outline"
+                                                size="sm"
+                                                className="border-slate-200 dark:border-zinc-800 rounded-xl text-[10px] font-extrabold uppercase tracking-wider gap-1.5 px-4 py-2 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                                            >
+                                                <Download className="h-3.5 w-3.5 text-emerald-500" />
+                                                Invoice
                                             </Button>
                                         )}
 
