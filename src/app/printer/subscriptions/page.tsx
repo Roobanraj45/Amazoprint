@@ -77,6 +77,13 @@ export default function PrinterSubscriptionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
 
+  // Checkout Modal State
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [cardNumber, setCardNumber] = useState('4242 4242 4242 4242');
+  const [expiry, setExpiry] = useState('12/28');
+  const [cvc, setCvc] = useState('123');
+
   // Razorpay script injection
   useEffect(() => {
     const script = document.createElement('script');
@@ -117,6 +124,11 @@ export default function PrinterSubscriptionsPage() {
   }, []);
 
   const handleOpenCheckout = (plan: Plan) => {
+    setSelectedPlan(plan);
+    setShowCheckout(true);
+  };
+
+  const handleRazorpayPayment = async (plan: Plan) => {
     if (typeof window === 'undefined' || !(window as any).Razorpay) {
       toast({
         variant: 'destructive',
@@ -125,6 +137,8 @@ export default function PrinterSubscriptionsPage() {
       });
       return;
     }
+
+    setShowCheckout(false);
 
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_dummy_key',
@@ -161,6 +175,26 @@ export default function PrinterSubscriptionsPage() {
 
     const rzp = new (window as any).Razorpay(options);
     rzp.open();
+  };
+
+  const handleDummySubscriptionPayment = async (plan: Plan) => {
+    setShowCheckout(false);
+    startTransition(async () => {
+      try {
+        await subscribePrinter(plan.id, `dummy_sub_pay_${Date.now()}`);
+        toast({
+          title: 'Subscription Successful (Dummy)!',
+          description: `You are now subscribed to the "${plan.name}" tier.`,
+        });
+        await fetchData();
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Subscription Failed',
+          description: error.message || 'Payment capture failed.'
+        });
+      }
+    });
   };
 
   const handleCancelSubscription = () => {
@@ -376,6 +410,68 @@ export default function PrinterSubscriptionsPage() {
       )}
 
 
+
+      {/* Checkout Simulator Modal */}
+      {showCheckout && selectedPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[2px] p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative p-6 space-y-6">
+            <button 
+              onClick={() => setShowCheckout(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+            >
+              <X className="w-4 h-4 text-zinc-500" />
+            </button>
+
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold">Subscribe to {selectedPlan.name}</h3>
+              <p className="text-xs text-slate-500">Choose a payment method to complete your subscription upgrade.</p>
+            </div>
+
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200/50 dark:border-zinc-850 flex justify-between items-center text-sm font-semibold">
+              <span className="text-slate-500">Plan Amount</span>
+              <span className="text-lg font-black text-slate-900 dark:text-white">₹{parseFloat(selectedPlan.price).toFixed(2)}</span>
+            </div>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="space-y-1">
+                  <span className="font-bold text-slate-500">Card Number</span>
+                  <Input value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} className="h-9 font-mono rounded-lg" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <span className="font-bold text-slate-500">Expiry</span>
+                    <Input value={expiry} onChange={(e) => setExpiry(e.target.value)} className="h-9 font-mono rounded-lg" placeholder="MM/YY" />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="font-bold text-slate-500">CVC</span>
+                    <Input value={cvc} onChange={(e) => setCvc(e.target.value)} className="h-9 font-mono rounded-lg" placeholder="123" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <Button 
+                onClick={() => handleDummySubscriptionPayment(selectedPlan)}
+                disabled={isPending}
+                className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-sm text-xs gap-1.5"
+              >
+                <CreditCard className="w-4 h-4" /> Pay with Dummy PG (Simulated)
+              </Button>
+              
+              <Button 
+                onClick={() => handleRazorpayPayment(selectedPlan)}
+                disabled={isPending}
+                variant="outline"
+                className="w-full h-11 font-bold rounded-xl text-xs gap-1.5"
+              >
+                <Zap className="w-4 h-4 text-amber-500" /> Pay with Razorpay (Real)
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -24,6 +24,7 @@ import {
     Upload, X, UserCheck
 } from 'lucide-react';
 import { cn, resolveImagePath } from '@/lib/utils';
+import { processDummyPayment } from '@/app/actions/payment-actions';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -386,6 +387,58 @@ export function CreateContestForm() {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
       setIsLoading(false);
     }
+  };
+
+  const handleDummyPayment = async () => {
+    handleSubmit(async (data: ContestFormValues) => {
+        setIsLoading(true);
+        try {
+            const isIndividual = data.contestType === 'individual';
+            const entryFee = isIndividual ? 0 : Number(contestPricingRules.find(r => r.id === data.pricingRuleId)?.contestPrice || 0);
+            const maxParticipants = isIndividual ? 1 : (contestPricingRules.find(r => r.id === data.pricingRuleId)?.maxParticipants || 1);
+
+            if (!isIndividual) {
+                const selectedRule = contestPricingRules.find(r => r.id === data.pricingRuleId);
+                if (!selectedRule || !selectedRule.contestPrice) {
+                    throw new Error("Invalid pricing rule or price not found.");
+                }
+            }
+
+            const specsCost = calculatedCustomisationPrice?.totalCost || 0;
+            const totalAmount = specsCost + entryFee + Number(data.prizeAmount || 0);
+
+            const contestData = {
+                ...data,
+                entryFee,
+                maxFreelancers: maxParticipants,
+                customisation: {
+                    ...customisation,
+                    specsCost,
+                    specsBreakdown: calculatedCustomisationPrice?.addonBreakdown || [],
+                    printBaseCost: calculatedCustomisationPrice?.printBaseCost || 0,
+                },
+            };
+            // @ts-ignore
+            delete contestData.pricingRuleId;
+
+            const result = await processDummyPayment({
+                amount: totalAmount,
+                orderType: 'contest',
+                orderData: { contestData }
+            });
+
+            if (result.success) {
+                toast({ title: 'Contest Launched!', description: 'Your design contest has been created successfully.' });
+                router.push('/client/contests');
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Dummy payment failed.' });
+        } finally {
+            setIsLoading(false);
+        }
+    })();
   };
 
 
@@ -941,17 +994,28 @@ export function CreateContestForm() {
                         </div>
 
                         <div className="w-full">
-                            <Button 
-                                type="submit" 
-                                disabled={isLoading} 
-                                className="w-full h-12 rounded-2xl bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 text-white font-extrabold text-xs shadow-lg shadow-rose-500/20 transition-all"
-                            >
-                                {isLoading ? (
-                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-                                ) : (
-                                    <><Rocket className="w-4 h-4 mr-2" /> Proceed to Payment</>
-                                )}
-                            </Button>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    disabled={isLoading} 
+                                    onClick={handleDummyPayment}
+                                    className="h-12 rounded-2xl border-2 border-dashed border-rose-500/50 hover:bg-rose-500/5 text-rose-500 font-extrabold text-xs shadow-sm transition-all"
+                                >
+                                    <CreditCard className="w-4 h-4 mr-2" /> Dummy Payment (Fast)
+                                </Button>
+                                <Button 
+                                    type="submit" 
+                                    disabled={isLoading} 
+                                    className="h-12 rounded-2xl bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 text-white font-extrabold text-xs shadow-lg shadow-rose-500/20 transition-all"
+                                >
+                                    {isLoading ? (
+                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                                    ) : (
+                                        <><Rocket className="w-4 h-4 mr-2" /> Proceed to Payment</>
+                                    )}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </form>
