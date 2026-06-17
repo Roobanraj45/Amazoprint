@@ -6,58 +6,292 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Menu,
   X,
+  ChevronDown,
   ChevronRight,
+  ArrowRight,
+  Search,
+  Phone,
+  Mail,
+  Heart,
   User,
   LayoutGrid,
-  ArrowRight,
+  Printer,
+  Flame,
+  Gift,
+  Home,
+  FileText,
+  Package,
+  Star,
+  Sparkles,
+  LogIn,
+  PenTool,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { getSession } from '@/app/actions/user-actions';
 import { LogoutButton } from '@/components/layout/logout-button';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CartSheet } from '@/components/cart/cart-sheet';
 import { usePathname } from 'next/navigation';
 import { cn, resolveImagePath } from '@/lib/utils';
 import { getProducts } from '@/app/actions/product-actions';
-import Image from 'next/image';
+import NextImage from 'next/image';
 
 type Session = Awaited<ReturnType<typeof getSession>>;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MEGA-MENU DROPDOWN
+// ─────────────────────────────────────────────────────────────────────────────
+function ProductsMegaMenu({
+  productsData,
+  activeIdx,
+  setActiveIdx,
+  onClose,
+  align = 'left',
+}: {
+  productsData: any[];
+  activeIdx: number;
+  setActiveIdx: (i: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 6, scale: 0.98 }}
+      transition={{ duration: 0.16, ease: 'easeOut' }}
+      className="absolute top-full pt-2 z-[999]"
+      style={{ left: 0, minWidth: 720 }}
+    >
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-black/5">
+        <div className="flex" style={{ minHeight: 380 }}>
+          {/* ── LEFT: Category list ── */}
+          <div className="w-56 bg-gray-50 border-r border-gray-100 py-3 flex-shrink-0 overflow-y-auto" style={{ maxHeight: 440 }}>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 pb-2 pt-1">Categories</p>
+            {productsData.length === 0 ? (
+              <div className="px-4 py-6 text-center">
+                <p className="text-xs text-gray-400 font-medium">Loading categories…</p>
+              </div>
+            ) : (
+              productsData.map((product, idx) => {
+                const active = activeIdx === idx;
+                return (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onMouseEnter={() => setActiveIdx(idx)}
+                    onClick={() => setActiveIdx(idx)}
+                    className={cn(
+                      'w-full text-left flex items-center justify-between px-4 py-2.5 transition-colors group/cat',
+                      active
+                        ? 'bg-blue-600 text-white'
+                        : 'hover:bg-blue-50 text-gray-700'
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={cn(
+                        'w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
+                        active ? 'bg-white/20' : 'bg-white group-hover/cat:bg-blue-100'
+                      )}>
+                        <LayoutGrid className={cn('w-3.5 h-3.5', active ? 'text-white' : 'text-blue-500')} />
+                      </div>
+                      <span className={cn('text-xs font-bold leading-tight truncate', active ? 'text-white' : 'text-gray-700')}>
+                        {product.name}
+                      </span>
+                    </div>
+                    <ChevronRight className={cn('w-3 h-3 flex-shrink-0 ml-1', active ? 'text-white/60' : 'text-gray-300')} />
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* ── RIGHT: Sub-products grid ── */}
+          <div className="flex-1 p-5 overflow-y-auto" style={{ maxHeight: 440 }}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeIdx}
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.14 }}
+                className="h-full flex flex-col"
+              >
+                {productsData[activeIdx] ? (
+                  <>
+                    {/* Sub-header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="text-sm font-black text-gray-900">{productsData[activeIdx].name}</h4>
+                        <p className="text-[11px] text-gray-400 font-medium mt-0.5">
+                          {productsData[activeIdx].subProducts?.filter((sp: any) => sp.isActive).length || 0} options available
+                        </p>
+                      </div>
+                      <Link
+                        href={`/design/${productsData[activeIdx].slug}`}
+                        onClick={onClose}
+                        className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 whitespace-nowrap"
+                      >
+                        View all <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+
+                    {/* Grid */}
+                    {(productsData[activeIdx].subProducts?.filter((sp: any) => sp.isActive).length || 0) > 0 ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {productsData[activeIdx].subProducts
+                          .filter((sp: any) => sp.isActive)
+                          .slice(0, 9)
+                          .map((sp: any) => {
+                            const imgUrl = resolveImagePath(sp.imageUrl || sp.parentProductImageUrl);
+                            return (
+                              <Link
+                                key={sp.id}
+                                href={`/design/${productsData[activeIdx].slug}/start?subProductId=${sp.id}`}
+                                onClick={onClose}
+                                className="group/sub flex flex-col gap-1.5 p-2.5 rounded-xl border border-transparent hover:border-blue-100 hover:bg-blue-50/70 transition-all"
+                              >
+                                {/* Thumbnail */}
+                                <div className="w-full aspect-[4/3] rounded-lg bg-gray-100 overflow-hidden relative flex-shrink-0">
+                                  {imgUrl ? (
+                                    <NextImage
+                                      src={imgUrl}
+                                      alt={sp.name}
+                                      fill
+                                      className="object-cover group-hover/sub:scale-105 transition-transform duration-300"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <Package className="w-4 h-4 text-gray-300" />
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Label */}
+                                <p className="text-[11px] font-bold text-gray-700 group-hover/sub:text-blue-600 transition-colors leading-tight line-clamp-2">
+                                  {sp.name}
+                                </p>
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  <span className="text-[9px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                    {sp.width}×{sp.height}{sp.unitType}
+                                  </span>
+                                  {sp.spotUvAllowed && (
+                                    <span className="text-[9px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded">UV</span>
+                                  )}
+                                  {sp.price && (
+                                    <span className="text-[9px] font-black text-blue-600">₹{Number(sp.price).toFixed(0)}</span>
+                                  )}
+                                </div>
+                              </Link>
+                            );
+                          })}
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center py-10 opacity-40">
+                        <Package className="w-10 h-10 text-gray-300 mb-2" />
+                        <p className="text-xs font-bold text-gray-400">No products added yet</p>
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-yellow-300 flex-shrink-0" />
+            <span className="text-[11px] font-semibold text-white/90">
+              Premium quality • Fast delivery • 98% customer satisfaction
+            </span>
+          </div>
+          <Link
+            href="/products"
+            onClick={onClose}
+            className="text-[11px] font-black text-white flex items-center gap-1 hover:gap-2 transition-all whitespace-nowrap ml-4"
+          >
+            Browse All <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SIMPLE DROPDOWN
+// ─────────────────────────────────────────────────────────────────────────────
+function SimpleDropdown({
+  items,
+  onClose,
+}: {
+  items: { label: string; href: string; desc?: string; icon?: React.ReactNode }[];
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 6 }}
+      transition={{ duration: 0.14 }}
+      className="absolute top-full left-0 pt-2 z-[999] min-w-[220px]"
+    >
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden ring-1 ring-black/5 py-1.5">
+        {items.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onClose}
+            className="flex items-start gap-3 px-4 py-3 hover:bg-blue-50 transition-colors group"
+          >
+            {item.icon && (
+              <div className="w-7 h-7 rounded-lg bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors">
+                <span className="text-blue-600">{item.icon}</span>
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{item.label}</p>
+              {item.desc && <p className="text-[11px] text-gray-400 font-medium mt-0.5">{item.desc}</p>}
+            </div>
+          </Link>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN NAVBAR
+// ─────────────────────────────────────────────────────────────────────────────
 export function Navbar() {
   const [isOpen, setIsOpen] = React.useState(false);
   const [session, setSession] = React.useState<Session | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [scrolled, setScrolled] = React.useState(false);
   const [productsData, setProductsData] = React.useState<any[]>([]);
-  const [isProductsHovered, setIsProductsHovered] = React.useState(false);
-  const [activeProductIndex, setActiveProductIndex] = React.useState(0);
+  const [activeCatIdx, setActiveCatIdx] = React.useState(0);
+
+  // Separate state keys prevent the top "Categories" btn and bottom "Products"
+  // nav link from accidentally rendering two dropdowns at once.
+  const [openMenu, setOpenMenu] = React.useState<string | null>(null);
+  const closeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const pathname = usePathname();
 
   React.useEffect(() => {
-    getSession().then(s => {
-      setSession(s);
-      setLoading(false);
-    });
+    getSession().then((s) => { setSession(s); setLoading(false); });
+    getProducts().then((data: any[]) => setProductsData(data.filter((p) => p.isActive)));
 
-    getProducts().then(data => {
-      setProductsData(data.filter(p => p.isActive));
-    });
-
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const getDashboardUrl = (role?: string) => {
-    if (!role) return '/';
     switch (role) {
       case 'freelancer': return '/freelancer/dashboard';
-      case 'admin':
-      case 'super_admin':
-      case 'company_admin':
-      case 'designer': return '/admin/dashboard';
+      case 'admin': case 'super_admin': case 'company_admin': case 'designer': return '/admin/dashboard';
       case 'accounts': return '/accounts/dashboard';
       case 'printer': return '/printer/dashboard';
       default: return '/client/dashboard';
@@ -66,328 +300,393 @@ export function Navbar() {
 
   const dashboardUrl = getDashboardUrl(session?.role);
 
-  const navLinks = [
-    { href: '/products', label: 'Products' },
-    { href: '/templates', label: 'Templates' },
-    { href: '/contests', label: 'Contests' },
-    { href: '/about', label: 'About' },
+  const enter = (key: string) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpenMenu(key);
+  };
+  const leave = () => {
+    closeTimer.current = setTimeout(() => setOpenMenu(null), 180);
+  };
+  const close = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpenMenu(null);
+  };
+
+  // Bottom nav items — "products-nav" key is distinct from "categories-btn"
+  const navItems = [
+    {
+      key: 'home',
+      label: 'Home',
+      href: '/',
+      icon: <Home className="w-3.5 h-3.5" />,
+    },
+    {
+      key: 'products-nav',   // ← different key from 'categories-btn'
+      label: 'Products',
+      href: '/products',
+      icon: <LayoutGrid className="w-3.5 h-3.5" />,
+      hasMega: true,
+    },
+    {
+      key: 'templates',
+      label: 'Templates',
+      href: '/templates',
+      icon: <FileText className="w-3.5 h-3.5" />,
+      dropdown: [
+        { label: 'Business Templates', href: '/templates', desc: 'Cards, letterheads & more', icon: <FileText className="w-3.5 h-3.5" /> },
+        { label: 'Marketing Templates', href: '/templates', desc: 'Flyers, banners & posters', icon: <Flame className="w-3.5 h-3.5" /> },
+        { label: 'Event Templates', href: '/templates', desc: 'Invitations & programs', icon: <Gift className="w-3.5 h-3.5" /> },
+      ],
+    },
+    {
+      key: 'design-studio',
+      label: 'Design Studio',
+      href: '/design',
+      icon: <Sparkles className="w-3.5 h-3.5" />,
+      dropdown: [
+        { label: 'Open Studio', href: '/design', desc: 'Create your design online', icon: <Sparkles className="w-3.5 h-3.5" /> },
+        { label: 'Design Contests', href: '/contests', desc: 'Win prizes & recognition', icon: <Star className="w-3.5 h-3.5" /> },
+        { label: 'Hire a Designer', href: '/freelancer/verifications', desc: 'Get professional help', icon: <PenTool className="w-3.5 h-3.5" /> },
+      ],
+    },
+    {
+      key: 'printers',
+      label: 'Printers',
+      href: '/printer-registration',
+      icon: <Printer className="w-3.5 h-3.5" />,
+      dropdown: [
+        { label: 'Become a Partner', href: '/printer-registration', desc: 'Register your press', icon: <Printer className="w-3.5 h-3.5" /> },
+        { label: 'Printer Dashboard', href: '/printer/dashboard', desc: 'Manage your orders', icon: <LayoutGrid className="w-3.5 h-3.5" /> },
+        { label: 'Printer Login', href: '/printer-login', desc: 'Access your account', icon: <LogIn className="w-3.5 h-3.5" /> },
+      ],
+    },
+    {
+      key: 'designers',
+      label: 'Designers',
+      href: '/freelancer/verifications',
+      icon: <Star className="w-3.5 h-3.5" />,
+      dropdown: [
+        { label: 'Join as Designer', href: '/freelancer/verifications', desc: 'Start earning today', icon: <PenTool className="w-3.5 h-3.5" /> },
+        { label: 'Design Contests', href: '/contests', desc: 'Compete & win prizes', icon: <Star className="w-3.5 h-3.5" /> },
+      ],
+    },
+    {
+      key: 'deals',
+      label: "Today's Deals",
+      href: '/products',
+      icon: <Flame className="w-3.5 h-3.5 text-orange-500" />,
+      isHighlight: true,
+    },
   ];
 
-  const isHome = pathname === '/';
-
   return (
-    <nav className={cn(
-        "fixed top-0 w-full z-50 transition-all duration-500",
-        scrolled 
-            ? "bg-background/80 backdrop-blur-2xl border-b border-border/50 shadow-sm py-0" 
-            : isHome 
-                ? "bg-transparent border-transparent py-4" 
-                : "bg-background border-b border-border/50 py-0"
-    )}>
-      <div className={cn(
-          "container mx-auto px-4 lg:px-8 transition-all duration-500 flex items-center justify-between",
-          scrolled ? "h-20" : "h-24"
-      )}>
-        {/* Logo Section */}
-        <div className="flex-shrink-0">
-          <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity" prefetch={false}>
-            <AmazoprintLogo className={cn(
-                "transition-all duration-500 origin-left",
-                scrolled ? "scale-90" : "scale-100"
-            )} />
-          </Link>
-        </div>
+    <>
+      {/* ════════════════════════════════════════════════════════════
+          FIXED HEADER
+      ════════════════════════════════════════════════════════════ */}
+      <header
+        className={cn(
+          'fixed top-0 w-full z-50 transition-all duration-300',
+          scrolled && 'shadow-md'
+        )}
+      >
+        {/* ── TOP ROW ─────────────────────────────────────────────── */}
+        <div className="bg-white border-b border-gray-100">
+          <div className="max-w-screen-xl mx-auto px-4 lg:px-6 h-[64px] flex items-center gap-3 lg:gap-5">
 
-        {/* Desktop Navigation */}
-        <div className={cn(
-            "hidden lg:flex items-center gap-1 mx-auto transition-all duration-500 p-1.5 rounded-full border",
-            scrolled 
-                ? "bg-muted/30 border-border/40" 
-                : isHome 
-                    ? "bg-white/10 border-white/20 backdrop-blur-md" 
-                    : "bg-muted/30 border-border/40"
-        )}>
-          {navLinks.map((link) => {
-            const isProducts = link.label === 'Products';
-            return (
-              <div 
-                key={link.href}
-                className="relative"
-                onMouseEnter={() => isProducts && setIsProductsHovered(true)}
-                onMouseLeave={() => isProducts && setIsProductsHovered(false)}
-              >
-                <Link 
-                  href={link.href} 
-                  className={cn(
-                    "px-6 py-2.5 text-[11px] font-bold tracking-tight transition-all duration-200 relative group flex items-center gap-1",
-                    pathname === link.href 
-                      ? "text-primary" 
-                      : scrolled || !isHome
-                        ? "text-muted-foreground hover:text-foreground"
-                        : "text-white/70 hover:text-white"
-                  )}
-                >
-                  {link.label}
-                  <span className={cn(
-                    "absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 bg-primary transition-all duration-300 rounded-full",
-                    pathname === link.href ? "w-4" : "w-0 group-hover:w-4"
-                  )} />
-                </Link>
+            {/* Logo */}
+            <Link href="/" prefetch={false} className="flex-shrink-0">
+              <AmazoprintLogo />
+            </Link>
 
-                {isProducts && (
-                  <AnimatePresence>
-                    {isProductsHovered && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute top-full left-1/2 -translate-x-1/2 pt-4 w-[600px] z-50"
-                      >
-                        <div className="bg-background/95 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl overflow-hidden">
-                          <div className="flex min-h-[350px]">
-                            {/* Left Pane: Products */}
-                            <div className="w-1/3 bg-muted/30 border-r border-border/50 p-3">
-                              <p className="text-[10px] font-bold tracking-tight text-muted-foreground px-3 mb-3">Categories</p>
-                              <div className="space-y-1">
-                                {productsData.map((product, idx) => (
-                                  <div 
-                                    key={product.id}
-                                    onMouseEnter={() => setActiveProductIndex(idx)}
-                                    className={cn(
-                                      "flex items-center justify-between px-4 py-3 rounded-2xl cursor-pointer transition-all group/item",
-                                      activeProductIndex === idx ? "bg-background shadow-md border border-border/50" : "hover:bg-background/50"
-                                    )}
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <div className={cn(
-                                        "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
-                                        activeProductIndex === idx ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground group-hover/item:text-primary"
-                                      )}>
-                                        <LayoutGrid className="w-4 h-4" />
-                                      </div>
-                                      <span className={cn(
-                                        "text-xs font-bold transition-colors tracking-tight",
-                                        activeProductIndex === idx ? "text-foreground" : "text-muted-foreground group-hover/item:text-foreground"
-                                      )}>
-                                        {product.name}
-                                      </span>
-                                    </div>
-                                    <ChevronRight className={cn(
-                                      "w-3 h-3 transition-all",
-                                      activeProductIndex === idx ? "text-primary translate-x-0" : "text-muted-foreground opacity-0 -translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0"
-                                    )} />
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Right Pane: Sub-Products */}
-                            <div className="flex-1 p-6 bg-background/50">
-                              <AnimatePresence mode="wait">
-                                <motion.div
-                                  key={activeProductIndex}
-                                  initial={{ opacity: 0, x: 10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  exit={{ opacity: 0, x: -10 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="h-full flex flex-col"
-                                >
-                                  <div className="flex items-center justify-between mb-6">
-                                    <div>
-                                      <h4 className="text-xl font-black tracking-tighter text-foreground font-headline">
-                                        {productsData[activeProductIndex]?.name}
-                                      </h4>
-                                      <p className="text-[10px] font-bold text-muted-foreground tracking-tight mt-1">Available Materials & Specs</p>
-                                    </div>
-                                    <Link 
-                                      href={`/design/${productsData[activeProductIndex]?.slug}`}
-                                      className="text-[10px] font-bold text-primary tracking-tight hover:underline"
-                                      onClick={() => setIsProductsHovered(false)}
-                                    >
-                                      View All
-                                    </Link>
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-3">
-                                    {productsData[activeProductIndex]?.subProducts?.filter((sp: any) => sp.isActive).map((sp: any) => (
-                                      <Link
-                                        key={sp.id}
-                                        href={`/design/${productsData[activeProductIndex]?.slug}/start?subProductId=${sp.id}`}
-                                        className="group/sub relative p-4 rounded-2xl bg-muted/40 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all"
-                                        onClick={() => setIsProductsHovered(false)}
-                                      >
-                                        <div className="flex items-center justify-between mb-1">
-                                          <span className="text-xs font-black text-foreground group-hover/sub:text-primary transition-colors">{sp.name}</span>
-                                          <ArrowRight className="w-3 h-3 text-primary opacity-0 -translate-x-2 group-hover/sub:opacity-100 group-hover/sub:translate-x-0 transition-all" />
-                                        </div>
-                                        <div className="flex gap-2">
-                                          <span className="text-[9px] font-bold text-muted-foreground bg-background/50 px-1.5 py-0.5 rounded border border-border/50">
-                                            {sp.width}x{sp.height}{sp.unitType}
-                                          </span>
-                                          {sp.spotUvAllowed && (
-                                            <span className="text-[9px] font-bold text-violet-500">UV</span>
-                                          )}
-                                        </div>
-                                      </Link>
-                                    ))}
-                                  </div>
-
-                                  {(!productsData[activeProductIndex]?.subProducts || productsData[activeProductIndex]?.subProducts.length === 0) && (
-                                    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40">
-                                      <LayoutGrid className="w-12 h-12 mb-4 text-muted-foreground" />
-                                      <p className="text-xs font-bold text-muted-foreground tracking-tight">No materials added yet</p>
-                                    </div>
-                                  )}
-                                </motion.div>
-                              </AnimatePresence>
-                            </div>
-                          </div>
-                          
-                          <div className="bg-primary/5 p-4 border-t border-border/50 flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                              <p className="text-[10px] font-bold text-muted-foreground">Industrial-grade precision for every design.</p>
-                            </div>
-                            <Link 
-                              href="/products" 
-                              className="text-[10px] font-bold text-primary tracking-tight flex items-center gap-1 hover:gap-2 transition-all"
-                              onClick={() => setIsProductsHovered(false)}
-                            >
-                              Explore Catalog <ArrowRight className="w-3 h-3" />
-                            </Link>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+            {/* ── "Categories" button — uses key 'categories-btn' ── */}
+            <div
+              className="relative flex-shrink-0 hidden md:block"
+              onMouseEnter={() => enter('categories-btn')}
+              onMouseLeave={leave}
+            >
+              <button
+                type="button"
+                className={cn(
+                  'flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-[12px] font-bold px-4 py-2.5 rounded-xl transition-colors',
+                  openMenu === 'categories-btn' && 'bg-gray-700'
                 )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          <div className="hidden sm:flex items-center gap-3">
-            {loading ? (
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-10 w-24 rounded-full opacity-20" />
-                <Skeleton className="h-10 w-32 rounded-full opacity-20" />
-              </div>
-            ) : session ? (
-              <>
-                <Button asChild variant="outline" className={cn(
-                    "rounded-full font-bold h-11 px-6 border-2 transition-all text-[11px] tracking-tight",
-                    scrolled || !isHome
-                        ? "hover:bg-primary/5"
-                        : "bg-white/5 border-white/10 text-white hover:bg-white/10"
-                )}>
-                  <Link href={dashboardUrl}>
-                    <LayoutGrid className="w-3.5 h-3.5 mr-2" />
-                    Workspace
-                  </Link>
-                </Button>
-                <LogoutButton />
-              </>
-            ) : (
-              <>
-                <Button asChild variant="ghost" className={cn(
-                    "rounded-full font-bold px-6 h-11 transition-all text-[11px] tracking-tight",
-                    scrolled || !isHome
-                        ? "text-muted-foreground hover:text-foreground"
-                        : "text-white/70 hover:text-white hover:bg-white/10"
-                )}>
-                  <Link href="/login">Login</Link>
-                </Button>
-                <Button asChild className="rounded-full px-8 h-11 font-bold text-[11px] tracking-tight shadow-xl shadow-primary/30 hover:scale-105 transition-transform active:scale-95 bg-primary hover:bg-primary/90">
-                  <Link href="/products">Get Started</Link>
-                </Button>
-              </>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <CartSheet />
-            
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className={cn(
-                  "lg:hidden rounded-2xl h-11 w-11 transition-all border border-transparent",
-                  scrolled || !isHome
-                    ? "hover:bg-primary/5 active:border-primary/20"
-                    : "text-white hover:bg-white/10 border-white/10"
-              )}
-              onClick={() => setIsOpen(!isOpen)}
-              aria-label="Toggle Menu"
-            >
-              {isOpen ? <X className="w-6 h-6 text-primary" /> : <Menu className={cn("w-6 h-6", !scrolled && isHome && "text-white")} />}
-            </Button>
-          </div>
-        </div>
-
-        {/* Mobile Navigation Drawer */}
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="absolute top-[6rem] left-0 w-full bg-background/95 backdrop-blur-3xl border-b border-border shadow-2xl lg:hidden overflow-hidden z-40"
-            >
-              <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
-                <div className="grid grid-cols-1 gap-2">
-                  <p className="text-[10px] font-bold tracking-tight text-muted-foreground px-4 mb-2">Navigation</p>
-                  {navLinks.map((link) => (
-                    <Link 
-                      key={link.href} 
-                      href={link.href} 
-                      className={cn(
-                        "flex items-center justify-between p-5 text-sm font-black rounded-3xl transition-all active:scale-[0.98] tracking-tight",
-                        pathname === link.href ? "bg-primary text-primary-foreground" : "bg-muted/40 hover:bg-muted"
-                      )}
-                      onClick={() => setIsOpen(false)}
-                    >
-                      {link.label}
-                      <ChevronRight className={cn("w-6 h-6", pathname === link.href ? "text-primary-foreground/50" : "text-muted-foreground")} />
-                    </Link>
+              >
+                <div className="grid grid-cols-2 gap-px w-3 h-3 flex-shrink-0">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="w-1 h-1 bg-white rounded-[1px]" />
                   ))}
                 </div>
-                
-                <Separator className="opacity-50" />
-                
-                <div className="flex flex-col gap-4 pb-6">
+                Categories
+                <ChevronDown className={cn('w-3 h-3 transition-transform duration-200', openMenu === 'categories-btn' && 'rotate-180')} />
+              </button>
+
+              {/* Mega-menu — keyed 'categories-btn' */}
+              <AnimatePresence>
+                {openMenu === 'categories-btn' && (
+                  <div onMouseEnter={() => enter('categories-btn')} onMouseLeave={leave}>
+                    <ProductsMegaMenu
+                      productsData={productsData}
+                      activeIdx={activeCatIdx}
+                      setActiveIdx={setActiveCatIdx}
+                      onClose={close}
+                    />
+                  </div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Search */}
+            <div className="flex-1 max-w-lg">
+              <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="What are you looking for?"
+                  className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none font-medium min-w-0"
+                />
+              </div>
+            </div>
+
+            {/* Contact — only on large screens */}
+            <div className="hidden xl:flex items-center gap-5 flex-shrink-0">
+              <a href="tel:+916001234567" className="flex items-center gap-2.5 group">
+                <div className="w-9 h-9 rounded-full bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 transition-colors">
+                  <Phone className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-gray-900 leading-tight">+1600-123 456 789</p>
+                  <p className="text-[10px] text-gray-400 font-medium">24/7 Support</p>
+                </div>
+              </a>
+              <a href="mailto:support@amazoprint.in" className="flex items-center gap-2.5 group">
+                <div className="w-9 h-9 rounded-full bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 transition-colors">
+                  <Mail className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-gray-900 leading-tight">support@amazoprint.in</p>
+                  <p className="text-[10px] text-gray-400 font-medium">Contact Email</p>
+                </div>
+              </a>
+            </div>
+
+            {/* Right action icons */}
+            <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+              {/* Account */}
+              {loading ? (
+                <Skeleton className="h-9 w-9 rounded-full" />
+              ) : session ? (
+                <Link
+                  href={dashboardUrl}
+                  title="My Workspace"
+                  className="w-9 h-9 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
+                >
+                  <User className="w-4 h-4 text-blue-600" />
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  title="Login"
+                  className="w-9 h-9 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
+                >
+                  <LogIn className="w-4 h-4 text-blue-600" />
+                </Link>
+              )}
+
+              {/* Wishlist */}
+              <button
+                type="button"
+                className="relative w-9 h-9 rounded-full bg-rose-50 hover:bg-rose-100 flex items-center justify-center transition-colors"
+                aria-label="Wishlist"
+              >
+                <Heart className="w-4 h-4 text-rose-500" />
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none">0</span>
+              </button>
+
+              {/* Cart */}
+              <CartSheet />
+
+              {/* Auth buttons */}
+              {!loading && !session && (
+                <div className="hidden sm:flex items-center gap-1.5 ml-1.5 pl-1.5 border-l border-gray-200">
+                  <Button asChild variant="ghost" size="sm" className="rounded-xl font-bold text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 h-9 px-3">
+                    <Link href="/login">Login</Link>
+                  </Button>
+                  <Button asChild size="sm" className="rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white border-none h-9 px-4 shadow-md shadow-blue-500/20">
+                    <Link href="/register">Register</Link>
+                  </Button>
+                </div>
+              )}
+
+              {/* Mobile hamburger */}
+              <button
+                type="button"
+                className="lg:hidden w-9 h-9 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center justify-center ml-1 transition-colors"
+                onClick={() => setIsOpen(!isOpen)}
+                aria-label="Toggle menu"
+              >
+                {isOpen ? <X className="w-4 h-4 text-gray-700" /> : <Menu className="w-4 h-4 text-gray-700" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── BOTTOM NAV ROW ──────────────────────────────────────── */}
+        <div className="hidden lg:block bg-white border-b border-gray-100 shadow-sm">
+          <div className="max-w-screen-xl mx-auto px-4 lg:px-6">
+            <nav className="flex items-center h-11">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href;
+                const isMenuOpen = openMenu === item.key;
+
+                return (
+                  <div
+                    key={item.key}
+                    className="relative"
+                    onMouseEnter={() => (item.dropdown || item.hasMega) ? enter(item.key) : undefined}
+                    onMouseLeave={() => (item.dropdown || item.hasMega) ? leave() : undefined}
+                  >
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3.5 h-11 text-[13px] font-bold transition-all relative group whitespace-nowrap',
+                        isActive ? 'text-blue-600' : item.isHighlight
+                          ? 'text-orange-500 hover:text-orange-600'
+                          : 'text-gray-700 hover:text-blue-600'
+                      )}
+                    >
+                      {item.icon}
+                      {item.label}
+                      {(item.dropdown || item.hasMega) && (
+                        <ChevronDown className={cn(
+                          'w-3 h-3 transition-transform duration-200',
+                          isMenuOpen && 'rotate-180'
+                        )} />
+                      )}
+                      {/* Active + hover underline */}
+                      <span className={cn(
+                        'absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 rounded-t-full transition-all duration-200',
+                        isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      )} />
+                    </Link>
+
+                    {/* Mega-menu for Products — key 'products-nav' */}
+                    {item.hasMega && (
+                      <AnimatePresence>
+                        {isMenuOpen && (
+                          <div onMouseEnter={() => enter(item.key)} onMouseLeave={leave}>
+                            <ProductsMegaMenu
+                              productsData={productsData}
+                              activeIdx={activeCatIdx}
+                              setActiveIdx={setActiveCatIdx}
+                              onClose={close}
+                            />
+                          </div>
+                        )}
+                      </AnimatePresence>
+                    )}
+
+                    {/* Simple dropdown */}
+                    {item.dropdown && (
+                      <AnimatePresence>
+                        {isMenuOpen && (
+                          <div onMouseEnter={() => enter(item.key)} onMouseLeave={leave}>
+                            <SimpleDropdown items={item.dropdown} onClose={close} />
+                          </div>
+                        )}
+                      </AnimatePresence>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Personalized Gifts pill */}
+              <Link
+                href="/products"
+                className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-[12px] font-bold hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-100 transition-all"
+              >
+                <Gift className="w-3.5 h-3.5" />
+                Personalized Gifts
+              </Link>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* ── HEIGHT SPACER — must match header height ─────────────── */}
+      {/* Top row 64px + bottom nav 44px = 108px */}
+      <div className="h-[64px] lg:h-[108px]" aria-hidden="true" />
+
+      {/* ════════════════════════════════════════════════════════════
+          MOBILE DRAWER
+      ════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
+              onClick={() => setIsOpen(false)}
+            />
+            {/* Drawer */}
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              className="fixed top-[64px] left-0 w-full bg-white border-b border-gray-200 shadow-2xl lg:hidden z-40 max-h-[calc(100vh-64px)] overflow-y-auto"
+            >
+              <div className="max-w-screen-xl mx-auto px-4 py-4 flex flex-col gap-1.5">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      'flex items-center justify-between px-4 py-3 rounded-xl font-bold text-sm transition-all',
+                      pathname === item.href
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                        : 'bg-gray-50 text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                    )}
+                  >
+                    <span className="flex items-center gap-2.5">{item.icon} {item.label}</span>
+                    <ChevronRight className="w-4 h-4 opacity-40" />
+                  </Link>
+                ))}
+
+                <div className="mt-2 pt-3 border-t border-gray-100 flex flex-col gap-2">
                   {loading ? (
-                    <Skeleton className="h-16 w-full rounded-3xl" />
+                    <Skeleton className="h-11 rounded-xl" />
                   ) : session ? (
-                    <div className="space-y-4">
-                      <Button asChild variant="outline" size="lg" className="rounded-3xl h-16 w-full font-black text-lg border-2" onClick={() => setIsOpen(false)}>
-                        <Link href={dashboardUrl} className="flex items-center justify-center gap-3">
-                          <LayoutGrid className="w-6 h-6" /> Go to Workspace
-                        </Link>
-                      </Button>
+                    <>
+                      <Link
+                        href={dashboardUrl}
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-3 bg-blue-50 text-blue-700 rounded-xl font-bold text-sm"
+                      >
+                        <User className="w-4 h-4" /> My Workspace
+                      </Link>
                       <LogoutButton />
-                    </div>
+                    </>
                   ) : (
-                    <div className="grid grid-cols-1 gap-4">
-                      <Button asChild variant="outline" size="lg" className="rounded-3xl h-16 font-black text-lg border-2 border-primary/20 hover:bg-primary/5" onClick={() => setIsOpen(false)}>
-                        <Link href="/login">Login to Account</Link>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button asChild variant="outline" size="sm" className="rounded-xl font-bold border-blue-200 text-blue-600 hover:bg-blue-50 h-11">
+                        <Link href="/login" onClick={() => setIsOpen(false)}>Login</Link>
                       </Button>
-                      <Button asChild size="lg" className="rounded-3xl h-16 font-black text-xl shadow-2xl shadow-primary/30 active:scale-95" onClick={() => setIsOpen(false)}>
-                        <Link href="/products" className="flex items-center justify-center gap-3">
-                          Start Creating <ArrowRight className="w-6 h-6" />
-                        </Link>
+                      <Button asChild size="sm" className="rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white border-none h-11 shadow-md shadow-blue-500/20">
+                        <Link href="/register" onClick={() => setIsOpen(false)}>Register</Link>
                       </Button>
                     </div>
                   )}
                 </div>
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </nav>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
