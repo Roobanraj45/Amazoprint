@@ -20,6 +20,7 @@ const designSchema = z.object({
   productId: z.number().optional().nullable(),
   subProductId: z.number().optional().nullable(),
   customisation: z.record(z.any()).optional(),
+  thumbnailUrl: z.string().optional().nullable(),
 });
 
 const updateDesignSchema = designSchema.extend({
@@ -163,6 +164,7 @@ export async function updateDesign(data: z.infer<typeof updateDesignSchema>) {
             productId: validated.productId,
             subProductId: validated.subProductId,
             customisation: validated.customisation,
+            thumbnailUrl: validated.thumbnailUrl || undefined,
             updatedAt: new Date()
         })
         .where(eq(designs.id, id))

@@ -149,6 +149,30 @@ function SendInvoiceModal({
     const [notes, setNotes] = useState('');
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState('');
+    const [invoiceUrl, setInvoiceUrl] = useState<string>('');
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        setError('');
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', 'printer_invoices');
+
+        try {
+            const response = await fetch('/api/upload', { method: 'POST', body: formData });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'Upload failed');
+            setInvoiceUrl(result.url);
+        } catch (error: any) {
+            setError(error.message || 'File upload failed.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     const totalAmount = items.reduce((sum, item) => sum + ((parseFloat(item.qty) || 0) * (parseFloat(item.unitPrice) || 0)), 0);
 
@@ -175,7 +199,8 @@ function SendInvoiceModal({
                     orderId: order.id, 
                     amount: String(totalAmount.toFixed(2)), 
                     invoiceItems: items.map(i => ({ description: i.description, qty: parseFloat(i.qty), unitPrice: parseFloat(i.unitPrice), total: parseFloat(i.qty) * parseFloat(i.unitPrice) })),
-                    notes: notes.trim() || undefined 
+                    notes: notes.trim() || undefined,
+                    invoiceUrl: invoiceUrl || undefined
                 });
                 onSent();
                 onClose();
@@ -268,6 +293,30 @@ function SendInvoiceModal({
                                     ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </span>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Invoice PDF/Image Document Upload */}
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Upload Invoice Document (PDF/Image)</Label>
+                        <div className="flex items-center gap-3">
+                            <label className={cn(
+                                "flex items-center justify-center h-10 px-4 rounded-xl border border-dashed border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 hover:bg-slate-100 hover:border-violet-500 text-xs font-bold cursor-pointer transition-all gap-1.5",
+                                isUploading && "opacity-50 pointer-events-none"
+                            )}>
+                                {isUploading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
+                                ) : (
+                                    <FileText className="h-4 w-4 text-slate-400" />
+                                )}
+                                <span>{invoiceUrl ? 'Change File' : 'Upload File'}</span>
+                                <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,image/*" disabled={isUploading} />
+                            </label>
+                            {invoiceUrl && (
+                                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Uploaded successfully!
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -737,11 +786,20 @@ export default function PrinterInvoicesPage() {
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-3.5 text-right">
-                                                        <Button asChild variant="outline" size="sm" className="h-7 text-xs font-bold gap-1 rounded-lg border-slate-200 dark:border-zinc-700">
-                                                            <Link href={`/printer-invoices/${inv.id}`} target="_blank">
-                                                                <Download className="h-3 w-3 text-violet-500 animate-pulse" /> PDF
-                                                            </Link>
-                                                        </Button>
+                                                        <div className="flex items-center justify-end gap-1.5">
+                                                            {inv.invoiceUrl && (
+                                                                <Button asChild variant="outline" size="sm" className="h-7 text-xs font-bold gap-1 rounded-lg border-emerald-200 dark:border-emerald-800 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600">
+                                                                    <a href={inv.invoiceUrl} download target="_blank" rel="noreferrer">
+                                                                        <Download className="h-3 w-3" /> Doc
+                                                                    </a>
+                                                                </Button>
+                                                            )}
+                                                            <Button asChild variant="outline" size="sm" className="h-7 text-xs font-bold gap-1 rounded-lg border-slate-200 dark:border-zinc-700">
+                                                                <Link href={`/printer-invoices/${inv.id}`} target="_blank">
+                                                                    <Download className="h-3 w-3 text-violet-500 animate-pulse" /> PDF
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );

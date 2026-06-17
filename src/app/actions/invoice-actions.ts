@@ -107,11 +107,13 @@ export async function sendPrinterInvoice({
     amount,
     invoiceItems,
     notes,
+    invoiceUrl,
 }: {
     orderId: number;
     amount: string;
     invoiceItems?: any[];
     notes?: string;
+    invoiceUrl?: string;
 }) {
     const session = await verifyPrinter();
 
@@ -149,6 +151,7 @@ export async function sendPrinterInvoice({
         notes: notes || null,
         status: 'pending',
         sentAt: new Date(),
+        invoiceUrl: invoiceUrl || null,
     }).returning();
 
     revalidatePath('/printer/invoices');

@@ -629,6 +629,13 @@ export default function AdminPrinterInvoicesPage() {
                                                             <Download className="h-3 w-3 text-violet-500" /> PDF
                                                         </Link>
                                                     </Button>
+                                                    {inv.invoiceUrl && (
+                                                        <Button asChild variant="outline" size="sm" className="h-7 px-2.5 rounded-lg text-[10px] font-black gap-1 border-emerald-200 dark:border-emerald-800 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600">
+                                                            <a href={inv.invoiceUrl} download target="_blank" rel="noreferrer">
+                                                                <Download className="h-3 w-3" /> Doc
+                                                            </a>
+                                                        </Button>
+                                                    )}
                                                     {canApprove && (
                                                         <button
                                                             onClick={() => setActionDialog({ invoice: inv, type: 'approved' })}

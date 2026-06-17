@@ -16,19 +16,27 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { 
+import {
     CalendarIcon, Loader2, Trophy, Pencil, Lightbulb, CreditCard, Sparkles, 
     Rocket, ShieldCheck, CheckCircle2, AlertCircle, Coins, Award, 
     Package, Layers, Scissors, Stamp, FileText, Search, LayoutTemplate,
-    Upload, X, UserCheck
+    Upload, X, UserCheck, Mail, Phone, ExternalLink, Globe, Briefcase, Clock, User
 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { cn, resolveImagePath } from '@/lib/utils';
 import { processDummyPayment } from '@/app/actions/payment-actions';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { getFreelancers } from '@/app/actions/contest-actions';
+import { getFreelancers, getFreelancerById } from '@/app/actions/contest-actions';
+import { DesignCanvas } from '@/components/design/design-canvas';
+import type { DesignElement, Background, Guide } from '@/lib/types';
+import type { Product as DesignProduct } from '@/lib/types';
+
+const DPI = 300;
+const MM_TO_PX = DPI / 25.4;
 
 type Product = Awaited<ReturnType<typeof getProducts>>[0];
 type ContestPricingRule = Awaited<ReturnType<typeof getContestPricingRules>>[0];
@@ -63,6 +71,31 @@ const contestFormSchema = z.object({
 
 type ContestFormValues = z.infer<typeof contestFormSchema>;
 
+export interface FreelancerProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  profileImage?: string | null;
+  skills?: string[] | null;
+  experienceYears?: number | null;
+  hourlyRate?: number | null;
+  portfolioUrl?: string | null;
+  bio?: string | null;
+  availabilityStatus?: string | null;
+  designs?: {
+    id: number;
+    name: string;
+    thumbnailUrl: string | null;
+    productSlug: string;
+    width: number;
+    height: number;
+    elements: any;
+    background: any;
+    guides?: any;
+  }[] | null;
+}
+
 export function CreateContestForm() {
   const router = useRouter();
   const { toast } = useToast();
@@ -79,15 +112,16 @@ export function CreateContestForm() {
 
   const productIdFromUrl = searchParams.get('productId');
   const subProductIdFromUrl = searchParams.get('subProductId');
+  const freelancerIdFromUrl = searchParams.get('freelancerId') || searchParams.get('designerId') || searchParams.get('designer');
 
   const { register, handleSubmit, control, watch, formState: { errors }, setValue } = useForm<ContestFormValues>({
     resolver: zodResolver(contestFormSchema),
     defaultValues: {
       productId: productIdFromUrl ? Number(productIdFromUrl) : undefined,
       subProductId: subProductIdFromUrl ? Number(subProductIdFromUrl) : undefined,
-      contestType: 'tier',
+      contestType: freelancerIdFromUrl ? 'individual' : 'tier',
       pricingRuleId: undefined,
-      assignedFreelancerId: undefined,
+      assignedFreelancerId: freelancerIdFromUrl || undefined,
     }
   });
 
@@ -97,11 +131,79 @@ export function CreateContestForm() {
   const watchPrizeAmount = watch('prizeAmount');
   const watchContestType = watch('contestType');
   const watchAssignedFreelancerId = watch('assignedFreelancerId');
-  const [freelancers, setFreelancers] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [freelancers, setFreelancers] = useState<FreelancerProfile[]>([]);
   const [freelancerSearch, setFreelancerSearch] = useState('');
-  const [selectedFreelancerObj, setSelectedFreelancerObj] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [selectedFreelancerObj, setSelectedFreelancerObj] = useState<FreelancerProfile | null>(null);
   const [loadingFreelancers, setLoadingFreelancers] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Freelancer Browser States
+  const [showFreelancerBrowser, setShowFreelancerBrowser] = useState(false);
+  const [selectedFreelancerForDetail, setSelectedFreelancerForDetail] = useState<FreelancerProfile | null>(null);
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+  const [catalogFreelancers, setCatalogFreelancers] = useState<FreelancerProfile[]>([]);
+  const [showMobileDetail, setShowMobileDetail] = useState(false);
+
+  // Load full details (including designs showcase) for the currently selected designer in the browser
+  useEffect(() => {
+    if (!selectedFreelancerForDetail || selectedFreelancerForDetail.designs) return;
+
+    let active = true;
+    getFreelancerById(selectedFreelancerForDetail.id)
+      .then(fullProfile => {
+        if (active && fullProfile) {
+          setSelectedFreelancerForDetail(fullProfile);
+        }
+      })
+      .catch(console.error);
+
+    return () => {
+      active = false;
+    };
+  }, [selectedFreelancerForDetail?.id]);
+
+  // Load initial freelancer details if designer is passed in URL query params
+  useEffect(() => {
+    if (freelancerIdFromUrl) {
+      getFreelancerById(freelancerIdFromUrl)
+        .then(freelancer => {
+          if (freelancer) {
+            setSelectedFreelancerObj(freelancer);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [freelancerIdFromUrl]);
+
+  // Load freelancers for the browser catalog
+  useEffect(() => {
+    if (!showFreelancerBrowser) return;
+
+    const fetchCatalog = async () => {
+      setLoadingCatalog(true);
+      try {
+        const data = await getFreelancers(catalogSearch.trim() || undefined);
+        setCatalogFreelancers(data);
+        // Automatically select the first designer in the list as default detailed view
+        if (data.length > 0) {
+          // If the currently detailed view designer is not in the new results, switch to the first one
+          if (!selectedFreelancerForDetail || !data.some(f => f.id === selectedFreelancerForDetail.id)) {
+            setSelectedFreelancerForDetail(data[0]);
+          }
+        } else {
+          setSelectedFreelancerForDetail(null);
+        }
+      } catch (error) {
+        console.error("Error fetching catalog freelancers:", error);
+      } finally {
+        setLoadingCatalog(false);
+      }
+    };
+
+    const timeout = setTimeout(fetchCatalog, catalogSearch ? 300 : 0);
+    return () => clearTimeout(timeout);
+  }, [showFreelancerBrowser, catalogSearch, selectedFreelancerForDetail]);
 
   const filteredFreelancers = useMemo(() => {
     const list = [...freelancers];
@@ -831,71 +933,99 @@ export function CreateContestForm() {
                                 {errors.pricingRuleId && <p className="text-[10px] font-semibold text-rose-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" /> {errors.pricingRuleId.message}</p>}
                             </div>
                         ) : (
-                            <div className="space-y-2">
-                                <Label className="text-xs font-bold text-foreground tracking-tight">Select Freelancer <span className="text-rose-500">*</span></Label>
+                            <div className="space-y-2 col-span-2">
+                                <Label className="text-xs font-bold text-foreground tracking-tight">Assigned Freelancer <span className="text-rose-500">*</span></Label>
                                 <Controller
                                     name="assignedFreelancerId"
                                     control={control}
                                     render={({ field }) => (
-                                        <Select
-                                            onValueChange={(val) => {
-                                                field.onChange(val);
-                                                const found = freelancers.find(f => f.id === val);
-                                                if (found) {
-                                                    setSelectedFreelancerObj(found);
-                                                }
-                                            }}
-                                            value={field.value || ""}
-                                        >
-                                            <SelectTrigger className="h-11 rounded-2xl bg-background/80 border-border font-bold text-xs shadow-sm focus:ring-rose-500">
-                                                <SelectValue placeholder="Select a freelancer..." />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-2xl border-border bg-card shadow-lg p-2 min-w-[320px]">
-                                                <div className="px-2 py-1.5 border-b border-border sticky top-0 bg-card z-10" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-                                                    <div className="relative">
-                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                                                        <Input
-                                                            placeholder="Search freelancer..."
-                                                            value={freelancerSearch}
-                                                            onChange={(e) => setFreelancerSearch(e.target.value)}
-                                                            onKeyDown={(e) => e.stopPropagation()}
-                                                            className="h-8 pl-8 text-[11px] font-semibold rounded-xl bg-background/50 border-border focus-visible:ring-rose-500"
-                                                        />
+                                        <div className="space-y-3">
+                                            {selectedFreelancerObj ? (
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-2xl border border-rose-500/20 bg-rose-500/5 shadow-inner gap-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border-2 border-indigo-500/20">
+                                                            {selectedFreelancerObj.profileImage ? (
+                                                                <Image 
+                                                                    src={resolveImagePath(selectedFreelancerObj.profileImage)} 
+                                                                    alt={selectedFreelancerObj.name} 
+                                                                    width={48} 
+                                                                    height={48} 
+                                                                    className="object-cover w-full h-full"
+                                                                />
+                                                            ) : (
+                                                                <User className="w-6 h-6 text-indigo-500" />
+                                                            )}
+                                                        </div>
+                                                        <div className="space-y-0.5">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <h4 className="text-sm font-black text-foreground">{selectedFreelancerObj.name}</h4>
+                                                                <Badge variant="outline" className="text-[9px] py-0 px-1.5 bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold capitalize">
+                                                                    {selectedFreelancerObj.availabilityStatus || 'available'}
+                                                                </Badge>
+                                                            </div>
+                                                            <p className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1">
+                                                                <Mail className="w-3 h-3" /> {selectedFreelancerObj.email}
+                                                            </p>
+                                                            {selectedFreelancerObj.skills && selectedFreelancerObj.skills.length > 0 && (
+                                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                                    {selectedFreelancerObj.skills.slice(0, 3).map((skill, idx) => (
+                                                                        <Badge key={idx} variant="secondary" className="text-[8px] py-0 px-1 font-semibold">
+                                                                            {skill}
+                                                                        </Badge>
+                                                                    ))}
+                                                                    {selectedFreelancerObj.skills.length > 3 && (
+                                                                        <span className="text-[8px] text-muted-foreground font-bold">+{selectedFreelancerObj.skills.length - 3} more</span>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => setShowFreelancerBrowser(true)}
+                                                            className="rounded-xl font-bold text-xs"
+                                                        >
+                                                            Change Designer
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                field.onChange(null);
+                                                                setSelectedFreelancerObj(null);
+                                                            }}
+                                                            className="rounded-xl font-bold text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50/50"
+                                                        >
+                                                            Remove
+                                                        </Button>
                                                     </div>
                                                 </div>
-                                                <div className="max-h-[220px] overflow-y-auto mt-1 space-y-0.5">
-                                                    {loadingFreelancers ? (
-                                                        <div className="py-6 text-center text-[10px] font-semibold text-muted-foreground animate-pulse">
-                                                            Searching...
-                                                        </div>
-                                                    ) : filteredFreelancers.length === 0 ? (
-                                                        <div className="py-6 text-center text-[10px] font-semibold text-muted-foreground">
-                                                            {freelancerSearch.trim().length < 3
-                                                                ? "Type at least 3 characters to search..."
-                                                                : "No freelancers found"}
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            {freelancerSearch.trim().length < 3 && (
-                                                                <div className="px-2 py-1 text-[9px] font-bold text-rose-500/80 uppercase tracking-wider">
-                                                                    Currently Selected
-                                                                </div>
-                                                            )}
-                                                            {filteredFreelancers.map(f => (
-                                                                <SelectItem key={f.id} value={f.id} className="font-semibold text-xs py-2">
-                                                                    {f.name} ({f.email})
-                                                                </SelectItem>
-                                                            ))}
-                                                            {freelancerSearch.trim().length < 3 && (
-                                                                <div className="py-3 text-center text-[9px] font-semibold text-muted-foreground border-t border-border/40 mt-1">
-                                                                    Type 3+ characters to search more...
-                                                                </div>
-                                                            )}
-                                                        </>
-                                                    )}
+                                            ) : (
+                                                <div 
+                                                    onClick={() => setShowFreelancerBrowser(true)}
+                                                    className="border-2 border-dashed border-border hover:border-indigo-500 hover:bg-indigo-500/5 rounded-3xl p-8 text-center cursor-pointer transition-all duration-300 space-y-3 group"
+                                                >
+                                                    <div className="w-12 h-12 rounded-full bg-muted group-hover:bg-indigo-500/10 text-muted-foreground group-hover:text-indigo-500 flex items-center justify-center mx-auto transition-all duration-300">
+                                                        <UserCheck className="w-6 h-6" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <h4 className="text-sm font-extrabold text-foreground">No Freelancer Selected</h4>
+                                                        <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                                                            Assign an individual designer to your contest. Click to browse our catalog of elite freelancers.
+                                                        </p>
+                                                    </div>
+                                                    <Button type="button" size="sm" className="rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white">
+                                                        Browse Designers Portfolio
+                                                    </Button>
                                                 </div>
-                                            </SelectContent>
-                                        </Select>
+                                            )}
+                                            {/* Keep value bound to react-hook-form */}
+                                            <input type="hidden" value={field.value || ""} />
+                                        </div>
                                     )}
                                 />
                                 {errors.assignedFreelancerId && <p className="text-[10px] font-semibold text-rose-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" /> {errors.assignedFreelancerId.message}</p>}
@@ -1021,6 +1151,376 @@ export function CreateContestForm() {
                 </form>
             </div>
         </div>
+      {/* Freelancer Portfolio Browser Modal */}
+      <Dialog open={showFreelancerBrowser} onOpenChange={(open) => {
+        setShowFreelancerBrowser(open);
+        if (!open) setShowMobileDetail(false);
+      }}>
+        <DialogContent className="max-w-5xl h-[80vh] p-0 overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl flex flex-col gap-0 [&>button]:hidden">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-border flex items-center justify-between bg-slate-50/50 dark:bg-zinc-900/20">
+              <div className="space-y-1">
+                <h3 className="text-lg font-black text-foreground">Select Elite Designer</h3>
+                <p className="text-xs text-muted-foreground">Browse portfolio details and assign the perfect freelancer to your contest.</p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  setShowFreelancerBrowser(false);
+                  setShowMobileDetail(false);
+                }}
+                className="p-1.5 rounded-full hover:bg-muted transition-colors"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            {/* Modal Body: Search & Split Layout */}
+            <div className="p-4 border-b border-border bg-card flex gap-3.5">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by designer name, skills, or email..."
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  className="h-10 pl-10 rounded-2xl bg-muted/40 border-border text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 flex overflow-hidden min-h-0 relative">
+              {/* Left Pane: Designer List */}
+              <div className="w-full md:w-1/2 overflow-y-auto border-r border-border p-4 space-y-3">
+                {loadingCatalog ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-24 rounded-2xl bg-muted/60 animate-pulse border border-border" />
+                    ))}
+                  </div>
+                ) : catalogFreelancers.length === 0 ? (
+                  <div className="h-full flex flex-col justify-center items-center text-center p-6 space-y-2">
+                    <User className="w-10 h-10 text-muted-foreground/50" />
+                    <p className="text-sm font-bold text-foreground">No designers found</p>
+                    <p className="text-xs text-muted-foreground">Try adjusting your search keywords.</p>
+                  </div>
+                ) : (
+                  catalogFreelancers.map(freelancer => {
+                    const isSelected = selectedFreelancerForDetail?.id === freelancer.id;
+                    return (
+                      <div
+                        key={freelancer.id}
+                        onClick={() => {
+                          setSelectedFreelancerForDetail(freelancer);
+                          setShowMobileDetail(true);
+                        }}
+                        className={cn(
+                          "p-4 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-3 relative overflow-hidden group",
+                          isSelected
+                            ? "border-indigo-600 bg-indigo-50/5 dark:bg-indigo-950/10 shadow-sm"
+                            : "border-border hover:border-slate-400/50 bg-background"
+                        )}
+                      >
+                        {isSelected && <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600" />}
+                        <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                          {freelancer.profileImage ? (
+                            <Image
+                              src={resolveImagePath(freelancer.profileImage)}
+                              alt={freelancer.name}
+                              width={40}
+                              height={40}
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <User className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex justify-between items-start">
+                            <h4 className="text-xs font-extrabold text-foreground truncate">{freelancer.name}</h4>
+                            <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100/10 px-1.5 py-0.5 rounded">
+                              {freelancer.experienceYears ?? 0} yrs exp
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground truncate">{freelancer.email}</p>
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300">
+                              {freelancer.hourlyRate ? `₹${freelancer.hourlyRate}/hr` : 'Hourly Rate N/A'}
+                            </span>
+                            <Badge variant="outline" className="text-[8px] py-0 px-1 bg-emerald-500/10 border-emerald-500/20 text-emerald-600">
+                              {freelancer.availabilityStatus || 'available'}
+                            </Badge>
+                          </div>
+                          {freelancer.skills && freelancer.skills.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-1.5">
+                              {freelancer.skills.slice(0, 2).map((skill, idx) => (
+                                <Badge key={idx} variant="secondary" className="text-[7.5px] py-0 px-1 font-semibold">
+                                  {skill}
+                                </Badge>
+                              ))}
+                              {freelancer.skills.length > 2 && (
+                                <span className="text-[7.5px] text-muted-foreground font-bold">+{freelancer.skills.length - 2}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Right Pane: Detailed Profile Page */}
+              <div className={cn(
+                "w-full md:w-1/2 flex flex-col bg-slate-50/50 dark:bg-zinc-900/10 overflow-y-auto p-6 absolute inset-0 md:relative z-10 bg-white dark:bg-zinc-950",
+                showMobileDetail ? "flex animate-in slide-in-from-right duration-300 md:animate-none" : "hidden md:flex"
+              )}>
+                {selectedFreelancerForDetail ? (
+                  <div className="space-y-6 flex-1 flex flex-col justify-between h-full">
+                    <div className="space-y-6">
+                      {/* Back button on mobile */}
+                      <button 
+                        type="button"
+                        onClick={() => setShowMobileDetail(false)}
+                        className="md:hidden flex items-center gap-1.5 text-xs font-bold text-muted-foreground mb-4"
+                      >
+                        <X className="w-4 h-4" /> Close Profile Detail
+                      </button>
+
+                      {/* Detailed Header */}
+                      <div className="flex gap-4 items-center">
+                        <div className="w-16 h-16 rounded-full bg-indigo-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border-2 border-indigo-500/20">
+                          {selectedFreelancerForDetail.profileImage ? (
+                            <Image
+                              src={resolveImagePath(selectedFreelancerForDetail.profileImage)}
+                              alt={selectedFreelancerForDetail.name}
+                              width={64}
+                              height={64}
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <User className="w-8 h-8 text-indigo-500" />
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-base font-black text-foreground">{selectedFreelancerForDetail.name}</h3>
+                            <Badge className="text-[9px] py-0 px-1.5 bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold capitalize">
+                              {selectedFreelancerForDetail.availabilityStatus || 'available'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                            <Mail className="w-3.5 h-3.5 text-muted-foreground/85" /> {selectedFreelancerForDetail.email}
+                          </p>
+                          {selectedFreelancerForDetail.phone && (
+                            <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                              <Phone className="w-3.5 h-3.5 text-muted-foreground/85" /> {selectedFreelancerForDetail.phone}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Bio & Details Grid */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1 bg-background p-3 rounded-2xl border border-border/85 shadow-sm">
+                          <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+                            <Briefcase className="w-3.5 h-3.5 text-indigo-500" /> Experience
+                          </span>
+                          <p className="text-sm font-black text-foreground">{selectedFreelancerForDetail.experienceYears ?? 0} Years</p>
+                        </div>
+                        <div className="space-y-1 bg-background p-3 rounded-2xl border border-border/85 shadow-sm">
+                          <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+                            <Coins className="w-3.5 h-3.5 text-rose-500" /> Hourly Rate
+                          </span>
+                          <p className="text-sm font-black text-foreground">
+                            {selectedFreelancerForDetail.hourlyRate ? `₹${selectedFreelancerForDetail.hourlyRate}/hr` : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* About Bio */}
+                      <div className="space-y-2 bg-background p-4 rounded-2xl border border-border/85 shadow-sm">
+                        <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider">About/Bio</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed font-semibold italic">
+                          {selectedFreelancerForDetail.bio || '"No bio description available."'}
+                        </p>
+                      </div>
+
+                      {/* Skills List */}
+                      <div className="space-y-2 bg-background p-4 rounded-2xl border border-border/85 shadow-sm">
+                        <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider">Design Skills</h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedFreelancerForDetail.skills && selectedFreelancerForDetail.skills.length > 0 ? (
+                            selectedFreelancerForDetail.skills.map((skill, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs py-0.5 px-2.5 font-bold">
+                                {skill}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No specified skills listed.</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Portfolio Section */}
+                      {selectedFreelancerForDetail.portfolioUrl && (
+                        <div className="space-y-2 bg-background p-4 rounded-2xl border border-border/85 shadow-sm">
+                          <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider">Portfolio Webpage</h4>
+                          <a
+                            href={selectedFreelancerForDetail.portfolioUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline"
+                          >
+                            <Globe className="w-4 h-4" /> Visit Portfolio <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Designs Showcase Section */}
+                      <div className="space-y-3 bg-background p-4 rounded-2xl border border-border/85 shadow-sm">
+                        <h4 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                          <Sparkles className="w-4.5 h-4.5 text-indigo-500 animate-pulse" /> Showcase Designs
+                        </h4>
+                        {selectedFreelancerForDetail.designs && selectedFreelancerForDetail.designs.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-3 max-h-[240px] overflow-y-auto pr-1">
+                            {selectedFreelancerForDetail.designs.map((design) => {
+                              const rawWidth = design.width || 300;
+                              const rawHeight = design.height || 200;
+                              const widthInPx = rawWidth > 600 ? rawWidth : Math.round(rawWidth * MM_TO_PX);
+                              const heightInPx = rawHeight > 600 ? rawHeight : Math.round(rawHeight * MM_TO_PX);
+
+                              const productForCanvas: DesignProduct = {
+                                id: design.productSlug || 'custom',
+                                name: design.name || 'Untitled',
+                                description: '',
+                                imageId: '',
+                                width: widthInPx,
+                                height: heightInPx,
+                                type: '',
+                              };
+
+                              let elements: DesignElement[] = [];
+                              try {
+                                const rawElements = typeof design.elements === 'string' ? JSON.parse(design.elements) : (design.elements || []);
+                                if (Array.isArray(rawElements)) {
+                                  const isMultiPage = rawElements.length > 0 && Array.isArray(rawElements[0]);
+                                  elements = (isMultiPage ? rawElements[0] : rawElements) as DesignElement[];
+                                }
+                              } catch (e) {
+                                console.error('Error parsing elements:', e);
+                              }
+
+                              let background: Background = { type: 'solid', color: '#ffffff' };
+                              try {
+                                const rawBackground = typeof design.background === 'string' ? JSON.parse(design.background) : (design.background || { type: 'solid', color: '#ffffff' });
+                                if (Array.isArray(rawBackground) && rawBackground.length > 0) {
+                                  background = rawBackground[0] as Background;
+                                } else if (rawBackground && typeof rawBackground === 'object' && !Array.isArray(rawBackground)) {
+                                  background = rawBackground as Background;
+                                }
+                              } catch (e) {
+                                console.error('Error parsing background:', e);
+                              }
+
+                              const baseSize = 1000;
+                              const scale = Math.min(baseSize / widthInPx, (baseSize * 0.75) / heightInPx) * 0.95;
+
+                              return (
+                                <div key={design.id} className="group/design relative aspect-[4/3] rounded-xl overflow-hidden border border-border bg-slate-50 dark:bg-slate-900 flex items-center justify-center hover:border-indigo-500 transition-all">
+                                  {design.thumbnailUrl ? (
+                                    <img 
+                                      src={resolveImagePath(design.thumbnailUrl)} 
+                                      alt={design.name}
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover/design:scale-105"
+                                    />
+                                  ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/60 overflow-hidden select-none">
+                                      <div className="w-full h-full flex items-center justify-center">
+                                        <div style={{ 
+                                          width: widthInPx * scale, 
+                                          height: heightInPx * scale, 
+                                          position: 'relative', 
+                                          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)',
+                                          transform: `scale(${1 / (baseSize / 160)})`,
+                                        }} className="scale-[0.2] transition-transform duration-700">
+                                          <div style={{ 
+                                            transform: `scale(${scale})`, 
+                                            transformOrigin: 'top left', 
+                                            width: widthInPx, 
+                                            height: heightInPx,
+                                            position: 'relative',
+                                            overflow: 'hidden'
+                                          }}>
+                                            <DesignCanvas
+                                              product={productForCanvas}
+                                              elements={elements}
+                                              background={background}
+                                              selectedElementIds={[]}
+                                              guides={design.guides as Guide[] || []}
+                                              showRulers={false}
+                                              showGrid={false}
+                                              showPrintGuidelines={false}
+                                              gridSize={20}
+                                              bleed={0}
+                                              safetyMargin={0}
+                                              viewState={{ zoom: 1, pan: { x: 0, y: 0 } }}
+                                              isPreview={true}
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/design:opacity-100 transition-opacity flex flex-col justify-end p-2.5">
+                                    <p className="text-[10px] font-bold text-white truncate">{design.name}</p>
+                                    <span className="text-[8px] font-medium text-slate-300 capitalize">{design.productSlug.replace('-', ' ')}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : selectedFreelancerForDetail.designs ? (
+                          <div className="text-center py-6 text-muted-foreground bg-slate-50/50 dark:bg-zinc-900/10 rounded-xl border border-dashed border-border">
+                            <LayoutTemplate className="w-8 h-8 text-muted-foreground/30 mx-auto mb-1.5" />
+                            <p className="text-xs font-semibold">No designs showcased yet</p>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center py-6">
+                            <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Button inside Detail Pane */}
+                    <div className="pt-4 border-t border-border mt-auto">
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setValue('assignedFreelancerId', selectedFreelancerForDetail.id, { shouldValidate: true });
+                          setSelectedFreelancerObj(selectedFreelancerForDetail);
+                          setShowFreelancerBrowser(false);
+                          setShowMobileDetail(false);
+                        }}
+                        className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl shadow-md text-xs gap-1.5"
+                      >
+                        <UserCheck className="w-4 h-4" /> Select & Assign to Contest
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-full flex flex-col justify-center items-center text-center p-6 space-y-2">
+                    <User className="w-12 h-12 text-muted-foreground/30" />
+                    <p className="text-sm font-extrabold text-muted-foreground">Select a freelancer to view full profile details</p>
+                  </div>
+                )}
+              </div>
+            </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

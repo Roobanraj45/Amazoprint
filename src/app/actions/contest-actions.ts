@@ -31,6 +31,7 @@ const designSchema = z.object({
   elements: z.any(),
   background: z.any(),
   guides: z.any().optional(),
+  thumbnailUrl: z.string().optional().nullable(),
 });
 
 export async function getFreelancers(search?: string) {
@@ -56,10 +57,67 @@ export async function getFreelancers(search?: string) {
     const data = await db.query.users.findMany({
         where: queryCondition,
         orderBy: [desc(users.createdAt)],
-        limit: 20,
+        limit: 50,
     });
-    return data.map(u => ({ id: u.id, name: u.name, email: u.email }));
+    return data.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        profileImage: u.profileImage,
+        skills: u.skills,
+        experienceYears: u.experienceYears,
+        hourlyRate: u.hourlyRate ? parseFloat(u.hourlyRate.toString()) : null,
+        portfolioUrl: u.portfolioUrl,
+        bio: u.bio,
+        availabilityStatus: u.availabilityStatus,
+    }));
 }
+
+export async function getFreelancerById(id: string) {
+    const session = await getSession();
+    if (!session?.sub) {
+        throw new Error('Not authenticated');
+    }
+
+    const u = await db.query.users.findFirst({
+        where: and(eq(users.role, 'freelancer'), eq(users.id, id), eq(users.isActive, true)),
+    });
+
+    if (!u) return null;
+
+    const freelancerDesigns = await db.select({
+        id: designs.id,
+        name: designs.name,
+        thumbnailUrl: designs.thumbnailUrl,
+        productSlug: designs.productSlug,
+        width: designs.width,
+        height: designs.height,
+        elements: designs.elements,
+        background: designs.background,
+        guides: designs.guides
+    })
+    .from(designs)
+    .where(eq(designs.userId, id))
+    .orderBy(desc(designs.createdAt))
+    .limit(12);
+
+    return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        profileImage: u.profileImage,
+        skills: u.skills,
+        experienceYears: u.experienceYears,
+        hourlyRate: u.hourlyRate ? parseFloat(u.hourlyRate.toString()) : null,
+        portfolioUrl: u.portfolioUrl,
+        bio: u.bio,
+        availabilityStatus: u.availabilityStatus,
+        designs: freelancerDesigns,
+    };
+}
+
 
 export async function createContest(data: z.infer<typeof contestSchema>) {
     const session = await getSession();

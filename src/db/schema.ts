@@ -882,6 +882,7 @@ export const printerInvoices = pgTable('printer_invoices', {
   status: printerInvoiceStatusEnum('status').notNull().default('pending'),
   adminNote: text('admin_note'),
   sentAt: timestamp('sent_at').defaultNow(),
+  invoiceUrl: text('invoice_url'),
   approvedAt: timestamp('approved_at'),
   paidAt: timestamp('paid_at'),
   rejectedAt: timestamp('rejected_at'),

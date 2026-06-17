@@ -72,6 +72,7 @@ import { getDesign, saveDesign, updateDesign, getMyDesigns } from '@/app/actions
 import { submitContestEntry, linkDesignToContest } from '@/app/actions/contest-actions';
 import { linkDesignToVerification } from '@/app/actions/verification-actions';
 import { LoadDesignDialog } from '@/components/design/load-design-dialog';
+import { toPng } from 'html-to-image';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn, measureTextDimensions, resolveImagePath } from '@/lib/utils';
@@ -172,6 +173,42 @@ function DesignEditorInternal({
   const [canvasUnit, setCanvasUnit] = useState<'mm' | 'inch' | 'ft'>('mm');
 
   const mainCanvasRef = useRef<HTMLDivElement>(null);
+
+  const generateAndUploadThumbnail = async (): Promise<string | null> => {
+    if (!mainCanvasRef.current) return null;
+    try {
+      const printArea = mainCanvasRef.current.querySelector('.print-area') as HTMLElement;
+      if (!printArea) return null;
+      
+      const dataUrl = await toPng(printArea, {
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+        style: {
+          transform: 'none',
+          transformOrigin: 'top left',
+        }
+      });
+      
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const formData = new FormData();
+      formData.append('file', new File([blob], `design-${Date.now()}.png`, { type: 'image/png' }));
+      formData.append('folder', 'designs');
+      
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+      if (uploadData.success) {
+        return uploadData.url;
+      }
+    } catch (err) {
+      console.error('Failed to generate thumbnail:', err);
+    }
+    return null;
+  };
+
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0 });
   const [activeSmartGuides, setActiveSmartGuides] = useState<Guide[]>([]);
@@ -1478,6 +1515,13 @@ function DesignEditorInternal({
         pages: totalPages
     }));
 
+    let thumbnailUrl: string | null = null;
+    try {
+      thumbnailUrl = await generateAndUploadThumbnail();
+    } catch (e) {
+      console.error("Failed to generate thumbnail on save:", e);
+    }
+
     const saveData = {
       productSlug: product.id,
       elements: pages.map(p => p.elements),
@@ -1488,7 +1532,8 @@ function DesignEditorInternal({
       height: Math.round(product.height * PX_TO_MM),
       productId: product.productId,
       subProductId: product.subProductId,
-      customisation
+      customisation,
+      thumbnailUrl
     };
 
     try {
@@ -1549,6 +1594,13 @@ function DesignEditorInternal({
     setIsOrdering(true);
     let designId = currentDesignId;
 
+    let thumbnailUrl: string | null = null;
+    try {
+      thumbnailUrl = await generateAndUploadThumbnail();
+    } catch (e) {
+      console.error("Failed to generate thumbnail on order:", e);
+    }
+
     if (!designId) {
       const designName = currentDesignName || prompt('Please name your design to proceed to order:');
       if (designName) {
@@ -1572,7 +1624,8 @@ function DesignEditorInternal({
             height: Math.round(product.height * PX_TO_MM),
             productId: product.productId,
             subProductId: product.subProductId,
-            customisation
+            customisation,
+            thumbnailUrl
           };
           const savedDesign = await saveDesign(saveData);
           setCurrentDesignId(savedDesign.id);
@@ -1611,7 +1664,8 @@ function DesignEditorInternal({
                 height: Math.round(product.height * PX_TO_MM),
                 productId: product.productId,
                 subProductId: product.subProductId,
-                customisation
+                customisation,
+                thumbnailUrl
             };
             await updateDesign({ 
                 id: designId, 
@@ -1685,6 +1739,13 @@ function DesignEditorInternal({
     if (!contestId) return;
     setIsSubmitting(true);
     try {
+      let thumbnailUrl: string | null = null;
+      try {
+        thumbnailUrl = await generateAndUploadThumbnail();
+      } catch (e) {
+        console.error("Failed to generate thumbnail for contest submission:", e);
+      }
+
       const designData = {
         productSlug: product.id,
         elements: currentElements,
@@ -1692,6 +1753,7 @@ function DesignEditorInternal({
         width: Math.round(product.width * PX_TO_MM),
         height: Math.round(product.height * PX_TO_MM),
         background: currentBackground,
+        thumbnailUrl,
       };
       const result = await submitContestEntry(Number(contestId), designData, currentDesignId);
       if (result.success && result.designId) {
