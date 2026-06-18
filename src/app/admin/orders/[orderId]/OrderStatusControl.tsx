@@ -23,6 +23,8 @@ const STATUS_OPTIONS = [
     { value: 'confirmed', label: 'Confirmed', color: 'text-blue-500', defaultMsg: 'Order confirmed and ready for processing' },
     { value: 'quality_check', label: 'Quality Check', color: 'text-indigo-500', defaultMsg: 'Order design and materials are undergoing pre-press quality check' },
     { value: 'processing', label: 'In Production', color: 'text-orange-500', defaultMsg: 'Order has been sent to production' },
+    { value: 'under_verification', label: 'Under Verification', color: 'text-amber-500', defaultMsg: 'Order is under print verification check' },
+    { value: 'ready_to_ship', label: 'Ready to Ship', color: 'text-violet-500', defaultMsg: 'Order print verification approved, ready to ship' },
     { value: 'shipped', label: 'Shipped', color: 'text-purple-500', defaultMsg: 'Order has been dispatched' },
     { value: 'delivered', label: 'Delivered', color: 'text-emerald-500', defaultMsg: 'Order successfully delivered to customer' },
     { value: 'cancelled', label: 'Cancelled', color: 'text-red-500', defaultMsg: 'Order has been cancelled' },

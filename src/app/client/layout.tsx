@@ -168,7 +168,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-auto relative z-0 print:!overflow-visible print:!p-0 print:!m-0 print:!block print:!w-full print:!bg-white print:!shadow-none print:!border-none">
+                <main className="flex-1 overflow-auto relative print:!overflow-visible print:!p-0 print:!m-0 print:!block print:!w-full print:!bg-white print:!shadow-none print:!border-none">
                     <div className="min-h-full print:!min-h-0 print:!block print:!w-full print:!p-0 print:!m-0 print:!overflow-visible">
                       {children}
                     </div>

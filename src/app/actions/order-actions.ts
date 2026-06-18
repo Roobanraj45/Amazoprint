@@ -13,24 +13,24 @@ import { getPricingRulesForSubProduct } from './pricing-actions';
 import { createShiprocketShipment, trackShipment, cancelShipment, generateLabel, generateManifest, schedulePickup, printShiprocketInvoice } from '@/lib/shiprocket';
 
 const addressSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  addressLine1: z.string().min(1, 'Address is required'),
-  addressLine2: z.string().optional(),
-  city: z.string().min(1, 'City is required'),
-  state: z.string().min(1, 'State is required'),
-  zip: z.string().min(1, 'ZIP code is required'),
-  country: z.string().min(1, 'Country is required'),
-  phone: z.string().min(1, 'Phone is required'),
+    name: z.string().min(1, 'Name is required'),
+    addressLine1: z.string().min(1, 'Address is required'),
+    addressLine2: z.string().optional(),
+    city: z.string().min(1, 'City is required'),
+    state: z.string().min(1, 'State is required'),
+    zip: z.string().min(1, 'ZIP code is required'),
+    country: z.string().min(1, 'Country is required'),
+    phone: z.string().min(1, 'Phone is required'),
 });
 
 const createOrderSchema = z.object({
-  designId: z.coerce.number().optional(),
-  uploadId: z.coerce.number().optional(),
-  quantity: z.coerce.number().min(1),
-  shippingAddress: addressSchema,
-  billingAddress: addressSchema.optional(),
-  useShippingForBilling: z.boolean(),
-  paymentId: z.coerce.number().optional(),
+    designId: z.coerce.number().optional(),
+    uploadId: z.coerce.number().optional(),
+    quantity: z.coerce.number().min(1),
+    shippingAddress: addressSchema,
+    billingAddress: addressSchema.optional(),
+    useShippingForBilling: z.boolean(),
+    paymentId: z.coerce.number().optional(),
 });
 
 type CreateOrderData = z.infer<typeof createOrderSchema>;
@@ -40,7 +40,7 @@ export async function createOrder(data: CreateOrderData) {
     if (!session?.sub) {
         throw new Error('You must be logged in to create an order.');
     }
-    
+
     const validated = createOrderSchema.parse(data);
     const { designId, uploadId, quantity, shippingAddress, paymentId } = validated;
     const billingAddress = validated.useShippingForBilling ? shippingAddress : validated.billingAddress;
@@ -71,14 +71,14 @@ export async function createOrder(data: CreateOrderData) {
 
     const productId = designId ? (await getProductBySlug(sourceDetails.productSlug))?.id : sourceDetails.product?.id;
     const subProductId = designId ? (await getSubProductFromDesign(sourceDetails)) : sourceDetails.subProduct?.id;
-    
+
     if (!productId || !subProductId) {
         throw new Error('Could not determine product information for this order.');
     }
-    
+
     const subProductInfo = await db.query.subProducts.findFirst({ where: eq(subProducts.id, subProductId) });
     if (!subProductInfo || !subProductInfo.price) throw new Error('Could not get pricing information.');
-    
+
     let totalAmount = 0;
     let unitPrice = 0;
 
@@ -109,7 +109,7 @@ export async function createOrder(data: CreateOrderData) {
         paymentId,
         customisation,
     }).returning();
-    
+
     const newOrder = result[0];
 
     // Log order creation
@@ -151,7 +151,7 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
     if (!session) throw new Error('Not authenticated');
 
     const { designId, uploadId, quantity: quantityStr } = params;
-    
+
     if (!designId && !uploadId) {
         throw new Error('No design or upload specified for checkout.');
     }
@@ -166,12 +166,12 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
             where: and(eq(designs.id, parseInt(designId)), eq(designs.userId, session.sub)),
         });
         if (!design) throw new Error('Design not found or you do not own it.');
-        
+
         const product = await getProductBySlug(design.productSlug);
         const subProductId = await getSubProductFromDesign(design);
-        const subProduct = subProductId ? await db.query.subProducts.findFirst({ where: eq(subProducts.id, subProductId)}) : null;
+        const subProduct = subProductId ? await db.query.subProducts.findFirst({ where: eq(subProducts.id, subProductId) }) : null;
         if (!product || !subProduct) throw new Error("Could not find product details for this design.");
-        
+
         details = { product, subProduct, design, quantity };
 
     } else if (uploadId) {
@@ -180,10 +180,10 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
             with: { product: true, subProduct: true }
         });
         if (!upload || !upload.product || !upload.subProduct) throw new Error('Upload not found or product info is missing.');
-        
+
         details = { product: upload.product, subProduct: upload.subProduct, upload, quantity };
     }
-    
+
     if (!details) throw new Error("Could not retrieve details for checkout.");
 
     // --- Pricing Logic ---
@@ -221,7 +221,7 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
                 discountDescription = `${discountRule.discountValue}% off`;
             } else if (discountRule.discountType === 'fixed') {
                 perItemDiscount = Number(discountRule.discountValue);
-                discountDescription = `ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${discountRule.discountValue} off per item`;
+                discountDescription = `₹${discountRule.discountValue} off per item`;
             }
             finalUnitPrice -= perItemDiscount;
             totalDiscount = perItemDiscount * quantity;
@@ -241,7 +241,7 @@ export async function getMyOrders(page: number = 1, limit: number = 10) {
     }
 
     const offset = (page - 1) * limit;
-    
+
     const [totalCountResult] = await db.select({ count: count() }).from(orders).where(eq(orders.userId, session.sub));
     const totalCount = totalCountResult.count;
     const totalPages = Math.ceil(totalCount / limit);
@@ -330,22 +330,22 @@ export async function getAdminAllOrders({
     if (searchQuery) {
         const isNumeric = !isNaN(Number(searchQuery)) && searchQuery.trim() !== '';
         const searchConditions = [];
-        
+
         if (isNumeric) {
             searchConditions.push(eq(orders.id, Number(searchQuery)));
         }
-        
+
         // Subquery to find users matching name or email
         const userMatches = db.select({ id: users.id }).from(users).where(
             or(ilike(users.name, `%${searchQuery}%`), ilike(users.email, `%${searchQuery}%`))
         );
-        
+
         searchConditions.push(inArray(orders.userId, userMatches));
         conditions.push(or(...searchConditions));
     }
 
     const finalCondition = conditions.length > 0 ? and(...conditions) : undefined;
-    
+
     const [totalCountResult] = await db.select({ count: count() }).from(orders).where(finalCondition);
     const totalCount = totalCountResult.count;
     const totalPages = Math.ceil(totalCount / limit);
@@ -405,39 +405,39 @@ export async function getAdminOrderStats({
     const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // 1. Total Overall Revenue & Count
-    const [totalStats] = await db.select({ 
+    const [totalStats] = await db.select({
         totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0) + COALESCE(SUM(${payments.amount}::numeric), 0)`,
         count: count()
     })
-    .from(orders)
-    .leftJoin(payments, and(
-        eq(payments.contestId, orders.contestId),
-        eq(payments.status, 'captured')
-    ));
+        .from(orders)
+        .leftJoin(payments, and(
+            eq(payments.contestId, orders.contestId),
+            eq(payments.status, 'captured')
+        ));
 
     // 2. Today's Revenue & Count
-    const [todayStats] = await db.select({ 
+    const [todayStats] = await db.select({
         totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0) + COALESCE(SUM(${payments.amount}::numeric), 0)`,
         count: count()
     })
-    .from(orders)
-    .leftJoin(payments, and(
-        eq(payments.contestId, orders.contestId),
-        eq(payments.status, 'captured')
-    ))
-    .where(gte(orders.createdAt, startOfToday));
+        .from(orders)
+        .leftJoin(payments, and(
+            eq(payments.contestId, orders.contestId),
+            eq(payments.status, 'captured')
+        ))
+        .where(gte(orders.createdAt, startOfToday));
 
     // 2.5 This Month's Revenue & Count
-    const [thisMonthStats] = await db.select({ 
+    const [thisMonthStats] = await db.select({
         totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0) + COALESCE(SUM(${payments.amount}::numeric), 0)`,
         count: count()
     })
-    .from(orders)
-    .leftJoin(payments, and(
-        eq(payments.contestId, orders.contestId),
-        eq(payments.status, 'captured')
-    ))
-    .where(gte(orders.createdAt, startOfThisMonth));
+        .from(orders)
+        .leftJoin(payments, and(
+            eq(payments.contestId, orders.contestId),
+            eq(payments.status, 'captured')
+        ))
+        .where(gte(orders.createdAt, startOfThisMonth));
 
     // 3. Filtered Revenue & Count
     const conditions = [];
@@ -465,31 +465,31 @@ export async function getAdminOrderStats({
     if (searchQuery) {
         const isNumeric = !isNaN(Number(searchQuery)) && searchQuery.trim() !== '';
         const searchConditions = [];
-        
+
         if (isNumeric) {
             searchConditions.push(eq(orders.id, Number(searchQuery)));
         }
-        
+
         const userMatches = db.select({ id: users.id }).from(users).where(
             or(ilike(users.name, `%${searchQuery}%`), ilike(users.email, `%${searchQuery}%`))
         );
-        
+
         searchConditions.push(inArray(orders.userId, userMatches));
         conditions.push(or(...searchConditions));
     }
 
     const finalCondition = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const [filteredStats] = await db.select({ 
+    const [filteredStats] = await db.select({
         totalAmount: sql<number>`COALESCE(SUM(${orders.totalAmount}::numeric), 0) + COALESCE(SUM(${payments.amount}::numeric), 0)`,
         count: count()
     })
-    .from(orders)
-    .leftJoin(payments, and(
-        eq(payments.contestId, orders.contestId),
-        eq(payments.status, 'captured')
-    ))
-    .where(finalCondition);
+        .from(orders)
+        .leftJoin(payments, and(
+            eq(payments.contestId, orders.contestId),
+            eq(payments.status, 'captured')
+        ))
+        .where(finalCondition);
 
     // 4. Printer Assignment Stats
     const [assignedStats] = await db.select({ count: count() })
@@ -567,7 +567,7 @@ export async function getAdminOrderDetails(orderId: number) {
             .orderBy(desc(payments.createdAt))
             .limit(1)
             .then(res => res[0]);
-        
+
         if (contestPayment) {
             (order as any).payment = contestPayment;
         }
@@ -610,7 +610,7 @@ export async function getMyOrderDetails(orderId: number) {
             .orderBy(desc(payments.createdAt))
             .limit(1)
             .then(res => res[0]);
-        
+
         if (contestPayment) {
             (order as any).payment = contestPayment;
         }
@@ -620,8 +620,8 @@ export async function getMyOrderDetails(orderId: number) {
 }
 
 export async function assignPrinterToOrder(
-    orderId: number, 
-    printerId: string | null, 
+    orderId: number,
+    printerId: string | null,
     printingAmount?: string,
     printerPaidAmount?: string,
     paymentMethod = 'bank_transfer',
@@ -643,11 +643,11 @@ export async function assignPrinterToOrder(
         columns: { printerAssigned: true, orderStatus: true, printingAmount: true }
     });
 
-    const updateFields: any = { 
-        printerAssigned: printerId, 
+    const updateFields: any = {
+        printerAssigned: printerId,
         orderStatus: newStatus,
         printerAssignedAt: printerId ? new Date() : null,
-        updatedAt: new Date() 
+        updatedAt: new Date()
     };
 
     if (printingAmount !== undefined) {
@@ -678,7 +678,7 @@ export async function assignPrinterToOrder(
             actionType: 'printer_assigned',
             oldValue: { printer: currentOrder?.printerAssigned, status: currentOrder?.orderStatus, printingAmount: currentOrder?.printingAmount },
             newValue: { printer: printerId, status: newStatus, printingAmount: printingAmount || currentOrder?.printingAmount, advancePayment: printerPaidAmount },
-            message: printerId ? `Order assigned to printer (Amount: ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${printingAmount || '0.00'}, Advance: ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${printerPaidAmount || '0.00'}) and moved to pending approval` : `Order unassigned and returned to confirmed status`
+            message: printerId ? `Order assigned to printer (Amount: ₹${printingAmount || '0.00'}, Advance: ₹${printerPaidAmount || '0.00'}) and moved to pending approval` : `Order unassigned and returned to confirmed status`
         });
     } catch (e) {
         console.error('Failed to log printer assignment:', e);
@@ -733,7 +733,7 @@ export async function recordPrinterPayment({
     const limit = parseFloat(order.printingAmount);
 
     if (totalPaid + amt > limit) {
-        throw new Error(`Total payments (ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${(totalPaid + amt).toFixed(2)}) cannot exceed the printing cost of ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${limit.toFixed(2)}.`);
+        throw new Error(`Total payments (₹${(totalPaid + amt).toFixed(2)}) cannot exceed the printing cost of ₹${limit.toFixed(2)}.`);
     }
 
     await db.insert(printerPayments).values({
@@ -752,7 +752,7 @@ export async function recordPrinterPayment({
             orderId,
             actionType: 'printer_payment',
             newValue: { amount, paymentMethod, referenceNumber },
-            message: `Printer payout payment of ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹${amount} recorded (Ref: ${referenceNumber || 'N/A'})`
+            message: `Printer payout payment of ₹${amount} recorded (Ref: ${referenceNumber || 'N/A'})`
         });
     } catch (e) {
         console.error('Failed to log printer payment:', e);
@@ -779,11 +779,11 @@ export async function updateOrderStatus(
 
     const currentOrder = await db.query.orders.findFirst({
         where: eq(orders.id, orderId),
-        columns: { 
-            orderStatus: true, 
-            trackingNumber: true, 
-            estimatedDeliveryDate: true, 
-            actualDeliveryDate: true 
+        columns: {
+            orderStatus: true,
+            trackingNumber: true,
+            estimatedDeliveryDate: true,
+            actualDeliveryDate: true
         }
     });
 
@@ -820,13 +820,13 @@ export async function updateOrderStatus(
         await recordOrderLog({
             orderId,
             actionType: 'status_changed',
-            oldValue: { 
-                status: currentOrder.orderStatus, 
+            oldValue: {
+                status: currentOrder.orderStatus,
                 trackingNumber: currentOrder.trackingNumber,
                 estimatedDeliveryDate: currentOrder.estimatedDeliveryDate,
                 actualDeliveryDate: currentOrder.actualDeliveryDate
             },
-            newValue: { 
+            newValue: {
                 status: newStatus,
                 trackingNumber: trackingNumber !== undefined ? trackingNumber : currentOrder.trackingNumber,
                 estimatedDeliveryDate: estimatedDeliveryDate !== undefined ? estimatedDeliveryDate : currentOrder.estimatedDeliveryDate,
@@ -904,7 +904,7 @@ export async function recordOrderLog({
     isCustomerVisible?: boolean;
 }) {
     const session = await getSession();
-    
+
     await db.insert(orderLogs).values({
         orderId,
         actionType,
@@ -984,7 +984,7 @@ export async function getPrinterOrderDetails(orderId: number) {
 }
 
 export async function updatePrinterOrderStatus(
-    orderId: number, 
+    orderId: number,
     newStatus: string,
     dimensions?: { length?: number; breadth?: number; height?: number; weight?: number },
     attachmentsUrl?: string,
@@ -1040,6 +1040,19 @@ export async function updatePrinterOrderStatus(
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_rejection_reason TEXT;`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS requested_dimensions JSONB;`);
         await db.execute(sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipping_method VARCHAR(30) DEFAULT 'shiprocket';`);
+
+        // Print verification columns on orders table
+        await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS verification_file_url TEXT;`);
+        await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS verification_file_status VARCHAR(50) DEFAULT 'pending';`);
+        await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS verification_rejected_reason TEXT;`);
+
+        // Drop old check constraint and re-add it with new enum values
+        await db.execute(sql`ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_order_status_check;`);
+        await db.execute(sql`
+            ALTER TABLE orders ADD CONSTRAINT orders_order_status_check CHECK (
+                order_status IN ('pending', 'confirmed', 'quality_check', 'processing', 'under_verification', 'ready_to_ship', 'shipped', 'delivered', 'cancelled', 'refunded')
+            );
+        `);
     } catch (dbErr) {
         console.error("Self-healing table creation failed:", dbErr);
     }
@@ -1051,7 +1064,7 @@ export async function updatePrinterOrderStatus(
 
     const currentOrder = await db.query.orders.findFirst({
         where: and(eq(orders.id, orderId), eq(orders.printerAssigned, session.sub)),
-        columns: { 
+        columns: {
             orderStatus: true,
         }
     });
@@ -1060,9 +1073,14 @@ export async function updatePrinterOrderStatus(
         throw new Error('Order not found or not assigned to you');
     }
 
-    const allowedStatuses = ['pending', 'confirmed', 'quality_check', 'processing', 'shipped'];
+    const allowedStatuses = ['pending', 'confirmed', 'quality_check', 'processing', 'under_verification', 'ready_to_ship', 'shipped'];
     if (!allowedStatuses.includes(newStatus)) {
         throw new Error('Invalid status for printer update');
+    }
+
+    // Enforce that shipping can only happen after verification approval
+    if (newStatus === 'shipped' && currentOrder.orderStatus !== 'ready_to_ship') {
+        throw new Error('Order must be verified by admin before shipping.');
     }
 
     if (newStatus === 'shipped') {
@@ -1142,26 +1160,44 @@ export async function updatePrinterOrderStatus(
         }
     }
 
+    const updateFields: any = {
+        orderStatus: newStatus,
+        updatedAt: new Date()
+    };
+
+    if (newStatus === 'under_verification') {
+        if (!attachmentsUrl) {
+            throw new Error('Verification file is required.');
+        }
+        updateFields.verificationFileUrl = attachmentsUrl;
+        updateFields.verificationFileStatus = 'submitted';
+        updateFields.verificationRejectedReason = null;
+    }
+
     await db.update(orders)
-        .set({
-            orderStatus: newStatus,
-            updatedAt: new Date()
-        })
+        .set(updateFields)
         .where(eq(orders.id, orderId));
 
     try {
+        let logAction = 'status_changed';
+        let logMessage = `Printer updated status to ${newStatus.replace(/_/g, ' ')}`;
+
+        if (newStatus === 'shipped') {
+            logAction = customShipping ? 'custom_shipped' : 'shipping_requested';
+            logMessage = customShipping
+                ? `Printer marked order as shipped via Custom Shipping: ${customShipping.courierName} (AWB/Tracking: ${customShipping.awbCode}).`
+                : `Printer sent a shipping request for this order. Awaiting admin approval.`;
+        } else if (newStatus === 'under_verification') {
+            logAction = 'print_verification_submitted';
+            logMessage = `Printer submitted printed order proof image/video for verification.`;
+        }
+
         await recordOrderLog({
             orderId,
-            actionType: newStatus === 'shipped' 
-                ? (customShipping ? 'custom_shipped' : 'shipping_requested') 
-                : 'status_changed',
+            actionType: logAction,
             oldValue: { status: currentOrder.orderStatus },
             newValue: { status: newStatus },
-            message: newStatus === 'shipped'
-                ? (customShipping 
-                    ? `Printer marked order as shipped via Custom Shipping: ${customShipping.courierName} (AWB/Tracking: ${customShipping.awbCode}).` 
-                    : `Printer sent a shipping request for this order. Awaiting admin approval.`)
-                : `Printer updated status to ${newStatus.replace(/_/g, ' ')}`,
+            message: logMessage,
             isCustomerVisible: true
         });
     } catch (e) {
@@ -1175,8 +1211,65 @@ export async function updatePrinterOrderStatus(
     return { success: true };
 }
 
+export async function reviewPrintVerification(
+    orderId: number,
+    approve: boolean,
+    rejectionReason?: string
+) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
 
-// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Shiprocket Shipping Report Server Actions ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+    const currentOrder = await db.query.orders.findFirst({
+        where: eq(orders.id, orderId),
+        columns: { orderStatus: true, verificationFileUrl: true }
+    });
+
+    if (!currentOrder) {
+        throw new Error('Order not found');
+    }
+
+    const newStatus = approve ? 'ready_to_ship' : 'processing';
+    const verificationStatus = approve ? 'approved' : 'rejected';
+
+    await db.update(orders)
+        .set({
+            orderStatus: newStatus,
+            verificationFileStatus: verificationStatus,
+            verificationRejectedReason: approve ? null : (rejectionReason || null),
+            updatedAt: new Date()
+        })
+        .where(eq(orders.id, orderId));
+
+    try {
+        const logAction = approve ? 'print_verification_approved' : 'print_verification_rejected';
+        const logMessage = approve
+            ? `Admin approved the print verification file. The order is now ready to be shipped.`
+            : `Admin rejected the print verification. Reason: ${rejectionReason || 'No reason provided'}`;
+
+        await recordOrderLog({
+            orderId,
+            actionType: logAction,
+            oldValue: { status: currentOrder.orderStatus, verificationStatus: 'submitted' },
+            newValue: { status: newStatus, verificationStatus },
+            message: logMessage,
+            isCustomerVisible: true
+        });
+    } catch (e) {
+        console.error('Failed to log print verification review:', e);
+    }
+
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath(`/printer/orders`);
+    revalidatePath(`/client/orders/${orderId}`);
+    revalidatePath('/admin/orders');
+    return { success: true };
+}
+
+
+// ── Shiprocket Shipping Report Server Actions ──────────────────────────────────
 
 export async function getPrinterShipments() {
     const session = await getSession();
@@ -1380,7 +1473,7 @@ export async function schedulePrinterPickup(orderId: number, pickupDateStr?: str
     }
 
     const result = await schedulePickup(shipment.shipmentId, shiprocketDate, scheduledTimestamp);
-    
+
     // Log the event
     try {
         await recordOrderLog({
@@ -1392,7 +1485,7 @@ export async function schedulePrinterPickup(orderId: number, pickupDateStr?: str
     } catch (e) {
         console.error('Failed to log pickup scheduling:', e);
     }
-    
+
     revalidatePath('/printer/shipments');
     return result;
 }
@@ -1809,7 +1902,7 @@ export async function adminApproveShippingRequest(
                 directSellingProduct: true,
                 printer: true,
             },
-          })
+        })
         : fullOrder;
 
     if (!updatedOrder || !updatedOrder.printer) {

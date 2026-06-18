@@ -16,6 +16,7 @@ import { PrintPreviewButton } from "./PrintPreviewButton";
 import { Button } from "@/components/ui/button";
 import { PrinterAssignmentControl } from "./PrinterAssignmentControl";
 import { OrderStatusControl } from "./OrderStatusControl";
+import { PrintVerificationReview } from "./PrintVerificationReview";
 
 const DPI = 300;
 const MM_TO_PX = DPI / 25.4;
@@ -534,6 +535,17 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                 {/* Right Column (4/12 widths) */}
                 <div className="lg:col-span-4 space-y-6">
                     
+                    {/* Print Quality Verification Panel */}
+                    {order.verificationFileUrl && (
+                        <PrintVerificationReview
+                            orderId={order.id}
+                            verificationFileUrl={order.verificationFileUrl}
+                            verificationFileStatus={(order as any).verificationFileStatus || 'pending'}
+                            verificationRejectedReason={(order as any).verificationRejectedReason}
+                            orderStatus={order.orderStatus}
+                        />
+                    )}
+
                     {/* Operational Guard & Status Picker */}
                     <Card className="border border-slate-200/60 dark:border-slate-800/80 shadow-md bg-gradient-to-b from-white to-slate-50/20 dark:from-slate-900 dark:to-slate-950/20 rounded-[2rem] overflow-hidden">
                         <CardHeader className="p-6 pb-2 border-b border-slate-100 dark:border-zinc-800">

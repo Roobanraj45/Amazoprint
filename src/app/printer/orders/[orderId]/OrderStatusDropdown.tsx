@@ -22,6 +22,12 @@ const statusOptions = [
     { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-500' },
     { value: 'quality_check', label: 'Quality Check', color: 'bg-amber-500' },
     { value: 'processing', label: 'Processing', color: 'bg-indigo-500' },
+    { value: 'under_verification', label: 'Under Verification', color: 'bg-orange-505' },
+    { value: 'ready_to_ship', label: 'Ready to Ship', color: 'bg-violet-500' },
+    { value: 'shipped', label: 'Shipped', color: 'bg-cyan-500' },
+    { value: 'delivered', label: 'Delivered', color: 'bg-emerald-500' },
+    { value: 'cancelled', label: 'Cancelled', color: 'bg-rose-500' },
+    { value: 'refunded', label: 'Refunded', color: 'bg-gray-500' },
 ];
 
 export function OrderStatusDropdown({ orderId, initialStatus }: OrderStatusDropdownProps) {
@@ -54,13 +60,18 @@ export function OrderStatusDropdown({ orderId, initialStatus }: OrderStatusDropd
     };
 
     const currentOption = statusOptions.find(o => o.value === status) || statusOptions[0];
+    const isMutable = ['pending', 'confirmed', 'quality_check', 'processing'].includes(status);
+    const visibleOptions = statusOptions.filter(opt => 
+        ['pending', 'confirmed', 'quality_check', 'processing'].includes(opt.value) || 
+        opt.value === status
+    );
 
     return (
         <div className="flex flex-col items-end gap-1">
             <span className="text-[9px] font-bold text-white/60 uppercase tracking-widest">Workflow stage</span>
             <div className="relative min-w-[150px]">
-                <Select value={status} onValueChange={handleStatusChange} disabled={isPending}>
-                    <SelectTrigger className="w-full bg-white/5 border-white/10 text-white rounded-xl h-10 px-3 hover:bg-white/10 transition-colors focus:ring-0 focus:ring-offset-0">
+                <Select value={status} onValueChange={handleStatusChange} disabled={isPending || !isMutable}>
+                    <SelectTrigger className="w-full bg-white/5 border-white/10 text-white rounded-xl h-10 px-3 hover:bg-white/10 transition-colors focus:ring-0 focus:ring-offset-0 disabled:opacity-90">
                         <SelectValue>
                             <span className="flex items-center gap-2">
                                 <span className={`w-2 h-2 rounded-full ${currentOption.color} shrink-0`} />
@@ -69,7 +80,7 @@ export function OrderStatusDropdown({ orderId, initialStatus }: OrderStatusDropd
                         </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-slate-800 text-slate-200 rounded-xl">
-                        {statusOptions.map((opt) => (
+                        {visibleOptions.map((opt) => (
                             <SelectItem 
                                 key={opt.value} 
                                 value={opt.value} 

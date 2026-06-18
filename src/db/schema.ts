@@ -461,7 +461,7 @@ export const orders = pgTable('orders', {
   totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull(),
   shippingAddress: jsonb('shipping_address').notNull(),
   billingAddress: jsonb('billing_address'),
-  orderStatus: varchar('order_status', { length: 50, enum: ['pending', 'confirmed', 'quality_check', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'] }).default('pending'),
+  orderStatus: varchar('order_status', { length: 50, enum: ['pending', 'confirmed', 'quality_check', 'processing', 'under_verification', 'ready_to_ship', 'shipped', 'delivered', 'cancelled', 'refunded'] }).default('pending'),
   paymentStatus: varchar('payment_status', { length: 50, enum: ['pending', 'paid', 'failed', 'refunded'] }).default('pending'),
   paymentMethod: varchar('payment_method', { length: 50 }),
   trackingNumber: varchar('tracking_number', { length: 100 }),
@@ -477,6 +477,9 @@ export const orders = pgTable('orders', {
   printingAmount: numeric('printing_amount', { precision: 12, scale: 2 }).default('0.00').notNull(),
   customisation: jsonb('customisation').default({}),
   contestId: integer('contest_id').references(() => contests.id, { onDelete: 'set null' }),
+  verificationFileUrl: text('verification_file_url'),
+  verificationFileStatus: varchar('verification_file_status', { length: 50, enum: ['pending', 'submitted', 'approved', 'rejected'] }).default('pending'),
+  verificationRejectedReason: text('verification_rejected_reason'),
 }, (table) => {
     return {
         userIdx: index('idx_orders_user_id').on(table.userId),

@@ -77,9 +77,9 @@ export default function PrinterLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <SidebarProvider>
-        <div className="flex h-screen w-full bg-zinc-50 dark:bg-zinc-950 text-foreground selection:bg-primary/10 selection:text-primary font-sans">
-            <Sidebar className="w-56 border-r border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 backdrop-blur-xl">
+    <SidebarProvider className="print:!bg-white print:!min-h-0 print:!block print:!w-full print:!overflow-visible">
+        <div className="flex h-screen w-full bg-zinc-50 dark:bg-zinc-950 text-foreground selection:bg-primary/10 selection:text-primary font-sans print:!h-auto print:!w-full print:!bg-white print:!text-black print:!block print:!overflow-visible print:!p-0 print:!m-0">
+            <Sidebar className="w-56 border-r border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 backdrop-blur-xl print:!hidden">
                 <SidebarHeader className="h-16 flex items-center justify-center border-b border-slate-100 dark:border-zinc-800/50 px-4">
                     <Link href="/" className="w-full flex items-center justify-center transition-transform hover:scale-[1.02]">
                         <AmazoprintLogo variant="sidebar" className="w-full h-auto" />
@@ -136,12 +136,12 @@ export default function PrinterLayout({ children }: { children: React.ReactNode 
                 </SidebarHeader>
             </Sidebar>
 
-            <SidebarInset className="bg-transparent flex flex-col flex-1 overflow-hidden relative">
+            <SidebarInset className="bg-transparent flex flex-col flex-1 overflow-hidden relative print:!p-0 print:!m-0 print:!overflow-visible print:!w-full print:!block print:!bg-white print:!shadow-none print:!border-none">
                 {/* Background Ambient Effects */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10" />
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-violet-500/5 blur-[100px] rounded-full pointer-events-none -z-10" />
-
-                <header className="flex h-16 items-center justify-between gap-4 border-b border-border/40 bg-card/60 backdrop-blur-xl px-6 lg:px-10 z-10 sticky top-0">
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none -z-10 print:hidden" />
+                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-violet-500/5 blur-[100px] rounded-full pointer-events-none -z-10 print:hidden" />
+ 
+                <header className="flex h-16 items-center justify-between gap-4 border-b border-border/40 bg-card/60 backdrop-blur-xl px-6 lg:px-10 z-10 sticky top-0 print:hidden">
                     <div className="flex items-center gap-4 flex-1">
                       <SidebarTrigger className="md:hidden text-muted-foreground hover:text-foreground transition-colors" />
                       <div className="relative hidden sm:block max-w-md w-full">
@@ -171,8 +171,8 @@ export default function PrinterLayout({ children }: { children: React.ReactNode 
                       </div>
                     </div>
                 </header>
-
-                <main className="flex-1 overflow-auto relative z-0">
+ 
+                <main className="flex-1 overflow-auto relative print:!overflow-visible print:!p-0 print:!m-0 print:!block print:!w-full print:!bg-white print:!shadow-none print:!border-none">
                     <div className="min-h-full">
                       {children}
                     </div>
@@ -180,7 +180,7 @@ export default function PrinterLayout({ children }: { children: React.ReactNode 
                 {pathname !== '/printer/messages' && (
                     <Link
                         href="/printer/messages"
-                        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl shadow-slate-900/35 transition-all duration-300 hover:scale-105 hover:bg-slate-800 active:scale-95 group"
+                        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-xl shadow-slate-900/35 transition-all duration-300 hover:scale-105 hover:bg-slate-800 active:scale-95 group print:hidden"
                     >
                         <MessageSquare className="h-6 w-6 transition-transform group-hover:rotate-6" />
                         {unreadCount > 0 && (

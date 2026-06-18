@@ -170,7 +170,7 @@ export default function FreelancerLayout({ children }: { children: React.ReactNo
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-auto relative z-0">
+                <main className="flex-1 overflow-auto relative">
                     <div className="min-h-full">
                       {children}
                     </div>

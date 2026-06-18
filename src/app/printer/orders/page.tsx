@@ -90,7 +90,22 @@ const STATUS_CONFIG: Record<string, {
         bg: 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800',
         dot: 'bg-indigo-500',
         icon: <RefreshCw className="h-3 w-3" />,
-        actionLabel: 'Mark Shipped',
+        actionLabel: 'Submit Verification',
+    },
+    under_verification: {
+        label: 'Awaiting Verification',
+        color: 'text-orange-750 dark:text-orange-400',
+        bg: 'bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800',
+        dot: 'bg-orange-500',
+        icon: <Clock className="h-3 w-3" />,
+    },
+    ready_to_ship: {
+        label: 'Ready to Ship',
+        color: 'text-violet-750 dark:text-violet-400',
+        bg: 'bg-violet-50 dark:bg-violet-950/40 border-violet-200 dark:border-violet-800',
+        dot: 'bg-violet-500',
+        icon: <Package className="h-3 w-3" />,
+        actionLabel: 'Ship Order',
     },
     shipped: {
         label: 'Dispatched',
@@ -119,7 +134,8 @@ const STATUS_FLOW: Record<string, string> = {
     pending: 'confirmed',
     confirmed: 'quality_check',
     quality_check: 'processing',
-    processing: 'shipped',
+    processing: 'under_verification',
+    ready_to_ship: 'shipped',
 };
 
 // ── Status pill ───────────────────────────────────────────────────────────────
@@ -254,6 +270,7 @@ function ConfirmStatusDialog({
     const fromCfg = STATUS_CONFIG[from];
     const toCfg = STATUS_CONFIG[to];
     const isShipped = to === 'shipped';
+    const isVerification = to === 'under_verification';
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -294,11 +311,16 @@ function ConfirmStatusDialog({
                 }
                 onConfirm({ length, breadth, height, weight }, attachmentsUrl, undefined);
             }
+        } else if (isVerification) {
+            if (!attachmentsUrl) {
+                setUploadError('Please upload an image or video of the printed items for verification.');
+                return;
+            }
+            onConfirm(undefined, attachmentsUrl, undefined);
         } else {
             onConfirm();
         }
     };
-
     // Parse customisation
     let parsedCustomisation: any = null;
     try {
@@ -313,279 +335,489 @@ function ConfirmStatusDialog({
     const foil = parsedCustomisation?.foilName || parsedCustomisation?.foil || (parsedCustomisation?.foilId ? `Foil #${parsedCustomisation.foilId}` : 'None');
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-md transition-opacity duration-300" onClick={onClose} />
-            <div className={cn(
-                "relative bg-white dark:bg-zinc-950 rounded-3xl border border-slate-100 dark:border-zinc-900 shadow-2xl p-6 w-full animate-in zoom-in-95 fade-in duration-200 max-h-[90vh] overflow-y-auto",
-                isShipped ? "max-w-lg" : "max-w-md"
-            )}>
-                {/* Header Pills */}
-                <div className="flex items-center justify-center gap-3 mb-6 bg-slate-50 dark:bg-zinc-900/50 p-2 rounded-2xl w-fit mx-auto border border-slate-100 dark:border-zinc-900">
-                    <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all', fromCfg?.color, fromCfg?.bg)}>
-                        {fromCfg?.icon} {fromCfg?.label}
-                    </span>
-                    <ArrowRight className="h-4 w-4 text-slate-400" />
-                    <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all', toCfg?.color, toCfg?.bg)}>
-                        {toCfg?.icon} {toCfg?.label}
-                    </span>
-                </div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white text-center mb-1">Update Order Status</h3>
-                <p className="text-sm text-slate-500 dark:text-zinc-400 text-center mb-6">
-                    Advance <span className="font-extrabold text-blue-600 dark:text-blue-400">Order #{order.id}</span> to{' '}
-                    <span className={cn('font-black', toCfg?.color)}>{toCfg?.label}</span>?
-                </p>
-
-                {isShipped && (
-                    <div className="space-y-5 mb-6 border-t border-slate-100 dark:border-zinc-900 pt-5">
-                        
-                        {/* Elegant Shipping & Order Details Card */}
-                        <div className="rounded-2xl border border-slate-100 dark:border-zinc-900 overflow-hidden bg-gradient-to-b from-slate-50/50 to-white dark:from-zinc-900/50 dark:to-zinc-950 shadow-sm">
-                            {/* Destination Section */}
-                            <div className="p-4 space-y-3">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 flex items-center gap-1.5">
-                                    <MapPin className="h-3 w-3 text-rose-500" /> Destination Address
-                                </p>
-                                <div className="space-y-2 text-xs">
-                                    <div className="flex items-center gap-2">
-                                        <User2 className="h-3.5 w-3.5 text-slate-400" />
-                                        <p className="font-bold text-slate-800 dark:text-zinc-200">
-                                            Recipient: <span className="font-medium text-slate-600 dark:text-zinc-400">{order.user.name}</span>
-                                        </p>
-                                    </div>
-                                    {order.user.phone && (
-                                        <div className="flex items-center gap-2">
-                                            <Phone className="h-3.5 w-3.5 text-slate-400" />
-                                            <p className="font-bold text-slate-800 dark:text-zinc-200">
-                                                Phone: <span className="font-medium text-slate-600 dark:text-zinc-400">{order.user.phone}</span>
-                                            </p>
-                                        </div>
-                                    )}
-                                    {order.shippingAddress && (
-                                        <div className="flex items-start gap-2">
-                                            <MapPin className="h-3.5 w-3.5 text-slate-400 mt-0.5 shrink-0" />
-                                            <p className="font-bold text-slate-800 dark:text-zinc-200 leading-relaxed">
-                                                Address: <span className="font-medium text-slate-600 dark:text-zinc-400">
-                                                    {(() => {
-                                                        const addr = order.shippingAddress as any;
-                                                        return [addr?.addressLine1, addr?.addressLine2, addr?.city, addr?.state, addr?.zip, addr?.country]
-                                                            .filter(Boolean).join(', ');
-                                                    })()}
-                                                </span>
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Specifications & Payout Section */}
-                            <div className="p-4 border-t border-slate-100 dark:border-zinc-900 bg-slate-50/30 dark:bg-zinc-900/10 space-y-3">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 flex items-center gap-1.5">
-                                    <Package className="h-3 w-3 text-indigo-500" /> Order Specifications
-                                </p>
-                                <div className="grid grid-cols-2 gap-3 text-xs">
-                                    <div className="space-y-1">
-                                        <p className="font-bold text-slate-800 dark:text-zinc-200">
-                                            Product: <span className="font-medium text-slate-600 dark:text-zinc-400 block truncate max-w-[200px]" title={order.directSellingProduct?.name || order.product?.name}>{order.directSellingProduct?.name || order.product?.name || 'Unspecified Product'}</span>
-                                        </p>
-                                        <p className="font-bold text-slate-800 dark:text-zinc-200">
-                                            Quantity: <span className="font-semibold text-slate-600 dark:text-zinc-400">{order.quantity} pcs</span>
-                                        </p>
-                                        <p className="font-bold text-slate-800 dark:text-zinc-200">
-                                            Payout: <span className="font-black text-emerald-600 dark:text-emerald-400">₹{parseFloat(order.printingAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                        </p>
-                                    </div>
-                                    <div className="space-y-1 border-l border-slate-200/60 dark:border-zinc-800/80 pl-3">
-                                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold">
-                                            Sides: <span className="font-normal">{pages}</span>
-                                        </p>
-                                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold">
-                                            Size: <span className="font-normal">{dimensions}</span>
-                                        </p>
-                                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold">
-                                            Lamination: <span className="font-normal">{lamination}</span>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Shipping Method Selector */}
-                        <div className="space-y-2">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Shipping Method</p>
-                            <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-zinc-900 p-1 rounded-xl">
-                                <button
-                                    type="button"
-                                    onClick={() => { setShippingMethod('shiprocket'); setUploadError(null); }}
-                                    className={cn(
-                                        "py-1.5 text-xs font-bold rounded-lg transition-all",
-                                        shippingMethod === 'shiprocket'
-                                            ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm"
-                                            : "text-slate-500 dark:text-zinc-400 hover:text-slate-800"
-                                    )}
-                                >
-                                    Shiprocket (Admin Approval)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setShippingMethod('custom'); setUploadError(null); }}
-                                    className={cn(
-                                        "py-1.5 text-xs font-bold rounded-lg transition-all",
-                                        shippingMethod === 'custom'
-                                            ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm"
-                                            : "text-slate-500 dark:text-zinc-400 hover:text-slate-800"
-                                    )}
-                                >
-                                    Custom Courier (Direct Ship)
-                                </button>
-                            </div>
-                        </div>
-
-                        {shippingMethod === 'shiprocket' ? (
-                            <>
-                                {/* Informative Tip Box */}
-                                <div className="flex gap-2.5 p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-950/10 border border-blue-100 dark:border-blue-900/30 text-[11px] text-blue-700 dark:text-blue-400 font-medium">
-                                    <Zap className="h-4 w-4 shrink-0 text-blue-500" />
-                                    <div>
-                                        <span className="font-bold">Shiprocket Automation:</span> Confirming this state registers the shipment, creates a ready-to-ship order inside Shiprocket, and generates your tracking AWB.
-                                    </div>
-                                </div>
-
-                                {/* Shiprocket Package Details Inputs */}
-                                <div className="space-y-3">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Package Outer Dimensions</p>
-                                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Length (cm)</label>
-                                            <Input 
-                                                type="number" 
-                                                className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
-                                                value={length} 
-                                                onChange={(e) => setLength(parseFloat(e.target.value) || 0)} 
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Breadth (cm)</label>
-                                            <Input 
-                                                type="number" 
-                                                className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
-                                                value={breadth} 
-                                                onChange={(e) => setBreadth(parseFloat(e.target.value) || 0)} 
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Height (cm)</label>
-                                            <Input 
-                                                type="number" 
-                                                className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
-                                                value={height} 
-                                                onChange={(e) => setHeight(parseFloat(e.target.value) || 0)} 
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Weight (kg)</label>
-                                            <Input 
-                                                type="number" 
-                                                step="0.01"
-                                                className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
-                                                value={weight} 
-                                                onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} 
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
+        <>
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 print:hidden">
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-md transition-opacity duration-300" onClick={onClose} />
+                <div className={cn(
+                    "relative bg-white dark:bg-zinc-950 rounded-3xl border border-slate-100 dark:border-zinc-900 shadow-2xl p-6 w-full animate-in zoom-in-95 fade-in duration-200 max-h-[90vh] overflow-y-auto",
+                    (isShipped || isVerification) ? "max-w-lg" : "max-w-md"
+                )}>
+                    {/* Header Pills */}
+                    <div className="flex items-center justify-center gap-3 mb-6 bg-slate-50 dark:bg-zinc-900/50 p-2 rounded-2xl w-fit mx-auto border border-slate-100 dark:border-zinc-900">
+                        <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all', fromCfg?.color, fromCfg?.bg)}>
+                            {fromCfg?.icon} {fromCfg?.label}
+                        </span>
+                        <ArrowRight className="h-4 w-4 text-slate-400" />
+                        <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all', toCfg?.color, toCfg?.bg)}>
+                            {toCfg?.icon} {toCfg?.label}
+                        </span>
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white text-center mb-1">
+                        {isVerification ? 'Submit Print Verification' : 'Update Order Status'}
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-zinc-400 text-center mb-6">
+                        {isVerification ? (
+                            <>Upload a photo or video of the finished print for order <span className="font-extrabold text-blue-600 dark:text-blue-400">#{order.id}</span>.</>
                         ) : (
-                            <>
-                                {/* Informative Tip Box */}
-                                <div className="flex gap-2.5 p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
-                                    <PackageCheck className="h-4 w-4 shrink-0 text-emerald-500" />
-                                    <div>
-                                        <span className="font-bold">Direct Dispatched:</span> Fill the courier partner and tracking details below. The order will be immediately marked as Shipped without requiring admin approval.
-                                    </div>
-                                </div>
-
-                                {/* Custom Courier Details Inputs */}
-                                <div className="space-y-3.5">
-                                    <div className="flex flex-col gap-1.5">
-                                        <Label htmlFor="custom-courier" className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Courier Partner Name <span className="text-rose-500 font-bold">*</span></Label>
-                                        <Input
-                                            id="custom-courier"
-                                            type="text"
-                                            placeholder="e.g. BlueDart, DTDC, Professional, Self"
-                                            className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
-                                            value={courierName}
-                                            onChange={(e) => setCourierName(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-1.5">
-                                        <Label htmlFor="custom-awb" className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">AWB / Tracking Number <span className="text-rose-500 font-bold">*</span></Label>
-                                        <Input
-                                            id="custom-awb"
-                                            type="text"
-                                            placeholder="e.g. AWB12345678"
-                                            className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
-                                            value={awbCode}
-                                            onChange={(e) => setAwbCode(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            </>
+                            <>Advance <span className="font-extrabold text-blue-600 dark:text-blue-400">Order #{order.id}</span> to <span className={cn('font-black', toCfg?.color)}>{toCfg?.label}</span>?</>
                         )}
+                    </p>
 
-                        {/* Shipment Proof Upload */}
-                        <div className="space-y-2 border-t border-slate-100 dark:border-zinc-900 pt-5">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">
-                                Shipment Package Proof (Image or Video) {shippingMethod === 'shiprocket' && <span className="text-rose-500 font-bold">*</span>}
-                            </p>
-                            <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl p-4 hover:bg-slate-50/50 dark:hover:bg-zinc-900/10 transition relative">
-                                <input 
-                                    type="file" 
-                                    accept="image/*,video/*"
-                                    onChange={handleFileChange}
-                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                    disabled={uploading || isPending}
-                                />
-                                {uploading ? (
-                                    <div className="flex flex-col items-center gap-1.5 py-2">
-                                        <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />
-                                        <p className="text-xs text-slate-500 dark:text-zinc-400 font-bold">Uploading proof...</p>
+                    {isVerification && (order as any).verificationRejectedReason && (
+                        <div className="flex gap-2.5 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-[11px] text-rose-700 dark:text-rose-400 font-medium mb-4">
+                            <AlertTriangle className="h-4 w-4 shrink-0 text-rose-500 animate-pulse" />
+                            <div>
+                                <span className="font-bold">Previous Verification Rejected:</span> {(order as any).verificationRejectedReason}
+                            </div>
+                        </div>
+                    )}
+
+                    {isShipped && (
+                        <div className="space-y-5 mb-6 border-t border-slate-100 dark:border-zinc-900 pt-5">
+                            
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => window.print()}
+                                className="w-full flex items-center justify-center gap-2 rounded-2xl border-dashed border-blue-300 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/25 text-blue-600 dark:text-blue-400 font-extrabold h-11 transition-all shadow-sm"
+                            >
+                                <Printer className="h-4 w-4 text-blue-500" />
+                                Print Shipping Label & Packing Slip
+                            </Button>
+
+                            {/* Elegant Shipping & Order Details Card */}
+                            <div className="rounded-2xl border border-slate-100 dark:border-zinc-900 overflow-hidden bg-gradient-to-b from-slate-50/50 to-white dark:from-zinc-900/50 dark:to-zinc-950 shadow-sm">
+                                {/* Destination Section */}
+                                <div className="p-4 space-y-3">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 flex items-center gap-1.5">
+                                        <MapPin className="h-3 w-3 text-rose-500" /> Destination Address
+                                    </p>
+                                    <div className="space-y-2 text-xs">
+                                        <div className="flex items-center gap-2">
+                                            <User2 className="h-3.5 w-3.5 text-slate-400" />
+                                            <p className="font-bold text-slate-800 dark:text-zinc-200">
+                                                Recipient: <span className="font-medium text-slate-600 dark:text-zinc-400">{order.user.name}</span>
+                                            </p>
+                                        </div>
+                                        {order.user.phone && (
+                                            <div className="flex items-center gap-2">
+                                                <Phone className="h-3.5 w-3.5 text-slate-400" />
+                                                <p className="font-bold text-slate-800 dark:text-zinc-200">
+                                                    Phone: <span className="font-medium text-slate-600 dark:text-zinc-400">{order.user.phone}</span>
+                                                </p>
+                                            </div>
+                                        )}
+                                        {order.shippingAddress && (
+                                            <div className="flex items-start gap-2">
+                                                <MapPin className="h-3.5 w-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                                <p className="font-bold text-slate-800 dark:text-zinc-200 leading-relaxed">
+                                                    Address: <span className="font-medium text-slate-600 dark:text-zinc-400">
+                                                        {(() => {
+                                                            const addr = order.shippingAddress as any;
+                                                            return [addr?.addressLine1, addr?.addressLine2, addr?.city, addr?.state, addr?.zip, addr?.country]
+                                                                .filter(Boolean).join(', ');
+                                                        })()}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
-                                ) : attachmentsUrl ? (
-                                    <div className="flex flex-col items-center gap-1.5 py-1">
-                                        <CheckCircle2 className="h-6 w-6 text-emerald-500 animate-bounce" />
-                                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Proof Uploaded Successfully!</p>
-                                        <p className="text-[10px] text-slate-400 truncate max-w-[250px]">{attachmentsUrl.split('/').pop()}</p>
+                                </div>
+
+                                {/* Specifications & Payout Section */}
+                                <div className="p-4 border-t border-slate-100 dark:border-zinc-900 bg-slate-50/30 dark:bg-zinc-900/10 space-y-3">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 flex items-center gap-1.5">
+                                        <Package className="h-3 w-3 text-indigo-500" /> Order Specifications
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-3 text-xs">
+                                        <div className="space-y-1">
+                                            <p className="font-bold text-slate-800 dark:text-zinc-200">
+                                                Product: <span className="font-medium text-slate-600 dark:text-zinc-400 block truncate max-w-[200px]" title={order.directSellingProduct?.name || order.product?.name}>{order.directSellingProduct?.name || order.product?.name || 'Unspecified Product'}</span>
+                                            </p>
+                                            <p className="font-bold text-slate-800 dark:text-zinc-200">
+                                                Quantity: <span className="font-semibold text-slate-600 dark:text-zinc-400">{order.quantity} pcs</span>
+                                            </p>
+                                            <p className="font-bold text-slate-800 dark:text-zinc-200">
+                                                Payout: <span className="font-black text-emerald-600 dark:text-emerald-400">₹{parseFloat(order.printingAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1 border-l border-slate-200/60 dark:border-zinc-800/80 pl-3">
+                                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold">
+                                                Sides: <span className="font-normal">{pages}</span>
+                                            </p>
+                                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold">
+                                                Size: <span className="font-normal">{dimensions}</span>
+                                            </p>
+                                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold">
+                                                Lamination: <span className="font-normal">{lamination}</span>
+                                            </p>
+                                        </div>
                                     </div>
-                                ) : (
-                                    <div className="flex flex-col items-center gap-1.5 py-2">
-                                        <UploadCloud className="h-6 w-6 text-slate-400" />
-                                        <p className="text-xs text-slate-500 dark:text-zinc-400 font-bold">Click or drag image/video here</p>
-                                        <p className="text-[9px] text-slate-400">Supported formats: JPG, PNG, MP4 (Max 50MB)</p>
+                                </div>
+                            </div>
+
+                            {/* Shipping Method Selector */}
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Shipping Method</p>
+                                <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-zinc-900 p-1 rounded-xl">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShippingMethod('shiprocket'); setUploadError(null); }}
+                                        className={cn(
+                                            "py-1.5 text-xs font-bold rounded-lg transition-all",
+                                            shippingMethod === 'shiprocket'
+                                                ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                                                : "text-slate-500 dark:text-zinc-400 hover:text-slate-800"
+                                        )}
+                                    >
+                                        Shiprocket (Admin Approval)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShippingMethod('custom'); setUploadError(null); }}
+                                        className={cn(
+                                            "py-1.5 text-xs font-bold rounded-lg transition-all",
+                                            shippingMethod === 'custom'
+                                                ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                                                : "text-slate-500 dark:text-zinc-400 hover:text-slate-800"
+                                        )}
+                                    >
+                                        Custom Courier (Direct Ship)
+                                    </button>
+                                </div>
+                            </div>
+
+                            {shippingMethod === 'shiprocket' ? (
+                                <>
+                                    {/* Informative Tip Box */}
+                                    <div className="flex gap-2.5 p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-950/10 border border-blue-100 dark:border-blue-900/30 text-[11px] text-blue-700 dark:text-blue-400 font-medium">
+                                        <Zap className="h-4 w-4 shrink-0 text-blue-500" />
+                                        <div>
+                                            <span className="font-bold">Shiprocket Automation:</span> Confirming this state registers the shipment, creates a ready-to-ship order inside Shiprocket, and generates your tracking AWB.
+                                        </div>
                                     </div>
+
+                                    {/* Shiprocket Package Details Inputs */}
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Package Outer Dimensions</p>
+                                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Length (cm)</label>
+                                                <Input 
+                                                    type="number" 
+                                                    className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                                    value={length} 
+                                                    onChange={(e) => setLength(parseFloat(e.target.value) || 0)} 
+                                                />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Breadth (cm)</label>
+                                                <Input 
+                                                    type="number" 
+                                                    className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                                    value={breadth} 
+                                                    onChange={(e) => setBreadth(parseFloat(e.target.value) || 0)} 
+                                                />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Height (cm)</label>
+                                                <Input 
+                                                    type="number" 
+                                                    className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                                    value={height} 
+                                                    onChange={(e) => setHeight(parseFloat(e.target.value) || 0)} 
+                                                />
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase">Weight (kg)</label>
+                                                <Input 
+                                                    type="number" 
+                                                    step="0.01"
+                                                    className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                                    value={weight} 
+                                                    onChange={(e) => setWeight(parseFloat(e.target.value) || 0)} 
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {/* Informative Tip Box */}
+                                    <div className="flex gap-2.5 p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                                        <PackageCheck className="h-4 w-4 shrink-0 text-emerald-500" />
+                                        <div>
+                                            <span className="font-bold">Direct Dispatched:</span> Fill the courier partner and tracking details below. The order will be immediately marked as Shipped without requiring admin approval.
+                                        </div>
+                                    </div>
+
+                                    {/* Custom Courier Details Inputs */}
+                                    <div className="space-y-3.5">
+                                        <div className="flex flex-col gap-1.5">
+                                            <Label htmlFor="custom-courier" className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">Courier Partner Name <span className="text-rose-500 font-bold">*</span></Label>
+                                            <Input
+                                                id="custom-courier"
+                                                type="text"
+                                                placeholder="e.g. BlueDart, DTDC, Professional, Self"
+                                                className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                                value={courierName}
+                                                onChange={(e) => setCourierName(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <Label htmlFor="custom-awb" className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">AWB / Tracking Number <span className="text-rose-500 font-bold">*</span></Label>
+                                            <Input
+                                                id="custom-awb"
+                                                type="text"
+                                                placeholder="e.g. AWB12345678"
+                                                className="h-9 text-xs rounded-xl bg-slate-50/50 border-slate-200 dark:border-zinc-800 dark:bg-zinc-900 focus:ring-2 focus:ring-blue-500/20"
+                                                value={awbCode}
+                                                onChange={(e) => setAwbCode(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Shipment Proof Upload */}
+                            <div className="space-y-2 border-t border-slate-100 dark:border-zinc-900 pt-5">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">
+                                    Shipment Package Proof (Image or Video) {shippingMethod === 'shiprocket' && <span className="text-rose-500 font-bold">*</span>}
+                                </p>
+                                <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl p-4 hover:bg-slate-50/50 dark:hover:bg-zinc-900/10 transition relative">
+                                    <input 
+                                        type="file" 
+                                        accept="image/*,video/*"
+                                        onChange={handleFileChange}
+                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                        disabled={uploading || isPending}
+                                    />
+                                    {uploading ? (
+                                        <div className="flex flex-col items-center gap-1.5 py-2">
+                                            <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />
+                                            <p className="text-xs text-slate-550 dark:text-zinc-400 font-bold">Uploading proof...</p>
+                                        </div>
+                                    ) : attachmentsUrl ? (
+                                        <div className="flex flex-col items-center gap-1.5 py-1">
+                                            <CheckCircle2 className="h-6 w-6 text-emerald-500 animate-bounce" />
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Proof Uploaded Successfully!</p>
+                                            <p className="text-[10px] text-slate-400 truncate max-w-[250px]">{attachmentsUrl.split('/').pop()}</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-1.5 py-2">
+                                            <UploadCloud className="h-6 w-6 text-slate-400" />
+                                            <p className="text-xs text-slate-550 dark:text-zinc-400 font-bold">Click or drag image/video here</p>
+                                            <p className="text-[9px] text-slate-400">Supported formats: JPG, PNG, MP4 (Max 50MB)</p>
+                                        </div>
+                                    )}
+                                </div>
+                                {uploadError && (
+                                    <p className="text-xs text-rose-500 font-bold mt-1">{uploadError}</p>
                                 )}
                             </div>
-                            {uploadError && (
-                                <p className="text-xs text-rose-500 font-bold mt-1">{uploadError}</p>
-                            )}
+
                         </div>
+                    )}
 
+                    {isVerification && (
+                        <div className="space-y-4 mb-6 border-t border-slate-100 dark:border-zinc-900 pt-5">
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">
+                                    Printed Item Proof (Image or Video) <span className="text-rose-500 font-bold">*</span>
+                                </p>
+                                <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl p-6 hover:bg-slate-50/50 dark:hover:bg-zinc-900/10 transition relative">
+                                    <input 
+                                        type="file" 
+                                        accept="image/*,video/*"
+                                        onChange={handleFileChange}
+                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                        disabled={uploading || isPending}
+                                    />
+                                    {uploading ? (
+                                        <div className="flex flex-col items-center gap-1.5 py-2">
+                                            <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />
+                                            <p className="text-xs text-slate-550 dark:text-zinc-400 font-bold">Uploading verification file...</p>
+                                        </div>
+                                    ) : attachmentsUrl ? (
+                                        <div className="flex flex-col items-center gap-1.5 py-1">
+                                            <CheckCircle2 className="h-6 w-6 text-emerald-500 animate-bounce" />
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">File Uploaded Successfully!</p>
+                                            <p className="text-[10px] text-slate-400 truncate max-w-[250px]">{attachmentsUrl.split('/').pop()}</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-1.5 py-2 text-center">
+                                            <UploadCloud className="h-6 w-6 text-slate-400" />
+                                            <p className="text-xs text-slate-550 dark:text-zinc-400 font-bold">Click or drag print proof here</p>
+                                            <p className="text-[9px] text-slate-400">Upload high-res photo or video of printed material</p>
+                                        </div>
+                                    )}
+                                </div>
+                                {uploadError && (
+                                    <p className="text-xs text-rose-500 font-bold mt-1">{uploadError}</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex gap-3 mt-2">
+                        <Button variant="outline" className="flex-1 rounded-2xl font-bold h-11" onClick={onClose} disabled={isPending || uploading}>
+                            Cancel
+                        </Button>
+                        <Button
+                            className="flex-1 rounded-2xl font-bold h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 transition-all active:scale-[0.98]"
+                            onClick={handleConfirm}
+                            disabled={isPending || uploading}
+                        >
+                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Update'}
+                        </Button>
                     </div>
-                )}
-
-                <div className="flex gap-3 mt-2">
-                    <Button variant="outline" className="flex-1 rounded-2xl font-bold h-11" onClick={onClose} disabled={isPending || uploading}>
-                        Cancel
-                    </Button>
-                    <Button
-                        className="flex-1 rounded-2xl font-bold h-11 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 transition-all active:scale-[0.98]"
-                        onClick={handleConfirm}
-                        disabled={isPending || uploading}
-                    >
-                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Update'}
-                    </Button>
                 </div>
             </div>
-        </div>
+
+            {/* Printable Packing Slip & Shipping Label */}
+            {isShipped && (
+                <div className="hidden print:block p-8 bg-white text-black font-sans w-full max-w-[800px] mx-auto text-sm leading-relaxed">
+                    {/* Header: Logo & Company Address */}
+                    <div className="flex justify-between items-start border-b-2 border-slate-300 pb-6 mb-6">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-2xl font-black tracking-tight text-black">AMAZOPRINT</span>
+                                <span className="w-2 h-2 rounded-full bg-slate-900"></span>
+                            </div>
+                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Return & Fulfillment Center</p>
+                            <p className="text-xs text-slate-700 max-w-sm font-semibold">
+                                No.21/2, Udayarpalayam, Attur Mainroad, Udayarpalayam, Thammampatti - 636113, Tamilnadu, India.
+                            </p>
+                        </div>
+                        <div className="text-right text-xs text-slate-600 font-bold space-y-1">
+                            <p><span className="text-slate-400">GSTIN:</span> 33BNLPK5597H1ZJ</p>
+                            <p><span className="text-slate-400">Email:</span> support@amazoprint.com</p>
+                            <p><span className="text-slate-400">Phone:</span> +91 94983 38053 / 81110 63111</p>
+                        </div>
+                    </div>
+
+                    {/* Packing Slip Details Title */}
+                    <div className="text-center mb-6">
+                        <h2 className="text-lg font-black uppercase tracking-widest text-slate-900 border-y border-slate-200 py-2">
+                            Shipping Label & Packing Slip
+                        </h2>
+                    </div>
+
+                    {/* Addresses: Sender & Receiver */}
+                    <div className="grid grid-cols-2 gap-8 mb-6 pb-6 border-b border-slate-200">
+                        {/* FROM: Sender details */}
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">
+                                Sender (Return Address)
+                            </h3>
+                            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1 text-xs text-slate-800 font-semibold">
+                                <p className="font-extrabold text-sm text-slate-955">AMAZOPRINT</p>
+                                <p>No.21/2, Udayarpalayam, Attur Mainroad</p>
+                                <p>Udayarpalayam, Thammampatti - 636113</p>
+                                <p>Tamilnadu, India.</p>
+                                <p className="pt-2 font-bold text-slate-505">Ph: +91 94983 38053</p>
+                            </div>
+                        </div>
+
+                        {/* TO: Receiver details */}
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">
+                                Recipient (Deliver To)
+                            </h3>
+                            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1 text-xs text-slate-800 font-semibold">
+                                <p className="font-extrabold text-sm text-slate-955">{order.user.name}</p>
+                                {order.shippingAddress ? (
+                                    <>
+                                        <p>{(order.shippingAddress as any).addressLine1}</p>
+                                        {(order.shippingAddress as any).addressLine2 && <p>{(order.shippingAddress as any).addressLine2}</p>}
+                                        <p>
+                                            {[(order.shippingAddress as any).city, (order.shippingAddress as any).state, (order.shippingAddress as any).zip].filter(Boolean).join(', ')}
+                                        </p>
+                                        {(order.shippingAddress as any).country && <p>{(order.shippingAddress as any).country}</p>}
+                                    </>
+                                ) : (
+                                    <p className="italic text-slate-400 font-medium">No address provided</p>
+                                )}
+                                {order.user.phone && <p className="pt-2 font-bold text-slate-505">Ph: {order.user.phone}</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Order Information & Carrier details */}
+                    <div className="grid grid-cols-2 gap-8 mb-6 pb-6 border-b border-slate-200 text-xs">
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">
+                                Order Context
+                            </h3>
+                            <div className="space-y-1.5 font-medium text-slate-800">
+                                <p><span className="font-bold text-slate-500">Order ID:</span> #{order.id}</p>
+                                <p><span className="font-bold text-slate-500">Order Date:</span> {order.createdAt ? format(new Date(order.createdAt), 'dd MMM yyyy, h:mm a') : 'N/A'}</p>
+                                <p><span className="font-bold text-slate-500">Print Payout:</span> ₹{parseFloat(order.printingAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">
+                                Shipment Carrier Details
+                            </h3>
+                            <div className="space-y-1.5 font-medium text-slate-800">
+                                {shippingMethod === 'custom' ? (
+                                    <>
+                                        <p><span className="font-bold text-slate-500">Shipping Method:</span> Custom Courier</p>
+                                        <p><span className="font-bold text-slate-500">Courier Name:</span> {courierName || 'Not specified'}</p>
+                                        <p><span className="font-bold text-slate-500">AWB/Tracking ID:</span> {awbCode || 'Not generated'}</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p><span className="font-bold text-slate-500">Shipping Method:</span> Shiprocket Automation</p>
+                                        <p><span className="font-bold text-slate-500">Dimensions:</span> {length} × {breadth} × {height} cm</p>
+                                        <p><span className="font-bold text-slate-500">Weight:</span> {weight} kg</p>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Item Specifications */}
+                    <div className="space-y-3 mb-8">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">
+                            Item Specifications
+                        </h3>
+                        <table className="w-full text-left border-collapse border border-slate-200">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-700">
+                                    <th className="p-3">Product Name</th>
+                                    <th className="p-3 text-center">Qty</th>
+                                    <th className="p-3 text-center">Sides</th>
+                                    <th className="p-3 text-center">Dimensions</th>
+                                    <th className="p-3 text-center">Lamination</th>
+                                    <th className="p-3 text-center">Spot UV</th>
+                                    <th className="p-3 text-center">Foil</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-xs font-medium text-slate-800 divide-y divide-slate-100">
+                                <tr>
+                                    <td className="p-3 font-bold text-slate-900">
+                                        {order.directSellingProduct?.name || order.product?.name || 'Unspecified Product'}
+                                    </td>
+                                    <td className="p-3 text-center font-bold">{order.quantity} pcs</td>
+                                    <td className="p-3 text-center">{pages}</td>
+                                    <td className="p-3 text-center">{dimensions}</td>
+                                    <td className="p-3 text-center">{lamination}</td>
+                                    <td className="p-3 text-center">{spotUv}</td>
+                                    <td className="p-3 text-center">{foil}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Footer Declaration */}
+                    <div className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-8 border-t border-dashed border-slate-300">
+                        Thank you for ordering with Amazoprint
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
 
@@ -1227,8 +1459,10 @@ export default function PrinterOrdersPage() {
                 </div>
             )}
 
-            {/* ── Page header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            {/* Wrap standard page content so it hides on print */}
+            <div className="space-y-6 print:hidden">
+                {/* ── Page header */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
@@ -1534,6 +1768,7 @@ export default function PrinterOrdersPage() {
                     ))}
                 </div>
             )}
+            </div>
         </div>
     );
 }
