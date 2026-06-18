@@ -240,7 +240,7 @@ function SimpleDropdown({
       <div className="bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden ring-1 ring-black/5 py-1.5">
         {items.map((item) => (
           <Link
-            key={item.href}
+            key={`${item.href}-${item.label}`}
             href={item.href}
             onClick={onClose}
             className="flex items-start gap-3 px-4 py-3 hover:bg-blue-50 transition-colors group"

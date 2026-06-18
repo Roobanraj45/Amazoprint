@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { printersMessaging, printPressUsers, admins } from '@/db/schema';
+import { printersMessaging, printPressUsers, admins, contestMessages } from '@/db/schema';
 import { and, eq, or, desc, asc, count, sql } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
@@ -240,5 +240,98 @@ export async function getUnreadMessageCount() {
     );
 
   return unreadCountResult?.count || 0;
+}
+
+/**
+ * Gets conversation history for a contest between a client and freelancer.
+ */
+export async function getConversation(contestId: number, freelancerId: string) {
+  const session = await getSession();
+  if (!session?.sub) {
+    throw new Error('Unauthorized');
+  }
+
+  const messages = await db.query.contestMessages.findMany({
+    where: and(
+      eq(contestMessages.contestId, contestId),
+      eq(contestMessages.freelancerId, freelancerId)
+    ),
+    with: {
+      sender: {
+        columns: {
+          id: true,
+          name: true,
+          profileImage: true,
+        },
+      },
+    },
+    orderBy: [asc(contestMessages.createdAt)],
+  });
+
+  return messages;
+}
+
+/**
+ * Sends a message in a contest conversation.
+ */
+export async function sendMessage(formData: FormData) {
+  const session = await getSession();
+  if (!session?.sub) {
+    throw new Error('Unauthorized');
+  }
+
+  const contestIdStr = formData.get('contestId');
+  const receiverId = formData.get('receiverId');
+  const freelancerId = formData.get('freelancerId');
+  const messageText = formData.get('message');
+
+  if (!contestIdStr || !receiverId || !freelancerId || !messageText) {
+    throw new Error('Missing required fields');
+  }
+
+  const contestId = parseInt(contestIdStr as string, 10);
+  if (isNaN(contestId)) {
+    throw new Error('Invalid contest ID');
+  }
+
+  const [newMessage] = await db.insert(contestMessages)
+    .values({
+      contestId,
+      senderId: session.sub,
+      receiverId: receiverId as string,
+      freelancerId: freelancerId as string,
+      message: messageText as string,
+      isRead: false,
+    })
+    .returning();
+
+  revalidatePath(`/client/contests/${contestId}`);
+  revalidatePath(`/freelancer/contests`);
+  return newMessage;
+}
+
+/**
+ * Marks all messages in a contest conversation received by the current user as read.
+ */
+export async function markConversationAsRead(contestId: number, freelancerId: string) {
+  const session = await getSession();
+  if (!session?.sub) {
+    throw new Error('Unauthorized');
+  }
+
+  await db.update(contestMessages)
+    .set({ isRead: true })
+    .where(
+      and(
+        eq(contestMessages.contestId, contestId),
+        eq(contestMessages.freelancerId, freelancerId),
+        eq(contestMessages.receiverId, session.sub),
+        eq(contestMessages.isRead, false)
+      )
+    );
+
+  revalidatePath(`/client/contests/${contestId}`);
+  revalidatePath(`/freelancer/contests`);
+  return { success: true };
 }
 

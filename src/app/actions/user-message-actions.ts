@@ -108,7 +108,10 @@ export async function getMessagesForAdminWithUser(userId: string) {
  * Gets message history for the logged-in user.
  */
 export async function getMessagesForUser() {
-  const session = await verifyUserSession();
+  const session = await getSession();
+  if (!session?.sub || !['user', 'freelancer'].includes(session.role)) {
+    return [];
+  }
   const userId = session.sub;
 
   const messages = await db.query.usersMessaging.findMany({
