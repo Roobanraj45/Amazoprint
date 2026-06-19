@@ -85,7 +85,7 @@ export async function getUserStats() {
     }
 
     if (session.role === 'freelancer') {
-        const [joinedResult] = await db.select({ count: count() }).from(contestParticipants).where(eq(contestParticipants.userId, session.sub));
+        const [joinedResult] = await db.select({ count: count() }).from(contestParticipants).where(eq(contestParticipants.freelancerId, session.sub));
         const [wonResult] = await db.select({ count: count() }).from(contestWinners).where(eq(contestWinners.freelancerId, session.sub));
         const [verificationsResult] = await db.select({ count: count() }).from(designVerifications).where(
             and(
@@ -111,4 +111,43 @@ export async function getUserStats() {
             verificationsRequested: verificationsResult.count,
         };
     }
+}
+
+const freelancerProfileSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  phone: z.string().nullable().optional(),
+  profileImage: z.string().nullable().optional(),
+  skills: z.array(z.string()).optional(),
+  experienceYears: z.coerce.number().nullable().optional(),
+  hourlyRate: z.coerce.number().nullable().optional(),
+  portfolioUrl: z.string().nullable().optional(),
+  bio: z.string().nullable().optional(),
+  availabilityStatus: z.enum(['available', 'busy', 'offline']).optional(),
+});
+
+export async function updateFreelancerProfile(data: z.infer<typeof freelancerProfileSchema>) {
+  const session = await getAuthSession();
+  if (!session?.sub || session.role !== 'freelancer') {
+    throw new Error('Unauthorized');
+  }
+
+  const validated = freelancerProfileSchema.parse(data);
+
+  await db.update(users)
+    .set({
+      name: validated.name,
+      phone: validated.phone || null,
+      profileImage: validated.profileImage || null,
+      skills: validated.skills || [],
+      experienceYears: validated.experienceYears || null,
+      hourlyRate: validated.hourlyRate ? validated.hourlyRate.toString() : null,
+      portfolioUrl: validated.portfolioUrl || null,
+      bio: validated.bio || null,
+      availabilityStatus: validated.availabilityStatus || 'available',
+      updatedAt: new Date()
+    })
+    .where(eq(users.id, session.sub));
+
+  revalidatePath('/freelancer/profile');
+  return { success: true };
 }

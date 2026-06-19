@@ -391,3 +391,47 @@ export async function uploadShipmentAttachment(formData: FormData) {
         return { success: false, error: e instanceof Error ? e.message : String(e) };
     }
 }
+
+export async function uploadProfileImage(formData: FormData) {
+    const session = await getSession();
+    if (!session?.sub) {
+        return { success: false, error: 'Not authenticated' };
+    }
+
+    const file = formData.get('file') as File | null;
+    if (!file || file.size === 0) {
+        return { success: false, error: 'No file provided.' };
+    }
+
+    const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_AVATAR_SIZE) {
+        return { success: false, error: 'File size must be less than 5MB.' };
+    }
+
+    if (!file.type.startsWith('image/')) {
+        return { success: false, error: 'File must be an image.' };
+    }
+
+    try {
+        const userFolder = session.sub;
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+
+        const publicUploadsDir = getStorageDir('public');
+        const uploadsDir = join(publicUploadsDir, 'avatars', userFolder);
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        const uniqueFilename = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+        const filePath = join(uploadsDir, uniqueFilename);
+        const relativePath = `/uploads/avatars/${userFolder}/${uniqueFilename}`;
+        
+        await writeFile(filePath, buffer);
+        return { success: true, url: relativePath };
+    } catch (e) {
+        console.error('Error in uploadProfileImage:', e);
+        return { success: false, error: e instanceof Error ? e.message : String(e) };
+    }
+}
+

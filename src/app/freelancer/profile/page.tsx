@@ -1,11 +1,14 @@
 import { getUserProfile, getUserStats } from "@/app/actions/user-actions";
 import { getBankDetails } from "@/app/actions/bank-actions";
 import { BankDetailsForm } from "@/components/BankDetailsForm";
+import { ProfileEditForm } from "@/components/freelancer/profile-edit-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import { Trophy, ShieldCheck, Mail, CalendarDays, Phone, Briefcase, Code, Sparkles, Clock, ExternalLink } from "lucide-react";
+import { Trophy, ShieldCheck, Mail, CalendarDays, Phone, Briefcase, Code, Sparkles, Clock, ExternalLink, User, CreditCard, Building2 } from "lucide-react";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export default async function FreelancerProfilePage() {
     const profile = await getUserProfile();
@@ -35,134 +38,110 @@ export default async function FreelancerProfilePage() {
                 <div className="space-y-1">
                     <Badge variant="outline" className="bg-violet-500/10 text-violet-600 border-violet-500/20 mb-2 uppercase text-[10px] tracking-widest font-bold">Freelancer Space</Badge>
                     <h1 className="text-3xl md:text-4xl font-black tracking-tight font-headline">My Profile</h1>
-                    <p className="text-muted-foreground font-medium">Showcase your skills, track your wins, and manage your availability.</p>
+                    <p className="text-muted-foreground font-medium">Manage your designer information, skills, stats, and payouts account details.</p>
                 </div>
             </header>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Profile Card */}
-                <Card className="lg:col-span-1 border-border/40 bg-card/40 backdrop-blur-sm shadow-xl shadow-black/5 overflow-hidden relative">
-                    <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-violet-500/20 to-fuchsia-600/20" />
-                    <CardHeader className="pt-12 pb-2 relative z-10 text-center">
-                        <Avatar className="h-24 w-24 border-4 border-background mx-auto mb-4 shadow-xl">
-                            <AvatarImage src={profile.profileImage || ""} />
-                            <AvatarFallback className="bg-violet-100 text-violet-700 text-3xl font-black uppercase">
-                                {profile.name.substring(0, 2)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <CardTitle className="text-2xl font-black tracking-tight">{profile.name}</CardTitle>
-                        <CardDescription className="font-bold text-violet-600 dark:text-violet-400">Professional Designer</CardDescription>
-                        <div className="mt-2.5 flex justify-center">
-                            {getAvailabilityBadge(profile.availabilityStatus || 'available')}
-                        </div>
-                    </CardHeader>
-                    
-                    <CardContent className="space-y-6 pt-6 relative z-10 border-t border-border/40">
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3 text-sm">
-                                <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
-                                    <Mail className="w-4 h-4" />
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Email Address</p>
-                                    <p className="font-semibold text-foreground truncate">{profile.email}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm">
-                                <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
-                                    <Phone className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Phone Number</p>
-                                    <p className="font-semibold text-foreground">{profile.phone || "Not provided"}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm">
-                                <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
-                                    <CalendarDays className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Member Since</p>
-                                    <p className="font-semibold text-foreground">{profile.createdAt ? format(new Date(profile.createdAt), 'MMMM yyyy') : 'Unknown'}</p>
-                                </div>
-                            </div>
-                            
-                            {hourlyRateFormatted && (
-                                <div className="flex items-center gap-3 text-sm">
-                                    <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
-                                        <Clock className="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Hourly Rate</p>
-                                        <p className="font-semibold text-foreground">{hourlyRateFormatted}/hr</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {profile.experienceYears !== null && profile.experienceYears !== undefined && (
-                                <div className="flex items-center gap-3 text-sm">
-                                    <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
-                                        <Briefcase className="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Experience</p>
-                                        <p className="font-semibold text-foreground">{profile.experienceYears} Years</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {profile.portfolioUrl && (
-                                <div className="flex items-center gap-3 text-sm">
-                                    <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
-                                        <ExternalLink className="w-4 h-4" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Portfolio</p>
-                                        <a href={profile.portfolioUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 flex items-center gap-1 hover:underline">
-                                            Visit Portfolio <ExternalLink className="w-3 h-3 inline" />
-                                        </a>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Right Side: Bio, Skills & Stats */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Bio Section */}
-                    <Card className="border-border/40 bg-card/40 backdrop-blur-sm shadow-xl shadow-black/5">
-                        <CardHeader>
+                {/* Left Column: Bank account details displayed in summary card with Edit Popup Modal */}
+                <div className="lg:col-span-1">
+                    <Card className="border-border/40 bg-card/40 backdrop-blur-sm shadow-xl shadow-black/5 overflow-hidden">
+                        <CardHeader className="pb-3 border-b border-border/40">
                             <CardTitle className="text-lg font-black tracking-tight flex items-center gap-2">
-                                <Sparkles className="w-5 h-5 text-violet-500" /> About Me
+                                <CreditCard className="w-5 h-5 text-violet-500" /> Bank Payout Details
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground leading-relaxed font-medium">
-                                {profile.bio || "No professional bio provided. Introduce yourself to clients by updating your designer profile information."}
-                            </p>
+                        <CardContent className="pt-6 space-y-4">
+                            {bankData ? (
+                                <div className="space-y-4">
+                                    <div className="space-y-2.5 bg-muted/40 p-4 rounded-2xl border border-border/50 shadow-inner">
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Bank Name</p>
+                                            <p className="font-bold text-sm text-foreground flex items-center gap-1.5 mt-0.5">
+                                                <Building2 className="w-4 h-4 text-slate-500" /> {bankData.bankName}
+                                            </p>
+                                        </div>
+                                        
+                                        <hr className="border-t border-border/40 my-2" />
+                                        
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Account Holder</p>
+                                            <p className="font-bold text-xs text-foreground mt-0.5">{bankData.accountHolderName}</p>
+                                        </div>
+                                        
+                                        <hr className="border-t border-border/40 my-2" />
+                                        
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Account Number</p>
+                                            <p className="font-mono text-xs text-foreground mt-0.5">
+                                                •••• •••• {bankData.accountNumber.slice(-4)}
+                                            </p>
+                                        </div>
+                                        
+                                        <hr className="border-t border-border/40 my-2" />
+                                        
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">IFSC Code</p>
+                                            <p className="font-mono text-xs text-foreground uppercase mt-0.5">{bankData.ifscCode}</p>
+                                        </div>
+
+                                        <hr className="border-t border-border/40 my-2" />
+
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Payout Status</p>
+                                            <div className="mt-1">
+                                                {bankData.isVerified ? (
+                                                    <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-600 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+                                                        <ShieldCheck className="w-3 h-3" /> Verified Account
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-600 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse">
+                                                        Verification Pending
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button className="w-full h-10 rounded-xl font-bold text-xs bg-slate-900 hover:bg-slate-800 text-white shadow-md">
+                                                Edit Payout Details
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-2xl rounded-3xl bg-card border-border/50 p-0 overflow-hidden shadow-2xl">
+                                            <BankDetailsForm initialData={bankData} />
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                            ) : (
+                                <div className="space-y-4 text-center py-6">
+                                    <CreditCard className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold text-foreground">No Bank Account Added</p>
+                                        <p className="text-[10px] text-slate-400 max-w-[200px] mx-auto leading-relaxed font-semibold">
+                                            Add your payout details to enable automated prize transfers.
+                                        </p>
+                                    </div>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button className="rounded-xl font-bold text-xs bg-violet-600 hover:bg-violet-700 text-white h-9 px-4 mt-2">
+                                                Add Payout Account
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-2xl rounded-3xl bg-card border-border/50 p-0 overflow-hidden shadow-2xl">
+                                            <BankDetailsForm initialData={null} />
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
+                </div>
 
-                    {/* Skills Section */}
-                    {profile.skills && profile.skills.length > 0 && (
-                        <Card className="border-border/40 bg-card/40 backdrop-blur-sm shadow-xl shadow-black/5">
-                            <CardHeader>
-                                <CardTitle className="text-lg font-black tracking-tight flex items-center gap-2">
-                                    <Code className="w-5 h-5 text-violet-500" /> Skillsets & Expertise
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex flex-wrap gap-2">
-                                {profile.skills.map((skill: string) => (
-                                    <Badge key={skill} variant="secondary" className="px-3.5 py-1.5 rounded-xl font-bold text-xs bg-violet-600/5 text-violet-600 dark:bg-violet-400/5 dark:text-violet-400 border border-violet-600/10">
-                                        {skill}
-                                    </Badge>
-                                ))}
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Statistics Cards */}
+                {/* Right Column: Bio, Skills, Stats & Profile Details (now inline Edit Form) */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Performance Metrics */}
                     <div className="space-y-4">
                         <h2 className="text-xl font-black tracking-tight">Performance Metrics</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -204,9 +183,8 @@ export default async function FreelancerProfilePage() {
                         </div>
                     </div>
 
-                    <div className="pt-2">
-                        <BankDetailsForm initialData={bankData} />
-                    </div>
+                    {/* Inline Profile Editing Form */}
+                    <ProfileEditForm initialData={profile} />
                 </div>
             </div>
         </div>
