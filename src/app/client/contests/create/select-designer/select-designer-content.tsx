@@ -16,7 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import {
-    Loader2, Search, User, Mail, Phone, ExternalLink, Globe,
+    Loader2, Search, User, ExternalLink, Globe,
     Briefcase, Coins, Sparkles, UserCheck, LayoutTemplate, ArrowLeft, X,
     SlidersHorizontal, ArrowUpDown, Award, Trophy, Star
 } from 'lucide-react';
@@ -422,8 +422,14 @@ export default function SelectDesignerContent() {
                               {freelancer.experienceYears ?? 0} Yrs Exp
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground font-semibold truncate">{freelancer.email}</p>
-                          <div className="flex items-center justify-between pt-1.5">
+                          <p className="text-[10px] text-violet-500 font-extrabold uppercase tracking-wider">
+                            {freelancer.experienceYears && freelancer.experienceYears >= 6 
+                              ? 'Senior Designer Partner' 
+                              : freelancer.experienceYears && freelancer.experienceYears >= 3 
+                                ? 'Mid-Level Specialist' 
+                                : 'Associate Designer'}
+                          </p>
+                          <div className="flex items-center justify-between pt-1">
                             <span className="text-xs font-black text-slate-800 dark:text-slate-200">
                               {freelancer.hourlyRate ? `₹${freelancer.hourlyRate}/hr` : 'Rate N/A'}
                             </span>
@@ -490,14 +496,10 @@ export default function SelectDesignerContent() {
                               {selectedFreelancerForDetail.availabilityStatus || 'available'}
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5">
-                            <Mail className="w-3.5 h-3.5 text-muted-foreground/80" /> {selectedFreelancerForDetail.email}
-                          </p>
-                          {selectedFreelancerForDetail.phone && (
-                            <p className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5">
-                              <Phone className="w-3.5 h-3.5 text-muted-foreground/80" /> {selectedFreelancerForDetail.phone}
-                            </p>
-                          )}
+                          <div className="flex items-center gap-1.5 mt-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-xl w-fit">
+                            <Sparkles className="w-3 h-3 animate-pulse" />
+                            <span className="text-[9px] font-black uppercase tracking-wider">Verified Creative Partner</span>
+                          </div>
                         </div>
                       </div>
 
@@ -505,14 +507,14 @@ export default function SelectDesignerContent() {
 
                       {/* Basic Bio Grid */}
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5 bg-background/50 p-4 rounded-2xl border border-border/50 shadow-inner flex flex-col justify-center">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                            <Trophy className="w-3.5 h-3.5 text-yellow-500 shrink-0" /> Experience Level
+                        <div className="space-y-1.5 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 p-4 rounded-2xl border border-violet-500/10 shadow-sm flex flex-col justify-center hover:border-violet-500/20 transition-colors">
+                          <span className="text-[10px] font-black text-violet-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Experience Level
                           </span>
                           <p className="text-sm font-black text-foreground">{selectedFreelancerForDetail.experienceYears ?? 0} Years Exp</p>
                         </div>
-                        <div className="space-y-1.5 bg-background/50 p-4 rounded-2xl border border-border/50 shadow-inner flex flex-col justify-center">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <div className="space-y-1.5 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 p-4 rounded-2xl border border-violet-500/10 shadow-sm flex flex-col justify-center hover:border-violet-500/20 transition-colors">
+                          <span className="text-[10px] font-black text-violet-500 uppercase tracking-widest flex items-center gap-1.5">
                             <Coins className="w-3.5 h-3.5 text-violet-500 shrink-0" /> Design Rate
                           </span>
                           <p className="text-sm font-black text-foreground">
@@ -522,50 +524,50 @@ export default function SelectDesignerContent() {
                       </div>
 
                       {/* Biography */}
-                      <div className="space-y-2.5 bg-background/40 p-5 rounded-2xl border border-border/40 shadow-inner">
-                        <h4 className="text-xs font-black text-foreground uppercase tracking-widest flex items-center gap-1">
+                      <div className="space-y-2.5 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-5 rounded-2xl border border-indigo-500/10 shadow-sm">
+                        <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1">
                             <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Biography / Summary
                         </h4>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-semibold italic">
+                        <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed font-semibold italic relative pl-4 border-l-2 border-indigo-500/40">
                           {selectedFreelancerForDetail.bio || '"No bio description available."'}
                         </p>
                       </div>
 
                       {/* Skills List */}
-                      <div className="space-y-2.5 bg-background/40 p-5 rounded-2xl border border-border/40 shadow-inner">
-                        <h4 className="text-xs font-black text-foreground uppercase tracking-widest">Expertise Skills</h4>
+                      <div className="space-y-2.5 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 p-5 rounded-2xl border border-indigo-500/10 shadow-sm">
+                        <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Expertise Skills</h4>
                         <div className="flex flex-wrap gap-2">
                           {selectedFreelancerForDetail.skills && selectedFreelancerForDetail.skills.length > 0 ? (
                             selectedFreelancerForDetail.skills.map((skill, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-[10px] py-1 px-3 font-extrabold uppercase shadow-sm tracking-wider">
+                              <Badge key={idx} variant="secondary" className="text-[10px] py-1 px-3 font-extrabold uppercase shadow-sm tracking-wider bg-indigo-500/10 text-indigo-600 border border-indigo-500/20">
                                 {skill}
                               </Badge>
                             ))
                           ) : (
-                            <span className="text-xs text-muted-foreground">No specific skills listed.</span>
+                            <span className="text-xs text-muted-foreground italic">No specific skills listed.</span>
                           )}
                         </div>
                       </div>
 
                       {/* External Link */}
                       {selectedFreelancerForDetail.portfolioUrl && (
-                        <div className="space-y-2 bg-background/40 p-4.5 rounded-2xl border border-border/40 shadow-inner">
-                          <h4 className="text-xs font-black text-foreground uppercase tracking-widest">Portfolio Link</h4>
+                        <div className="space-y-2 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 p-4.5 rounded-2xl border border-violet-500/10 shadow-sm">
+                          <h4 className="text-[10px] font-black text-violet-500 uppercase tracking-widest">Portfolio Link</h4>
                           <a
                             href={selectedFreelancerForDetail.portfolioUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs font-black text-primary hover:underline"
+                            className="inline-flex items-center gap-1.5 text-xs font-black text-violet-600 hover:text-violet-700 hover:underline transition-colors mt-1"
                           >
-                            <Globe className="w-4 h-4" /> Open Designer Portfolio Website <ExternalLink className="w-3.5 h-3.5" />
+                            <Globe className="w-4 h-4 text-violet-500" /> Open Designer Portfolio Website <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         </div>
                       )}
 
                       {/* Showcase Designs Grid */}
-                      <div className="space-y-4 bg-background/40 p-5 rounded-2xl border border-border/40 shadow-inner">
-                        <h4 className="text-xs font-black text-foreground uppercase tracking-widest flex items-center gap-1.5">
-                          <Sparkles className="w-4 h-4 text-primary animate-pulse" /> Showcase Portfolio Designs
+                      <div className="space-y-4 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 p-5 rounded-2xl border border-violet-500/10 shadow-sm">
+                        <h4 className="text-[10px] font-black text-violet-500 uppercase tracking-widest flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-violet-500 animate-pulse" /> Showcase Portfolio Designs
                         </h4>
                         
                         {loadingDetail ? (
