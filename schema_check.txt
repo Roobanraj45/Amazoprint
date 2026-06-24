@@ -1,0 +1,8 @@
+No database schema changes or migrations are required for direct freelancer assignment in design verifications.
+
+The `design_verifications` table (defined in schema.ts:Line 411) already contains:
+1. `freelancer_id` (ref: users.id) - to track the assigned designer.
+2. `status` - enum supporting 'pending', 'assigned', 'completed', 'cancelled'.
+3. `assigned_at` - timestamp to track when the designer accepted or was directly assigned to the verification request.
+
+We can proceed to update actions and page layout components directly.

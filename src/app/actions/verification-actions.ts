@@ -17,6 +17,7 @@ const verificationSchema = z.object({
   designSourceType: z.enum(['saved', 'uploaded']),
   sourceId: z.coerce.number().min(1, 'A design must be selected.'),
   clientNotes: z.string().optional(),
+  freelancerId: z.string().uuid().nullable().optional(),
 });
 
 export async function submitForVerification(data: z.infer<typeof verificationSchema>) {
@@ -37,7 +38,9 @@ export async function submitForVerification(data: z.infer<typeof verificationSch
         uploadId: validated.designSourceType === 'uploaded' ? validated.sourceId : null,
         clientNotes: validated.clientNotes,
         verificationFee: verificationFee,
-        status: 'pending',
+        freelancerId: validated.freelancerId || null,
+        status: validated.freelancerId ? 'assigned' : 'pending',
+        assignedAt: validated.freelancerId ? new Date() : null,
     });
 
     revalidatePath('/client/verifications');
