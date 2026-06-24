@@ -31,11 +31,40 @@ export async function submitForVerification(data: z.infer<typeof verificationSch
     // In a real app, you would process a payment here.
     const verificationFee = '500.00'; 
     
+    // Check if there is an active verification (pending or assigned) for this design or upload
+    const designId = validated.designSourceType === 'saved' ? validated.sourceId : null;
+    const uploadId = validated.designSourceType === 'uploaded' ? validated.sourceId : null;
+
+    const activeVerifications = await db.query.designVerifications.findMany({
+        where: and(
+            eq(designVerifications.userId, session.sub),
+            designId 
+                ? eq(designVerifications.designId, designId) 
+                : eq(designVerifications.uploadId, uploadId!),
+            or(
+                eq(designVerifications.status, 'assigned'),
+                eq(designVerifications.status, 'pending')
+            )
+        ),
+        orderBy: [desc(designVerifications.id)],
+    });
+
+    if (activeVerifications.length > 0) {
+        // Clean up any extra active duplicates
+        if (activeVerifications.length > 1) {
+            const idsToCancel = activeVerifications.slice(1).map(v => v.id);
+            await db.update(designVerifications)
+                .set({ status: 'cancelled', updatedAt: new Date() })
+                .where(inArray(designVerifications.id, idsToCancel));
+        }
+        throw new Error('An active verification request already exists for this design.');
+    }
+
     await db.insert(designVerifications).values({
         userId: session.sub,
         title: validated.title,
-        designId: validated.designSourceType === 'saved' ? validated.sourceId : null,
-        uploadId: validated.designSourceType === 'uploaded' ? validated.sourceId : null,
+        designId: designId,
+        uploadId: uploadId,
         clientNotes: validated.clientNotes,
         verificationFee: verificationFee,
         freelancerId: validated.freelancerId || null,
@@ -309,7 +338,7 @@ export async function getActiveFreelancers() {
 
 export async function assignOrderToFreelancerVerification(
     orderId: number,
-    freelancerId: string,
+    freelancerId: string | null,
     verificationFee: string,
     messageText: string
 ) {
@@ -327,22 +356,27 @@ export async function assignOrderToFreelancerVerification(
         throw new Error('Order not found');
     }
 
-    // 2. Check if there is an existing active verification (assigned or pending)
-    const existingActive = await db.query.designVerifications.findFirst({
+    // 2. Check if there are existing active verifications (assigned or pending)
+    const activeVerifications = await db.query.designVerifications.findMany({
         where: and(
             eq(designVerifications.orderId, orderId),
             or(
                 eq(designVerifications.status, 'assigned'),
                 eq(designVerifications.status, 'pending')
             )
-        )
+        ),
+        orderBy: [desc(designVerifications.id)], // Keep the newest active verification
     });
 
     let verificationId: number;
     let isUpdate = false;
 
-    if (existingActive) {
-        // Update existing verification
+    const newStatus = freelancerId ? 'assigned' : 'pending';
+    const assignedTime = freelancerId ? new Date() : null;
+
+    if (activeVerifications.length > 0) {
+        // Use the first (newest) active verification
+        const existingActive = activeVerifications[0];
         verificationId = existingActive.id;
         isUpdate = true;
 
@@ -350,10 +384,20 @@ export async function assignOrderToFreelancerVerification(
             freelancerId: freelancerId,
             verificationFee: verificationFee || '500.00',
             clientNotes: messageText || existingActive.clientNotes || 'Design verification requested by Administrator.',
-            status: 'assigned',
-            assignedAt: new Date(),
+            status: newStatus,
+            assignedAt: assignedTime,
             updatedAt: new Date(),
+            designId: order.designId,
+            uploadId: order.designUploadId,
         }).where(eq(designVerifications.id, existingActive.id));
+
+        // Cancel/Clean up any duplicate active verifications
+        if (activeVerifications.length > 1) {
+            const idsToCancel = activeVerifications.slice(1).map(v => v.id);
+            await db.update(designVerifications)
+                .set({ status: 'cancelled', updatedAt: new Date() })
+                .where(inArray(designVerifications.id, idsToCancel));
+        }
     } else {
         // Create new verification
         const [newVerification] = await db.insert(designVerifications).values({
@@ -365,32 +409,36 @@ export async function assignOrderToFreelancerVerification(
             clientNotes: messageText || 'Design verification requested by Administrator.',
             verificationFee: verificationFee || '500.00',
             freelancerId: freelancerId,
-            status: 'assigned',
-            assignedAt: new Date(),
+            status: newStatus,
+            assignedAt: assignedTime,
         }).returning();
         verificationId = newVerification.id;
     }
 
-    // 3. Send message internally to the freelancer using the existing flow
-    const displayMsg = messageText 
-        ? `${isUpdate ? '[Updated] ' : ''}Design Verification assignment for Order #${order.id}. Bounty: ₹${verificationFee}. Instructions: ${messageText}`
-        : `${isUpdate ? '[Updated] ' : ''}You have been assigned the design verification for Order #${order.id}. Bounty: ₹${verificationFee}.`;
+    // 3. Send message internally to the freelancer using the existing flow if freelancer is assigned
+    if (freelancerId) {
+        const displayMsg = messageText 
+            ? `${isUpdate ? '[Updated] ' : ''}Design Verification assignment for Order #${order.id}. Bounty: ₹${verificationFee}. Instructions: ${messageText}`
+            : `${isUpdate ? '[Updated] ' : ''}You have been assigned the design verification for Order #${order.id}. Bounty: ₹${verificationFee}.`;
 
-    await db.insert(usersMessaging).values({
-        senderId: session.sub,
-        senderType: 'admin',
-        receiverId: freelancerId,
-        receiverType: 'user',
-        message: displayMsg,
-        isRead: false,
-    });
+        await db.insert(usersMessaging).values({
+            senderId: session.sub,
+            senderType: 'admin',
+            receiverId: freelancerId,
+            receiverType: 'user',
+            message: displayMsg,
+            isRead: false,
+        });
+    }
 
     // 4. Log the action in order logs
     await db.insert(orderLogs).values({
         orderId: order.id,
         actionType: 'verification_assigned',
         newValue: { freelancerId, verificationId, isUpdate },
-        message: `${isUpdate ? 'Updated' : 'Sent'} design for verification to freelancer.`,
+        message: freelancerId
+            ? `${isUpdate ? 'Updated' : 'Sent'} design for verification to freelancer.`
+            : `${isUpdate ? 'Updated' : 'Sent'} design for public verification.`,
         performedBy: session.sub,
         performedByRole: session.role,
         isCustomerVisible: false,
