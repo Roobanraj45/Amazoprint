@@ -752,7 +752,7 @@ function ConfirmStatusDialog({
                             <div className="space-y-1.5 font-medium text-slate-800">
                                 <p><span className="font-bold text-slate-500">Order ID:</span> #{order.id}</p>
                                 <p><span className="font-bold text-slate-500">Order Date:</span> {order.createdAt ? format(new Date(order.createdAt), 'dd MMM yyyy, h:mm a') : 'N/A'}</p>
-                                <p><span className="font-bold text-slate-500">Print Payout:</span> ₹{parseFloat(order.printingAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                                <p><span className="font-bold text-slate-500">Order Amount:</span> ₹{parseFloat(order.totalAmount || '0').toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
                             </div>
                         </div>
                         
