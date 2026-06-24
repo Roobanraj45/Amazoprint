@@ -158,11 +158,30 @@ export function FreelancerVerificationControl({
         });
     };
 
+    const getVerificationStatus = () => {
+        if (activeVerification) {
+            if (activeVerification.status === 'assigned') {
+                return { label: 'Review in Progress', color: 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/30' };
+            }
+            return { label: 'Awaiting Freelancer', color: 'bg-amber-500/10 text-amber-600 border border-amber-500/20 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30' };
+        } else if (completedVerifications.length > 0) {
+            return { label: 'Verified & Approved', color: 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30' };
+        }
+        return { label: 'Not Initiated', color: 'bg-slate-100 dark:bg-zinc-800 text-slate-500 border border-slate-200 dark:border-zinc-700' };
+    };
+
+    const statusBadge = getVerificationStatus();
+
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Freelancer Review Assignment</span>
-                {isPending && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
+                <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md", statusBadge.color)}>
+                        {statusBadge.label}
+                    </Badge>
+                    {isPending && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
+                </div>
             </div>
 
             {/* Currently Active Verification Job (Only shown when not editing) */}
