@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { designVerifications, designs, designUploads, users } from '@/db/schema';
+import { designVerifications, designs, designUploads, users, verificationMessages, orders, orderLogs, usersMessaging } from '@/db/schema';
 import { and, eq, desc, isNull, or, inArray, isNotNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -269,5 +269,119 @@ export async function linkDesignToVerification(verificationId: number, designId:
     }).where(eq(designVerifications.id, verificationId));
 
     revalidatePath('/freelancer/verifications');
+    return { success: true };
+}
+
+export async function getActiveFreelancers() {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin', 'designer'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const data = await db.query.users.findMany({
+        where: and(eq(users.role, 'freelancer'), eq(users.isActive, true)),
+        orderBy: [desc(users.name)],
+    });
+    
+    return data.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        profileImage: u.profileImage,
+        experienceYears: u.experienceYears,
+    }));
+}
+
+export async function assignOrderToFreelancerVerification(
+    orderId: number,
+    freelancerId: string,
+    verificationFee: string,
+    messageText: string
+) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin', 'designer'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    // 1. Get the order
+    const order = await db.query.orders.findFirst({
+        where: eq(orders.id, orderId),
+    });
+    if (!order) {
+        throw new Error('Order not found');
+    }
+
+    // 2. Check if there is an existing active verification (assigned or pending)
+    const existingActive = await db.query.designVerifications.findFirst({
+        where: and(
+            eq(designVerifications.orderId, orderId),
+            or(
+                eq(designVerifications.status, 'assigned'),
+                eq(designVerifications.status, 'pending')
+            )
+        )
+    });
+
+    let verificationId: number;
+    let isUpdate = false;
+
+    if (existingActive) {
+        // Update existing verification
+        verificationId = existingActive.id;
+        isUpdate = true;
+
+        await db.update(designVerifications).set({
+            freelancerId: freelancerId,
+            verificationFee: verificationFee || '500.00',
+            clientNotes: messageText || existingActive.clientNotes || 'Design verification requested by Administrator.',
+            status: 'assigned',
+            assignedAt: new Date(),
+            updatedAt: new Date(),
+        }).where(eq(designVerifications.id, existingActive.id));
+    } else {
+        // Create new verification
+        const [newVerification] = await db.insert(designVerifications).values({
+            userId: order.userId,
+            orderId: order.id,
+            title: `Verification for Order #${order.id}`,
+            designId: order.designId,
+            uploadId: order.designUploadId,
+            clientNotes: messageText || 'Design verification requested by Administrator.',
+            verificationFee: verificationFee || '500.00',
+            freelancerId: freelancerId,
+            status: 'assigned',
+            assignedAt: new Date(),
+        }).returning();
+        verificationId = newVerification.id;
+    }
+
+    // 3. Send message internally to the freelancer using the existing flow
+    const displayMsg = messageText 
+        ? `${isUpdate ? '[Updated] ' : ''}Design Verification assignment for Order #${order.id}. Bounty: ₹${verificationFee}. Instructions: ${messageText}`
+        : `${isUpdate ? '[Updated] ' : ''}You have been assigned the design verification for Order #${order.id}. Bounty: ₹${verificationFee}.`;
+
+    await db.insert(usersMessaging).values({
+        senderId: session.sub,
+        senderType: 'admin',
+        receiverId: freelancerId,
+        receiverType: 'user',
+        message: displayMsg,
+        isRead: false,
+    });
+
+    // 4. Log the action in order logs
+    await db.insert(orderLogs).values({
+        orderId: order.id,
+        actionType: 'verification_assigned',
+        newValue: { freelancerId, verificationId, isUpdate },
+        message: `${isUpdate ? 'Updated' : 'Sent'} design for verification to freelancer.`,
+        performedBy: session.sub,
+        performedByRole: session.role,
+        isCustomerVisible: false,
+    });
+
+    revalidatePath(`/admin/orders/${orderId}`);
     return { success: true };
 }

@@ -1,11 +1,12 @@
 import { getAdminOrderDetails, getApprovedPrinters } from "@/app/actions/order-actions";
+import { getActiveFreelancers } from "@/app/actions/verification-actions";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { 
     IndianRupee, User, Package, Truck, CreditCard, Hash, FileText, 
-    Download, ShieldCheck, Clock, Tag, Receipt, Mail, Phone, MapPin, Factory, Trophy 
+    Download, ShieldCheck, Clock, Tag, Receipt, Mail, Phone, MapPin, Factory, Trophy, Sparkles 
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Image from 'next/image';
@@ -15,6 +16,7 @@ import type { Product, DesignElement, Background } from "@/lib/types";
 import { PrintPreviewButton } from "./PrintPreviewButton";
 import { Button } from "@/components/ui/button";
 import { PrinterAssignmentControl } from "./PrinterAssignmentControl";
+import { FreelancerVerificationControl } from "./FreelancerVerificationControl";
 import { OrderStatusControl } from "./OrderStatusControl";
 import { PrintVerificationReview } from "./PrintVerificationReview";
 
@@ -27,9 +29,10 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
         notFound();
     }
 
-    const [order, approvedPrinters] = await Promise.all([
+    const [order, approvedPrinters, activeFreelancers] = await Promise.all([
         getAdminOrderDetails(orderId),
-        getApprovedPrinters()
+        getApprovedPrinters(),
+        getActiveFreelancers()
     ]);
 
     if (!order) {
@@ -618,6 +621,25 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                 currentPrintingAmount={order.printingAmount}
                                 printers={approvedPrinters as any} 
                                 printerPayments={(order as any).printerPayments}
+                            />
+                        </CardContent>
+                    </Card>
+
+                    {/* Freelancer Design Verification */}
+                    <Card className="border border-slate-200/60 dark:border-slate-800/80 shadow-md bg-gradient-to-b from-white to-slate-50/20 dark:from-slate-900 dark:to-slate-950/20 rounded-[2rem] overflow-hidden">
+                        <CardHeader className="p-6 pb-2 border-b border-slate-100 dark:border-zinc-800">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                                    <Sparkles size={16} />
+                                </div>
+                                <CardTitle className="text-base font-bold tracking-tight">Design Verification Assignment</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <FreelancerVerificationControl 
+                                orderId={order.id}
+                                freelancers={activeFreelancers}
+                                existingVerifications={(order as any).designVerifications || []}
                             />
                         </CardContent>
                     </Card>

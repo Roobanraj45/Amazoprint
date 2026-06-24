@@ -413,6 +413,7 @@ export const designVerifications = pgTable('design_verifications', {
     userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     designId: integer('design_id').references(() => designs.id, { onDelete: 'set null' }),
     uploadId: integer('upload_id').references(() => designUploads.id, { onDelete: 'set null' }),
+    orderId: integer('order_id').references(() => orders.id, { onDelete: 'cascade' }),
     title: varchar('title', { length: 255 }).notNull(),
     clientNotes: text('client_notes'),
     verificationFee: numeric('verification_fee', { precision: 10, scale: 2 }).notNull(),
@@ -430,6 +431,7 @@ export const designVerifications = pgTable('design_verifications', {
         uploadIdx: index('idx_dv_upload_id').on(table.uploadId),
         statusIdx: index('idx_dv_status').on(table.status),
         freelancerIdx: index('idx_dv_freelancer_id').on(table.freelancerId),
+        orderIdx: index('idx_dv_order_id').on(table.orderId),
     };
 });
 
@@ -728,6 +730,10 @@ export const designVerificationsRelations = relations(designVerifications, ({ on
         fields: [designVerifications.uploadId],
         references: [designUploads.id]
     }),
+    order: one(orders, {
+        fields: [designVerifications.orderId],
+        references: [orders.id]
+    }),
     messages: many(verificationMessages),
 }));
 
@@ -782,6 +788,7 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     logs: many(orderLogs),
     printerPayments: many(printerPayments),
     shipment: one(shipments),
+    designVerifications: many(designVerifications),
 }));
 
 export const orderLogsRelations = relations(orderLogs, ({ one }) => ({

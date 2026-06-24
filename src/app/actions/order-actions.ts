@@ -552,6 +552,19 @@ export async function getAdminOrderDetails(orderId: number) {
             printerPayments: {
                 orderBy: (p, { desc }) => [desc(p.createdAt)],
             },
+            designVerifications: {
+                with: {
+                    freelancer: {
+                        columns: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            profileImage: true
+                        }
+                    }
+                },
+                orderBy: (dv, { desc }) => [desc(dv.createdAt)],
+            },
         },
     });
 

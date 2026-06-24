@@ -1,0 +1,3 @@
+-- SQL migration query to run on PostgreSQL database:
+ALTER TABLE design_verifications ADD COLUMN IF NOT EXISTS order_id integer REFERENCES orders(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_dv_order_id ON design_verifications(order_id);
