@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation';
 import { DesignEditor } from '@/components/design/design-editor';
 import type { Product, DesignElement, Background, FoilType } from '@/lib/types';
 import { db } from '@/db';
-import { products, subProducts, dieCuts, cardTextures, orders } from '@/db/schema';
-import { eq, asc, and, notInArray } from 'drizzle-orm';
+import { products, subProducts, dieCuts, cardTextures, orders, designVerifications } from '@/db/schema';
+import { eq, asc, and, notInArray, isNotNull, inArray } from 'drizzle-orm';
 import { getDesign } from '@/app/actions/design-actions';
 import { getSession } from '@/lib/auth';
 import { getFoilTypes } from '@/app/actions/foil-actions';
@@ -26,6 +26,10 @@ type DesignPageProps = {
     pages?: string;
     verificationId?: string;
     readonly?: string;
+    spotUv?: string;
+    addons?: string;
+    dieCut?: string;
+    cardTexture?: string;
   };
 };
 
@@ -127,7 +131,22 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
       productForEditor.width = Math.round(template.width * unitToPx);
       productForEditor.height = Math.round(template.height * unitToPx);
 
-      isAuthorizedToUpdate = (session?.sub && template.userId === session.sub) || isAdmin || (isFreelancer && (verificationId || contestId));
+      // Check if the current user is the assigned freelancer for this verification
+      let isAssignedFreelancer = false;
+      if (session?.sub && isFreelancer) {
+        const verification = await db.query.designVerifications.findFirst({
+          where: and(
+            eq(designVerifications.designId, Number(templateId)),
+            eq(designVerifications.freelancerId, session.sub),
+            inArray(designVerifications.status, ['assigned', 'pending'])
+          )
+        });
+        if (verification) {
+          isAssignedFreelancer = true;
+        }
+      }
+
+      isAuthorizedToUpdate = (session?.sub && template.userId === session.sub) || isAdmin || (isFreelancer && (verificationId || contestId)) || isAssignedFreelancer;
 
       initialDesignName = template.name;
       if (isAuthorizedToUpdate) {
@@ -142,7 +161,17 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
           notInArray(orders.orderStatus, ['completed', 'delivered', 'cancelled', 'refunded'])
         )
       });
-      if (activeOrder && !isAdmin) {
+
+      // Check if there is an active freelancer verification assigned for this design
+      const hasVerification = await db.query.designVerifications.findFirst({
+        where: and(
+          eq(designVerifications.designId, Number(templateId)),
+          eq(designVerifications.status, 'assigned'),
+          isNotNull(designVerifications.freelancerId)
+        )
+      });
+
+      if (activeOrder && !isAdmin && !hasVerification) {
         isServerReadonly = true;
       }
     }

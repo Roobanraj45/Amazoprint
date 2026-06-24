@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { assignOrderToFreelancerVerification } from "@/app/actions/verification-actions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ export function FreelancerVerificationControl({
     existingVerifications = []
 }: FreelancerVerificationControlProps) {
     const { toast } = useToast();
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
 
     const activeVerification = existingVerifications.find(v => v.status === 'assigned' || v.status === 'pending');
@@ -102,6 +104,7 @@ export function FreelancerVerificationControl({
                     setFee("500.00");
                     setMessage("");
                     setIsEditing(false);
+                    router.refresh();
                 }
             } catch (err: any) {
                 toast({

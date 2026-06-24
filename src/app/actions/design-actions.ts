@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { db } from '@/db';
 import { designs, designVerifications, contestParticipants, orders } from '@/db/schema';
-import { and, eq, desc, inArray } from 'drizzle-orm';
+import { and, eq, desc, inArray, isNotNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 
@@ -131,6 +131,20 @@ export async function updateDesign(data: z.infer<typeof updateDesignSchema>) {
         }
     }
 
+    // Case 5: User is the assigned freelancer for this design's active verification
+    if (!isAuthorized && session.role === 'freelancer') {
+        const verification = await db.query.designVerifications.findFirst({
+            where: and(
+                eq(designVerifications.designId, id),
+                eq(designVerifications.freelancerId, session.sub),
+                eq(designVerifications.status, 'assigned')
+            )
+        });
+        if (verification) {
+            isAuthorized = true;
+        }
+    }
+
 
     if (!isAuthorized) {
         throw new Error('You are not authorized to update this design.');
@@ -138,16 +152,27 @@ export async function updateDesign(data: z.infer<typeof updateDesignSchema>) {
 
     const isAdmin = session.role && adminRoles.includes(session.role);
     if (!isAdmin) {
-        // NEW: Check if design is part of a processing/shipped/delivered order
-        const activeOrder = await db.query.orders.findFirst({
+        // Check if there is an active freelancer verification assigned for this design
+        const hasVerification = await db.query.designVerifications.findFirst({
             where: and(
-                eq(orders.designId, id),
-                inArray(orders.orderStatus, ['processing', 'shipped', 'delivered'])
+                eq(designVerifications.designId, id),
+                eq(designVerifications.status, 'assigned'),
+                isNotNull(designVerifications.freelancerId)
             )
         });
 
-        if (activeOrder) {
-            throw new Error(`This design is locked because Order #${activeOrder.id} is already in production.`);
+        if (!hasVerification) {
+            // Check if design is part of a processing/shipped/delivered order
+            const activeOrder = await db.query.orders.findFirst({
+                where: and(
+                    eq(orders.designId, id),
+                    inArray(orders.orderStatus, ['processing', 'shipped', 'delivered'])
+                )
+            });
+
+            if (activeOrder) {
+                throw new Error(`This design is locked because Order #${activeOrder.id} is already in production.`);
+            }
         }
     }
     

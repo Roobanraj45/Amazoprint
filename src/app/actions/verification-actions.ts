@@ -142,6 +142,20 @@ export async function submitVerificationFeedback(data: z.infer<typeof feedbackSc
         })
         .where(eq(designVerifications.id, id));
 
+    // Log the verification completion in order logs
+    if (job.orderId) {
+        await db.insert(orderLogs).values({
+            orderId: job.orderId,
+            actionType: 'verification_completed',
+            newValue: { feedback },
+            message: `Design verification completed by freelancer.`,
+            performedBy: session.sub,
+            performedByRole: session.role,
+            isCustomerVisible: false,
+        });
+        revalidatePath(`/admin/orders/${job.orderId}`);
+    }
+
     revalidatePath('/freelancer/verifications');
     revalidatePath('/client/verifications');
 }

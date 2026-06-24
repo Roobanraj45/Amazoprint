@@ -47,13 +47,22 @@ function ProvideFeedbackDialog({ job, onComplete }: { job: MyVerificationJob, on
     const [isOpen, setIsOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
-    const { register, handleSubmit, formState: { errors } } = useForm<FeedbackFormValues>();
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<FeedbackFormValues>({
+        resolver: zodResolver(feedbackSchema)
+    });
     
+    useEffect(() => {
+        if (!isOpen) {
+            reset();
+        }
+    }, [isOpen, reset]);
+
     const onSubmit = (data: FeedbackFormValues) => {
         startTransition(async () => {
             try {
                 await submitVerificationFeedback({id: job.id, feedback: data.feedback});
                 toast({ title: 'Feedback submitted!' });
+                reset();
                 onComplete();
                 setIsOpen(false);
             } catch (error: any) {
