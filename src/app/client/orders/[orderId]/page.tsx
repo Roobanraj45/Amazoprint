@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { IndianRupee, Package, Truck, CreditCard, Hash, FileText, Download, ArrowLeft, History, Clock, CheckCircle2, Lock } from "lucide-react";
+import { IndianRupee, Package, Truck, CreditCard, Hash, FileText, Download, ArrowLeft, History, Clock, CheckCircle2, Lock, ShieldCheck, AlertTriangle } from "lucide-react";
 import Image from 'next/image';
 import { resolveImagePath, cn } from "@/lib/utils";
 import { DesignCanvas } from "@/components/design/design-canvas";
@@ -35,6 +35,10 @@ export default async function ClientOrderDetailsPage({ params }: { params: { ord
     
     const shippingAddress = order.shippingAddress as any;
     const billingAddress = order.billingAddress as any || shippingAddress;
+
+    const designVerifications = (order as any).designVerifications || [];
+    const activeDV = designVerifications.find((v: any) => v.status === 'assigned' || v.status === 'pending');
+    const completedDVs = designVerifications.filter((v: any) => v.status === 'completed');
 
     let designPreviewNode: React.ReactNode = <FileText className="h-16 w-16 text-muted-foreground"/>;
     if (isDesignOrder) {
@@ -285,6 +289,67 @@ export default async function ClientOrderDetailsPage({ params }: { params: { ord
                             </div>
                         </CardContent>
                     </Card>
+
+                    {designVerifications.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Design Verification</CardTitle>
+                                <CardDescription className="text-xs">Professional review of your design files</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-4">
+                                {activeDV && (
+                                    <div className={cn(
+                                        "p-3.5 rounded-xl border text-xs flex flex-col gap-2.5",
+                                        activeDV.status === 'assigned' 
+                                            ? "bg-indigo-50/40 dark:bg-indigo-950/15 border-indigo-100 dark:border-indigo-900/30 text-indigo-850 dark:text-indigo-400"
+                                            : "bg-amber-50/40 dark:bg-amber-950/15 border-amber-100 dark:border-amber-900/30 text-amber-850 dark:text-amber-400"
+                                    )}>
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold uppercase text-[9px] tracking-wider">
+                                                {activeDV.status === 'assigned' ? 'Review in Progress' : 'Awaiting Designer'}
+                                            </span>
+                                            <Badge variant="outline" className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md", 
+                                                activeDV.status === 'assigned' ? "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                            )}>
+                                                {activeDV.status}
+                                            </Badge>
+                                        </div>
+                                        {activeDV.freelancer && (
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[10px] text-slate-400 font-bold">Assigned to:</span>
+                                                <span className="font-black text-slate-800 dark:text-slate-200">{activeDV.freelancer.name}</span>
+                                            </div>
+                                        )}
+                                        {activeDV.clientNotes && (
+                                            <div className="text-[10px] text-slate-500 mt-1 border-t border-slate-100 dark:border-slate-800/40 pt-2">
+                                                <span className="font-bold block text-[8px] uppercase tracking-wider text-slate-400">Your Instructions:</span>
+                                                <p className="italic">"{activeDV.clientNotes}"</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {completedDVs.map((v: any, idx: number) => (
+                                    <div key={idx} className="p-3.5 rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/40 dark:bg-emerald-950/15 text-emerald-850 dark:text-emerald-400 text-xs flex flex-col gap-2.5">
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold uppercase text-[9px] tracking-wider">Completed Audit</span>
+                                            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md">
+                                                Approved
+                                            </Badge>
+                                        </div>
+                                        {v.freelancerFeedback && (
+                                            <div className="space-y-1">
+                                                <span className="font-black text-emerald-600 dark:text-emerald-500 text-[8px] uppercase tracking-wider block">Feedback:</span>
+                                                <p className="p-2.5 bg-emerald-550/5 dark:bg-emerald-550/10 rounded-xl border border-emerald-500/10 italic text-slate-700 dark:text-slate-350 font-semibold leading-relaxed">
+                                                    "{v.freelancerFeedback}"
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <Card>
                         <CardHeader>

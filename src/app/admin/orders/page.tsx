@@ -508,6 +508,25 @@ export default function AdminOrdersPage() {
                                                 <p className="font-semibold text-xs text-slate-800 dark:text-zinc-200 truncate" title={order.directSellingProduct?.name || order.product?.name || undefined}>
                                                     {order.directSellingProduct?.name || order.product?.name || 'N/A'}
                                                 </p>
+                                                {(() => {
+                                                    const dvs = (order as any).designVerifications || [];
+                                                    const active = dvs.find((v: any) => v.status === 'assigned' || v.status === 'pending');
+                                                    const completed = dvs.find((v: any) => v.status === 'completed');
+                                                    if (active) {
+                                                        return (
+                                                            <Badge variant="outline" className={cn("text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md mt-1 w-max block", active.status === 'assigned' ? "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" : "bg-amber-500/10 text-amber-600 border-amber-500/20")}>
+                                                                Design Review: {active.status === 'assigned' ? 'Assigned' : 'Pending'}
+                                                            </Badge>
+                                                        );
+                                                    } else if (completed) {
+                                                        return (
+                                                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 border-emerald-500/20 mt-1.5 w-max block">
+                                                                Design Review: Completed
+                                                            </Badge>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
                                                 <div className="flex items-center gap-1 mt-0.5">
                                                     <Layers className="h-2.5 w-2.5 text-slate-400 shrink-0" />
                                                     <span className="text-[10px] text-slate-400 dark:text-zinc-500">

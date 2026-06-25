@@ -571,6 +571,42 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                 />
                             </div>
 
+                            {/* Design Verification Status */}
+                            {(() => {
+                                const dvs = (order as any).designVerifications || [];
+                                const latest = dvs[0]; // designVerifications are ordered desc by createdAt
+                                
+                                if (dvs.length === 0) return null;
+                                
+                                return (
+                                    <div className="p-4 rounded-2xl bg-indigo-50/20 dark:bg-indigo-950/5 border border-indigo-100/50 dark:border-indigo-950/20 flex flex-col gap-2">
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">Design Verification</span>
+                                            <Badge variant="outline" className={cn(
+                                                "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md",
+                                                latest.status === 'completed' && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+                                                latest.status === 'assigned' && "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
+                                                latest.status === 'pending' && "bg-amber-500/10 text-amber-600 border-amber-500/20",
+                                                latest.status === 'cancelled' && "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                                            )}>
+                                                {latest.status}
+                                            </Badge>
+                                        </div>
+                                        {latest.freelancer && (
+                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-350">
+                                                <span className="text-[9px] text-slate-450 uppercase tracking-wider">Assigned:</span>
+                                                <span>{latest.freelancer.name}</span>
+                                            </div>
+                                        )}
+                                        {latest.status === 'completed' && latest.freelancerFeedback && (
+                                            <div className="text-[10px] text-slate-500 border-t border-slate-100 dark:border-slate-800/40 pt-2 italic leading-relaxed">
+                                                "{latest.freelancerFeedback}"
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
                             {/* Timeline progression tracker */}
                             <div className="relative space-y-5 pl-7 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
                                 {[

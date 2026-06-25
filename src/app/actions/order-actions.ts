@@ -373,6 +373,12 @@ export async function getAdminAllOrders({
                 with: {
                     payments: true
                 }
+            },
+            designVerifications: {
+                columns: {
+                    id: true,
+                    status: true,
+                }
             }
         },
         orderBy: [desc(orders.createdAt)],
@@ -607,6 +613,19 @@ export async function getMyOrderDetails(orderId: number) {
             logs: {
                 where: eq(orderLogs.isCustomerVisible, true),
                 orderBy: [desc(orderLogs.createdAt)]
+            },
+            designVerifications: {
+                with: {
+                    freelancer: {
+                        columns: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            profileImage: true
+                        }
+                    }
+                },
+                orderBy: (dv, { desc }) => [desc(dv.createdAt)],
             }
         },
     });
