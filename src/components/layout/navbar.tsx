@@ -396,7 +396,7 @@ export function Navbar() {
 
             {/* Logo */}
             <Link href="/" prefetch={false} className="flex-shrink-0">
-              <AmazoprintLogo />
+              <AmazoprintLogo variant="header" />
             </Link>
 
             {/* ── "Categories" button — uses key 'categories-btn' ── */}
@@ -437,7 +437,7 @@ export function Navbar() {
             </div>
 
             {/* Search */}
-            <div className="flex-1 max-w-lg">
+            <div className="hidden md:block flex-1 max-w-lg">
               <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                 <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <input
@@ -496,7 +496,7 @@ export function Navbar() {
               {/* Wishlist */}
               <button
                 type="button"
-                className="relative w-9 h-9 rounded-full bg-rose-50 hover:bg-rose-100 flex items-center justify-center transition-colors"
+                className="relative w-9 h-9 rounded-full bg-rose-50 hover:bg-rose-100 flex items-center justify-center transition-colors hidden sm:flex"
                 aria-label="Wishlist"
               >
                 <Heart className="w-4 h-4 text-rose-500" />
@@ -640,6 +640,18 @@ export function Navbar() {
               className="fixed top-[64px] left-0 w-full bg-white border-b border-gray-200 shadow-2xl lg:hidden z-40 max-h-[calc(100vh-64px)] overflow-y-auto"
             >
               <div className="max-w-screen-xl mx-auto px-4 py-4 flex flex-col gap-1.5">
+                {/* Search Bar in Mobile Menu */}
+                <div className="md:hidden mb-2">
+                  <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                    <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="What are you looking for?"
+                      className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none font-medium min-w-0"
+                    />
+                  </div>
+                </div>
+
                 {navItems.map((item) => (
                   <Link
                     key={item.key}

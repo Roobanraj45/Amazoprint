@@ -64,7 +64,7 @@ export function Header() {
         {/* Logo */}
         <div className="flex-shrink-0">
           <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-all active:scale-95" prefetch={false}>
-            <AmazoprintLogo className={cn(
+            <AmazoprintLogo variant="header" className={cn(
                 "transition-all duration-300 origin-left",
                 scrolled ? "scale-75" : "scale-100"
             )} />

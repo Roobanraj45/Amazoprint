@@ -76,6 +76,7 @@ import { toPng } from 'html-to-image';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn, measureTextDimensions, resolveImagePath } from '@/lib/utils';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CropDialog } from '@/components/design/crop-dialog';
 import { useUndoRedo } from '@/hooks/use-undo-redo';
 import { AmazoprintLogo } from '@/components/ui/logo';
@@ -152,6 +153,9 @@ function DesignEditorInternal({
   const [isOrdering, setIsOrdering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [saveNameInput, setSaveNameInput] = useState('');
+  const [saveActionType, setSaveActionType] = useState<'save' | 'order'>('save');
 
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1488,24 +1492,34 @@ function DesignEditorInternal({
 
   const onBackgroundChange = (newBackground: Background) => updatePage(currentPage, { background: newBackground });
 
-  const handleSave = async () => {
-    if (isReadonly) {
-      toast({ variant: 'destructive', title: 'Design Locked', description: 'This design is locked because the associated order is currently in active production.' });
-      return;
-    }
-    if (!currentUserId) {
-      toast({ 
-        variant: 'destructive', 
-        title: 'Login Required', 
-        description: 'Redirecting to login. Please log in to save your work.' 
+  const validateNotEmpty = (): boolean => {
+    const totalElementsCount = pages.reduce((acc, p) => acc + p.elements.length, 0);
+    if (totalElementsCount === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Empty Canvas',
+        description: 'Cannot save or order an empty design. Please add text, images, or shapes first!'
       });
-      const currentUrl = window.location.pathname + window.location.search;
-      setTimeout(() => {
-        router.push(`/login?redirect_url=${encodeURIComponent(currentUrl)}`);
-      }, 1500);
+      return false;
+    }
+    return true;
+  };
+
+  const handleSaveConfirm = async () => {
+    const trimmedName = saveNameInput.trim();
+    if (!trimmedName) {
+      toast({ variant: 'destructive', title: 'Name Required', description: 'Please enter a name for your design.' });
       return;
     }
+    setIsSaveDialogOpen(false);
+    if (saveActionType === 'save') {
+      await executeSaveFlow(trimmedName);
+    } else {
+      await executeOrderFlow(trimmedName);
+    }
+  };
 
+  const executeSaveFlow = async (designName: string) => {
     setIsSaving(true);
     const customisation = JSON.parse(JSON.stringify({
         spotUv: initialSpotUv,
@@ -1537,38 +1551,16 @@ function DesignEditorInternal({
     };
 
     try {
-      if (currentDesignId && currentDesignName) {
-        await updateDesign({ 
-          id: currentDesignId, 
-          name: currentDesignName, 
-          verificationId: verificationId || null, 
-          contestId: contestId || null,
-          ...saveData 
-        });
-        toast({ title: 'Design Updated!' });
-        setIsDirty(false);
+      const savedDesign = await saveDesign({ name: designName, ...saveData });
+      setCurrentDesignId(savedDesign.id);
+      setCurrentDesignName(savedDesign.name);
+      toast({ title: 'Design Saved!' });
+      setIsDirty(false);
 
-        if (contestId) {
-          await linkDesignToContest(Number(contestId), currentDesignId);
-        }
-      } else {
-        const defaultName = initialDesignName ? `${initialDesignName} (Copy)` : '';
-        const designName = prompt('Enter a name for your design:', defaultName);
-        if (designName) {
-          const savedDesign = await saveDesign({ name: designName, ...saveData });
-          setCurrentDesignId(savedDesign.id);
-          setCurrentDesignName(savedDesign.name);
-          toast({ title: 'Design Saved!' });
-          setIsDirty(false);
-
-          if (verificationId) {
-            await linkDesignToVerification(Number(verificationId), savedDesign.id);
-          } else if (contestId) {
-            await linkDesignToContest(Number(contestId), savedDesign.id);
-          }
-        } else {
-          toast({ variant: 'destructive', title: 'Save Canceled', description: 'A design name is required to save for the first time.' });
-        }
+      if (verificationId) {
+        await linkDesignToVerification(Number(verificationId), savedDesign.id);
+      } else if (contestId) {
+        await linkDesignToContest(Number(contestId), savedDesign.id);
       }
     } catch (error) {
       console.error("Save Error:", error);
@@ -1582,15 +1574,7 @@ function DesignEditorInternal({
     }
   };
 
-  const handleOrder = async () => {
-    if (isReadonly) {
-      toast({ variant: 'destructive', title: 'Design Locked', description: 'This design is locked because the associated order is currently in active production.' });
-      return;
-    }
-    if (contestId) {
-      toast({ variant: 'destructive', title: 'Action Denied', description: 'Ordering is disabled during contest designing.' });
-      return;
-    }
+  const executeOrderFlow = async (designName: string) => {
     setIsOrdering(true);
     let designId = currentDesignId;
 
@@ -1601,20 +1585,169 @@ function DesignEditorInternal({
       console.error("Failed to generate thumbnail on order:", e);
     }
 
+    try {
+      const customisation = JSON.parse(JSON.stringify({
+        spotUv: initialSpotUv,
+        addons: initialSelectedAddons,
+        dieCut: initialSelectedDie,
+        priceBreakup: calculatedPrice,
+        pages: totalPages
+      }));
+
+      const saveData = {
+        name: designName,
+        productSlug: product.id,
+        elements: pages.map(p => p.elements),
+        background: pages.map(p => p.background),
+        guides,
+        quantity,
+        width: Math.round(product.width * PX_TO_MM),
+        height: Math.round(product.height * PX_TO_MM),
+        productId: product.productId,
+        subProductId: product.subProductId,
+        customisation,
+        thumbnailUrl
+      };
+      const savedDesign = await saveDesign(saveData);
+      setCurrentDesignId(savedDesign.id);
+      setCurrentDesignName(savedDesign.name);
+      designId = savedDesign.id;
+      setIsDirty(false);
+      toast({ title: 'Design Saved!' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error Saving Design', description: 'Could not save your design before ordering.' });
+      setIsOrdering(false);
+    }
+
+    if (designId) {
+      router.push(`/checkout?designId=${designId}&quantity=${quantity}`);
+    } else {
+      setIsOrdering(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!validateNotEmpty()) return;
+    if (isReadonly) {
+      toast({ variant: 'destructive', title: 'Design Locked', description: 'This design is locked because the associated order is currently in active production.' });
+      return;
+    }
+    if (!currentUserId) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Login Required', 
+        description: 'Redirecting to login. Please log in to save your work.' 
+      });
+      const currentUrl = window.location.pathname + window.location.search;
+      setTimeout(() => {
+        router.push(`/login?redirect_url=${encodeURIComponent(currentUrl)}`);
+      }, 1500);
+      return;
+    }
+
+    if (currentDesignId && currentDesignName) {
+      setIsSaving(true);
+      const customisation = JSON.parse(JSON.stringify({
+          spotUv: initialSpotUv,
+          addons: initialSelectedAddons,
+          dieCut: initialSelectedDie,
+          priceBreakup: calculatedPrice,
+          pages: totalPages
+      }));
+
+      let thumbnailUrl: string | null = null;
+      try {
+        thumbnailUrl = await generateAndUploadThumbnail();
+      } catch (e) {
+        console.error("Failed to generate thumbnail on save:", e);
+      }
+
+      const saveData = {
+        productSlug: product.id,
+        elements: pages.map(p => p.elements),
+        background: pages.map(p => p.background),
+        guides,
+        quantity,
+        width: Math.round(product.width * PX_TO_MM),
+        height: Math.round(product.height * PX_TO_MM),
+        productId: product.productId,
+        subProductId: product.subProductId,
+        customisation,
+        thumbnailUrl
+      };
+
+      try {
+        await updateDesign({ 
+          id: currentDesignId, 
+          name: currentDesignName, 
+          verificationId: verificationId || null, 
+          contestId: contestId || null,
+          ...saveData 
+        });
+        toast({ title: 'Design Updated!' });
+        setIsDirty(false);
+
+        if (contestId) {
+          await linkDesignToContest(Number(contestId), currentDesignId);
+        }
+      } catch (error) {
+        console.error("Save Error:", error);
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error Saving Design', 
+          description: error instanceof Error ? error.message : 'Unknown error occurred' 
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      const defaultName = initialDesignName ? `${initialDesignName} (Copy)` : '';
+      setSaveNameInput(defaultName);
+      setSaveActionType('save');
+      setIsSaveDialogOpen(true);
+    }
+  };
+
+  const handleOrder = async () => {
+    if (!validateNotEmpty()) return;
+    if (isReadonly) {
+      toast({ variant: 'destructive', title: 'Design Locked', description: 'This design is locked because the associated order is currently in active production.' });
+      return;
+    }
+    if (contestId) {
+      toast({ variant: 'destructive', title: 'Action Denied', description: 'Ordering is disabled during contest designing.' });
+      return;
+    }
+
+    let designId = currentDesignId;
+
     if (!designId) {
-      const designName = currentDesignName || prompt('Please name your design to proceed to order:');
-      if (designName) {
-        try {
-          const customisation = JSON.parse(JSON.stringify({
+      if (currentDesignName) {
+        await executeOrderFlow(currentDesignName);
+      } else {
+        setSaveNameInput('');
+        setSaveActionType('order');
+        setIsSaveDialogOpen(true);
+      }
+    } else {
+      setIsOrdering(true);
+      let thumbnailUrl: string | null = null;
+      try {
+        thumbnailUrl = await generateAndUploadThumbnail();
+      } catch (e) {
+        console.error("Failed to generate thumbnail on order:", e);
+      }
+
+      try {
+        const customisation = JSON.parse(JSON.stringify({
             spotUv: initialSpotUv,
             addons: initialSelectedAddons,
             dieCut: initialSelectedDie,
             priceBreakup: calculatedPrice,
             pages: totalPages
-          }));
+        }));
 
-          const saveData = {
-            name: designName,
+        const saveData = {
             productSlug: product.id,
             elements: pages.map(p => p.elements),
             background: pages.map(p => p.background),
@@ -1626,63 +1759,19 @@ function DesignEditorInternal({
             subProductId: product.subProductId,
             customisation,
             thumbnailUrl
-          };
-          const savedDesign = await saveDesign(saveData);
-          setCurrentDesignId(savedDesign.id);
-          setCurrentDesignName(savedDesign.name);
-          designId = savedDesign.id;
-          setIsDirty(false);
-          toast({ title: 'Design Saved!' });
-        } catch (error) {
-          toast({ variant: 'destructive', title: 'Error Saving Design', description: 'Could not save your design before ordering.' });
-          setIsOrdering(false);
-          return;
-        }
-      } else {
-        toast({ variant: 'destructive', title: 'Order Canceled', description: 'A design must be named and saved before ordering.' });
-        setIsOrdering(false);
-        return;
+        };
+        await updateDesign({ 
+            id: designId, 
+            name: currentDesignName!, 
+            verificationId: verificationId || null, 
+            contestId: contestId || null,
+            ...saveData 
+        });
+      } catch (error) {
+          console.error("Failed to update design before order", error);
       }
-    } else {
-        // Update the design with latest customisation before ordering
-        try {
-            const customisation = JSON.parse(JSON.stringify({
-                spotUv: initialSpotUv,
-                addons: initialSelectedAddons,
-                dieCut: initialSelectedDie,
-                priceBreakup: calculatedPrice,
-                pages: totalPages
-            }));
 
-            const saveData = {
-                productSlug: product.id,
-                elements: pages.map(p => p.elements),
-                background: pages.map(p => p.background),
-                guides,
-                quantity,
-                width: Math.round(product.width * PX_TO_MM),
-                height: Math.round(product.height * PX_TO_MM),
-                productId: product.productId,
-                subProductId: product.subProductId,
-                customisation,
-                thumbnailUrl
-            };
-            await updateDesign({ 
-                id: designId, 
-                name: currentDesignName!, 
-                verificationId: verificationId || null, 
-                contestId: contestId || null,
-                ...saveData 
-            });
-        } catch (error) {
-            console.error("Failed to update design before order", error);
-        }
-    }
-
-    if (designId) {
       router.push(`/checkout?designId=${designId}&quantity=${quantity}`);
-    } else {
-      setIsOrdering(false);
     }
   };
 
@@ -2669,6 +2758,73 @@ function DesignEditorInternal({
           />
         )}
       </AnimatePresence>
+
+      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-2xl border border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black font-headline tracking-tight">
+              Name Your Design
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs font-medium">
+              Please enter a name for your custom print layout to save it to your workspace.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <input
+              type="text"
+              placeholder="e.g. My Business Card"
+              value={saveNameInput}
+              onChange={(e) => setSaveNameInput(e.target.value)}
+              className="w-full bg-muted/50 border border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 rounded-xl px-4 py-3 text-sm font-semibold outline-none transition-all"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveConfirm();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="ghost"
+              onClick={() => setIsSaveDialogOpen(false)}
+              className="rounded-xl font-bold text-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveConfirm}
+              className="bg-primary hover:bg-primary/95 text-white font-bold text-sm rounded-xl px-6 shadow-md shadow-primary/10"
+            >
+              Save Design
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {isSaving && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-md text-white">
+          <div className="flex flex-col items-center gap-4 bg-slate-900/90 border border-slate-800/80 p-8 rounded-3xl max-w-sm text-center shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <Loader2 className="h-10 w-10 text-indigo-500 animate-spin" />
+            <h3 className="text-lg font-black tracking-tight mt-2 text-white">Saving Design</h3>
+            <p className="text-slate-300 text-xs font-semibold leading-relaxed">
+              We are exporting your print layout and generating high-resolution templates. Please don't close this window.
+            </p>
+          </div>
+        </div>
+      )}
+      {isOrdering && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-md text-white">
+          <div className="flex flex-col items-center gap-4 bg-slate-900/90 border border-slate-800/80 p-8 rounded-3xl max-w-sm text-center shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <Loader2 className="h-10 w-10 text-indigo-500 animate-spin" />
+            <h3 className="text-lg font-black tracking-tight mt-2 text-white font-headline">Preparing Secure Checkout</h3>
+            <p className="text-slate-300 text-xs font-semibold leading-relaxed">
+              Saving layout modifications and securing design assets. You are being redirected to the order checkout page. This might take a few moments.
+            </p>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -45,6 +45,7 @@ export default function PdfRenderPage() {
     link.id = 'google-fonts-dynamic-render';
     link.href = fontUrl;
     link.rel = 'stylesheet';
+    link.crossOrigin = 'anonymous';
     
     document.head.appendChild(link);
     // --- END FONT LOADING ---

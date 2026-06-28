@@ -115,6 +115,7 @@ export function useCustomFonts() {
       const link = document.createElement('link');
       link.id = linkId;
       link.rel = 'stylesheet';
+      link.crossOrigin = 'anonymous';
       const families = GOOGLE_FONTS.map(f => `${f.replace(/ /g, '+')}:400,700`).join('|');
       link.href = `https://fonts.googleapis.com/css?family=${families}&display=swap`;
       document.head.appendChild(link);
