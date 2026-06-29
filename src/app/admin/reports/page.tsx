@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { getRevenueReport, getContestReport, getOrdersReport, getVerificationReport, getUserReport, getAdminPayoutReport, getPaymentGatewayReport } from '@/app/actions/report-actions';
+import { getRevenueReport, getContestReport, getOrdersReport, getVerificationReport, getUserReport, getAdminPayoutReport, getPaymentGatewayReport, getProfitReport } from '@/app/actions/report-actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,6 +69,7 @@ export default function ReportsPage() {
   const [userData, setUserData] = useState<any>(null);
   const [payoutData, setPayoutData] = useState<any>(null);
   const [gatewayData, setGatewayData] = useState<any>(null);
+  const [profitData, setProfitData] = useState<any>(null);
 
   const [revStatus, setRevStatus] = useState('all');
   const [revMethod, setRevMethod] = useState('all');
@@ -81,10 +82,16 @@ export default function ReportsPage() {
   const [gatewayStatus, setGatewayStatus] = useState('all');
   const [onlyDiscrepancies, setOnlyDiscrepancies] = useState(false);
 
+  const [profitOrderStatus, setProfitOrderStatus] = useState('all');
+  const [profitPaymentStatus, setProfitPaymentStatus] = useState('all');
+  const [profitSearchQuery, setProfitSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [profitPage, setProfitPage] = useState(1);
+
   async function loadAll() {
     setLoading(true);
     try {
-      const [r, c, o, v, u, p, g] = await Promise.all([
+      const [r, c, o, v, u, p, g, pr] = await Promise.all([
         getRevenueReport({ startDate, endDate, orderStatus: revStatus, paymentMethod: revMethod }),
         getContestReport({ startDate, endDate, status: contestStatus }),
         getOrdersReport({ startDate, endDate, orderStatus }),
@@ -92,9 +99,30 @@ export default function ReportsPage() {
         getUserReport({ startDate, endDate }),
         getAdminPayoutReport({ startDate, endDate, printerId: payoutPrinter, payoutStatus }),
         getPaymentGatewayReport({ startDate, endDate, provider: gatewayProvider, status: gatewayStatus, onlyDiscrepancies }),
+        getProfitReport({ startDate, endDate, orderStatus: profitOrderStatus, paymentStatus: profitPaymentStatus, searchQuery: profitSearchQuery, page: profitPage, limit: 20 }),
       ]);
-      setRevData(r); setContestData(c); setOrdersData(o); setVerifData(v); setUserData(u); setPayoutData(p); setGatewayData(g);
+      setRevData(r); setContestData(c); setOrdersData(o); setVerifData(v); setUserData(u); setPayoutData(p); setGatewayData(g); setProfitData(pr);
     } finally { setLoading(false); }
+  }
+
+  async function loadProfit() {
+    setLoading(true);
+    try {
+      const data = await getProfitReport({
+        startDate,
+        endDate,
+        orderStatus: profitOrderStatus,
+        paymentStatus: profitPaymentStatus,
+        searchQuery: profitSearchQuery,
+        page: profitPage,
+        limit: 20
+      });
+      setProfitData(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // Reload payouts specifically when filter changing
@@ -118,6 +146,13 @@ export default function ReportsPage() {
       });
     }
   }, [gatewayProvider, gatewayStatus, onlyDiscrepancies]);
+
+  // Reload profit specifically when filter/page/search changing
+  useEffect(() => {
+    if (profitData !== null || activeTab === 'profit') {
+      loadProfit();
+    }
+  }, [profitOrderStatus, profitPaymentStatus, profitPage, profitSearchQuery]);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -155,6 +190,7 @@ export default function ReportsPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-background border w-full justify-start gap-1 flex-wrap h-auto p-1">
           <TabsTrigger value="revenue" className="gap-1.5"><IndianRupee className="w-3.5 h-3.5" />Revenue</TabsTrigger>
+          <TabsTrigger value="profit" className="gap-1.5"><TrendingUp className="w-3.5 h-3.5" />Profit Report</TabsTrigger>
           <TabsTrigger value="contests" className="gap-1.5"><Trophy className="w-3.5 h-3.5" />Contests</TabsTrigger>
           <TabsTrigger value="orders" className="gap-1.5"><Package className="w-3.5 h-3.5" />Orders</TabsTrigger>
           <TabsTrigger value="verifications" className="gap-1.5"><ShieldCheck className="w-3.5 h-3.5" />Verifications</TabsTrigger>
@@ -701,6 +737,230 @@ export default function ReportsPage() {
                           )}
                         </div>
                       ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+
+        {/* ── PROFIT REPORT TAB ── */}
+        <TabsContent value="profit" className="space-y-6 mt-4">
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* Search */}
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Search order ID, user, product..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="h-9 w-60 text-xs"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    setProfitSearchQuery(searchTerm);
+                    setProfitPage(1);
+                  }
+                }}
+              />
+              <Button 
+                onClick={() => {
+                  setProfitSearchQuery(searchTerm);
+                  setProfitPage(1);
+                }} 
+                variant="outline" 
+                size="sm"
+                className="h-9 font-bold text-xs uppercase"
+              >
+                Search
+              </Button>
+            </div>
+
+            {/* Order Status */}
+            <Select value={profitOrderStatus} onValueChange={(val) => { setProfitOrderStatus(val); setProfitPage(1); }}>
+              <SelectTrigger className="h-9 w-44 text-xs"><SelectValue placeholder="Order Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Order Statuses</SelectItem>
+                {['pending','confirmed','quality_check','processing','under_verification','ready_to_ship','shipped','delivered','cancelled','refunded'].map(s => (
+                  <SelectItem key={s} value={s} className="capitalize text-xs">{s.replace(/_/g, ' ')}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Payment Status */}
+            <Select value={profitPaymentStatus} onValueChange={(val) => { setProfitPaymentStatus(val); setProfitPage(1); }}>
+              <SelectTrigger className="h-9 w-44 text-xs"><SelectValue placeholder="Payment Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Payment Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="refunded">Refunded</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {searchTerm !== profitSearchQuery && (
+              <span className="text-[10px] text-amber-500 font-black animate-pulse">Unapplied search term</span>
+            )}
+          </div>
+
+          {loading || !profitData ? <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div> : (
+            <>
+              {/* Summary stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard 
+                  title="Total Revenue" 
+                  value={`₹${fmt(profitData.summary.totalRevenue)}`} 
+                  sub="Sum of order amounts" 
+                  icon={<IndianRupee className="w-5 h-5 text-emerald-600" />} 
+                  color="bg-emerald-100 dark:bg-emerald-950" 
+                />
+                <StatCard 
+                  title="Total Spendings" 
+                  value={`₹${fmt(profitData.summary.totalSpendings)}`} 
+                  sub={`Print: ₹${fmt(profitData.summary.totalPrintingCost)} | Verif: ₹${fmt(profitData.summary.totalVerificationCost)}`} 
+                  icon={<TrendingDown className="w-5 h-5 text-rose-600" />} 
+                  color="bg-rose-100 dark:bg-rose-950" 
+                />
+                <StatCard 
+                  title="Net Profit" 
+                  value={`₹${fmt(profitData.summary.totalProfit)}`} 
+                  sub={`Contests: ₹${fmt(profitData.summary.totalContestCost)} | Direct: ₹${fmt(profitData.summary.totalDirectSellingCost)}`} 
+                  icon={<TrendingUp className={`w-5 h-5 ${profitData.summary.totalProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`} />} 
+                  color={profitData.summary.totalProfit >= 0 ? 'bg-emerald-100 dark:bg-emerald-950' : 'bg-rose-100 dark:bg-rose-950'} 
+                />
+                <StatCard 
+                  title="Avg Profit Margin" 
+                  value={`${profitData.summary.profitMargin.toFixed(1)}%`} 
+                  sub="Net Profit / Revenue" 
+                  icon={<BarChart3 className="w-5 h-5 text-violet-600" />} 
+                  color="bg-violet-100 dark:bg-violet-950" 
+                />
+              </div>
+
+              {/* Profit Ledger Table */}
+              <Card className="border-border/40">
+                <CardHeader className="pb-3 flex flex-row items-center justify-between flex-wrap gap-2">
+                  <CardTitle className="text-sm font-black uppercase tracking-widest">Order Profitability Ledger</CardTitle>
+                  <span className="text-xs text-muted-foreground font-semibold">Showing {profitData.orders.length} of {profitData.pagination.totalCount} orders</span>
+                </CardHeader>
+                <CardContent>
+                  {profitData.orders.length === 0 ? (
+                    <p className="text-center py-8 text-sm font-semibold text-muted-foreground">No orders found matching filters.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            <th className="pb-3 pl-2">Order</th>
+                            <th className="pb-3">Customer</th>
+                            <th className="pb-3">Product</th>
+                            <th className="pb-3 text-right">Revenue</th>
+                            <th className="pb-3 text-center">Cost Deductions</th>
+                            <th className="pb-3 text-right">Total Cost</th>
+                            <th className="pb-3 text-right">Profit</th>
+                            <th className="pb-3 text-right pr-2">Margin</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/40 text-xs font-semibold">
+                          {profitData.orders.map((o: any) => {
+                            const isProfit = o.profit >= 0;
+                            return (
+                              <tr key={o.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/10">
+                                <td className="py-3 pl-2 font-mono font-black text-indigo-600 dark:text-indigo-400">
+                                  #{o.id}
+                                  <div className="text-[9px] text-muted-foreground font-normal font-sans">
+                                    {format(new Date(o.createdAt), 'dd MMM yy')}
+                                  </div>
+                                </td>
+                                <td className="py-3">
+                                  <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[150px]" title={o.customerName}>
+                                    {o.customerName}
+                                  </div>
+                                  <div className="text-[9px] text-muted-foreground font-normal truncate max-w-[150px]" title={o.customerEmail}>
+                                    {o.customerEmail}
+                                  </div>
+                                </td>
+                                <td className="py-3 truncate max-w-[150px]" title={`${o.productName} (x${o.quantity})`}>
+                                  <span className="text-slate-800 dark:text-slate-200">{o.productName}</span>
+                                  <Badge variant="outline" className="ml-1 text-[8px] py-0 px-1 font-bold">x{o.quantity}</Badge>
+                                  <div className="flex gap-1.5 mt-0.5 flex-wrap">
+                                    <Badge className={`text-[8px] px-1 py-0 border-none font-bold capitalize ${o.orderStatus === 'delivered' ? 'bg-emerald-500 text-white' : o.orderStatus === 'cancelled' ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-800 dark:bg-zinc-800 dark:text-zinc-200'}`}>
+                                      {o.orderStatus}
+                                    </Badge>
+                                    <Badge variant="outline" className={`text-[8px] px-1 py-0 font-bold uppercase ${o.paymentStatus === 'paid' ? 'border-emerald-500 text-emerald-600' : 'border-rose-500 text-rose-600'}`}>
+                                      {o.paymentStatus}
+                                    </Badge>
+                                  </div>
+                                </td>
+                                <td className="py-3 text-right font-bold text-slate-900 dark:text-white">
+                                  ₹{fmt(o.revenue)}
+                                </td>
+                                <td className="py-3">
+                                  <div className="flex justify-center flex-wrap gap-1 text-[9px]">
+                                    {o.printingCost > 0 && (
+                                      <Badge variant="secondary" className="text-[8px] px-1 py-0 font-normal">
+                                        Print: ₹{fmt(o.printingCost)}
+                                      </Badge>
+                                    )}
+                                    {o.verificationCost > 0 && (
+                                      <Badge variant="secondary" className="text-[8px] px-1 py-0 font-normal bg-amber-50 dark:bg-amber-950/20 text-amber-600 border-amber-200">
+                                        Verif: ₹{fmt(o.verificationCost)}
+                                      </Badge>
+                                    )}
+                                    {o.contestCost > 0 && (
+                                      <Badge variant="secondary" className="text-[8px] px-1 py-0 font-normal bg-violet-50 dark:bg-violet-950/20 text-violet-600 border-violet-200">
+                                        Contest: ₹{fmt(o.contestCost)}
+                                      </Badge>
+                                    )}
+                                    {o.directSellingCost > 0 && (
+                                      <Badge variant="secondary" className="text-[8px] px-1 py-0 font-normal bg-blue-50 dark:bg-blue-950/20 text-blue-600 border-blue-200">
+                                        Direct Cost: ₹{fmt(o.directSellingCost)}
+                                      </Badge>
+                                    )}
+                                    {o.printingCost === 0 && o.verificationCost === 0 && o.contestCost === 0 && o.directSellingCost === 0 && (
+                                      <span className="text-muted-foreground italic text-[10px]">No spendings</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-3 text-right font-mono font-bold text-muted-foreground">
+                                  ₹{fmt(o.totalSpendings)}
+                                </td>
+                                <td className={`py-3 text-right font-bold ${isProfit ? 'text-emerald-600 dark:text-emerald-450' : 'text-rose-600 dark:text-rose-450'}`}>
+                                  {isProfit ? '+' : ''}₹{fmt(o.profit)}
+                                </td>
+                                <td className={`py-3 text-right pr-2 font-black ${isProfit ? 'text-emerald-600 animate-pulse' : 'text-rose-600'}`}>
+                                  {o.margin.toFixed(1)}%
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Pagination */}
+                  {profitData.pagination.totalPages > 1 && (
+                    <div className="flex justify-between items-center pt-4 border-t border-border mt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProfitPage(p => Math.max(1, p - 1))}
+                        disabled={profitPage === 1 || loading}
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        Page {profitPage} of {profitData.pagination.totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProfitPage(p => Math.min(profitData.pagination.totalPages, p + 1))}
+                        disabled={profitPage === profitData.pagination.totalPages || loading}
+                      >
+                        Next
+                      </Button>
                     </div>
                   )}
                 </CardContent>

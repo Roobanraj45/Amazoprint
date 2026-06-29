@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { DesignEditor } from '@/components/design/design-editor';
 import type { Product, DesignElement, Background, FoilType } from '@/lib/types';
 import { db } from '@/db';
-import { products, subProducts, dieCuts, cardTextures, orders, designVerifications } from '@/db/schema';
+import { products, subProducts, dieCuts, cardTextures, orders, designVerifications, designs } from '@/db/schema';
 import { eq, asc, and, notInArray, isNotNull, inArray } from 'drizzle-orm';
 import { getDesign } from '@/app/actions/design-actions';
 import { getSession } from '@/lib/auth';
@@ -116,64 +116,113 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
   let isServerReadonly = searchParams.readonly === 'true';
 
   let template = null;
-  if (templateId) {
-    template = await getDesign(Number(templateId));
-    if (template) {
-      initialElements = template.elements as DesignElement[] | DesignElement[][];
-      initialBackground = template.background as Background | Background[];
 
-      if (Array.isArray(initialElements) && initialElements.length > 0 && Array.isArray(initialElements[0])) {
-        totalPages = initialElements.length;
-      } else {
-        totalPages = 1;
+  // Handle design duplication for freelancer verifications to avoid overwriting client master copy
+  if (verificationId) {
+    const verification = await db.query.designVerifications.findFirst({
+      where: eq(designVerifications.id, Number(verificationId)),
+      with: {
+        order: true
       }
+    });
 
-      productForEditor.width = Math.round(template.width * unitToPx);
-      productForEditor.height = Math.round(template.height * unitToPx);
+    if (verification) {
+      const currentVerificationDesign = await db.query.designs.findFirst({
+        where: eq(designs.id, verification.designId)
+      });
 
-      // Check if the current user is the assigned freelancer for this verification
-      let isAssignedFreelancer = false;
-      if (session?.sub && isFreelancer) {
-        const verification = await db.query.designVerifications.findFirst({
-          where: and(
-            eq(designVerifications.designId, Number(templateId)),
-            eq(designVerifications.freelancerId, session.sub),
-            inArray(designVerifications.status, ['assigned', 'pending'])
-          )
-        });
-        if (verification) {
-          isAssignedFreelancer = true;
+      if (currentVerificationDesign) {
+        if (currentVerificationDesign.userId === session?.sub || isAdmin) {
+          // Freelancer already has their duplicate copy, or user is admin previewing
+          template = currentVerificationDesign;
+        } else if (session?.sub && isFreelancer) {
+          // Design belongs to client (or someone else), duplicate it for the freelancer!
+          const [duplicateDesign] = await db.insert(designs).values({
+            name: `${currentVerificationDesign.name} (Verified Copy)`,
+            productSlug: currentVerificationDesign.productSlug,
+            width: currentVerificationDesign.width,
+            height: currentVerificationDesign.height,
+            elements: currentVerificationDesign.elements,
+            background: currentVerificationDesign.background,
+            guides: currentVerificationDesign.guides,
+            userId: session.sub, // Owned by freelancer
+            productId: currentVerificationDesign.productId,
+            subProductId: currentVerificationDesign.subProductId,
+            customisation: currentVerificationDesign.customisation,
+          }).returning();
+
+          // Update the verification record to point to this new duplicate design
+          await db.update(designVerifications).set({
+            designId: duplicateDesign.id,
+            updatedAt: new Date()
+          }).where(eq(designVerifications.id, verification.id));
+
+          template = duplicateDesign;
+        } else {
+          // Fallback if not authenticated or not a freelancer
+          template = currentVerificationDesign;
         }
       }
+    }
+  } else if (templateId) {
+    template = await getDesign(Number(templateId));
+  }
 
-      isAuthorizedToUpdate = (session?.sub && template.userId === session.sub) || isAdmin || (isFreelancer && (verificationId || contestId)) || isAssignedFreelancer;
+  if (template) {
+    initialElements = template.elements as DesignElement[] | DesignElement[][];
+    initialBackground = template.background as Background | Background[];
 
-      initialDesignName = template.name;
-      if (isAuthorizedToUpdate) {
-        initialDesignId = template.id;
-      }
+    if (Array.isArray(initialElements) && initialElements.length > 0 && Array.isArray(initialElements[0])) {
+      totalPages = initialElements.length;
+    } else {
+      totalPages = 1;
+    }
 
-      // --- SERVER-SIDE LOCK ENFORCEMENT ---
-      // Check if there is any active order associated with this design
-      const activeOrder = await db.query.orders.findFirst({
+    productForEditor.width = Math.round(template.width * unitToPx);
+    productForEditor.height = Math.round(template.height * unitToPx);
+
+    // Check if the current user is the assigned freelancer for this verification
+    let isAssignedFreelancer = false;
+    if (session?.sub && isFreelancer && verificationId) {
+      const verificationCheck = await db.query.designVerifications.findFirst({
         where: and(
-          eq(orders.designId, Number(templateId)),
-          notInArray(orders.orderStatus, ['completed', 'delivered', 'cancelled', 'refunded'])
+          eq(designVerifications.id, Number(verificationId)),
+          eq(designVerifications.freelancerId, session.sub),
+          inArray(designVerifications.status, ['assigned', 'pending'])
         )
       });
-
-      // Check if there is an active freelancer verification assigned for this design
-      const hasVerification = await db.query.designVerifications.findFirst({
-        where: and(
-          eq(designVerifications.designId, Number(templateId)),
-          eq(designVerifications.status, 'assigned'),
-          isNotNull(designVerifications.freelancerId)
-        )
-      });
-
-      if (activeOrder && !isAdmin && !hasVerification) {
-        isServerReadonly = true;
+      if (verificationCheck) {
+        isAssignedFreelancer = true;
       }
+    }
+
+    isAuthorizedToUpdate = (session?.sub && template.userId === session.sub) || isAdmin || (isFreelancer && (verificationId || contestId)) || isAssignedFreelancer;
+
+    initialDesignName = template.name;
+    if (isAuthorizedToUpdate) {
+      initialDesignId = template.id;
+    }
+
+    // --- SERVER-SIDE LOCK ENFORCEMENT ---
+    // Check if there is any active order associated with this design
+    const activeOrder = await db.query.orders.findFirst({
+      where: and(
+        eq(orders.designId, template.id),
+        notInArray(orders.orderStatus, ['completed', 'delivered', 'cancelled', 'refunded'])
+      )
+    });
+
+    // Check if there is an active freelancer verification assigned for this design
+    const hasVerification = await db.query.designVerifications.findFirst({
+      where: and(
+        eq(designVerifications.designId, template.id),
+        eq(designVerifications.status, 'assigned'),
+        isNotNull(designVerifications.freelancerId)
+      )
+    });
+
+    if (activeOrder && !isAdmin && !hasVerification) {
+      isServerReadonly = true;
     }
   }
 

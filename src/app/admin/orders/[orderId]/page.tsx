@@ -676,6 +676,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                 orderId={order.id}
                                 freelancers={activeFreelancers}
                                 existingVerifications={(order as any).designVerifications || []}
+                                currentDesignId={order.designId}
                             />
                         </CardContent>
                     </Card>

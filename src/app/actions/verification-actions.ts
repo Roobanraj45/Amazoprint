@@ -447,3 +447,50 @@ export async function assignOrderToFreelancerVerification(
     revalidatePath(`/admin/orders/${orderId}`);
     return { success: true };
 }
+
+export async function approveVerificationDesign(verificationId: number) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin', 'designer'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    const verification = await db.query.designVerifications.findFirst({
+        where: eq(designVerifications.id, verificationId),
+        with: {
+            order: true
+        }
+    });
+
+    if (!verification) {
+        throw new Error('Verification record not found.');
+    }
+
+    if (!verification.orderId) {
+        throw new Error('No linked order found for this verification.');
+    }
+
+    if (!verification.designId) {
+        throw new Error('No design linked to this verification.');
+    }
+
+    // Swap the order design with the verification design
+    await db.update(orders).set({
+        designId: verification.designId,
+        updatedAt: new Date()
+    }).where(eq(orders.id, verification.orderId));
+
+    // Log the approval in order logs
+    await db.insert(orderLogs).values({
+        orderId: verification.orderId,
+        actionType: 'verification_design_approved',
+        newValue: { designId: verification.designId },
+        message: `Admin approved the verified design and swapped it in the order.`,
+        performedBy: session.sub,
+        performedByRole: session.role,
+        isCustomerVisible: true,
+    });
+
+    revalidatePath(`/admin/orders/${verification.orderId}`);
+    return { success: true };
+}

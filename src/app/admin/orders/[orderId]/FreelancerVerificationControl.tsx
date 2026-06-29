@@ -2,7 +2,8 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { assignOrderToFreelancerVerification } from "@/app/actions/verification-actions";
+import Link from "next/link";
+import { assignOrderToFreelancerVerification, approveVerificationDesign } from "@/app/actions/verification-actions";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { 
     Loader2, User, IndianRupee, MessageSquare, 
-    CheckCircle2, Sparkles, Mail, UserCheck, Globe 
+    CheckCircle2, Sparkles, Mail, UserCheck, Globe, Eye, Check 
 } from "lucide-react";
 import { cn, resolveImagePath } from "@/lib/utils";
 import { format } from "date-fns";
@@ -41,18 +42,26 @@ interface Verification {
         email: string;
         profileImage: string | null;
     } | null;
+    designId?: number | null;
+    design?: {
+        id: number;
+        name: string;
+        productSlug: string;
+    } | null;
 }
 
 interface FreelancerVerificationControlProps {
     orderId: number;
     freelancers: Freelancer[];
     existingVerifications?: Verification[];
+    currentDesignId?: number | null;
 }
 
 export function FreelancerVerificationControl({
     orderId,
     freelancers,
-    existingVerifications = []
+    existingVerifications = [],
+    currentDesignId = null
 }: FreelancerVerificationControlProps) {
     const { toast } = useToast();
     const router = useRouter();
@@ -109,6 +118,27 @@ export function FreelancerVerificationControl({
             setMessage("");
         }
     }, [activeVerification]);
+
+    const handleApproveDesign = (verificationId: number) => {
+        startTransition(async () => {
+            try {
+                const res = await approveVerificationDesign(verificationId);
+                if (res.success) {
+                    toast({
+                        title: "Design Approved",
+                        description: "The verified design has been successfully swapped in the order.",
+                    });
+                    router.refresh();
+                }
+            } catch (err: any) {
+                toast({
+                    title: "Approval failed",
+                    description: err.message || "Failed to approve design.",
+                    variant: "destructive"
+                });
+            }
+        });
+    };
 
     const handleAssign = () => {
         if (assignmentType === 'direct' && !selectedFreelancer) {
@@ -455,28 +485,69 @@ export function FreelancerVerificationControl({
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Completed Design Audits
                     </span>
-                    <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
-                        {completedVerifications.map((v) => (
-                            <div key={v.id} className="p-3 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="font-extrabold text-slate-700 dark:text-slate-350">
-                                            {v.freelancer?.name || 'Freelancer'}
+                    <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1 no-scrollbar">
+                        {completedVerifications.map((v) => {
+                            const isCurrentlySwapped = currentDesignId === v.designId;
+                            return (
+                                <div key={v.id} className="p-3 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-800 rounded-2xl text-[10px] space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="font-extrabold text-slate-700 dark:text-slate-350">
+                                                {v.freelancer?.name || 'Freelancer'}
+                                            </span>
+                                            {isCurrentlySwapped && (
+                                                <Badge className="bg-emerald-500 text-white font-extrabold uppercase text-[7px] tracking-widest px-1.5 py-0">Approved & Swapped</Badge>
+                                            )}
+                                        </div>
+                                        <span className="text-[8px] text-slate-450 font-bold">
+                                            {v.completedAt ? format(new Date(v.completedAt), 'dd MMM yyyy') : 'N/A'}
                                         </span>
                                     </div>
-                                    <span className="text-[8px] text-slate-450 font-bold">
-                                        {v.completedAt ? format(new Date(v.completedAt), 'dd MMM yyyy') : 'N/A'}
-                                    </span>
-                                </div>
 
-                                <div className="space-y-1">
-                                    <span className="text-[7.5px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-wider block">Freelancer Feedback</span>
-                                    <p className="text-[10px] text-slate-650 dark:text-slate-300 font-semibold bg-emerald-500/5 dark:bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/10 italic">
-                                        "{v.freelancerFeedback || 'Perfect. Design is print-ready!'}"
-                                    </p>
+                                    <div className="space-y-1">
+                                        <span className="text-[7.5px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-wider block">Freelancer Feedback</span>
+                                        <p className="text-[10px] text-slate-650 dark:text-slate-300 font-semibold bg-emerald-500/5 dark:bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/10 italic">
+                                            "{v.freelancerFeedback || 'Perfect. Design is print-ready!'}"
+                                        </p>
+                                    </div>
+
+                                    <div className="flex gap-2 justify-end pt-1">
+                                        {/* Preview Design Link */}
+                                        {v.design && (
+                                            <Button
+                                                asChild
+                                                variant="outline"
+                                                className="h-7 px-3 text-[9px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200 bg-white hover:bg-slate-50 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700 rounded-lg shadow-sm"
+                                            >
+                                                <Link href={`/design/${v.design.productSlug}?templateId=${v.designId}&readonly=true`} target="_blank">
+                                                    <Eye className="w-3.5 h-3.5 mr-1 text-slate-500" /> Preview design
+                                                </Link>
+                                            </Button>
+                                        )}
+
+                                        {/* Approve & Swap Button */}
+                                        {!isCurrentlySwapped ? (
+                                            <Button
+                                                onClick={() => handleApproveDesign(v.id)}
+                                                disabled={isPending}
+                                                className="h-7 px-3 text-[9px] font-extrabold uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg shadow-sm flex items-center gap-1"
+                                            >
+                                                {isPending ? (
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                ) : (
+                                                    <Check className="w-3.5 h-3.5" />
+                                                )}
+                                                Approve & Swap
+                                            </Button>
+                                        ) : (
+                                            <Badge variant="outline" className="h-7 border-emerald-500/20 text-emerald-600 font-bold uppercase text-[9px] tracking-wider px-3 bg-emerald-500/5 flex items-center gap-1 rounded-lg">
+                                                <Check className="w-3 h-3 text-emerald-600" /> Active Order Design
+                                            </Badge>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}

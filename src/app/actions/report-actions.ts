@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/db';
-import { orders, payments, contests, contestParticipants, contestWinners, designVerifications, users, printPressUsers, printerPayments } from '@/db/schema';
-import { and, eq, gte, lte, count, sum, avg, countDistinct, sql, isNull, isNotNull } from 'drizzle-orm';
+import { orders, payments, contests, contestParticipants, contestWinners, designVerifications, users, printPressUsers, printerPayments, directSellingProducts } from '@/db/schema';
+import { and, eq, gte, lte, count, sum, avg, countDistinct, sql, isNull, isNotNull, or, ilike, inArray, desc } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 
 const adminRoles = ['admin', 'super_admin', 'company_admin'];
@@ -828,6 +828,204 @@ export async function getPaymentGatewayReport({
         summary: {
             ...metrics,
             successRate,
+        }
+    };
+}
+
+// ─────────────────────────────────────────────────────────────
+// 8. PROFIT REPORT
+// ─────────────────────────────────────────────────────────────
+export async function getProfitReport({
+    startDate = '',
+    endDate = '',
+    orderStatus = 'all',
+    paymentStatus = 'all',
+    searchQuery = '',
+    page = 1,
+    limit = 20,
+}: {
+    startDate?: string;
+    endDate?: string;
+    orderStatus?: string;
+    paymentStatus?: string;
+    searchQuery?: string;
+    page?: number;
+    limit?: number;
+} = {}) {
+    await verifyAdmin();
+
+    const conditions = [];
+
+    // Date filters
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        conditions.push(and(gte(orders.createdAt, start), lte(orders.createdAt, end)));
+    } else if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        conditions.push(gte(orders.createdAt, start));
+    } else if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        conditions.push(lte(orders.createdAt, end));
+    }
+
+    // Status filters
+    if (orderStatus !== 'all') {
+        conditions.push(eq(orders.orderStatus, orderStatus));
+    }
+    if (paymentStatus !== 'all') {
+        conditions.push(eq(orders.paymentStatus, paymentStatus));
+    }
+
+    // Search query
+    if (searchQuery) {
+        const isNumeric = !isNaN(Number(searchQuery)) && searchQuery.trim() !== '';
+        const searchConditions = [];
+
+        if (isNumeric) {
+            searchConditions.push(eq(orders.id, Number(searchQuery)));
+        }
+
+        const userMatches = db.select({ id: users.id }).from(users).where(
+            or(ilike(users.name, `%${searchQuery}%`), ilike(users.email, `%${searchQuery}%`))
+        );
+
+        searchConditions.push(inArray(orders.userId, userMatches));
+        conditions.push(or(...searchConditions));
+    }
+
+    const finalCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Count total orders matching criteria
+    const [totalCountResult] = await db.select({ count: count() }).from(orders).where(finalCondition);
+    const totalCount = totalCountResult.count;
+    const totalPages = Math.ceil(totalCount / limit);
+    const offset = (page - 1) * limit;
+
+    // Fetch matching orders with relations
+    const fetchedOrders = await db.query.orders.findMany({
+        where: finalCondition,
+        with: {
+            user: {
+                columns: {
+                    name: true,
+                    email: true,
+                }
+            },
+            product: true,
+            subProduct: true,
+            directSellingProduct: true,
+            designVerifications: true,
+            contest: true,
+        },
+        orderBy: [desc(orders.createdAt)],
+        limit,
+        offset,
+    });
+
+    // Summary of all orders matching the criteria (regardless of page limit)
+    const summaryQuery = await db.select({
+        totalRevenue: sql<string>`COALESCE(SUM(${orders.totalAmount}::numeric), 0)`,
+        totalPrintingCost: sql<string>`COALESCE(SUM(${orders.printingAmount}::numeric), 0)`,
+    }).from(orders).where(finalCondition);
+
+    // Total Verification Fee (for matched orders)
+    const verificationTotal = await db.select({
+        total: sql<string>`COALESCE(SUM(${designVerifications.verificationFee}::numeric), 0)`
+    }).from(designVerifications)
+      .innerJoin(orders, eq(designVerifications.orderId, orders.id))
+      .where(and(
+          finalCondition ? finalCondition : undefined
+      ));
+
+    // Total Contest Prize (for matched orders)
+    const contestTotal = await db.select({
+        total: sql<string>`COALESCE(SUM(${contests.prizeAmount}::numeric), 0)`
+    }).from(contests)
+      .innerJoin(orders, eq(orders.contestId, contests.id))
+      .where(and(
+          finalCondition ? finalCondition : undefined
+      ));
+
+    // Total Direct Selling Cost
+    const directSellingTotal = await db.select({
+        total: sql<string>`COALESCE(SUM(${directSellingProducts.costPrice}::numeric * ${orders.quantity}), 0)`
+    }).from(directSellingProducts)
+      .innerJoin(orders, eq(orders.directSellingProductId, directSellingProducts.id))
+      .where(and(
+          finalCondition ? finalCondition : undefined
+      ));
+
+    const totalRevenue = parseFloat(summaryQuery[0]?.totalRevenue || '0');
+    const totalPrintingCost = parseFloat(summaryQuery[0]?.totalPrintingCost || '0');
+    const totalVerificationCost = parseFloat(verificationTotal[0]?.total || '0');
+    const totalContestCost = parseFloat(contestTotal[0]?.total || '0');
+    const totalDirectSellingCost = parseFloat(directSellingTotal[0]?.total || '0');
+
+    const totalSpendings = totalPrintingCost + totalVerificationCost + totalContestCost + totalDirectSellingCost;
+    const totalProfit = totalRevenue - totalSpendings;
+
+    // Map the paginated orders
+    const ordersWithProfit = fetchedOrders.map(order => {
+        const orderRevenue = parseFloat(order.totalAmount || '0');
+        const printingCost = parseFloat(order.printingAmount || '0');
+        
+        const verificationCost = order.designVerifications?.reduce(
+            (sum, v) => sum + parseFloat(v.verificationFee || '0'), 0
+        ) || 0;
+
+        const directSellingCost = order.directSellingProduct 
+            ? parseFloat(order.directSellingProduct.costPrice || '0') * order.quantity 
+            : 0;
+
+        const contestCost = order.contest 
+            ? parseFloat(order.contest.prizeAmount || '0') 
+            : 0;
+
+        const spendings = printingCost + verificationCost + directSellingCost + contestCost;
+        const profit = orderRevenue - spendings;
+        const margin = orderRevenue > 0 ? (profit / orderRevenue) * 100 : 0;
+
+        return {
+            id: order.id,
+            createdAt: order.createdAt,
+            orderStatus: order.orderStatus,
+            paymentStatus: order.paymentStatus,
+            customerName: order.user?.name || 'Unknown',
+            customerEmail: order.user?.email || 'N/A',
+            productName: order.directSellingProduct?.name || order.product?.name || 'Custom Product',
+            quantity: order.quantity,
+            revenue: orderRevenue,
+            printingCost,
+            verificationCost,
+            directSellingCost,
+            contestCost,
+            totalSpendings: spendings,
+            profit,
+            margin,
+        };
+    });
+
+    return {
+        orders: ordersWithProfit,
+        pagination: {
+            totalCount,
+            totalPages,
+            currentPage: page,
+        },
+        summary: {
+            totalRevenue,
+            totalPrintingCost,
+            totalVerificationCost,
+            totalContestCost,
+            totalDirectSellingCost,
+            totalSpendings,
+            totalProfit,
+            profitMargin: totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0,
         }
     };
 }

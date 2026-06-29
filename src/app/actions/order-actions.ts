@@ -567,7 +567,8 @@ export async function getAdminOrderDetails(orderId: number) {
                             email: true,
                             profileImage: true
                         }
-                    }
+                    },
+                    design: true
                 },
                 orderBy: (dv, { desc }) => [desc(dv.createdAt)],
             },
