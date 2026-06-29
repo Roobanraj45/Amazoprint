@@ -417,12 +417,12 @@ export function EditorHeader(props: any) {
                             </>
                         )}
                     </Button>
-                ) : (
+                ) : !verificationId ? (
                     <Button onClick={handleOrder} disabled={props.isReadonly || !!contestId} className="h-12 w-16 flex flex-col items-center justify-center gap-1 group bg-primary hover:bg-primary/90 text-primary-foreground">
                         <ShoppingCart className="h-5 w-5" />
                         <span className="text-[10px] font-bold">{props.isReadonly ? 'Locked' : (contestId ? 'Contest' : 'Order')}</span>
                     </Button>
-                )}
+                ) : null}
             </div>
 
         </header>
