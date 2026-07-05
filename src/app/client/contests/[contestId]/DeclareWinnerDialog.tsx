@@ -104,8 +104,12 @@ export function DeclareWinnerDialog({ contest, submissions }) {
         <ScrollArea className="h-96 pr-6">
           <div className="space-y-4">
             {submissions.map(participant => {
-              const subId = participant.submission?.id || participant.template?.id || 0;
-              const isTemplate = !!participant.template;
+              const subId = participant.submission?.id || 
+                            participant.template?.id || 
+                            (participant.designIds && participant.designIds.length > 0 ? participant.designIds[participant.designIds.length - 1] : 0) || 
+                            (participant.templateIds && participant.templateIds.length > 0 ? participant.templateIds[participant.templateIds.length - 1] : 0) || 
+                            0;
+              const isTemplate = !!participant.template || (participant.templateIds && participant.templateIds.length > 0 && !(participant.designIds && participant.designIds.length > 0));
               return (
                 <div key={participant.id} className="flex items-center gap-4 rounded-lg border p-3">
                   <Avatar>

@@ -603,6 +603,45 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                                 "{latest.freelancerFeedback}"
                                             </div>
                                         )}
+                                        {latest.design && (
+                                            <div className="mt-1.5 p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="relative w-10 h-10 bg-slate-50 dark:bg-zinc-950 rounded-lg overflow-hidden border border-slate-150 dark:border-slate-800 flex items-center justify-center shrink-0">
+                                                        {latest.design.thumbnailUrl ? (
+                                                            <Image
+                                                                src={resolveImagePath(latest.design.thumbnailUrl)}
+                                                                alt={latest.design.name}
+                                                                layout="fill"
+                                                                className="object-contain"
+                                                                unoptimized
+                                                            />
+                                                        ) : (
+                                                            <FileText className="w-4 h-4 text-slate-400" />
+                                                        )}
+                                                    </div>
+                                                    <div className="space-y-0.5 min-w-0">
+                                                        <span className="text-[8px] text-slate-400 font-bold block">VERIFIED DESIGN</span>
+                                                        <span className="font-extrabold text-[10px] text-slate-800 dark:text-slate-200 truncate max-w-[120px] block">
+                                                            {latest.design.name}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    asChild
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 px-2.5 rounded-lg font-bold text-[8px] text-indigo-600 hover:text-indigo-700 hover:bg-indigo-500/10 uppercase tracking-wider shrink-0"
+                                                >
+                                                    <a
+                                                        href={`/design/${latest.design.productSlug}?templateId=${latest.design.id}&readonly=true`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        View
+                                                    </a>
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })()}

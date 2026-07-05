@@ -501,6 +501,7 @@ export async function submitContestEntry(
         UPDATE contest_participants
         SET
             status     = 'submitted',
+            design_id  = ${designId},
             design_ids = CASE
                 WHEN design_ids IS NULL THEN ARRAY[${designId}]::integer[]
                 WHEN ${designId} = ANY(design_ids) THEN design_ids
@@ -573,16 +574,33 @@ export async function getContestWithSubmissions(contestId: number) {
                 },
                 orderBy: (contestWinners, { asc }) => [asc(contestWinners.rank)]
             },
-            orders: {
-                columns: {
-                    id: true,
-                    designId: true,
-                    designUploadId: true,
-                }
-            }
         }
     });
-    
+
+    if (!contestData) {
+        return null;
+    }
+
+    // Self-heal: if any participant has designIds/templateIds but designId/templateId is null, update it.
+    for (const p of contestData.participants) {
+        if (!p.designId && p.designIds && p.designIds.length > 0) {
+            const latestDesignId = p.designIds[p.designIds.length - 1];
+            await db.update(contestParticipants)
+                .set({ designId: latestDesignId })
+                .where(eq(contestParticipants.id, p.id));
+            p.designId = latestDesignId;
+            p.submission = await db.query.designs.findFirst({ where: eq(designs.id, latestDesignId) }) || null;
+        }
+        if (!p.templateId && p.templateIds && p.templateIds.length > 0) {
+            const latestTemplateId = p.templateIds[p.templateIds.length - 1];
+            await db.update(contestParticipants)
+                .set({ templateId: latestTemplateId })
+                .where(eq(contestParticipants.id, p.id));
+            p.templateId = latestTemplateId;
+            p.template = await db.query.designUploads.findFirst({ where: eq(designUploads.id, latestTemplateId) }) || null;
+        }
+    }
+
     return contestData;
 }
 
@@ -827,6 +845,7 @@ export async function linkDesignToContest(contestId: number, designId: number) {
         UPDATE contest_participants
         SET
             status     = 'submitted',
+            design_id  = ${designId},
             design_ids = CASE
                 WHEN design_ids IS NULL THEN ARRAY[${designId}]::integer[]
                 WHEN ${designId} = ANY(design_ids) THEN design_ids

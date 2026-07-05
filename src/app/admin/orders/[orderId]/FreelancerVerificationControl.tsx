@@ -47,6 +47,7 @@ interface Verification {
         id: number;
         name: string;
         productSlug: string;
+        thumbnailUrl: string | null;
     } | null;
 }
 
@@ -290,6 +291,46 @@ export function FreelancerVerificationControl({
                         </div>
                     )}
 
+                    {activeVerification.design && (
+                        <div className="p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                                <div className="relative w-12 h-12 bg-slate-50 dark:bg-zinc-950 rounded-lg overflow-hidden border border-slate-150 dark:border-slate-800 flex items-center justify-center shrink-0">
+                                    {activeVerification.design.thumbnailUrl ? (
+                                        <Image
+                                            src={resolveImagePath(activeVerification.design.thumbnailUrl)}
+                                            alt={activeVerification.design.name}
+                                            layout="fill"
+                                            className="object-contain"
+                                            unoptimized
+                                        />
+                                    ) : (
+                                        <FileText className="w-5 h-5 text-slate-400" />
+                                    )}
+                                </div>
+                                <div className="space-y-0.5">
+                                    <span className="text-[9px] text-slate-450 font-bold block">CURRENT SUBMISSION</span>
+                                    <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-200 truncate max-w-[150px] block">
+                                        {activeVerification.design.name}
+                                    </span>
+                                </div>
+                            </div>
+                            <Button
+                                asChild
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 rounded-lg font-bold text-[9px] text-indigo-600 hover:text-indigo-700 hover:bg-indigo-500/10 uppercase tracking-wider shrink-0"
+                            >
+                                <a
+                                    href={`/design/${activeVerification.design.productSlug}?templateId=${activeVerification.design.id}&readonly=true`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    View Design
+                                </a>
+                            </Button>
+                        </div>
+                    )}
+
                     <div className="flex justify-end pt-1">
                         <Button 
                             variant="outline" 
@@ -510,6 +551,30 @@ export function FreelancerVerificationControl({
                                             "{v.freelancerFeedback || 'Perfect. Design is print-ready!'}"
                                         </p>
                                     </div>
+
+                                    {v.design && (
+                                        <div className="my-2 p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
+                                            <div className="relative w-10 h-10 bg-slate-50 dark:bg-zinc-950 rounded-lg overflow-hidden border border-slate-150 dark:border-slate-800 flex items-center justify-center shrink-0">
+                                                {v.design.thumbnailUrl ? (
+                                                    <Image
+                                                        src={resolveImagePath(v.design.thumbnailUrl)}
+                                                        alt={v.design.name}
+                                                        layout="fill"
+                                                        className="object-contain"
+                                                        unoptimized
+                                                    />
+                                                ) : (
+                                                    <FileText className="w-4 h-4 text-slate-400" />
+                                                )}
+                                            </div>
+                                            <div className="space-y-0.5 min-w-0 flex-1">
+                                                <span className="text-[7.5px] text-slate-450 font-bold block">SUBMITTED AUDIT DESIGN</span>
+                                                <span className="font-extrabold text-[10px] text-slate-800 dark:text-slate-200 truncate block">
+                                                    {v.design.name}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="flex gap-2 justify-end pt-1">
                                         {/* Preview Design Link */}

@@ -196,7 +196,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
       }
     }
 
-    isAuthorizedToUpdate = (session?.sub && template.userId === session.sub) || isAdmin || (isFreelancer && (verificationId || contestId)) || isAssignedFreelancer;
+    isAuthorizedToUpdate = (session?.sub && template.userId === session.sub) || isAdmin;
 
     initialDesignName = template.name;
     if (isAuthorizedToUpdate) {
