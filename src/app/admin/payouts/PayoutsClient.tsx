@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-    CircleDollarSign, Search, Filter, X, CheckCircle2, 
-    AlertCircle, Clock, Trophy, Users, Landmark, FileCheck 
+import {
+    CircleDollarSign, Search, Filter, X, CheckCircle2,
+    AlertCircle, Clock, Trophy, Users, Landmark, FileCheck
 } from "lucide-react";
 import { format } from "date-fns";
 import { resolveImagePath, cn } from "@/lib/utils";
@@ -65,7 +65,7 @@ export function PayoutsClient({ contests: initialContests }: PayoutsClientProps)
     const { toast } = useToast();
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "paid">("all");
-    
+
     // Manage disbursed state locally (mock database update)
     const [disbursedPayouts, setDisbursedPayouts] = useState<Record<string, boolean>>(() => {
         // Initialize some older winners as paid to make it look realistic
@@ -106,11 +106,11 @@ export function PayoutsClient({ contests: initialContests }: PayoutsClientProps)
         return initialContests.filter(contest => {
             const custom = contest.customisation || {};
             const tierName = custom.tierName || "Standard Tier";
-            
+
             const matchesSearch = !searchQuery.trim() ? true : (
                 contest.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 contest.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                contest.winners.some(w => 
+                contest.winners.some(w =>
                     w.freelancer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     w.freelancer.email.toLowerCase().includes(searchQuery.toLowerCase())
                 )
@@ -226,8 +226,8 @@ export function PayoutsClient({ contests: initialContests }: PayoutsClientProps)
                     {/* Status Dropdown */}
                     <div className="md:col-span-4">
                         <div className="flex gap-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-1 rounded-2xl h-11">
-                            <button 
-                                onClick={() => setStatusFilter("all")} 
+                            <button
+                                onClick={() => setStatusFilter("all")}
                                 className={cn(
                                     "flex-1 text-center font-bold text-xs rounded-xl transition-all",
                                     statusFilter === "all" ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm" : "text-slate-400 hover:text-slate-600"
@@ -235,8 +235,8 @@ export function PayoutsClient({ contests: initialContests }: PayoutsClientProps)
                             >
                                 All
                             </button>
-                            <button 
-                                onClick={() => setStatusFilter("pending")} 
+                            <button
+                                onClick={() => setStatusFilter("pending")}
                                 className={cn(
                                     "flex-1 text-center font-bold text-xs rounded-xl transition-all",
                                     statusFilter === "pending" ? "bg-white dark:bg-slate-900 text-amber-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
@@ -244,8 +244,8 @@ export function PayoutsClient({ contests: initialContests }: PayoutsClientProps)
                             >
                                 Pending
                             </button>
-                            <button 
-                                onClick={() => setStatusFilter("paid")} 
+                            <button
+                                onClick={() => setStatusFilter("paid")}
                                 className={cn(
                                     "flex-1 text-center font-bold text-xs rounded-xl transition-all",
                                     statusFilter === "paid" ? "bg-white dark:bg-slate-900 text-emerald-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
@@ -282,7 +282,7 @@ export function PayoutsClient({ contests: initialContests }: PayoutsClientProps)
                                     {filteredContests.map((contest) => {
                                         const custom = contest.customisation || {};
                                         const tierName = custom.tierName || "Standard Tier";
-                                        
+
                                         // Count paid vs unpaid winners
                                         const totalWinners = contest.winners.length;
                                         const paidWinnersCount = contest.winners.filter(w => disbursedPayouts[`${contest.id}-${w.freelancerId}`]).length;
@@ -345,8 +345,8 @@ export function PayoutsClient({ contests: initialContests }: PayoutsClientProps)
                                                                                 onClick={() => handleDisburse(contest.id, winner.freelancerId, winner.freelancer.name, amount)}
                                                                                 className={cn(
                                                                                     "h-7 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all",
-                                                                                    isPaid 
-                                                                                        ? "bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" 
+                                                                                    isPaid
+                                                                                        ? "bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
                                                                                         : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                                                                                 )}
                                                                             >
@@ -388,7 +388,7 @@ export function PayoutsClient({ contests: initialContests }: PayoutsClientProps)
                                                 <TableCell className="pr-6 text-right">
                                                     <div className="flex justify-end gap-1.5">
                                                         {contest.winners.length > 0 && !isFullyPaid && (
-                                                            <Button 
+                                                            <Button
                                                                 size="sm"
                                                                 variant="outline"
                                                                 onClick={() => {

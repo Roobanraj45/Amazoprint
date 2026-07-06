@@ -151,33 +151,36 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
     };
 
     return (
-        <div className="min-h-screen bg-background">
-            {/* Premium Glassmorphic Header */}
-            <header className="pt-16 pb-12 border-b border-border/40 bg-gradient-to-b from-muted/30 via-background to-background relative overflow-hidden">
-                <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none -z-10" />
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none -z-10" />
+        <div className="min-h-screen bg-[#F0F7FF] dark:bg-[#0B1528]">
+            {/* Premium Header with subtle grid patterns */}
+            <header className="pt-20 pb-14 border-b border-slate-200/50 dark:border-slate-800/50 bg-[#F0F7FF] dark:bg-[#0B1528] relative overflow-hidden">
+                {/* Subtle grid pattern overlay */}
+                <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1.5px,transparent_1.5px)] dark:bg-[radial-gradient(#1e293b_1.5px,transparent_1.5px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
+                <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none -z-10" />
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none -z-10" />
+                
                 <div className="container px-4 md:px-6 relative z-10">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-10">
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
                         <div className="space-y-4 max-w-2xl">
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20 shadow-sm backdrop-blur-md">
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-extrabold border border-primary/20 shadow-sm backdrop-blur-md">
                                 <Sparkles className="w-4 h-4 animate-pulse" /> Product Catalog
                             </div>
-                            <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">
+                            <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-none">
                                 Explore Our <span className="bg-gradient-to-r from-primary via-indigo-600 to-pink-600 bg-clip-text text-transparent">Products</span>
                             </h1>
-                            <p className="text-slate-600 dark:text-slate-400 font-medium text-base sm:text-lg leading-relaxed">
+                            <p className="text-slate-500 dark:text-slate-400 font-bold text-base sm:text-lg leading-relaxed">
                                 Select a product below to customize dimensions, paper types, and premium finishes.
                             </p>
                         </div>
                         
-                        <div className="flex flex-wrap gap-4 md:gap-8 pb-1">
+                        <div className="flex flex-wrap gap-3 md:gap-4 pb-1">
                             {[
-                                { icon: ShieldCheck, text: "Quality verified", color: "text-blue-500" },
-                                { icon: Leaf, text: "Eco-friendly", color: "text-emerald-500" },
-                                { icon: CheckCircle2, text: "Pre-press review", color: "text-amber-500" }
+                                { icon: ShieldCheck, text: "Quality verified", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50/50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900/30" },
+                                { icon: Leaf, text: "Eco-friendly", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/30" },
+                                { icon: CheckCircle2, text: "Pre-press review", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50/50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/30" }
                             ].map((item, i) => (
-                                <div key={i} className="flex items-center gap-2 text-sm font-bold text-foreground/80 bg-card/60 border border-border/50 px-4 py-2 rounded-2xl shadow-sm backdrop-blur-md">
-                                    <item.icon className={`w-5 h-5 ${item.color}`} />
+                                <div key={i} className={`flex items-center gap-2 text-sm font-bold ${item.color} ${item.bg} border px-4 py-2 rounded-2xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:scale-[1.02]`}>
+                                    <item.icon className="w-5 h-5" />
                                     {item.text}
                                 </div>
                             ))}
@@ -186,27 +189,27 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
 
                     {/* Search and Filter Bar */}
                     <div className="space-y-4">
-                        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                            <div className="relative w-full sm:max-w-md group">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+                            <div className="relative w-full lg:max-w-md group">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
                                 <Input 
-                                    placeholder="Search by product, material, or size..." 
+                                    placeholder="Search products..." 
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-12 h-14 bg-card border-border/50 focus-visible:ring-primary/20 rounded-2xl shadow-sm text-base font-medium" 
+                                    className="pl-12 h-14 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus-visible:ring-primary/20 rounded-2xl shadow-sm hover:border-slate-300 dark:hover:border-slate-700 text-base font-semibold transition-all duration-300" 
                                 />
                             </div>
-                            <ScrollArea className="w-full sm:w-auto whitespace-nowrap rounded-xl">
+                            <ScrollArea className="w-full lg:w-auto whitespace-nowrap rounded-2xl">
                                 <div className="flex w-max space-x-2 p-1">
                                     {categories.map(category => (
                                         <Button
                                             key={category}
                                             variant={activeCategory === category ? "default" : "outline"}
                                             onClick={() => setActiveCategory(category)}
-                                            className={`rounded-2xl font-semibold px-8 h-12 transition-all ${
+                                            className={`rounded-2xl font-bold px-6 h-12 transition-all duration-300 ${
                                                 activeCategory === category 
-                                                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
-                                                    : "bg-card border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90" 
+                                                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850 hover:border-slate-300 dark:hover:border-slate-700"
                                             }`}
                                         >
                                             {category}
@@ -218,18 +221,18 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                         </div>
 
                         {/* Quick Feature & Finish Filters */}
-                        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/40 mt-4">
-                            <span className="text-xs font-bold text-muted-foreground mr-2 uppercase tracking-wider">Quick Filters:</span>
+                        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-200/50 dark:border-slate-800/50 mt-4">
+                            <span className="text-xs font-bold text-slate-400 mr-2 uppercase tracking-wider">Quick Filters:</span>
                             {['All', '✨ Spot UV', '🏷️ Discounted', '⚡ Direct Orders'].map(finish => (
                                 <Button
                                     key={finish}
                                     variant={activeFinish === finish ? "default" : "outline"}
                                     onClick={() => setActiveFinish(finish)}
                                     size="sm"
-                                    className={`rounded-xl font-bold px-4 h-10 transition-all ${
+                                    className={`rounded-xl font-bold px-4 h-10 transition-all duration-300 ${
                                         activeFinish === finish 
-                                            ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
-                                            : "bg-card border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                            ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md scale-[1.02]" 
+                                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
                                     }`}
                                 >
                                     {finish}
@@ -240,23 +243,23 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                 </div>
             </header>
 
-            <section className="py-16 relative">
+            <section className="py-20 relative bg-[#F0F7FF] dark:bg-[#0B1528]">
                 <div className="container px-4 md:px-6">
                     {activeFinish === '⚡ Direct Orders' ? (
                         <div className="space-y-24">
                             {directSellingProducts && directSellingProducts.length > 0 ? (
-                                <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-primary/30 shadow-2xl relative overflow-hidden text-white space-y-8 animate-in fade-in duration-700">
+                                <div className="p-8 sm:p-12 rounded-[32px] bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-slate-850 shadow-2xl relative overflow-hidden text-white space-y-8 animate-in fade-in duration-700">
                                     {/* Background Glows */}
-                                    <div className="absolute inset-0 bg-grid-white/[0.03] bg-[size:24px_24px]" />
-                                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/15 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32" />
-                                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/15 rounded-full blur-3xl pointer-events-none -ml-32 -mb-32" />
+                                    <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:24px_24px]" />
+                                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none -mr-32 -mt-32" />
+                                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none -ml-32 -mb-32" />
 
                                     <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
                                         <div className="space-y-2 max-w-xl">
                                             <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-xs px-4 py-1.5 rounded-full font-bold backdrop-blur-md uppercase tracking-wider">
                                                 🔥 Direct Order Showcase
                                             </Badge>
-                                            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
+                                            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
                                                 Premium Direct Selling Bundles
                                             </h2>
                                             <p className="text-slate-300 text-sm font-medium">
@@ -275,9 +278,9 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                             const basePrice = Number(product.basePrice || 0);
                                             
                                             return (
-                                                <div key={product.id} className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.08] hover:border-white/20 transition-all duration-500 flex flex-col justify-between group">
+                                                <div key={product.id} className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.07] hover:border-primary/30 transition-all duration-300 hover:shadow-primary/5 flex flex-col justify-between group">
                                                     <div className="space-y-4">
-                                                        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-black/40 border border-white/10">
+                                                        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-slate-950/60 border border-white/10">
                                                             <Image src={resolveImagePath(img)} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110 p-2" />
                                                             <div className="absolute top-3 left-3">
                                                                 <Badge className="bg-primary text-white font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider border-none shadow-lg">
@@ -310,7 +313,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                 setQuantity(1);
                                                                 setCustomText('');
                                                             }}
-                                                            className="w-full h-12 rounded-xl bg-white text-slate-900 hover:bg-primary hover:text-white font-bold transition-all shadow-lg group-hover:shadow-primary/20"
+                                                            className="w-full h-12 rounded-xl bg-white text-slate-950 hover:bg-primary hover:text-white font-extrabold transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-primary/20"
                                                         >
                                                             Order Directly <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                                                         </Button>
@@ -321,23 +324,23 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-center py-32 border border-dashed border-border/60 rounded-3xl bg-muted/10">
+                                <div className="text-center py-32 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm">
                                     <h3 className="text-2xl font-bold font-headline mb-2">No direct products available</h3>
                                     <p className="text-muted-foreground font-medium max-w-sm mx-auto">There are currently no direct selling bundles available.</p>
-                                    <Button variant="outline" className="mt-8 rounded-2xl font-semibold text-sm px-8 h-12" onClick={() => setActiveFinish('All')}>
+                                    <Button variant="outline" className="mt-8 rounded-2xl font-bold text-sm px-8 h-12" onClick={() => setActiveFinish('All')}>
                                         View All Products
                                     </Button>
                                 </div>
                             )}
                         </div>
                     ) : filteredProducts.length === 0 ? (
-                        <div className="text-center py-32 border border-dashed border-border/60 rounded-3xl bg-muted/10">
+                        <div className="text-center py-32 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm">
                             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
                                 <Search className="h-10 w-10 text-primary" />
                             </div>
                             <h3 className="text-2xl font-bold font-headline mb-2">No products found</h3>
                             <p className="text-muted-foreground font-medium max-w-sm mx-auto">We couldn't find any products matching your search. Try adjusting your filters or search terms.</p>
-                            <Button variant="outline" className="mt-8 rounded-2xl font-semibold text-sm px-8 h-12" onClick={() => { setSearchQuery(''); setActiveCategory('All'); setActiveFinish('All'); }}>
+                            <Button variant="outline" className="mt-8 rounded-2xl font-bold text-sm px-8 h-12" onClick={() => { setSearchQuery(''); setActiveCategory('All'); setActiveFinish('All'); }}>
                                 Clear filters
                             </Button>
                         </div>
@@ -349,7 +352,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                         <h2 className="text-3xl font-extrabold tracking-tight font-headline text-slate-900 dark:text-white flex items-center gap-3">
                                             <span className="w-4 h-8 rounded-full bg-gradient-to-b from-primary to-indigo-600 inline-block" /> {product.name}
                                         </h2>
-                                        <div className="h-[2px] flex-1 bg-gradient-to-r from-border/80 via-border/40 to-transparent" />
+                                        <div className="h-[2px] flex-1 bg-gradient-to-r from-slate-200 dark:from-slate-800 to-transparent" />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -361,10 +364,10 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                             
                                             return (
                                                 <Link key={subProduct.id} href={`/design/${product.slug}/start?subProductId=${subProduct.id}`} className="group relative block h-full outline-none">
-                                                    <Card className="h-full flex flex-col overflow-hidden rounded-3xl border-border/60 bg-card/40 backdrop-blur-md transition-all duration-500 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/50 hover:-translate-y-2 group">
+                                                    <Card className="h-full flex flex-col overflow-hidden rounded-[24px] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-550 ease-out hover:shadow-[0_20px_50px_rgba(37,99,235,0.08)] hover:border-primary/45 hover:-translate-y-2">
                                                         
                                                         {/* Image Container */}
-                                                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-slate-900 border-b border-border/40 flex items-center justify-center">
+                                                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
                                                             {imageUrl ? (
                                                                 <Image
                                                                     src={imageUrl}
@@ -380,7 +383,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                             {/* Floating Badges */}
                                                             <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
                                                                 {spotUvAllowed && (
-                                                                    <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 backdrop-blur-md text-white border-none shadow-lg text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                                                                    <Badge className="bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white border-none shadow-md text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
                                                                         ✨ Premium Gloss
                                                                     </Badge>
                                                                 )}
@@ -388,7 +391,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
 
                                                             {discountText && (
                                                                 <div className="absolute top-4 right-4 z-10">
-                                                                    <Badge variant="destructive" className="shadow-lg backdrop-blur-md bg-gradient-to-r from-rose-600 to-pink-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider border-none">
+                                                                    <Badge variant="destructive" className="bg-gradient-to-r from-rose-500 to-pink-500 text-white border-none shadow-md text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
                                                                         {discountText}
                                                                     </Badge>
                                                                 </div>
@@ -399,33 +402,33 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
 
                                                             {/* Price Tag Overlay */}
                                                             <div className="absolute bottom-4 right-4 z-10">
-                                                                <div className="bg-white dark:bg-slate-900 backdrop-blur-md px-4 py-2 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-end group-hover:border-primary/50 transition-all">
-                                                                    <span className="text-[10px] text-slate-500 font-bold leading-none mb-1.5 uppercase tracking-wider">Starting at</span>
-                                                                    <span className="text-xl font-bold text-primary flex items-center leading-none">
-                                                                        <IndianRupee size={16} className="mr-0.5 stroke-[3]" />
+                                                                <div className="bg-white dark:bg-slate-900 backdrop-blur-md px-3.5 py-1.5 rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.06)] border border-slate-100 dark:border-slate-800 flex flex-col items-end group-hover:border-primary/40 transition-all duration-300">
+                                                                    <span className="text-[9px] text-slate-400 font-extrabold leading-none mb-1 uppercase tracking-wider">Starting at</span>
+                                                                    <span className="text-lg font-black text-primary flex items-center leading-none">
+                                                                        <IndianRupee size={14} className="mr-0.5 stroke-[3]" />
                                                                         {price}
                                                                     </span>
                                                                 </div>
                                                             </div>
                                                         </div>
 
-                                                        <CardContent className="p-6 flex-grow flex flex-col bg-card relative z-20 space-y-4">
-                                                            <div>
-                                                                <h3 className="text-xl font-bold tracking-tight leading-tight group-hover:text-primary transition-colors text-slate-900 dark:text-white line-clamp-1">
+                                                        <CardContent className="p-6 flex-grow flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900">
+                                                            <div className="space-y-2">
+                                                                <h3 className="text-xl font-bold tracking-tight leading-tight group-hover:text-primary transition-colors text-slate-800 dark:text-white line-clamp-1">
                                                                     {subProduct.name}
                                                                 </h3>
-                                                                <p className="text-[12px] text-slate-600 dark:text-slate-400 mt-2 font-bold flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900/60 w-fit px-3 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
-                                                                    <Package2 size={14} className="text-primary" />
+                                                                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/50 px-2.5 py-1.5 rounded-xl border border-slate-100 dark:border-slate-850 w-fit inline-flex items-center gap-1.5">
+                                                                    <Package2 size={13} className="text-primary" />
                                                                     {subProduct.width} &times; {subProduct.height} {subProduct.unitType || 'mm'}
                                                                 </p>
                                                             </div>
                                                             
-                                                            <div className="mt-auto pt-4 border-t border-border/40 flex items-center justify-between">
-                                                                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                                            <div className="pt-4 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between">
+                                                                <div className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
                                                                     <CheckCircle2 className="w-4 h-4 stroke-[3]" />
                                                                     <span>Bulk Ready</span>
                                                                 </div>
-                                                                <div className="flex items-center gap-1.5 text-xs font-bold text-primary opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all duration-500">
+                                                                <div className="flex items-center gap-1.5 text-xs font-extrabold text-primary opacity-0 group-hover:opacity-100 -translate-x-3 group-hover:translate-x-0 transition-all duration-550">
                                                                     Design Now <ArrowRight size={14} className="stroke-[3]" />
                                                                 </div>
                                                             </div>
@@ -438,18 +441,18 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
 
                                     {/* INJECT DIRECT SELLING FEATURED BUNDLES AFTER THE FIRST CATEGORY */}
                                     {index === 0 && directSellingProducts && directSellingProducts.length > 0 && (
-                                        <div className="my-20 p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-primary/30 shadow-2xl relative overflow-hidden text-white space-y-8 animate-in fade-in duration-700">
+                                        <div className="my-20 p-8 sm:p-12 rounded-[32px] bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-slate-850 shadow-2xl relative overflow-hidden text-white space-y-8 animate-in fade-in duration-700">
                                             {/* Background Glows */}
-                                            <div className="absolute inset-0 bg-grid-white/[0.03] bg-[size:24px_24px]" />
-                                            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/15 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32" />
-                                            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/15 rounded-full blur-3xl pointer-events-none -ml-32 -mb-32" />
+                                            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:24px_24px]" />
+                                            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none -mr-32 -mt-32" />
+                                            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none -ml-32 -mb-32" />
 
                                             <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
                                                 <div className="space-y-2 max-w-xl">
                                                     <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-xs px-4 py-1.5 rounded-full font-bold backdrop-blur-md uppercase tracking-wider">
                                                         🔥 Direct Order Showcase
                                                     </Badge>
-                                                    <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
+                                                    <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
                                                         Premium Direct Selling Bundles
                                                     </h2>
                                                     <p className="text-slate-300 text-sm font-medium">
@@ -468,9 +471,9 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                     const basePrice = Number(product.basePrice || 0);
                                                     
                                                     return (
-                                                        <div key={product.id} className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.08] hover:border-white/20 transition-all duration-500 flex flex-col justify-between group">
+                                                        <div key={product.id} className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.07] hover:border-primary/30 transition-all duration-300 hover:shadow-primary/5 flex flex-col justify-between group">
                                                             <div className="space-y-4">
-                                                                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-black/40 border border-white/10">
+                                                                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-slate-950/60 border border-white/10">
                                                                     <Image src={resolveImagePath(img)} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110 p-2" />
                                                                     <div className="absolute top-3 left-3">
                                                                         <Badge className="bg-primary text-white font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider border-none shadow-lg">
@@ -503,7 +506,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                         setQuantity(1);
                                                                         setCustomText('');
                                                                     }}
-                                                                    className="w-full h-12 rounded-xl bg-white text-slate-900 hover:bg-primary hover:text-white font-bold transition-all shadow-lg group-hover:shadow-primary/20"
+                                                                    className="w-full h-12 rounded-xl bg-white text-slate-950 hover:bg-primary hover:text-white font-extrabold transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-primary/20"
                                                                 >
                                                                     Order Directly <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                                                                 </Button>
