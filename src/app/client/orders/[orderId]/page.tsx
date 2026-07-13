@@ -77,6 +77,10 @@ export default async function ClientOrderDetailsPage({ params }: { params: { ord
         designPreviewNode = imageSrc ? <Image src={resolveImagePath(imageSrc)} alt="product image" layout="fill" className="object-cover" /> : <FileText className="h-16 w-16 text-muted-foreground"/>;
     }
 
+    let totalAmountVal = parseFloat(order.totalAmount) || 0;
+    if (totalAmountVal === 0 && order.contestId && order.payment?.amount) {
+        totalAmountVal = parseFloat(order.payment.amount);
+    }
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
@@ -134,7 +138,7 @@ export default async function ClientOrderDetailsPage({ params }: { params: { ord
                                         </div>
                                         <div className="col-span-2">
                                             <p className="text-xs text-muted-foreground">Total Amount</p>
-                                            <p className="font-bold text-lg flex items-center"><IndianRupee size={16} className="mr-0.5" />{parseFloat(order.totalAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})}</p>
+                                            <p className="font-bold text-lg flex items-center"><IndianRupee size={16} className="mr-0.5" />{totalAmountVal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</p>
                                         </div>
                                     </div>
 
@@ -143,7 +147,7 @@ export default async function ClientOrderDetailsPage({ params }: { params: { ord
                                         const breakup = customisation?.priceBreakup;
                                         if (breakup) {
                                             const addonsTotal = breakup.addons?.reduce((acc: number, addon: any) => acc + addon.totalAmount, 0) || 0;
-                                            const standardCost = parseFloat(order.totalAmount) - addonsTotal + (breakup.discount || 0);
+                                            const standardCost = totalAmountVal - addonsTotal + (breakup.discount || 0);
                                             
                                             return (
                                                 <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
@@ -181,7 +185,7 @@ export default async function ClientOrderDetailsPage({ params }: { params: { ord
                                                                 <div className="flex items-center gap-1">
                                                                     <IndianRupee className="w-4 h-4 text-primary" />
                                                                     <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">
-                                                                        {parseFloat(order.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                                        {totalAmountVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                                                     </span>
                                                                 </div>
                                                             </div>

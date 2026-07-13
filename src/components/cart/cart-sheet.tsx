@@ -16,11 +16,11 @@ import {
 import { useCart } from '@/hooks/use-cart';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { IndianRupee, Plus, Minus, X, ShoppingCart } from 'lucide-react';
-import { resolveImagePath } from '@/lib/utils';
+import { resolveImagePath, cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { useState, useEffect } from 'react';
 
-export function CartSheet() {
+export function CartSheet({ className }: { className?: string }) {
   const { items, removeItem, updateQuantity, totalItems, subtotal } = useCart();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -30,7 +30,7 @@ export function CartSheet() {
 
   if (!isMounted) {
     return (
-      <Button variant="outline" size="icon" className="relative" disabled>
+      <Button variant="outline" size="icon" className={cn("relative", className)} disabled>
         <ShoppingCart className="h-5 w-5" />
         <span className="sr-only">Open cart</span>
       </Button>
@@ -40,7 +40,7 @@ export function CartSheet() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="icon" className="relative">
+        <Button variant="outline" size="icon" className={cn("relative", className)}>
           <ShoppingCart className="h-5 w-5" />
           {totalItems > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">

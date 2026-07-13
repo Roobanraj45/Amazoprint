@@ -106,19 +106,19 @@ export default async function MyOrdersPage({ searchParams }: { searchParams: { p
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="text-right sm:text-right mt-4 sm:mt-0 bg-background/50 p-4 rounded-2xl border border-border/40">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Total Amount</p>
-                                            <div className="flex flex-col items-end">
-                                                <p className="text-2xl font-black tracking-tighter flex items-center justify-end text-primary">
-                                                    <IndianRupee className="h-5 w-5 mr-0.5" />{parseFloat(order.totalAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                                                </p>
-                                                {order.contestId && order.contest?.payments?.[0] && (
-                                                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
-                                                        (₹{parseFloat(order.contest.payments[0].amount).toLocaleString('en-IN', {minimumFractionDigits: 2})} paid during contest)
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
+                                         <div className="text-right sm:text-right mt-4 sm:mt-0 bg-background/50 p-4 rounded-2xl border border-border/40">
+                                             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Total Amount</p>
+                                             <div className="flex flex-col items-end">
+                                                 <p className="text-2xl font-black tracking-tighter flex items-center justify-end text-primary">
+                                                     <IndianRupee className="h-5 w-5 mr-0.5" />{(() => {
+                                                         const amt = (order.contestId && order.contest?.payments?.[0])
+                                                             ? parseFloat(order.contest.payments[0].amount)
+                                                             : parseFloat(order.totalAmount);
+                                                         return amt.toLocaleString('en-IN', {minimumFractionDigits: 2});
+                                                     })()}
+                                                 </p>
+                                             </div>
+                                         </div>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="bg-muted/10 p-4 border-t border-border/40 flex justify-between items-center">

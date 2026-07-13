@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Sparkles, Package2, Leaf, ShieldCheck, Palette, ArrowRight, CheckCircle2, IndianRupee, Search, Filter } from 'lucide-react';
+import { Sparkles, Package2, Leaf, ShieldCheck, Palette, ArrowRight, CheckCircle2, IndianRupee, Search, Filter, Star } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { resolveImagePath } from '@/lib/utils';
+import { resolveImagePath, cn } from '@/lib/utils';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
@@ -43,10 +43,23 @@ const getDiscountInfo = (subProduct: any) => {
     return null;
 }
 
+const CATEGORY_ASSETS: Record<string, { emoji: string, bg: string, label: string }> = {
+    'All': { emoji: '🛍️', bg: 'from-slate-100 to-slate-200', label: 'All Categories' },
+    'Business Cards': { emoji: '🪪', bg: 'from-[#464674]/5 to-[#464674]/20', label: 'Business Cards' },
+    'Flyers': { emoji: '📄', bg: 'from-orange-50 to-amber-100', label: 'Flyers' },
+    'Brochures': { emoji: '📋', bg: 'from-violet-50 to-purple-100', label: 'Brochures' },
+    'Stickers': { emoji: '⭐', bg: 'from-yellow-50 to-lime-100', label: 'Stickers' },
+    'Posters': { emoji: '🖼️', bg: 'from-green-50 to-emerald-100', label: 'Posters' },
+    'Banners': { emoji: '🏳️', bg: 'from-red-50 to-rose-100', label: 'Banners' },
+    'Packaging': { emoji: '📦', bg: 'from-amber-50 to-orange-100', label: 'Packaging' },
+    'T-Shirts': { emoji: '👕', bg: 'from-pink-50 to-fuchsia-100', label: 'T-Shirts' },
+};
+
 export function ProductsClient({ initialProducts, directSellingProducts = [] }: { initialProducts: any[]; directSellingProducts?: any[] }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState<string>('All');
     const [activeFinish, setActiveFinish] = useState<string>('All');
+    const [sortBy, setSortBy] = useState<string>('default');
 
     // Direct Order Modal State
     const [selectedDirectProduct, setSelectedDirectProduct] = useState<any | null>(null);
@@ -66,6 +79,15 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
 
     // Extract all unique categories (product names) for the filter pills
     const categories = ['All', ...Array.from(new Set(initialProducts.map(p => p.name)))];
+
+    // Helper to get matching subproducts count
+    const getCategoryCount = (catName: string) => {
+        if (catName === 'All') {
+            return initialProducts.reduce((acc, p) => acc + p.subProducts.filter(sp => sp.isActive).length, 0);
+        }
+        const prod = initialProducts.find(p => p.name === catName);
+        return prod ? prod.subProducts.filter((sp: any) => sp.isActive).length : 0;
+    };
 
     // Filter products based on search, category, and activeFinish
     const filteredProducts = useMemo(() => {
@@ -108,6 +130,31 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
             };
         }).filter(Boolean); // Remove nulls
     }, [initialProducts, searchQuery, activeCategory, activeFinish]);
+
+    // Flat subproducts list with parent slug details, and sorting applied
+    const flatSubProducts = useMemo(() => {
+        const list: any[] = [];
+        filteredProducts.forEach((product: any) => {
+            product.subProducts.forEach((subProduct: any) => {
+                list.push({
+                    ...subProduct,
+                    parentProductSlug: product.slug,
+                    parentProductName: product.name,
+                });
+            });
+        });
+
+        // Apply sorting
+        if (sortBy === 'price-low') {
+            list.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+        } else if (sortBy === 'price-high') {
+            list.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+        } else if (sortBy === 'name') {
+            list.sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        return list;
+    }, [filteredProducts, sortBy]);
 
     const handleDirectOrderSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -153,17 +200,17 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
     return (
         <div className="min-h-screen bg-[#F0F7FF] dark:bg-[#0B1528]">
             {/* Premium Header with subtle grid patterns */}
-            <header className="pt-20 pb-14 border-b border-slate-200/50 dark:border-slate-800/50 bg-[#F0F7FF] dark:bg-[#0B1528] relative overflow-hidden">
+            <header className="pt-24 pb-14 border-b border-slate-200/50 dark:border-slate-800/50 bg-[#F0F7FF] dark:bg-[#0B1528] relative overflow-hidden">
                 {/* Subtle grid pattern overlay */}
                 <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1.5px,transparent_1.5px)] dark:bg-[radial-gradient(#1e293b_1.5px,transparent_1.5px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
                 <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none -z-10" />
                 <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none -z-10" />
                 
                 <div className="container px-4 md:px-6 relative z-10">
-                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-10">
                         <div className="space-y-4 max-w-2xl">
                             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-extrabold border border-primary/20 shadow-sm backdrop-blur-md">
-                                <Sparkles className="w-4 h-4 animate-pulse" /> Product Catalog
+                                <Sparkles className="w-4 h-4 animate-pulse" /> Print Shop
                             </div>
                             <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-none">
                                 Explore Our <span className="bg-gradient-to-r from-primary via-indigo-600 to-pink-600 bg-clip-text text-transparent">Products</span>
@@ -187,266 +234,182 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                         </div>
                     </div>
 
-                    {/* Search and Filter Bar */}
-                    <div className="space-y-4">
-                        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-                            <div className="relative w-full lg:max-w-md group">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
-                                <Input 
-                                    placeholder="Search products..." 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-12 h-14 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus-visible:ring-primary/20 rounded-2xl shadow-sm hover:border-slate-300 dark:hover:border-slate-700 text-base font-semibold transition-all duration-300" 
-                                />
-                            </div>
-                            <ScrollArea className="w-full lg:w-auto whitespace-nowrap rounded-2xl">
-                                <div className="flex w-max space-x-2 p-1">
-                                    {categories.map(category => (
-                                        <Button
-                                            key={category}
-                                            variant={activeCategory === category ? "default" : "outline"}
-                                            onClick={() => setActiveCategory(category)}
-                                            className={`rounded-2xl font-bold px-6 h-12 transition-all duration-300 ${
-                                                activeCategory === category 
-                                                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90" 
-                                                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-850 hover:border-slate-300 dark:hover:border-slate-700"
-                                            }`}
-                                        >
-                                            {category}
-                                        </Button>
-                                    ))}
-                                </div>
-                                <ScrollBar orientation="horizontal" className="invisible" />
-                            </ScrollArea>
-                        </div>
-
-                        {/* Quick Feature & Finish Filters */}
-                        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-200/50 dark:border-slate-800/50 mt-4">
-                            <span className="text-xs font-bold text-slate-400 mr-2 uppercase tracking-wider">Quick Filters:</span>
-                            {['All', '✨ Spot UV', '🏷️ Discounted', '⚡ Direct Orders'].map(finish => (
-                                <Button
-                                    key={finish}
-                                    variant={activeFinish === finish ? "default" : "outline"}
-                                    onClick={() => setActiveFinish(finish)}
-                                    size="sm"
-                                    className={`rounded-xl font-bold px-4 h-10 transition-all duration-300 ${
-                                        activeFinish === finish 
-                                            ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md scale-[1.02]" 
-                                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
-                                    }`}
-                                >
-                                    {finish}
-                                </Button>
-                            ))}
+                    {/* Category bubbles grid (Shop Banner - Category Image style) */}
+                    <div className="mt-12 bg-white/40 dark:bg-slate-900/30 rounded-3xl p-6 border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-md">
+                        <p className="text-xs font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center mb-6">Popular Print Niches</p>
+                        
+                        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-4 justify-items-center">
+                            {categories.map((category) => {
+                                const prod = initialProducts.find(p => p.name === category);
+                                const productImg = category === 'All'
+                                    ? (initialProducts[0]?.imageUrl || '/uploads/hero.png')
+                                    : (prod?.imageUrl || prod?.subProducts?.[0]?.imageUrl || '/uploads/hero.png');
+                                const resolvedImg = resolveImagePath(productImg);
+                                const asset = CATEGORY_ASSETS[category] || { emoji: '📦', bg: 'from-gray-50 to-slate-100', label: category };
+                                const count = getCategoryCount(category);
+                                const isActive = activeCategory === category;
+                                
+                                return (
+                                    <button 
+                                        key={category} 
+                                        onClick={() => setActiveCategory(category)}
+                                        className="group flex flex-col items-center outline-none transition-all duration-300 hover:-translate-y-1"
+                                    >
+                                        <div className={cn(
+                                            "w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center shadow-md border overflow-hidden relative transition-all duration-300 bg-slate-50 dark:bg-slate-950",
+                                            isActive 
+                                                ? "border-[#464674] ring-4 ring-[#464674]/15 scale-105 shadow-md shadow-[#464674]/20" 
+                                                : "border-slate-200/80 dark:border-slate-850 hover:border-[#464674]/40 hover:shadow-lg"
+                                        )}>
+                                            <div className="relative w-full h-full p-2">
+                                                <Image 
+                                                    src={resolvedImg} 
+                                                    alt={category} 
+                                                    fill 
+                                                    className="object-contain p-1.5 transition-transform duration-500 group-hover:scale-110"
+                                                    sizes="(max-width: 768px) 64px, 80px"
+                                                />
+                                            </div>
+                                        </div>
+                                        <span className={cn(
+                                            "text-[10px] font-black mt-2 text-center truncate max-w-[80px] transition-colors leading-tight",
+                                            isActive ? "text-[#464674] dark:text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-950"
+                                        )}>
+                                            {asset.label}
+                                        </span>
+                                        <span className="text-[8px] font-extrabold text-slate-400 mt-0.5">{count} {count === 1 ? 'item' : 'items'}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
             </header>
 
-            <section className="py-20 relative bg-[#F0F7FF] dark:bg-[#0B1528]">
+            <section className="py-14 relative bg-[#F0F7FF] dark:bg-[#0B1528]">
                 <div className="container px-4 md:px-6">
-                    {activeFinish === '⚡ Direct Orders' ? (
-                        <div className="space-y-24">
-                            {directSellingProducts && directSellingProducts.length > 0 ? (
-                                <div className="p-8 sm:p-12 rounded-[32px] bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-slate-850 shadow-2xl relative overflow-hidden text-white space-y-8 animate-in fade-in duration-700">
-                                    {/* Background Glows */}
-                                    <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:24px_24px]" />
-                                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none -mr-32 -mt-32" />
-                                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none -ml-32 -mb-32" />
-
-                                    <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
-                                        <div className="space-y-2 max-w-xl">
-                                            <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-xs px-4 py-1.5 rounded-full font-bold backdrop-blur-md uppercase tracking-wider">
-                                                🔥 Direct Order Showcase
-                                            </Badge>
-                                            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                                                Premium Direct Selling Bundles
-                                            </h2>
-                                            <p className="text-slate-300 text-sm font-medium">
-                                                Skip the custom design tool. Order our verified, high-demand industrial print packages directly with instant pre-press priority.
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs font-bold text-primary bg-white/5 border border-white/10 px-4 py-2 rounded-2xl backdrop-blur-md">
-                                            <Sparkles className="w-4 h-4 text-primary animate-pulse" /> Same Day Pre-Press Dispatch
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-                                        {directSellingProducts.map((product) => {
-                                            const img = product.imageUrls?.[0] || '/uploads/hero.png';
-                                            const price = Number(product.sellingPrice || 0);
-                                            const basePrice = Number(product.basePrice || 0);
-                                            
-                                            return (
-                                                <div key={product.id} className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.07] hover:border-primary/30 transition-all duration-300 hover:shadow-primary/5 flex flex-col justify-between group">
-                                                    <div className="space-y-4">
-                                                        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-slate-950/60 border border-white/10">
-                                                            <Image src={resolveImagePath(img)} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110 p-2" />
-                                                            <div className="absolute top-3 left-3">
-                                                                <Badge className="bg-primary text-white font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider border-none shadow-lg">
-                                                                    {product.category || 'Featured'}
-                                                                </Badge>
-                                                            </div>
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center justify-between">
-                                                                <h3 className="text-xl font-bold text-white tracking-tight group-hover:text-primary transition-colors line-clamp-1">
-                                                                    {product.name}
-                                                                </h3>
-                                                                {basePrice > price && (
-                                                                    <span className="text-xs font-bold text-slate-400 line-through">₹{basePrice}</span>
-                                                                )}
-                                                            </div>
-                                                            <p className="text-xs text-slate-300 font-medium leading-relaxed line-clamp-2">
-                                                                {product.description || 'Premium pre-configured industrial print package.'}
-                                                            </p>
-                                                        </div>
-                                                        <div className="pt-2 flex items-baseline gap-1">
-                                                            <span className="text-2xl font-bold text-white">₹{price}</span>
-                                                            <span className="text-[10px] text-slate-400 font-bold uppercase">/ unit</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="pt-4 border-t border-white/10">
-                                                        <Button 
-                                                            onClick={() => {
-                                                                setSelectedDirectProduct(product);
-                                                                setQuantity(1);
-                                                                setCustomText('');
-                                                            }}
-                                                            className="w-full h-12 rounded-xl bg-white text-slate-950 hover:bg-primary hover:text-white font-extrabold transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-primary/20"
-                                                        >
-                                                            Order Directly <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                        {/* ── LEFT COLUMN: SIDEBAR ── */}
+                        <aside className="lg:col-span-3 space-y-6 lg:sticky lg:top-24">
+                            {/* Search Widget */}
+                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/50 dark:border-slate-850 shadow-sm space-y-3.5">
+                                <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Search Catalog</h3>
+                                <div className="relative group">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-[#464674] transition-colors" />
+                                    <Input 
+                                        placeholder="Type keywords..." 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-10 h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-[#464674]/20 rounded-xl text-xs font-semibold" 
+                                    />
                                 </div>
-                            ) : (
-                                <div className="text-center py-32 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm">
-                                    <h3 className="text-2xl font-bold font-headline mb-2">No direct products available</h3>
-                                    <p className="text-muted-foreground font-medium max-w-sm mx-auto">There are currently no direct selling bundles available.</p>
-                                    <Button variant="outline" className="mt-8 rounded-2xl font-bold text-sm px-8 h-12" onClick={() => setActiveFinish('All')}>
-                                        View All Products
+                            </div>
+
+                            {/* Category Filter Widget */}
+                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/50 dark:border-slate-850 shadow-sm space-y-3">
+                                <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Categories</h3>
+                                <div className="space-y-1.5">
+                                    {categories.map(category => {
+                                        const count = getCategoryCount(category);
+                                        const isActive = activeCategory === category;
+                                        return (
+                                            <button
+                                                key={category}
+                                                onClick={() => setActiveCategory(category)}
+                                                className={cn(
+                                                    "w-full flex items-center justify-between text-xs font-bold py-1.5 px-2.5 rounded-lg transition-all duration-200 text-left",
+                                                    isActive 
+                                                        ? "bg-[#464674] text-white shadow-sm" 
+                                                        : "text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                                )}
+                                            >
+                                                <span>{category}</span>
+                                                <span className={cn(
+                                                    "text-[9px] font-black px-1.5 py-0.5 rounded-full border",
+                                                    isActive 
+                                                        ? "bg-white/10 border-white/20 text-white" 
+                                                        : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400"
+                                                )}>
+                                                    {count}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Finish Filters Widget */}
+                            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/50 dark:border-slate-850 shadow-sm space-y-3">
+                                <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Filter by Finish</h3>
+                                <div className="space-y-1.5">
+                                    {['All', '✨ Spot UV', '🏷️ Discounted', '⚡ Direct Orders'].map(finish => {
+                                        const isActive = activeFinish === finish;
+                                        return (
+                                            <button
+                                                key={finish}
+                                                onClick={() => setActiveFinish(finish)}
+                                                className={cn(
+                                                    "w-full flex items-center justify-between text-xs font-bold py-1.5 px-2.5 rounded-lg transition-all duration-200 text-left",
+                                                    isActive 
+                                                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm" 
+                                                        : "text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                                )}
+                                            >
+                                                <span>{finish === 'All' ? 'All Finishes' : finish}</span>
+                                                <span className={cn(
+                                                    "w-1.5 h-1.5 rounded-full",
+                                                    isActive ? "bg-white dark:bg-slate-900" : "bg-transparent"
+                                                )} />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Premium Offer Banner Card */}
+                            <div className="relative rounded-3xl overflow-hidden border border-slate-200/50 dark:border-slate-850 p-6 bg-gradient-to-br from-[#464674] to-[#2f2f54] text-white shadow-md">
+                                <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_0)] bg-[size:16px_16px] opacity-5 pointer-events-none" />
+                                <div className="relative z-10 space-y-4">
+                                    <span className="text-[9px] font-black bg-white/15 px-2 py-0.5 rounded-full uppercase tracking-wider">Limited Deal</span>
+                                    <h4 className="text-lg font-black leading-tight">Get 25% Off Premium Gifts</h4>
+                                    <p className="text-[11px] text-white/70 font-medium">Create customized stationary and print materials for your team today.</p>
+                                    <Button asChild size="sm" className="w-full bg-white hover:bg-slate-50 text-[#464674] font-black rounded-xl">
+                                        <Link href="/products">Shop Deals</Link>
                                     </Button>
                                 </div>
-                            )}
-                        </div>
-                    ) : filteredProducts.length === 0 ? (
-                        <div className="text-center py-32 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm">
-                            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                                <Search className="h-10 w-10 text-primary" />
                             </div>
-                            <h3 className="text-2xl font-bold font-headline mb-2">No products found</h3>
-                            <p className="text-muted-foreground font-medium max-w-sm mx-auto">We couldn't find any products matching your search. Try adjusting your filters or search terms.</p>
-                            <Button variant="outline" className="mt-8 rounded-2xl font-bold text-sm px-8 h-12" onClick={() => { setSearchQuery(''); setActiveCategory('All'); setActiveFinish('All'); }}>
-                                Clear filters
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="space-y-24">
-                            {filteredProducts.map((product, index) => (
-                                <div key={product.id} className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                                    <div className="flex items-center gap-6">
-                                        <h2 className="text-3xl font-extrabold tracking-tight font-headline text-slate-900 dark:text-white flex items-center gap-3">
-                                            <span className="w-4 h-8 rounded-full bg-gradient-to-b from-primary to-indigo-600 inline-block" /> {product.name}
-                                        </h2>
-                                        <div className="h-[2px] flex-1 bg-gradient-to-r from-slate-200 dark:from-slate-800 to-transparent" />
-                                    </div>
+                        </aside>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                                        {product.subProducts.map((subProduct: any) => {
-                                            const imageUrl = resolveImagePath(subProduct.imageUrl || product.imageUrl);
-                                            const spotUvAllowed = subProduct.spotUvAllowed ?? false;
-                                            const price = Number(subProduct.price || 0);
-                                            const discountText = getDiscountInfo(subProduct);
-                                            
-                                            return (
-                                                <Link key={subProduct.id} href={`/design/${product.slug}/start?subProductId=${subProduct.id}`} className="group relative block h-full outline-none">
-                                                    <Card className="h-full flex flex-col overflow-hidden rounded-[24px] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-550 ease-out hover:shadow-[0_20px_50px_rgba(37,99,235,0.08)] hover:border-primary/45 hover:-translate-y-2">
-                                                        
-                                                        {/* Image Container */}
-                                                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
-                                                            {imageUrl ? (
-                                                                <Image
-                                                                    src={imageUrl}
-                                                                    alt={subProduct.name}
-                                                                    fill
-                                                                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-110 p-4"
-                                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                                                                />
-                                                            ) : (
-                                                                <div className="flex items-center justify-center h-full"><Palette className="h-16 w-16 text-muted-foreground/20 group-hover:scale-110 transition-transform duration-700" /></div>
-                                                            )}
-                                                            
-                                                            {/* Floating Badges */}
-                                                            <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-                                                                {spotUvAllowed && (
-                                                                    <Badge className="bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white border-none shadow-md text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-                                                                        ✨ Premium Gloss
-                                                                    </Badge>
-                                                                )}
-                                                            </div>
+                        {/* ── RIGHT COLUMN: CATALOG ── */}
+                        <div className="lg:col-span-9 space-y-8">
+                            {/* Toolbar: results display & sorting */}
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-850 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                                    Showing <span className="text-slate-800 dark:text-white font-black">{activeFinish === '⚡ Direct Orders' ? directSellingProducts.length : flatSubProducts.length}</span> results
+                                </div>
+                                <div className="flex items-center gap-2 self-end sm:self-auto">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sort By:</span>
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        className="text-xs font-black text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 outline-none focus:border-[#464674] transition-all duration-300 cursor-pointer"
+                                    >
+                                        <option value="default">Default Sorting</option>
+                                        <option value="price-low">Price: Low to High</option>
+                                        <option value="price-high">Price: High to Low</option>
+                                        <option value="name">Sort by Name: A-Z</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                                                            {discountText && (
-                                                                <div className="absolute top-4 right-4 z-10">
-                                                                    <Badge variant="destructive" className="bg-gradient-to-r from-rose-500 to-pink-500 text-white border-none shadow-md text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
-                                                                        {discountText}
-                                                                    </Badge>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Overlay Gradient for Price */}
-                                                            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-
-                                                            {/* Price Tag Overlay */}
-                                                            <div className="absolute bottom-4 right-4 z-10">
-                                                                <div className="bg-white dark:bg-slate-900 backdrop-blur-md px-3.5 py-1.5 rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.06)] border border-slate-100 dark:border-slate-800 flex flex-col items-end group-hover:border-primary/40 transition-all duration-300">
-                                                                    <span className="text-[9px] text-slate-400 font-extrabold leading-none mb-1 uppercase tracking-wider">Starting at</span>
-                                                                    <span className="text-lg font-black text-primary flex items-center leading-none">
-                                                                        <IndianRupee size={14} className="mr-0.5 stroke-[3]" />
-                                                                        {price}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <CardContent className="p-6 flex-grow flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900">
-                                                            <div className="space-y-2">
-                                                                <h3 className="text-xl font-bold tracking-tight leading-tight group-hover:text-primary transition-colors text-slate-800 dark:text-white line-clamp-1">
-                                                                    {subProduct.name}
-                                                                </h3>
-                                                                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/50 px-2.5 py-1.5 rounded-xl border border-slate-100 dark:border-slate-850 w-fit inline-flex items-center gap-1.5">
-                                                                    <Package2 size={13} className="text-primary" />
-                                                                    {subProduct.width} &times; {subProduct.height} {subProduct.unitType || 'mm'}
-                                                                </p>
-                                                            </div>
-                                                            
-                                                            <div className="pt-4 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between">
-                                                                <div className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
-                                                                    <CheckCircle2 className="w-4 h-4 stroke-[3]" />
-                                                                    <span>Bulk Ready</span>
-                                                                </div>
-                                                                <div className="flex items-center gap-1.5 text-xs font-extrabold text-primary opacity-0 group-hover:opacity-100 -translate-x-3 group-hover:translate-x-0 transition-all duration-550">
-                                                                    Design Now <ArrowRight size={14} className="stroke-[3]" />
-                                                                </div>
-                                                            </div>
-                                                        </CardContent>
-                                                    </Card>
-                                                </Link>
-                                            )
-                                        })}
-                                    </div>
-
-                                    {/* INJECT DIRECT SELLING FEATURED BUNDLES AFTER THE FIRST CATEGORY */}
-                                    {index === 0 && directSellingProducts && directSellingProducts.length > 0 && (
-                                        <div className="my-20 p-8 sm:p-12 rounded-[32px] bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-slate-850 shadow-2xl relative overflow-hidden text-white space-y-8 animate-in fade-in duration-700">
-                                            {/* Background Glows */}
+                            {activeFinish === '⚡ Direct Orders' ? (
+                                <div className="space-y-24">
+                                    {directSellingProducts && directSellingProducts.length > 0 ? (
+                                        <div className="p-8 sm:p-12 rounded-[32px] bg-gradient-to-br from-slate-950 via-slate-900 to-[#2f2f54] border border-white/5 shadow-2xl relative overflow-hidden text-white space-y-8">
+                                            {/* Glows */}
                                             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:24px_24px]" />
                                             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none -mr-32 -mt-32" />
-                                            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none -ml-32 -mb-32" />
-
+                                            
                                             <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
                                                 <div className="space-y-2 max-w-xl">
                                                     <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-xs px-4 py-1.5 rounded-full font-bold backdrop-blur-md uppercase tracking-wider">
@@ -456,7 +419,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                         Premium Direct Selling Bundles
                                                     </h2>
                                                     <p className="text-slate-300 text-sm font-medium">
-                                                        Skip the custom design tool. Order our verified, high-demand industrial print packages directly with instant pre-press priority.
+                                                        Skip the custom design tool. Order our verified, high-demand industrial print packages directly.
                                                     </p>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-xs font-bold text-primary bg-white/5 border border-white/10 px-4 py-2 rounded-2xl backdrop-blur-md">
@@ -506,7 +469,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                         setQuantity(1);
                                                                         setCustomText('');
                                                                     }}
-                                                                    className="w-full h-12 rounded-xl bg-white text-slate-950 hover:bg-primary hover:text-white font-extrabold transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-primary/20"
+                                                                    className="w-full h-12 rounded-xl bg-white text-slate-950 hover:bg-primary hover:text-white font-extrabold transition-all duration-300 shadow-md hover:shadow-lg"
                                                                 >
                                                                     Order Directly <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                                                                 </Button>
@@ -516,11 +479,122 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                 })}
                                             </div>
                                         </div>
+                                    ) : (
+                                        <div className="text-center py-20 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm">
+                                            <h3 className="text-xl font-bold mb-2">No direct products available</h3>
+                                            <p className="text-muted-foreground font-medium text-xs max-w-xs mx-auto">There are currently no direct selling bundles available.</p>
+                                            <Button variant="outline" className="mt-6 rounded-2xl font-bold text-xs px-6 h-10" onClick={() => setActiveFinish('All')}>
+                                                View All Products
+                                            </Button>
+                                        </div>
                                     )}
                                 </div>
-                            ))}
+                            ) : flatSubProducts.length === 0 ? (
+                                <div className="text-center py-20 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm">
+                                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                                        <Search className="h-8 w-8 text-primary" />
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-2">No products found</h3>
+                                    <p className="text-muted-foreground font-medium text-xs max-w-xs mx-auto">We couldn't find any products matching your search criteria.</p>
+                                    <Button variant="outline" className="mt-6 rounded-2xl font-bold text-xs px-6 h-10" onClick={() => { setSearchQuery(''); setActiveCategory('All'); setActiveFinish('All'); }}>
+                                        Clear filters
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {flatSubProducts.map((subProduct: any) => {
+                                        const imageUrl = resolveImagePath(subProduct.imageUrl || '/uploads/hero.png');
+                                        const spotUvAllowed = subProduct.spotUvAllowed ?? false;
+                                        const price = Number(subProduct.price || 0);
+                                        const discountText = getDiscountInfo(subProduct);
+                                        
+                                        return (
+                                            <Link key={subProduct.id} href={`/design/${subProduct.parentProductSlug}/start?subProductId=${subProduct.id}`} className="group relative block h-full outline-none">
+                                                <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-slate-150/60 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[#464674]/40 hover:-translate-y-1.5">
+                                                    
+                                                    {/* Image Container */}
+                                                    <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
+                                                        {imageUrl ? (
+                                                            <Image
+                                                                src={imageUrl}
+                                                                alt={subProduct.name}
+                                                                fill
+                                                                className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex items-center justify-center h-full"><Palette className="h-16 w-16 text-muted-foreground/20 group-hover:scale-105 transition-transform duration-700" /></div>
+                                                        )}
+                                                        
+                                                        {/* Floating Badges */}
+                                                        <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+                                                            {spotUvAllowed && (
+                                                                <Badge className="bg-violet-600 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                                    UV Coat
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+
+                                                        {discountText && (
+                                                            <div className="absolute top-3 right-3 z-10">
+                                                                <Badge variant="destructive" className="bg-rose-500 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                                    {discountText}
+                                                                </Badge>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Quick Order CTA Overlay */}
+                                                        <div className="absolute inset-x-3 bottom-3 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10">
+                                                            <span className="inline-flex items-center gap-1.5 bg-[#464674] text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl">
+                                                                Select & Customize
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <CardContent className="p-5 flex-grow flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900">
+                                                        <div className="space-y-1">
+                                                            <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                                                                {subProduct.parentProductName}
+                                                            </p>
+                                                            <h3 className="text-base font-bold tracking-tight leading-snug group-hover:text-primary transition-colors text-slate-800 dark:text-white line-clamp-2">
+                                                                {subProduct.name}
+                                                            </h3>
+                                                            
+                                                            {/* Rating stars matching Aprin layout */}
+                                                            <div className="flex gap-0.5 text-amber-400 py-1">
+                                                                {[1, 2, 3, 4, 5].map(star => (
+                                                                    <Star key={star} size={11} fill="currentColor" className="stroke-none" />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="pt-3 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between">
+                                                            <div className="space-y-0.5">
+                                                                <span className="text-[8px] text-slate-400 font-extrabold uppercase block leading-none">Starting at</span>
+                                                                <div className="flex items-baseline gap-1">
+                                                                    <span className="text-sm font-black text-slate-900 dark:text-white flex items-center leading-none">
+                                                                        ₹{price}
+                                                                    </span>
+                                                                    {price > 0 && (
+                                                                        <span className="text-[9px] text-slate-400 font-medium line-through">
+                                                                            ₹{(price * 1.3).toFixed(0)}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 text-[10px] font-black text-[#464674] dark:text-white/80 group-hover:translate-x-0.5 transition-transform">
+                                                                Design →
+                                                            </div>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            </Link>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
             </section>
 

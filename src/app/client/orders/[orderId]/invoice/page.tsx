@@ -27,7 +27,10 @@ export default async function InvoicePage({ params }: { params: { orderId: strin
     const billingAddress = order.billingAddress as any || shippingAddress;
 
     // Financial calculations
-    const totalAmount = parseFloat(order.totalAmount) || 0;
+    let totalAmount = parseFloat(order.totalAmount) || 0;
+    if (totalAmount === 0 && order.contestId && order.payment?.amount) {
+        totalAmount = parseFloat(order.payment.amount);
+    }
     const unitPrice = parseFloat(order.unitPrice) || (totalAmount / order.quantity);
     
     let parsedCustomisation: any = null;

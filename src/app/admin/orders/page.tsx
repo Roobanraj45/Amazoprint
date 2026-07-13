@@ -579,7 +579,12 @@ export default function AdminOrdersPage() {
                                             {/* Amount */}
                                             <td className="px-4 py-3.5 text-right">
                                                 <p className="font-black text-sm text-slate-900 dark:text-white">
-                                                    ₹{parseFloat(order.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                    ₹{(() => {
+                                                        const amt = (order.contestId && order.contest?.payments?.[0])
+                                                            ? parseFloat(order.contest.payments[0].amount)
+                                                            : parseFloat(order.totalAmount);
+                                                        return amt.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                                                    })()}
                                                 </p>
                                                 <div className="flex items-center justify-end gap-1 mt-0.5">
                                                     <CreditCard className="h-2.5 w-2.5 text-slate-400" />
@@ -590,11 +595,6 @@ export default function AdminOrdersPage() {
                                                         {order.paymentStatus || 'pending'}
                                                     </span>
                                                 </div>
-                                                {order.contestId && order.contest?.payments?.[0] && (
-                                                    <span className="text-[9px] text-purple-500 font-semibold block mt-0.5">
-                                                        +₹{parseFloat(order.contest.payments[0].amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })} prepaid
-                                                    </span>
-                                                )}
                                             </td>
 
                                             {/* Action */}

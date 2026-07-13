@@ -205,7 +205,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
             {/* Quick Metrics Bar */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'Order Total', value: `₹${parseFloat(order.totalAmount).toLocaleString('en-IN')}`, icon: IndianRupee, color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20' },
+                    { label: 'Order Total', value: `₹${totalAmountVal.toLocaleString('en-IN')}`, icon: IndianRupee, color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20' },
                     { label: 'Total Units', value: `${order.quantity} Units`, icon: Package, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' },
                     { label: 'Printer Cost', value: `₹${parseFloat(order.printingAmount || '0').toLocaleString('en-IN')}`, icon: Receipt, color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' },
                     { label: 'Delivery Target', value: order.estimatedDeliveryDate ? format(new Date(order.estimatedDeliveryDate), 'MMM dd, yyyy') : 'TBD', icon: Truck, color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' },
