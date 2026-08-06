@@ -10,8 +10,12 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['var(--font-inter)', 'sans-serif'],
-        headline: ['var(--font-oswald)', 'sans-serif'],
+        sans: ['var(--font-plus-jakarta)', 'var(--font-montserrat)', 'sans-serif'],
+        body: ['var(--font-plus-jakarta)', 'var(--font-montserrat)', 'sans-serif'],
+        headline: ['var(--font-outfit)', 'var(--font-plus-jakarta)', 'sans-serif'],
+        serif: ['var(--font-playfair)', 'Playfair Display', 'Georgia', 'serif'],
+        display: ['var(--font-outfit)', 'var(--font-plus-jakarta)', 'sans-serif'],
+        classy: ['var(--font-playfair)', 'Playfair Display', 'Georgia', 'serif'],
         code: ['monospace'],
       },
       colors: {

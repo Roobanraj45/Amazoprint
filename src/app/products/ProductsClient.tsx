@@ -200,34 +200,34 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
     return (
         <div className="min-h-screen bg-[#F0F7FF] dark:bg-[#0B1528]">
             {/* Premium Header with subtle grid patterns */}
-            <header className="pt-24 pb-14 border-b border-slate-200/50 dark:border-slate-800/50 bg-[#F0F7FF] dark:bg-[#0B1528] relative overflow-hidden">
+            <header className="pt-14 pb-6 border-b border-slate-200/50 dark:border-slate-800/50 bg-[#F0F7FF] dark:bg-[#0B1528] relative overflow-hidden">
                 {/* Subtle grid pattern overlay */}
                 <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1.5px,transparent_1.5px)] dark:bg-[radial-gradient(#1e293b_1.5px,transparent_1.5px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
                 <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none -z-10" />
                 <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none -z-10" />
                 
                 <div className="container px-4 md:px-6 relative z-10">
-                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-10">
-                        <div className="space-y-4 max-w-2xl">
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-extrabold border border-primary/20 shadow-sm backdrop-blur-md">
-                                <Sparkles className="w-4 h-4 animate-pulse" /> Print Shop
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+                        <div className="space-y-2 max-w-xl">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-extrabold border border-primary/20 shadow-sm backdrop-blur-md">
+                                <Sparkles className="w-3 h-3 animate-pulse" /> Print Shop
                             </div>
-                            <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-none">
+                            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-none">
                                 Explore Our <span className="bg-gradient-to-r from-primary via-indigo-600 to-pink-600 bg-clip-text text-transparent">Products</span>
                             </h1>
-                            <p className="text-slate-500 dark:text-slate-400 font-bold text-base sm:text-lg leading-relaxed">
-                                Select a product below to customize dimensions, paper types, and premium finishes.
+                            <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm leading-relaxed">
+                                Customize dimensions, paper types, and premium finishes.
                             </p>
                         </div>
                         
-                        <div className="flex flex-wrap gap-3 md:gap-4 pb-1">
+                        <div className="flex flex-wrap gap-2 pb-1">
                             {[
                                 { icon: ShieldCheck, text: "Quality verified", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50/50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900/30" },
                                 { icon: Leaf, text: "Eco-friendly", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/30" },
                                 { icon: CheckCircle2, text: "Pre-press review", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50/50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/30" }
                             ].map((item, i) => (
-                                <div key={i} className={`flex items-center gap-2 text-sm font-bold ${item.color} ${item.bg} border px-4 py-2 rounded-2xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:scale-[1.02]`}>
-                                    <item.icon className="w-5 h-5" />
+                                <div key={i} className={`flex items-center gap-1.5 text-xs font-bold ${item.color} ${item.bg} border px-3 py-1.5 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:scale-[1.02]`}>
+                                    <item.icon className="w-3.5 h-3.5" />
                                     {item.text}
                                 </div>
                             ))}
@@ -235,8 +235,8 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                     </div>
 
                     {/* Category bubbles grid (Shop Banner - Category Image style) */}
-                    <div className="mt-12 bg-white/40 dark:bg-slate-900/30 rounded-3xl p-6 border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-md">
-                        <p className="text-xs font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center mb-6">Popular Print Niches</p>
+                    <div className="mt-4 bg-white/40 dark:bg-slate-900/30 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-md">
+                        <p className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center mb-4">Popular Print Niches</p>
                         
                         <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-4 justify-items-center">
                             {categories.map((category) => {

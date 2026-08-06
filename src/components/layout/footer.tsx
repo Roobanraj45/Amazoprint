@@ -1,115 +1,247 @@
+'use client';
+
+import React from 'react';
 import Link from 'next/link';
 import { AmazoprintLogo } from '@/components/ui/logo';
-import { Mail, Phone, MapPin, Instagram, Facebook, Twitter, Linkedin, ArrowRight, ShieldCheck, CreditCard, Truck } from 'lucide-react';
+import {
+  Instagram,
+  Facebook,
+  Twitter,
+  Linkedin,
+  Youtube,
+  ArrowRight,
+  ShieldCheck,
+  CreditCard,
+  Truck,
+  Send,
+  Phone,
+  Mail,
+  MapPin,
+} from 'lucide-react';
+
+const FOOTER_COLUMNS = [
+  {
+    heading: 'Quick Links',
+    links: [
+      { label: 'About Us',    href: '/about' },
+      { label: 'How To Order',href: '/how-to-order' },
+      { label: 'Contact Us',  href: '/contact' },
+      { label: 'Wishlist',    href: '/wishlist' },
+      { label: 'Ticket',      href: '/ticket' },
+    ],
+  },
+  {
+    heading: 'Our Policy',
+    links: [
+      { label: 'Terms & Conditions',      href: '/terms' },
+      { label: 'Privacy Policy',          href: '/privacy' },
+      { label: 'Billing & Payments',      href: '/billing' },
+      { label: 'Shipping Policy',         href: '/shipping' },
+      { label: 'Refund and Returns Policy', href: '/refund' },
+    ],
+  },
+  {
+    heading: 'Connect Our Community',
+    links: [
+      { label: 'Client Login',      href: '/login' },
+      { label: 'AP Team Login',     href: '/admin-login' },
+      { label: 'Freelancer Login',  href: '/freelancer' },
+      { label: 'Printers Login',    href: '/printer-login' },
+    ],
+  },
+  {
+    heading: 'Follow',
+    links: [
+      { label: 'Facebook',  href: '#' },
+      { label: 'Twitter',   href: '#' },
+      { label: 'Instagram', href: '#' },
+      { label: 'Pinterest', href: '#' },
+      { label: 'Youtube',   href: '#' },
+    ],
+  },
+];
+
+const SOCIAL_ICONS = [
+  { Icon: Facebook,  href: '#', color: '#1877f2', label: 'Facebook' },
+  { Icon: Twitter,   href: '#', color: '#1da1f2', label: 'Twitter' },
+  { Icon: Instagram, href: '#', color: '#e1306c', label: 'Instagram' },
+  { Icon: Linkedin,  href: '#', color: '#0077b5', label: 'LinkedIn' },
+  { Icon: Youtube,   href: '#', color: '#ff0000', label: 'Youtube' },
+];
+
+// Payment method pill badges
+const PAYMENT_METHODS = [
+  'Visa', 'Mastercard', 'RuPay', 'UPI', 'GPay', 'PhonePe',
+  'Paytm', 'NetBanking', 'EMI', 'COD',
+];
 
 export function Footer() {
-    return (
-      <footer className="bg-slate-900 text-slate-200 border-t border-slate-800 pt-24 pb-12">
-        <div className="container px-4 mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-16 mb-20">
-            {/* Brand Section */}
-            <div className="lg:col-span-4 space-y-8">
-              <AmazoprintLogo className="scale-110 origin-left brightness-0 invert" />
-              <p className="text-slate-400 text-lg font-medium leading-relaxed max-w-sm">
-                Revolutionizing the printing industry with AI-powered design and industrial precision. Your vision, expertly crafted and globally delivered.
+  const [email, setEmail] = React.useState('');
+  const [subscribed, setSubscribed] = React.useState(false);
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email.trim()) {
+      setSubscribed(true);
+      setEmail('');
+    }
+  };
+
+  return (
+    <footer className="bg-[#0f1117] text-slate-300 border-t border-white/5">
+
+      {/* ── Main columns ─────────────────────────────────────────────────── */}
+      <div className="max-w-screen-xl mx-auto px-4 lg:px-8 pt-14 pb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 lg:gap-6">
+
+          {/* Quick Links */}
+          {FOOTER_COLUMNS.slice(0, 3).map((col) => (
+            <div key={col.heading}>
+              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.18em] mb-5 border-b border-white/10 pb-2">
+                {col.heading}
+              </h4>
+              <ul className="space-y-2.5">
+                {col.links.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-[12px] text-slate-400 hover:text-[#8b8bb3] transition-colors flex items-center gap-1.5 group"
+                    >
+                      <ArrowRight
+                        size={10}
+                        className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-[#464674] flex-shrink-0"
+                      />
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          {/* Follow column */}
+          <div>
+            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.18em] mb-5 border-b border-white/10 pb-2">
+              Follow
+            </h4>
+            <ul className="space-y-2.5">
+              {FOOTER_COLUMNS[3].links.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-[12px] text-slate-400 hover:text-[#8b8bb3] transition-colors flex items-center gap-1.5 group"
+                  >
+                    <ArrowRight
+                      size={10}
+                      className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-[#464674] flex-shrink-0"
+                    />
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Newsletter + Social — spans 2 cols */}
+          <div className="col-span-2 md:col-span-3 lg:col-span-2 space-y-5">
+            {/* Newsletter */}
+            <div>
+              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.18em] mb-4">
+                Sign up to our newsletter
+              </h4>
+              {subscribed ? (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 text-[12px] text-emerald-400 font-bold">
+                  ✅ You're subscribed! Thank you.
+                </div>
+              ) : (
+                <form onSubmit={handleSubscribe} className="flex gap-2">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Your email address"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-[12px] text-white placeholder:text-slate-500 focus:outline-none focus:border-[#464674]/60 focus:bg-white/8 transition-all"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="bg-[#464674] hover:bg-[#5c5c96] text-white rounded-xl px-3.5 py-2.5 flex items-center gap-1.5 text-[12px] font-bold transition-all hover:-translate-y-0.5 flex-shrink-0"
+                  >
+                    <Send size={13} />
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* Follow Us social icons */}
+            <div>
+              <p className="text-[11px] font-black text-white uppercase tracking-[0.18em] mb-3">
+                Follow as
               </p>
-              <div className="flex gap-4">
-                {[Instagram, Facebook, Twitter, Linkedin].map((Icon, i) => (
-                  <Link key={i} href="#" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-300">
-                    <Icon size={18} />
+              <div className="flex flex-wrap gap-2.5">
+                {SOCIAL_ICONS.map(({ Icon, href, color, label }) => (
+                  <Link
+                    key={label}
+                    href={href}
+                    aria-label={label}
+                    className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all hover:-translate-y-0.5 hover:border-white/20 group"
+                  >
+                    <Icon
+                      size={15}
+                      className="text-slate-400 group-hover:text-white transition-colors"
+                    />
                   </Link>
                 ))}
               </div>
             </div>
 
-            {/* Quick Links */}
-            <div className="lg:col-span-2">
-              <h4 className="font-bold text-[12px] mb-8 text-white">Catalog</h4>
-              <ul className="space-y-4 text-slate-400 font-semibold text-[13px]">
-                <li><Link href="/products" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Business Cards</Link></li>
-                <li><Link href="/products" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Marketing Materials</Link></li>
-                <li><Link href="/products" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Custom Packaging</Link></li>
-                <li><Link href="/contests" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Design Quests</Link></li>
-              </ul>
-            </div>
-
-            {/* Company */}
-            <div className="lg:col-span-2">
-              <h4 className="font-bold text-[12px] mb-8 text-white">Support</h4>
-              <ul className="space-y-4 text-slate-400 font-semibold text-[13px]">
-                <li><Link href="/about" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Help Center</Link></li>
-                <li><Link href="/contact" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Shipping Policy</Link></li>
-                <li><Link href="/printer-registration" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Partner Program</Link></li>
-                <li><Link href="/privacy" className="hover:text-primary transition-colors flex items-center gap-2 group"><ArrowRight size={12} className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" /> Privacy Policy</Link></li>
-              </ul>
-            </div>
-
-            {/* Contact Info - Hidden as requested
-            <div className="lg:col-span-4 space-y-8 bg-slate-800/50 p-8 rounded-3xl border border-slate-700/50">
-              <h4 className="font-black text-[10px] uppercase tracking-[0.3em] text-white">Get in Touch</h4>
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                    <MapPin className="text-primary" size={18} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Corporate HQ</p>
-                    <p className="text-sm font-medium text-slate-300">
-                      Amazoprint, No.21/2, Udayarpalayam,<br />
-                      Attur Main Road, Thammampatti - 636113.<br />
-                      Tamilnadu, India.
-                    </p>
-                    <p className="text-[10px] font-black text-primary/70 mt-2 tracking-widest uppercase">GSTIN: 33BNLPK5597H1ZJ</p>
-                  </div>
-                </div>
-                
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                    <Phone className="text-primary" size={18} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Direct Contact</p>
-                    <div className="text-sm font-medium text-slate-300 flex flex-col">
-                        <span>+91 94983 38053</span>
-                        <span>+91 81110 63111</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                    <Mail className="text-primary" size={18} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">General Inquiry</p>
-                    <p className="text-sm font-medium text-slate-300">hello@amazoprint.com</p>
-                  </div>
-                </div>
+            {/* Payment methods */}
+            <div>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">
+                We Accept
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {PAYMENT_METHODS.map((method) => (
+                  <span
+                    key={method}
+                    className="text-[9px] font-black text-slate-400 bg-white/5 border border-white/10 px-2 py-1 rounded-md tracking-wide"
+                  >
+                    {method}
+                  </span>
+                ))}
               </div>
             </div>
-            */}
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="pt-12 border-t border-slate-800 flex flex-col lg:flex-row justify-between items-center gap-8">
-            <div className="flex flex-wrap justify-center gap-8 order-2 lg:order-1">
-              {[
-                { icon: ShieldCheck, text: "Secure Payments" },
-                { icon: Truck, text: "Global Shipping" },
-                { icon: CreditCard, text: "Multiple Gateways" }
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
-                  <item.icon size={14} className="text-primary/50" />
-                  {item.text}
-                </div>
-              ))}
-            </div>
-            
-            <p className="text-slate-500 text-[11px] font-bold order-1 lg:order-2">
-              © {new Date().getFullYear()} Amazoprint Inc. All Rights Reserved.
-            </p>
           </div>
         </div>
-      </footer>
-    );
+      </div>
+
+      {/* ── Divider ─────────────────────────────────────────────────────── */}
+      <div className="border-t border-white/5" />
+
+      {/* ── Bottom bar ──────────────────────────────────────────────────── */}
+      <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-5">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+
+          {/* Left: trust items */}
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-5">
+            {[
+              { Icon: ShieldCheck, text: 'Secure Payments',   color: 'text-emerald-400' },
+              { Icon: Truck,       text: 'Pan-India Shipping', color: 'text-blue-400' },
+              { Icon: CreditCard,  text: 'Multiple Gateways', color: 'text-violet-400' },
+            ].map(({ Icon, text, color }) => (
+              <div key={text} className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+                <Icon size={13} className={color} />
+                {text}
+              </div>
+            ))}
+          </div>
+
+          {/* Right: copyright */}
+          <p className="text-slate-500 text-[11px] font-semibold text-center md:text-right">
+            © {new Date().getFullYear()} Amazoprint | All Right Reserved.
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
 }

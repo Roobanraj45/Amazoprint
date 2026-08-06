@@ -84,16 +84,16 @@ function ProductsMegaMenu({
                     className={cn(
                       'w-full text-left flex items-center justify-between px-4 py-2.5 transition-colors group/cat',
                       active
-                        ? 'bg-blue-600 text-white'
-                        : 'hover:bg-blue-50 text-gray-700'
+                        ? 'bg-[#464674] text-white'
+                        : 'hover:bg-[#464674]/10 text-gray-700'
                     )}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className={cn(
                         'w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
-                        active ? 'bg-white/20' : 'bg-white group-hover/cat:bg-blue-100'
+                        active ? 'bg-white/20' : 'bg-white group-hover/cat:bg-[#464674]/10'
                       )}>
-                        <LayoutGrid className={cn('w-3.5 h-3.5', active ? 'text-white' : 'text-blue-500')} />
+                        <LayoutGrid className={cn('w-3.5 h-3.5', active ? 'text-white' : 'text-[#464674]')} />
                       </div>
                       <span className={cn('text-xs font-bold leading-tight truncate', active ? 'text-white' : 'text-gray-700')}>
                         {product.name}
@@ -130,7 +130,7 @@ function ProductsMegaMenu({
                       <Link
                         href={`/design/${productsData[activeIdx].slug}`}
                         onClick={onClose}
-                        className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 whitespace-nowrap"
+                        className="text-xs font-bold text-[#464674] hover:text-[#5c5c96] flex items-center gap-1 whitespace-nowrap"
                       >
                         View all <ArrowRight className="w-3 h-3" />
                       </Link>
@@ -149,7 +149,7 @@ function ProductsMegaMenu({
                                 key={sp.id}
                                 href={`/design/${productsData[activeIdx].slug}/start?subProductId=${sp.id}`}
                                 onClick={onClose}
-                                className="group/sub flex flex-col gap-1.5 p-2.5 rounded-xl border border-transparent hover:border-blue-100 hover:bg-blue-50/70 transition-all"
+                                className="group/sub flex flex-col gap-1.5 p-2.5 rounded-xl border border-transparent hover:border-[#464674]/20 hover:bg-[#464674]/5 transition-all"
                               >
                                 {/* Thumbnail */}
                                 <div className="w-full aspect-[4/3] rounded-lg bg-gray-100 overflow-hidden relative flex-shrink-0">
@@ -167,7 +167,7 @@ function ProductsMegaMenu({
                                   )}
                                 </div>
                                 {/* Label */}
-                                <p className="text-[11px] font-bold text-gray-700 group-hover/sub:text-blue-600 transition-colors leading-tight line-clamp-2">
+                                <p className="text-[11px] font-bold text-gray-700 group-hover/sub:text-[#464674] transition-colors leading-tight line-clamp-2">
                                   {sp.name}
                                 </p>
                                 <div className="flex items-center gap-1 flex-wrap">
@@ -178,7 +178,7 @@ function ProductsMegaMenu({
                                     <span className="text-[9px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded">UV</span>
                                   )}
                                   {sp.price && (
-                                    <span className="text-[9px] font-black text-blue-600">₹{Number(sp.price).toFixed(0)}</span>
+                                    <span className="text-[9px] font-black text-[#464674]">₹{Number(sp.price).toFixed(0)}</span>
                                   )}
                                 </div>
                               </Link>
@@ -199,7 +199,7 @@ function ProductsMegaMenu({
         </div>
 
         {/* Footer */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="bg-gradient-to-r from-[#1a1a4e] to-[#464674] px-5 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-yellow-300 flex-shrink-0" />
             <span className="text-[11px] font-semibold text-white/90">
@@ -237,21 +237,21 @@ function SimpleDropdown({
       transition={{ duration: 0.14 }}
       className="absolute top-full left-0 pt-2 z-[999] min-w-[220px]"
     >
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden ring-1 ring-black/5 py-1.5">
+      <div className="bg-white border border-[#464674]/10 rounded-2xl shadow-xl overflow-hidden ring-1 ring-[#464674]/5 py-1.5">
         {items.map((item) => (
           <Link
             key={`${item.href}-${item.label}`}
             href={item.href}
             onClick={onClose}
-            className="flex items-start gap-3 px-4 py-3 hover:bg-blue-50 transition-colors group"
+            className="flex items-start gap-3 px-4 py-3 hover:bg-[#464674]/5 transition-colors group"
           >
             {item.icon && (
-              <div className="w-7 h-7 rounded-lg bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors">
-                <span className="text-blue-600">{item.icon}</span>
+              <div className="w-7 h-7 rounded-lg bg-[#464674]/8 group-hover:bg-[#464674]/15 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors">
+                <span className="text-[#464674]">{item.icon}</span>
               </div>
             )}
             <div>
-              <p className="text-sm font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{item.label}</p>
+              <p className="text-sm font-bold text-gray-800 group-hover:text-[#464674] transition-colors">{item.label}</p>
               {item.desc && <p className="text-[11px] text-gray-400 font-medium mt-0.5">{item.desc}</p>}
             </div>
           </Link>
@@ -387,16 +387,16 @@ export function Navbar() {
       <header
         className={cn(
           'fixed top-0 w-full z-50 transition-all duration-300',
-          scrolled && 'shadow-md'
+          scrolled && 'shadow-2xl shadow-[#1a1a4e]/30'
         )}
       >
         {/* ── TOP ROW ─────────────────────────────────────────────── */}
-        <div className="bg-white border-b border-gray-100">
+        <div className="bg-gradient-to-r from-[#1a1a4e] via-[#282860] to-[#1a1a4e] border-b border-white/10">
           <div className="max-w-screen-xl mx-auto px-4 lg:px-6 h-[64px] flex items-center gap-3 lg:gap-5">
 
             {/* Logo */}
             <Link href="/" prefetch={false} className="flex-shrink-0">
-              <AmazoprintLogo variant="header" />
+              <AmazoprintLogo variant="header" className="brightness-0 invert" />
             </Link>
 
             {/* ── "Categories" button — uses key 'categories-btn' ── */}
@@ -408,8 +408,8 @@ export function Navbar() {
               <button
                 type="button"
                 className={cn(
-                  'flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-[12px] font-bold px-4 py-2.5 rounded-xl transition-colors',
-                  openMenu === 'categories-btn' && 'bg-gray-700'
+                  'flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[12px] font-bold px-4 py-2.5 rounded-xl transition-all',
+                  openMenu === 'categories-btn' && 'bg-white/20 border-white/30'
                 )}
               >
                 <div className="grid grid-cols-2 gap-px w-3 h-3 flex-shrink-0">
@@ -438,12 +438,12 @@ export function Navbar() {
 
             {/* Search */}
             <div className="hidden md:block flex-1 max-w-lg">
-              <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
-                <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <div className="flex items-center gap-2.5 bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 focus-within:border-white/40 focus-within:bg-white/15 transition-all">
+                <Search className="w-4 h-4 text-white/60 flex-shrink-0" />
                 <input
                   type="text"
                   placeholder="What are you looking for?"
-                  className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none font-medium min-w-0"
+                  className="flex-1 bg-transparent text-sm text-white placeholder-white/40 outline-none font-medium min-w-0"
                 />
               </div>
             </div>
@@ -451,21 +451,21 @@ export function Navbar() {
             {/* Contact — only on large screens */}
             <div className="hidden xl:flex items-center gap-5 flex-shrink-0">
               <a href="tel:+916001234567" className="flex items-center gap-2.5 group">
-                <div className="w-9 h-9 rounded-full bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 transition-colors">
-                  <Phone className="w-4 h-4 text-blue-600" />
+                <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center flex-shrink-0 transition-colors border border-white/15">
+                  <Phone className="w-4 h-4 text-white/80" />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-gray-900 leading-tight">+1600-123 456 789</p>
-                  <p className="text-[10px] text-gray-400 font-medium">24/7 Support</p>
+                  <p className="text-xs font-black text-white leading-tight">+1600-123 456 789</p>
+                  <p className="text-[10px] text-white/50 font-medium">24/7 Support</p>
                 </div>
               </a>
               <a href="mailto:support@amazoprint.in" className="flex items-center gap-2.5 group">
-                <div className="w-9 h-9 rounded-full bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 transition-colors">
-                  <Mail className="w-4 h-4 text-blue-600" />
+                <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center flex-shrink-0 transition-colors border border-white/15">
+                  <Mail className="w-4 h-4 text-white/80" />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-gray-900 leading-tight">support@amazoprint.in</p>
-                  <p className="text-[10px] text-gray-400 font-medium">Contact Email</p>
+                  <p className="text-xs font-black text-white leading-tight">support@amazoprint.in</p>
+                  <p className="text-[10px] text-white/50 font-medium">Contact Email</p>
                 </div>
               </a>
             </div>
@@ -474,32 +474,32 @@ export function Navbar() {
             <div className="flex items-center gap-1 ml-auto flex-shrink-0">
               {/* Account */}
               {loading ? (
-                <Skeleton className="h-9 w-9 rounded-full" />
+                <Skeleton className="h-9 w-9 rounded-full bg-white/10" />
               ) : session ? (
                 <Link
                   href={dashboardUrl}
                   title="My Workspace"
-                  className="w-9 h-9 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-colors"
                 >
-                  <User className="w-4 h-4 text-blue-600" />
+                  <User className="w-4 h-4 text-white" />
                 </Link>
               ) : (
                 <Link
                   href="/login"
                   title="Login"
-                  className="w-9 h-9 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-colors"
                 >
-                  <LogIn className="w-4 h-4 text-blue-600" />
+                  <LogIn className="w-4 h-4 text-white" />
                 </Link>
               )}
 
               {/* Wishlist */}
               <button
                 type="button"
-                className="relative w-9 h-9 rounded-full bg-rose-50 hover:bg-rose-100 flex items-center justify-center transition-colors hidden sm:flex"
+                className="relative w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-colors hidden sm:flex"
                 aria-label="Wishlist"
               >
-                <Heart className="w-4 h-4 text-rose-500" />
+                <Heart className="w-4 h-4 text-rose-300" />
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none">0</span>
               </button>
 
@@ -508,11 +508,11 @@ export function Navbar() {
 
               {/* Auth buttons */}
               {!loading && !session && (
-                <div className="hidden sm:flex items-center gap-1.5 ml-1.5 pl-1.5 border-l border-gray-200">
-                  <Button asChild variant="ghost" size="sm" className="rounded-xl font-bold text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 h-9 px-3">
+                <div className="hidden sm:flex items-center gap-1.5 ml-1.5 pl-1.5 border-l border-white/15">
+                  <Button asChild variant="ghost" size="sm" className="rounded-xl font-bold text-xs text-white/80 hover:text-white hover:bg-white/10 h-9 px-3">
                     <Link href="/login">Login</Link>
                   </Button>
-                  <Button asChild size="sm" className="rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white border-none h-9 px-4 shadow-md shadow-blue-500/20">
+                  <Button asChild size="sm" className="rounded-xl font-bold text-xs bg-white hover:bg-slate-50 text-[#464674] border-none h-9 px-4 shadow-md shadow-black/20">
                     <Link href="/register">Register</Link>
                   </Button>
                 </div>
@@ -521,18 +521,18 @@ export function Navbar() {
               {/* Mobile hamburger */}
               <button
                 type="button"
-                className="lg:hidden w-9 h-9 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center justify-center ml-1 transition-colors"
+                className="lg:hidden w-9 h-9 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 flex items-center justify-center ml-1 transition-colors"
                 onClick={() => setIsOpen(!isOpen)}
                 aria-label="Toggle menu"
               >
-                {isOpen ? <X className="w-4 h-4 text-gray-700" /> : <Menu className="w-4 h-4 text-gray-700" />}
+                {isOpen ? <X className="w-4 h-4 text-white" /> : <Menu className="w-4 h-4 text-white" />}
               </button>
             </div>
           </div>
         </div>
 
         {/* ── BOTTOM NAV ROW ──────────────────────────────────────── */}
-        <div className="hidden lg:block bg-white border-b border-gray-100 shadow-sm">
+        <div className="hidden lg:block bg-[#282860] border-b border-white/10">
           <div className="max-w-screen-xl mx-auto px-4 lg:px-6">
             <nav className="flex items-center h-11">
               {navItems.map((item) => {
@@ -550,9 +550,9 @@ export function Navbar() {
                       href={item.href}
                       className={cn(
                         'flex items-center gap-1.5 px-3.5 h-11 text-[13px] font-bold transition-all relative group whitespace-nowrap',
-                        isActive ? 'text-blue-600' : item.isHighlight
-                          ? 'text-orange-500 hover:text-orange-600'
-                          : 'text-gray-700 hover:text-blue-600'
+                        isActive ? 'text-white' : item.isHighlight
+                          ? 'text-orange-400 hover:text-orange-300'
+                          : 'text-white/75 hover:text-white'
                       )}
                     >
                       {item.icon}
@@ -565,8 +565,8 @@ export function Navbar() {
                       )}
                       {/* Active + hover underline */}
                       <span className={cn(
-                        'absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 rounded-t-full transition-all duration-200',
-                        isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                        'absolute bottom-0 left-2 right-2 h-0.5 bg-white rounded-t-full transition-all duration-200',
+                        isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'
                       )} />
                     </Link>
 
@@ -603,10 +603,10 @@ export function Navbar() {
               {/* Personalized Gifts pill */}
               <Link
                 href="/products"
-                className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-[12px] font-bold hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-100 transition-all"
+                className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white text-[12px] font-bold hover:shadow-lg hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-100 transition-all"
               >
                 <Gift className="w-3.5 h-3.5" />
-                Personalized Gifts
+                Today's Deals
               </Link>
             </nav>
           </div>
@@ -637,17 +637,17 @@ export function Navbar() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-              className="fixed top-[64px] left-0 w-full bg-white border-b border-gray-200 shadow-2xl lg:hidden z-40 max-h-[calc(100vh-64px)] overflow-y-auto"
+              className="fixed top-[64px] left-0 w-full bg-[#1a1a4e] border-b border-white/10 shadow-2xl lg:hidden z-40 max-h-[calc(100vh-64px)] overflow-y-auto"
             >
               <div className="max-w-screen-xl mx-auto px-4 py-4 flex flex-col gap-1.5">
                 {/* Search Bar in Mobile Menu */}
                 <div className="md:hidden mb-2">
-                  <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
-                    <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <div className="flex items-center gap-2.5 bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 focus-within:border-white/40 transition-all">
+                    <Search className="w-4 h-4 text-white/50 flex-shrink-0" />
                     <input
                       type="text"
                       placeholder="What are you looking for?"
-                      className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none font-medium min-w-0"
+                      className="flex-1 bg-transparent text-sm text-white placeholder-white/40 outline-none font-medium min-w-0"
                     />
                   </div>
                 </div>
@@ -660,8 +660,8 @@ export function Navbar() {
                     className={cn(
                       'flex items-center justify-between px-4 py-3 rounded-xl font-bold text-sm transition-all',
                       pathname === item.href
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                        : 'bg-gray-50 text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                        ? 'bg-white text-[#464674] shadow-md'
+                        : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
                     )}
                   >
                     <span className="flex items-center gap-2.5">{item.icon} {item.label}</span>
@@ -669,15 +669,15 @@ export function Navbar() {
                   </Link>
                 ))}
 
-                <div className="mt-2 pt-3 border-t border-gray-100 flex flex-col gap-2">
+                <div className="mt-2 pt-3 border-t border-white/10 flex flex-col gap-2">
                   {loading ? (
-                    <Skeleton className="h-11 rounded-xl" />
+                    <Skeleton className="h-11 rounded-xl bg-white/10" />
                   ) : session ? (
                     <>
                       <Link
                         href={dashboardUrl}
                         onClick={() => setIsOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-3 bg-blue-50 text-blue-700 rounded-xl font-bold text-sm"
+                        className="flex items-center gap-2.5 px-4 py-3 bg-white/10 text-white rounded-xl font-bold text-sm border border-white/15"
                       >
                         <User className="w-4 h-4" /> My Workspace
                       </Link>
@@ -685,10 +685,10 @@ export function Navbar() {
                     </>
                   ) : (
                     <div className="grid grid-cols-2 gap-2">
-                      <Button asChild variant="outline" size="sm" className="rounded-xl font-bold border-blue-200 text-blue-600 hover:bg-blue-50 h-11">
+                      <Button asChild variant="outline" size="sm" className="rounded-xl font-bold border-white/30 text-white hover:bg-white/10 h-11">
                         <Link href="/login" onClick={() => setIsOpen(false)}>Login</Link>
                       </Button>
-                      <Button asChild size="sm" className="rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white border-none h-11 shadow-md shadow-blue-500/20">
+                      <Button asChild size="sm" className="rounded-xl font-bold bg-white hover:bg-slate-50 text-[#464674] border-none h-11 shadow-md">
                         <Link href="/register" onClick={() => setIsOpen(false)}>Register</Link>
                       </Button>
                     </div>

@@ -23,7 +23,9 @@ import {
 import {
     Loader2, Search, User, ExternalLink, Globe,
     Coins, Sparkles, UserCheck, LayoutTemplate, X,
-    SlidersHorizontal, ArrowUpDown, Award, Trophy, Star
+    SlidersHorizontal, ArrowUpDown, Award, Trophy, Star,
+    MapPin, Mail, Phone, Share2, MessageSquare, Grid3x3,
+    ChevronDown, Clock, Image as ImageIcon,
 } from 'lucide-react';
 import { cn, resolveImagePath } from '@/lib/utils';
 import { getFreelancers, getFreelancerById } from '@/app/actions/contest-actions';
@@ -85,6 +87,8 @@ export function FreelancerDirectoryDialog({
   const [selectedExperience, setSelectedExperience] = useState('All');
   const [selectedRateLimit, setSelectedRateLimit] = useState('All');
   const [sortBy, setSortBy] = useState('exp-desc');
+  const [activeDetailTab, setActiveDetailTab] = useState<'portfolio' | 'comments'>('portfolio');
+  const [portfolioSort, setPortfolioSort] = useState('New');
 
   // Loading & Data States
   const [loadingCatalog, setLoadingCatalog] = useState(false);
@@ -199,7 +203,7 @@ export function FreelancerDirectoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] md:max-w-6xl w-full h-[90vh] md:h-[85vh] p-0 overflow-hidden flex flex-col rounded-2xl bg-zinc-50 dark:bg-zinc-950">
+      <DialogContent className="max-w-[95vw] md:max-w-6xl w-full h-[90vh] md:h-[88vh] p-0 overflow-hidden flex flex-col rounded-2xl bg-zinc-50 dark:bg-zinc-950">
         
         {/* Header section inside modal */}
         <div className="bg-card border-b border-border/40 p-5 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -301,11 +305,11 @@ export function FreelancerDirectoryDialog({
         <div className="flex-1 flex overflow-hidden min-h-0">
           
           {/* Left panel: List of Freelancers */}
-          <div className="w-full md:w-1/2 overflow-y-auto border-r border-border/40 p-5 space-y-3">
+          <div className="w-full md:w-64 lg:w-72 overflow-y-auto border-r border-border/40 p-4 space-y-2.5 shrink-0">
             {loadingCatalog ? (
               <div className="space-y-3">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="h-24 rounded-2xl bg-card/60 animate-pulse border border-border/40" />
+                  <div key={i} className="h-20 rounded-2xl bg-card/60 animate-pulse border border-border/40" />
                 ))}
               </div>
             ) : filteredFreelancers.length === 0 ? (
@@ -324,36 +328,42 @@ export function FreelancerDirectoryDialog({
                 return (
                   <div
                     key={freelancer.id}
-                    onClick={() => setSelectedFreelancerForDetail(freelancer)}
+                    onClick={() => {
+                      setSelectedFreelancerForDetail(freelancer);
+                      setActiveDetailTab('portfolio');
+                    }}
                     className={cn(
-                      "p-4 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-3 relative overflow-hidden bg-card hover:shadow-sm hover:scale-[1.005]",
+                      "p-3.5 rounded-2xl border transition-all duration-300 cursor-pointer flex gap-3 relative overflow-hidden bg-card hover:shadow-sm hover:scale-[1.005]",
                       isSelected
-                        ? "border-primary bg-primary/[0.01] ring-1 ring-primary/10"
-                        : "border-border/60 hover:border-slate-400/40"
+                        ? "border-sky-500 bg-sky-500/[0.04] ring-1 ring-sky-500/20 shadow-sm"
+                        : "border-border/60 hover:border-slate-300/60"
                     )}
                   >
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border border-border/50 shadow-inner">
+                    <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border-2 border-border/50 shadow-inner">
                       {freelancer.profileImage ? (
                         <Image
                           src={resolveImagePath(freelancer.profileImage)}
                           alt={freelancer.name}
-                          width={40}
-                          height={40}
+                          width={36}
+                          height={36}
                           className="object-cover w-full h-full"
                         />
                       ) : (
-                        <User className="w-5 h-5 text-muted-foreground" />
+                        <User className="w-4 h-4 text-muted-foreground" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex justify-between items-start gap-2">
+                      <div className="flex justify-between items-start gap-1">
                         <h4 className="text-xs font-black text-foreground truncate">{freelancer.name}</h4>
-                        <span className="text-[8px] font-black text-primary uppercase bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0 tracking-wider">
-                          {freelancer.experienceYears ?? 0} Yrs Exp
+                        <span className={cn(
+                          "text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 tracking-wider",
+                          isSelected ? "text-sky-600 bg-sky-500/15" : "text-primary bg-primary/10"
+                        )}>
+                          {freelancer.experienceYears ?? 0} Yrs
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">
+                        <span className="text-[11px] font-black text-slate-700 dark:text-slate-300">
                           {freelancer.hourlyRate ? `₹${freelancer.hourlyRate}/hr` : 'Rate N/A'}
                         </span>
                         <Badge variant="outline" className="text-[8px] py-0 px-1.5 bg-emerald-500/10 border-emerald-500/20 text-emerald-600 font-bold capitalize">
@@ -367,179 +377,290 @@ export function FreelancerDirectoryDialog({
             )}
           </div>
 
-          {/* Right panel: Details view */}
-          <div className="hidden md:flex w-1/2 flex-col bg-slate-50/20 dark:bg-zinc-900/10 overflow-y-auto p-5 border-l border-border/40">
+          {/* Right panel: Detailed profile view — matches reference image */}
+          <div className="hidden md:flex flex-1 flex-col overflow-hidden bg-[#f0f6ff] dark:bg-zinc-900/40">
             {selectedFreelancerForDetail ? (
-              <div className="space-y-5 flex-1 flex flex-col justify-between h-full">
-                <div className="space-y-5">
-                  <div className="flex gap-3 items-center">
-                    <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/20 shadow-md">
+              <div className="flex flex-1 overflow-hidden h-full">
+
+                {/* ── Left sidebar profile card ── */}
+                <div className="w-56 lg:w-60 shrink-0 border-r border-border/40 bg-white dark:bg-zinc-950 overflow-y-auto p-5 flex flex-col items-center gap-4">
+                  
+                  {/* Avatar */}
+                  <div className="relative mt-2">
+                    <div className="w-20 h-20 rounded-full bg-sky-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border-4 border-white dark:border-zinc-900 shadow-xl ring-2 ring-sky-400/30">
                       {selectedFreelancerForDetail.profileImage ? (
                         <Image
                           src={resolveImagePath(selectedFreelancerForDetail.profileImage)}
                           alt={selectedFreelancerForDetail.name}
-                          width={48}
-                          height={48}
+                          width={80}
+                          height={80}
                           className="object-cover w-full h-full"
                         />
                       ) : (
-                        <User className="w-6 h-6 text-primary" />
+                        <User className="w-10 h-10 text-sky-400" />
                       )}
                     </div>
-                    <div className="space-y-0.5">
-                      <h3 className="text-sm font-black text-foreground">{selectedFreelancerForDetail.name}</h3>
-                      <Badge className="text-[8px] py-0 px-1.5 bg-emerald-500/15 border-emerald-500/30 text-emerald-600 font-bold capitalize">
-                        {selectedFreelancerForDetail.availabilityStatus || 'available'}
-                      </Badge>
+                    {/* Online indicator */}
+                    <span className={cn(
+                      "absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-900",
+                      selectedFreelancerForDetail.availabilityStatus === 'available'
+                        ? "bg-emerald-500"
+                        : "bg-slate-400"
+                    )} />
+                  </div>
+
+                  {/* Name & Location */}
+                  <div className="text-center space-y-1 w-full">
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                      {selectedFreelancerForDetail.name}
+                    </h3>
+                    <div className="flex items-center justify-center gap-1 text-[11px] text-slate-500 font-semibold">
+                      <MapPin className="w-3 h-3 text-slate-400" />
+                      <span>India</span>
                     </div>
+                  </div>
+
+                  {/* Rate & Templates badges */}
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                    <span className="inline-flex items-center gap-1 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 text-[11px] font-black px-3 py-1 rounded-full border border-sky-200 dark:border-sky-800">
+                      ₹{selectedFreelancerForDetail.hourlyRate ?? 0} / hr
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 text-[11px] font-black px-3 py-1 rounded-full border border-slate-200 dark:border-zinc-700">
+                      <Grid3x3 className="w-3 h-3" />
+                      {selectedFreelancerForDetail.designs?.length ?? 0}+ designs
+                    </span>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2 w-full">
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        onSelectFreelancer(selectedFreelancerForDetail);
+                        onOpenChange(false);
+                      }}
+                      className="flex-1 h-9 bg-sky-500 hover:bg-sky-600 text-white font-extrabold rounded-xl shadow text-xs gap-1.5 transition-all"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" /> Hire me
+                    </Button>
+                    <button className="w-9 h-9 rounded-xl border border-border/60 bg-slate-50 dark:bg-zinc-800 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors shrink-0">
+                      <Share2 className="w-3.5 h-3.5 text-slate-500" />
+                    </button>
                   </div>
 
                   <Separator className="bg-border/60" />
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 rounded-xl border border-violet-500/10 text-[11px] font-bold">
-                      <span className="text-[9px] text-violet-500 block uppercase">Experience Level</span>
-                      {selectedFreelancerForDetail.experienceYears ?? 0} Years Exp
+                  {/* Role & contact info */}
+                  <div className="w-full space-y-2.5">
+                    <div className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400 font-semibold">
+                      <Award className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                      <span className="font-black text-foreground">Freelancer</span>
                     </div>
-                    <div className="p-3 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 rounded-xl border border-violet-500/10 text-[11px] font-bold">
-                      <span className="text-[9px] text-violet-500 block uppercase">Design Rate</span>
-                      {selectedFreelancerForDetail.hourlyRate ? `₹${selectedFreelancerForDetail.hourlyRate}/hr` : 'Hourly Rate N/A'}
+                    {selectedFreelancerForDetail.email && (
+                      <div className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400 font-semibold">
+                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate">{selectedFreelancerForDetail.email}</span>
+                      </div>
+                    )}
+                    {selectedFreelancerForDetail.phone && (
+                      <div className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400 font-semibold">
+                        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>{selectedFreelancerForDetail.phone}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500 font-semibold">
+                      <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{selectedFreelancerForDetail.experienceYears ?? 0} yrs experience</span>
                     </div>
                   </div>
+
+                  {/* Skills tags */}
+                  {selectedFreelancerForDetail.skills && selectedFreelancerForDetail.skills.length > 0 && (
+                    <>
+                      <Separator className="bg-border/60" />
+                      <div className="w-full space-y-2">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Skills</p>
+                        <div className="flex flex-wrap gap-1">
+                          {selectedFreelancerForDetail.skills.map((skill, idx) => (
+                            <span key={idx} className="text-[9px] font-bold bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 px-2 py-0.5 rounded-full">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {/* Bio */}
-                  <div className="p-3.5 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-xl border border-indigo-500/10 space-y-1">
-                    <h4 className="text-[9px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1">
-                      <Star className="w-3 h-3 text-amber-500 fill-amber-500" /> Biography / Summary
-                    </h4>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-350 leading-relaxed font-semibold italic border-l-2 border-indigo-500/40 pl-2">
-                      {selectedFreelancerForDetail.bio || '"No bio description available."'}
-                    </p>
-                  </div>
-
-                  {/* Skills */}
-                  <div className="p-3.5 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-xl border border-indigo-500/10 space-y-1.5">
-                    <h4 className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">Expertise Skills</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedFreelancerForDetail.skills && selectedFreelancerForDetail.skills.length > 0 ? (
-                        selectedFreelancerForDetail.skills.map((skill, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-[8px] py-0 px-2 font-extrabold uppercase bg-indigo-500/10 text-indigo-600 border border-indigo-500/20">
-                            {skill}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground italic">No specific skills listed.</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Showcase designs */}
-                  <div className="p-4 bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 rounded-xl border border-violet-500/10 space-y-3">
-                    <h4 className="text-[9px] font-black text-violet-500 uppercase tracking-widest flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-violet-500 animate-pulse" /> Showcase Portfolio Designs
-                    </h4>
-                    {loadingDetail ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  {selectedFreelancerForDetail.bio && (
+                    <>
+                      <Separator className="bg-border/60" />
+                      <div className="w-full space-y-1.5">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">About</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium italic">
+                          {selectedFreelancerForDetail.bio}
+                        </p>
                       </div>
-                    ) : selectedFreelancerForDetail.designs && selectedFreelancerForDetail.designs.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
-                        {selectedFreelancerForDetail.designs.map((design) => {
-                          const rawWidth = design.width || 300;
-                          const rawHeight = design.height || 200;
-                          const widthInPx = rawWidth > 600 ? rawWidth : Math.round(rawWidth * MM_TO_PX);
-                          const heightInPx = rawHeight > 600 ? rawHeight : Math.round(rawHeight * MM_TO_PX);
+                    </>
+                  )}
+                </div>
 
-                          const productForCanvas = {
-                            id: design.productSlug || 'custom',
-                            name: design.name || 'Untitled',
-                            description: '',
-                            imageId: '',
-                            width: widthInPx,
-                            height: heightInPx,
-                            type: '',
-                          };
+                {/* ── Right: tabs + portfolio grid ── */}
+                <div className="flex-1 flex flex-col overflow-hidden">
 
-                          let elements = [];
-                          try {
-                            elements = typeof design.elements === 'string' ? JSON.parse(design.elements) : (design.elements || []);
-                          } catch (e) {
-                            console.error(e);
-                          }
+                  {/* Tabs + sort row */}
+                  <div className="flex items-center justify-between px-5 pt-4 pb-0 border-b border-border/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shrink-0">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setActiveDetailTab('portfolio')}
+                        className={cn(
+                          "flex items-center gap-1.5 px-4 py-2.5 text-xs font-black border-b-2 transition-all duration-200",
+                          activeDetailTab === 'portfolio'
+                            ? "border-sky-500 text-sky-600 dark:text-sky-400"
+                            : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                      >
+                        <Grid3x3 className="w-3.5 h-3.5" /> Portfolio
+                      </button>
+                      <button
+                        onClick={() => setActiveDetailTab('comments')}
+                        className={cn(
+                          "flex items-center gap-1.5 px-4 py-2.5 text-xs font-black border-b-2 transition-all duration-200",
+                          activeDetailTab === 'comments'
+                            ? "border-sky-500 text-sky-600 dark:text-sky-400"
+                            : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                        )}
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" /> Comments
+                      </button>
+                    </div>
 
-                          let background = { type: 'solid', color: '#ffffff' };
-                          try {
-                            const rawBg = typeof design.background === 'string' ? JSON.parse(design.background) : (design.background || { type: 'solid', color: '#ffffff' });
-                            background = Array.isArray(rawBg) ? rawBg[0] : rawBg;
-                          } catch (e) {
-                            console.error(e);
-                          }
+                    {activeDetailTab === 'portfolio' && (
+                      <Select value={portfolioSort} onValueChange={setPortfolioSort}>
+                        <SelectTrigger className="h-8 w-28 rounded-xl bg-white dark:bg-zinc-900 border-border text-[11px] font-bold">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-border bg-card p-1">
+                          <SelectItem value="New" className="text-xs font-semibold py-1.5 rounded-lg">New</SelectItem>
+                          <SelectItem value="Popular" className="text-xs font-semibold py-1.5 rounded-lg">Popular</SelectItem>
+                          <SelectItem value="Oldest" className="text-xs font-semibold py-1.5 rounded-lg">Oldest</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
 
-                          const baseSize = 1000;
-                          const scale = Math.min(baseSize / widthInPx, (baseSize * 0.75) / heightInPx) * 0.95;
+                  {/* Tab Content */}
+                  <div className="flex-1 overflow-y-auto p-4">
+                    {activeDetailTab === 'portfolio' ? (
+                      loadingDetail ? (
+                        <div className="grid grid-cols-3 gap-3">
+                          {[1, 2, 3, 4, 5, 6].map(i => (
+                            <div key={i} className="aspect-[3/4] rounded-xl bg-slate-200 dark:bg-zinc-800 animate-pulse" />
+                          ))}
+                        </div>
+                      ) : selectedFreelancerForDetail.designs && selectedFreelancerForDetail.designs.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-3">
+                          {selectedFreelancerForDetail.designs.map((design) => {
+                            const rawWidth = design.width || 300;
+                            const rawHeight = design.height || 200;
+                            const widthInPx = rawWidth > 600 ? rawWidth : Math.round(rawWidth * MM_TO_PX);
+                            const heightInPx = rawHeight > 600 ? rawHeight : Math.round(rawHeight * MM_TO_PX);
 
-                          return (
-                            <div key={design.id} className="relative aspect-[4/3] rounded-xl overflow-hidden border border-border/85 bg-slate-100 dark:bg-zinc-900 flex items-center justify-center group/design select-none">
-                              {design.thumbnailUrl ? (
-                                <img 
-                                  src={resolveImagePath(design.thumbnailUrl)} 
-                                  alt={design.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/60 overflow-hidden">
-                                  <div className="w-full h-full flex items-center justify-center scale-[0.12]">
-                                    <div style={{ width: widthInPx * scale, height: heightInPx * scale, position: 'relative' }}>
-                                      <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: widthInPx, height: heightInPx, position: 'relative', overflow: 'hidden' }}>
-                                        <DesignCanvas
-                                          product={productForCanvas}
-                                          elements={Array.isArray(elements) && Array.isArray(elements[0]) ? elements[0] : elements}
-                                          background={background}
-                                          selectedElementIds={[]}
-                                          guides={design.guides as Guide[] || []}
-                                          showRulers={false}
-                                          showGrid={false}
-                                          showPrintGuidelines={false}
-                                          gridSize={20}
-                                          bleed={0}
-                                          safetyMargin={0}
-                                          viewState={{ zoom: 1, pan: { x: 0, y: 0 } }}
-                                          isPreview={true}
-                                        />
+                            const productForCanvas = {
+                              id: design.productSlug || 'custom',
+                              name: design.name || 'Untitled',
+                              description: '',
+                              imageId: '',
+                              width: widthInPx,
+                              height: heightInPx,
+                              type: '',
+                            };
+
+                            let elements = [];
+                            try {
+                              elements = typeof design.elements === 'string' ? JSON.parse(design.elements) : (design.elements || []);
+                            } catch (e) {
+                              console.error(e);
+                            }
+
+                            let background = { type: 'solid', color: '#ffffff' };
+                            try {
+                              const rawBg = typeof design.background === 'string' ? JSON.parse(design.background) : (design.background || { type: 'solid', color: '#ffffff' });
+                              background = Array.isArray(rawBg) ? rawBg[0] : rawBg;
+                            } catch (e) {
+                              console.error(e);
+                            }
+
+                            const baseSize = 1000;
+                            const scale = Math.min(baseSize / widthInPx, (baseSize * 0.75) / heightInPx) * 0.95;
+
+                            return (
+                              <div
+                                key={design.id}
+                                className="relative aspect-[3/4] rounded-xl overflow-hidden border border-border/60 bg-slate-100 dark:bg-zinc-900 flex items-center justify-center group/design select-none shadow-sm hover:shadow-md transition-all hover:scale-[1.02] duration-200"
+                              >
+                                {/* Media type indicator */}
+                                <div className="absolute top-2 right-2 z-20 bg-black/50 rounded-md p-0.5">
+                                  <ImageIcon className="w-3 h-3 text-white" />
+                                </div>
+
+                                {design.thumbnailUrl ? (
+                                  <img
+                                    src={resolveImagePath(design.thumbnailUrl)}
+                                    alt={design.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/60 overflow-hidden">
+                                    <div className="w-full h-full flex items-center justify-center scale-[0.12]">
+                                      <div style={{ width: widthInPx * scale, height: heightInPx * scale, position: 'relative' }}>
+                                        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: widthInPx, height: heightInPx, position: 'relative', overflow: 'hidden' }}>
+                                          <DesignCanvas
+                                            product={productForCanvas}
+                                            elements={Array.isArray(elements) && Array.isArray(elements[0]) ? elements[0] : elements}
+                                            background={background}
+                                            selectedElementIds={[]}
+                                            guides={design.guides as Guide[] || []}
+                                            showRulers={false}
+                                            showGrid={false}
+                                            showPrintGuidelines={false}
+                                            gridSize={20}
+                                            bleed={0}
+                                            safetyMargin={0}
+                                            viewState={{ zoom: 1, pan: { x: 0, y: 0 } }}
+                                            isPreview={true}
+                                          />
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
+                                )}
+
+                                {/* Gradient hover overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover/design:opacity-100 transition-opacity flex flex-col justify-end p-2.5">
+                                  <p className="text-[9px] font-bold text-white truncate">{design.name}</p>
                                 </div>
-                              )}
-                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/design:opacity-100 transition-opacity flex flex-col justify-end p-2">
-                                <p className="text-[9px] font-bold text-white truncate">{design.name}</p>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="h-full flex flex-col justify-center items-center text-center p-6 space-y-2 bg-white/50 dark:bg-zinc-900/20 border border-dashed border-border/80 rounded-2xl">
+                          <LayoutTemplate className="w-10 h-10 text-muted-foreground/25" />
+                          <p className="text-xs font-extrabold text-muted-foreground">No portfolio designs yet</p>
+                          <p className="text-[10px] text-muted-foreground/70 font-semibold">This freelancer hasn&apos;t showcased any designs.</p>
+                        </div>
+                      )
                     ) : (
-                      <div className="text-center py-4 text-muted-foreground bg-slate-50/50 dark:bg-zinc-900/10 rounded-xl border border-dashed border-border/80">
-                        <LayoutTemplate className="w-6 h-6 text-muted-foreground/30 mx-auto mb-1" />
-                        <p className="text-[10px] font-semibold">No designs showcased yet</p>
+                      <div className="h-full flex flex-col justify-center items-center text-center p-6 space-y-2 bg-white/50 dark:bg-zinc-900/20 border border-dashed border-border/80 rounded-2xl">
+                        <MessageSquare className="w-10 h-10 text-muted-foreground/25" />
+                        <p className="text-xs font-extrabold text-muted-foreground">No comments yet</p>
+                        <p className="text-[10px] text-muted-foreground/70 font-semibold">Reviews and feedback will appear here.</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Footer Selection Button */}
-                <div className="pt-3 border-t border-border mt-auto">
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      onSelectFreelancer(selectedFreelancerForDetail);
-                      onOpenChange(false);
-                    }}
-                    className="w-full h-10 bg-primary hover:bg-slate-800 text-white font-extrabold rounded-xl shadow-md text-xs gap-1 transition-all"
-                  >
-                    <UserCheck className="w-4 h-4" /> Select Freelancer Reviewer
-                  </Button>
-                </div>
               </div>
             ) : (
               <div className="h-full flex flex-col justify-center items-center text-center p-6 space-y-1">

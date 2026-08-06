@@ -2,7 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { PageLoader } from '@/components/layout/page-loader';
-import { montserrat } from './fonts';
+import { montserrat, plusJakarta, playfair, outfit } from './fonts';
 import { cn } from '@/lib/utils';
 import CartProviderWrapper from './cart-provider-wrapper';
 
@@ -71,7 +71,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("antialiased", montserrat.variable)}>
+    <html lang="en" className={cn("antialiased", plusJakarta.variable, playfair.variable, outfit.variable, montserrat.variable)}>
       <head>
         <StructuredData />
         <link rel="icon" href="/uploads/amazoIcon.png" sizes="any" />
