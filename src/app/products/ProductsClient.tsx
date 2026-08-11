@@ -366,11 +366,11 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                 </div>
                             </div>
 
-                            {/* Premium Offer Banner Card */}
-                            <div className="relative rounded-3xl overflow-hidden border border-slate-200/50 dark:border-slate-850 p-6 bg-gradient-to-br from-[#464674] to-[#2f2f54] text-white shadow-md">
+                            {/* Premium Offer Banner Card with White Border */}
+                            <div className="relative rounded-3xl overflow-hidden border-2 border-white p-6 bg-gradient-to-br from-[#464674] to-[#2f2f54] text-white shadow-2xl ring-4 ring-white/10">
                                 <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_0)] bg-[size:16px_16px] opacity-5 pointer-events-none" />
                                 <div className="relative z-10 space-y-4">
-                                    <span className="text-[9px] font-black bg-white/15 px-2 py-0.5 rounded-full uppercase tracking-wider">Limited Deal</span>
+                                    <span className="text-[10px] font-black bg-white/20 border-2 border-white px-3 py-1 rounded-full uppercase tracking-wider shadow-sm inline-block">Limited Deal</span>
                                     <h4 className="text-lg font-black leading-tight">Get 25% Off Premium Gifts</h4>
                                     <p className="text-[11px] text-white/70 font-medium">Create customized stationary and print materials for your team today.</p>
                                     <Button asChild size="sm" className="w-full bg-white hover:bg-slate-50 text-[#464674] font-black rounded-xl">

@@ -141,23 +141,23 @@ export function NoticeSlider({ className, variant = 'dark' }: NoticeSliderProps)
   return (
     <div
       className={cn(
-        'relative w-full h-9 z-40 overflow-hidden flex items-center transition-colors duration-300 select-none',
+        'relative w-full h-11 sm:h-12 z-40 overflow-hidden flex items-center transition-colors duration-300 select-none border-b-2 border-white shadow-md',
         variant === 'dark'
-          ? 'bg-gradient-to-r from-[#0d0d2b] via-[#1a1a4e] to-[#282860] text-white border-b border-white/10'
-          : 'bg-[#1a1a4e]/90 backdrop-blur-md text-white border-b border-white/15 shadow-sm',
+          ? 'bg-gradient-to-r from-[#0a0a24] via-[#141440] to-[#222254] text-white'
+          : 'bg-[#1a1a4e] text-white border-b-2 border-white shadow-md',
         className
       )}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="w-full h-full px-3 sm:px-4 lg:px-6 flex items-center justify-between gap-2">
+      <div className="w-full h-full px-3 sm:px-4 lg:px-6 flex items-center justify-between gap-3">
         {/* Left Arrow Controls */}
         <button
           onClick={handlePrev}
           aria-label="Previous notice"
-          className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
+          className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/20 border border-white/40 transition-all flex-shrink-0"
         >
-          <ChevronLeft className="w-3.5 h-3.5" />
+          <ChevronLeft className="w-4 h-4" />
         </button>
 
         {/* Notice Content Slider */}
@@ -171,25 +171,23 @@ export function NoticeSlider({ className, variant = 'dark' }: NoticeSliderProps)
               animate="animate"
               exit="exit"
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="flex items-center justify-center gap-2.5 text-center min-w-0 w-full px-2"
+              className="flex items-center justify-center gap-3 text-center min-w-0 w-full px-2 py-1"
             >
-              {/* Badge */}
+              {/* Badge with White Border */}
               <span
                 className={cn(
-                  'hidden sm:inline-flex items-center gap-1 text-[10px] font-black tracking-widest px-2.5 py-0.5 rounded-full border flex-shrink-0 uppercase',
-                  currentNotice.badgeBg || 'bg-amber-500/20 border-amber-400/30',
-                  currentNotice.badgeColor || 'text-amber-300'
+                  'hidden sm:inline-flex items-center gap-1.5 text-xs font-black tracking-wider px-3.5 py-1 rounded-full border-2 border-white shadow-md flex-shrink-0 uppercase bg-white/20 text-white'
                 )}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-yellow-300 animate-pulse" />
                 {currentNotice.badge}
               </span>
 
               {/* Icon */}
-              <IconComponent className="w-3.5 h-3.5 text-yellow-300 flex-shrink-0" />
+              <IconComponent className="w-4 h-4 text-yellow-300 flex-shrink-0 drop-shadow-sm" />
 
               {/* Notice text */}
-              <p className="text-[11px] sm:text-xs font-semibold tracking-tight text-white/95 truncate max-w-full">
+              <p className="text-xs sm:text-sm font-bold tracking-tight text-white truncate max-w-full leading-normal">
                 {currentNotice.text}{' '}
                 {currentNotice.highlight && (
                   <span className="font-extrabold text-yellow-300 underline underline-offset-2 ml-1">
@@ -198,14 +196,14 @@ export function NoticeSlider({ className, variant = 'dark' }: NoticeSliderProps)
                 )}
               </p>
 
-              {/* Link CTA */}
+              {/* Link CTA with White Border */}
               {currentNotice.link && (
                 <Link
                   href={currentNotice.link}
-                  className="hidden md:inline-flex items-center gap-1 text-[11px] font-black text-white hover:text-yellow-300 transition-colors bg-white/10 hover:bg-white/20 px-2.5 py-0.5 rounded-md flex-shrink-0 ml-1"
+                  className="hidden md:inline-flex items-center gap-1.5 text-xs font-black text-white hover:text-[#1a1a4e] transition-all bg-white/15 hover:bg-white border-2 border-white shadow-md px-3.5 py-1 rounded-lg flex-shrink-0 ml-1.5"
                 >
                   {currentNotice.linkText || 'Learn More'}
-                  <ArrowRight className="w-3 h-3" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               )}
             </motion.div>
@@ -213,21 +211,21 @@ export function NoticeSlider({ className, variant = 'dark' }: NoticeSliderProps)
         </div>
 
         {/* Right Controls + Close */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={handleNext}
             aria-label="Next notice"
-            className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all"
+            className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/20 border border-white/40 transition-all"
           >
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
-          <div className="h-3 w-[1px] bg-white/20 mx-1 hidden sm:block" />
+          <div className="h-4 w-[1.5px] bg-white/40 mx-1 hidden sm:block" />
           <button
             onClick={() => setIsDismissed(true)}
             aria-label="Dismiss notice bar"
-            className="p-1 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-all hidden sm:block"
+            className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-all hidden sm:block"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>

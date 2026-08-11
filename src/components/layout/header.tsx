@@ -67,7 +67,7 @@ export function Header() {
             : "bg-transparent"
     )}>
       {!scrolled && <NoticeSlider />}
-      <div className="w-full h-16 sm:h-20 px-3 sm:px-4 lg:px-6 flex items-center justify-between">
+      <div className="w-full h-20 sm:h-24 md:h-26 px-3 sm:px-4 lg:px-6 flex items-center justify-between py-2">
         {/* Logo */}
         <div className="flex-shrink-0">
           <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-all active:scale-95" prefetch={false}>

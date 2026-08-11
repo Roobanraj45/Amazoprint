@@ -547,7 +547,7 @@ function HeroMonitorMockup() {
       <motion.div
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute top-4 -left-4 z-20 bg-white rounded-xl shadow-xl px-3 py-2 flex items-center gap-2 border border-gray-100"
+        className="absolute top-4 -left-4 z-20 bg-white rounded-xl shadow-2xl px-3.5 py-2 flex items-center gap-2 border-2 border-white ring-2 ring-orange-500/20"
       >
         <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white flex-shrink-0">
           <Tag size={13} />
@@ -940,7 +940,7 @@ export function HomeClient({
                                 <span className="text-sm font-black text-[#464674]">₹{price > 0 ? price.toFixed(0) : '—'}</span>
                               </div>
                               {price > 0 && (
-                                <span className="text-[8px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                                <span className="text-[9px] font-black text-emerald-700 bg-emerald-100/80 border-2 border-white shadow-sm px-2.5 py-0.5 rounded-full">
                                   30% OFF
                                 </span>
                               )}

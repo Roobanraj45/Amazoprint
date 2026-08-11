@@ -394,7 +394,7 @@ export function Navbar() {
         <NoticeSlider />
         {/* ── TOP ROW ─────────────────────────────────────────────── */}
         <div className="bg-gradient-to-r from-[#1a1a4e] via-[#282860] to-[#1a1a4e] border-b border-white/10">
-          <div className="w-full px-3 sm:px-4 lg:px-6 h-[64px] flex items-center gap-3 lg:gap-5">
+          <div className="w-full px-3 sm:px-4 lg:px-6 h-[76px] sm:h-[84px] flex items-center gap-3 lg:gap-5 py-2">
 
             {/* Logo */}
             <Link href="/" prefetch={false} className="flex-shrink-0">
