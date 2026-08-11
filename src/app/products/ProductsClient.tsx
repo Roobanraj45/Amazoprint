@@ -206,7 +206,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                 <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none -z-10" />
                 <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none -z-10" />
                 
-                <div className="container px-4 md:px-6 relative z-10">
+                <div className="w-full px-3 sm:px-4 lg:px-6 relative z-10">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
                         <div className="space-y-2 max-w-xl">
                             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-extrabold border border-primary/20 shadow-sm backdrop-blur-md">
@@ -256,7 +256,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                         className="group flex flex-col items-center outline-none transition-all duration-300 hover:-translate-y-1"
                                     >
                                         <div className={cn(
-                                            "w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center shadow-md border overflow-hidden relative transition-all duration-300 bg-slate-50 dark:bg-slate-950",
+                                            "w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center shadow-md border overflow-hidden relative transition-all duration-300 bg-slate-50 dark:bg-slate-950",
                                             isActive 
                                                 ? "border-[#464674] ring-4 ring-[#464674]/15 scale-105 shadow-md shadow-[#464674]/20" 
                                                 : "border-slate-200/80 dark:border-slate-850 hover:border-[#464674]/40 hover:shadow-lg"
@@ -267,12 +267,12 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                     alt={category} 
                                                     fill 
                                                     className="object-contain p-1.5 transition-transform duration-500 group-hover:scale-110"
-                                                    sizes="(max-width: 768px) 64px, 80px"
+                                                    sizes="(max-width: 768px) 80px, 96px"
                                                 />
                                             </div>
                                         </div>
                                         <span className={cn(
-                                            "text-[10px] font-black mt-2 text-center truncate max-w-[80px] transition-colors leading-tight",
+                                            "text-xs sm:text-sm font-black mt-2 text-center truncate max-w-[100px] transition-colors leading-tight",
                                             isActive ? "text-[#464674] dark:text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-950"
                                         )}>
                                             {asset.label}

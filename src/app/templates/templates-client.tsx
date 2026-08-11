@@ -73,7 +73,7 @@ export function TemplatesClient({ templates }: { templates: any[] }) {
 
       <main className="flex-1 pt-32 pb-24">
         {/* Filter Bar */}
-        <section className="container px-4 mx-auto mb-12">
+        <section className="w-full px-3 sm:px-4 lg:px-6 mb-16 space-y-8">
           <div className="flex flex-col md:flex-row gap-6 items-center justify-between p-6 rounded-[2.5rem] bg-zinc-950 text-white border border-white/5 shadow-2xl">
             <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide px-2">
               {dynamicCategories.map((cat) => (
@@ -104,7 +104,7 @@ export function TemplatesClient({ templates }: { templates: any[] }) {
         </section>
 
         {/* Categorized Grid */}
-        <section className="container px-4 mx-auto space-y-32">
+        <section className="w-full px-3 sm:px-4 lg:px-6 space-y-32">
           {Object.keys(groupedTemplates).length > 0 ? (
             Object.entries(groupedTemplates).map(([productCategory, subProducts]: [string, any], pIdx) => (
               <div key={productCategory} className="space-y-16">
@@ -263,7 +263,7 @@ export function TemplatesClient({ templates }: { templates: any[] }) {
         </section>
 
         {/* Custom Request CTA */}
-        <section className="container px-4 mx-auto mt-32">
+        <section className="w-full px-3 sm:px-4 lg:px-6 mt-32">
           <div className="p-12 rounded-[3rem] bg-zinc-50 border border-zinc-200 dark:bg-zinc-900/50 dark:border-zinc-800 text-center space-y-8">
             <h2 className="text-3xl md:text-5xl font-black tracking-tighter uppercase font-headline max-w-2xl mx-auto">
               Need Something <br /><span className="text-primary">Completely Unique?</span>

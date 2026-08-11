@@ -32,6 +32,7 @@ import { getSession } from '@/app/actions/user-actions';
 import { LogoutButton } from '@/components/layout/logout-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CartSheet } from '@/components/cart/cart-sheet';
+import { NoticeSlider } from '@/components/layout/notice-slider';
 import { usePathname } from 'next/navigation';
 import { cn, resolveImagePath } from '@/lib/utils';
 import { getProducts } from '@/app/actions/product-actions';
@@ -390,9 +391,10 @@ export function Navbar() {
           scrolled && 'shadow-2xl shadow-[#1a1a4e]/30'
         )}
       >
+        <NoticeSlider />
         {/* ── TOP ROW ─────────────────────────────────────────────── */}
         <div className="bg-gradient-to-r from-[#1a1a4e] via-[#282860] to-[#1a1a4e] border-b border-white/10">
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-6 h-[64px] flex items-center gap-3 lg:gap-5">
+          <div className="w-full px-3 sm:px-4 lg:px-6 h-[64px] flex items-center gap-3 lg:gap-5">
 
             {/* Logo */}
             <Link href="/" prefetch={false} className="flex-shrink-0">
@@ -533,7 +535,7 @@ export function Navbar() {
 
         {/* ── BOTTOM NAV ROW ──────────────────────────────────────── */}
         <div className="hidden lg:block bg-[#282860] border-b border-white/10">
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-6">
+          <div className="w-full px-3 sm:px-4 lg:px-6">
             <nav className="flex items-center h-11">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
@@ -639,7 +641,7 @@ export function Navbar() {
               transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               className="fixed top-[64px] left-0 w-full bg-[#1a1a4e] border-b border-white/10 shadow-2xl lg:hidden z-40 max-h-[calc(100vh-64px)] overflow-y-auto"
             >
-              <div className="max-w-screen-xl mx-auto px-4 py-4 flex flex-col gap-1.5">
+              <div className="w-full px-3 sm:px-4 py-4 flex flex-col gap-1.5">
                 {/* Search Bar in Mobile Menu */}
                 <div className="md:hidden mb-2">
                   <div className="flex items-center gap-2.5 bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 focus-within:border-white/40 transition-all">

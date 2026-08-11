@@ -45,7 +45,7 @@ export function AmazoprintLogo(logoProps: LogoProps) {
   } else if (variant === 'sidebar') {
     dimensions = "h-12 w-40";
   } else if (variant === 'header') {
-    dimensions = "h-10 w-28 sm:h-12 sm:w-36 md:h-14 md:w-44";
+    dimensions = "h-12 w-36 sm:h-14 sm:w-44 md:h-16 md:w-52";
   } else {
     dimensions = "h-20 w-60"; // Enlarged default wide logo
   }

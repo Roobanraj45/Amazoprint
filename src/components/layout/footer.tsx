@@ -91,7 +91,7 @@ export function Footer() {
     <footer className="bg-[#0f1117] text-slate-300 border-t border-white/5">
 
       {/* ── Main columns ─────────────────────────────────────────────────── */}
-      <div className="max-w-screen-xl mx-auto px-4 lg:px-8 pt-14 pb-8">
+      <div className="w-full px-3 sm:px-4 lg:px-6 pt-14 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 lg:gap-6">
 
           {/* Quick Links */}
@@ -219,7 +219,7 @@ export function Footer() {
       <div className="border-t border-white/5" />
 
       {/* ── Bottom bar ──────────────────────────────────────────────────── */}
-      <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-5">
+      <div className="w-full px-3 sm:px-4 lg:px-6 py-5">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
 
           {/* Left: trust items */}

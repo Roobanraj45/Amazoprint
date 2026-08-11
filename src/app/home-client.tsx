@@ -611,7 +611,7 @@ export function HomeClient({
           <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#464674]/8 rounded-full blur-[120px] pointer-events-none -translate-x-1/3 -translate-y-1/3" />
           <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-orange-400/6 rounded-full blur-[100px] pointer-events-none translate-x-1/4 translate-y-1/4" />
 
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-8 py-10 lg:py-16">
+          <div className="w-full px-3 sm:px-4 lg:px-6 py-10 lg:py-16">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
               {/* ── LEFT: Monitor Mockup ── */}
@@ -742,12 +742,12 @@ export function HomeClient({
           {/* Soft decorative blobs */}
           <div className="absolute top-0 right-0 w-72 h-72 bg-[#464674]/4 rounded-full blur-[80px] pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-400/5 rounded-full blur-[80px] pointer-events-none" />
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-8 relative z-10">
+          <div className="w-full px-3 sm:px-4 lg:px-6 relative z-10">
             <motion.div {...FU()} className="text-center mb-12">
-              <span className="inline-flex items-center gap-1.5 bg-[#464674]/8 text-[#464674] border border-[#464674]/15 text-[10px] font-black tracking-[0.15em] uppercase px-3 py-1 rounded-full mb-3 font-display">
-                <LayoutGrid size={11} /> All Categories
+              <span className="inline-flex items-center gap-2 bg-[#464674]/10 text-[#464674] border border-[#464674]/20 text-xs sm:text-sm font-black tracking-widest uppercase px-4 py-2 rounded-full mb-4 font-display">
+                <LayoutGrid size={15} /> All Categories
               </span>
-              <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight font-headline">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight font-headline">
                 Shop Customize Premium Printing
                 <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#464674] to-[#8b8bb3] font-classy italic font-extrabold">&amp; Unprinting Blank Products</span>
@@ -755,18 +755,18 @@ export function HomeClient({
             </motion.div>
 
             {/* Category circles */}
-            <div className="grid grid-cols-4 sm:grid-cols-7 lg:grid-cols-14 gap-3 overflow-x-auto pb-2">
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-6 lg:gap-8 pb-4">
               {ALL_CATEGORIES.map((cat, i) => (
                 <motion.div key={cat.name} {...FI(i * 0.03)}>
-                  <Link href="/products" className="group flex flex-col items-center gap-2 min-w-[60px]">
+                  <Link href="/products" className="group flex flex-col items-center gap-2.5 min-w-[85px] sm:min-w-[105px]">
                     {/* Circle */}
                     <div
-                      className="w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-md group-hover:shadow-xl group-hover:-translate-y-2 group-hover:ring-4 group-hover:ring-offset-2 transition-all duration-300 border-4 border-white"
-                      style={{ backgroundColor: cat.light, boxShadow: `0 4px 20px ${cat.bg}22`, ['--tw-ring-color' as any]: cat.bg + '55' }}
+                      className="w-18 h-18 sm:w-22 sm:h-22 lg:w-24 lg:h-24 rounded-full flex items-center justify-center text-3xl sm:text-4xl shadow-lg group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:ring-4 group-hover:ring-offset-2 transition-all duration-300 border-4 border-white"
+                      style={{ backgroundColor: cat.light, boxShadow: `0 6px 24px ${cat.bg}25`, ['--tw-ring-color' as any]: cat.bg + '55' }}
                     >
                       <span>{cat.emoji}</span>
                     </div>
-                    <p className="text-[9px] font-bold text-gray-500 text-center leading-tight group-hover:text-[#464674] transition-colors w-full">
+                    <p className="text-xs sm:text-sm font-bold text-gray-700 text-center leading-tight group-hover:text-[#464674] transition-colors w-full">
                       {cat.name}
                     </p>
                   </Link>
@@ -790,7 +790,7 @@ export function HomeClient({
             SECTION: COMPLETE ECOSYSTEM (TABBED)
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-16 bg-[#f7f7fc] border-t border-[#464674]/8">
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-8">
+          <div className="w-full px-3 sm:px-4 lg:px-6">
             <motion.div {...FU()} className="text-center mb-10">
               <span className="inline-flex items-center gap-1.5 bg-[#464674]/10 text-[#464674] border border-[#464674]/20 text-[11px] font-bold tracking-wide px-3 py-1 rounded-full mb-3 font-display">
                 <Globe size={12} /> One Platform — Five Pillars
@@ -879,7 +879,7 @@ export function HomeClient({
             SECTION: LATEST PRODUCTS
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-16 bg-white">
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-8">
+          <div className="w-full px-3 sm:px-4 lg:px-6">
             <motion.div {...FU()} className="text-center mb-10">
               <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-600 border border-orange-100 text-[10px] font-black tracking-[0.15em] uppercase px-3 py-1 rounded-full mb-3 font-display">
                 <Flame size={11} /> Featured Products
@@ -983,7 +983,7 @@ export function HomeClient({
             SECTION: TRUST BADGES
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-12 bg-gradient-to-br from-[#1a1a4e]/5 via-white to-[#464674]/5 border-y border-[#464674]/10">
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-8">
+          <div className="w-full px-3 sm:px-4 lg:px-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[
                 {
@@ -1041,7 +1041,7 @@ export function HomeClient({
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-16 bg-gradient-to-br from-[#1a1a4e] via-[#464674] to-[#2f2f54] relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1.5px, transparent 0)', backgroundSize: '32px 32px' }} />
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-8 relative z-10">
+          <div className="w-full px-3 sm:px-4 lg:px-6 relative z-10">
             <motion.div {...FU()} className="text-center mb-12">
               <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 text-white text-[11px] font-bold tracking-wide px-3 py-1.5 rounded-full mb-3 font-display">
                 <Zap size={12} className="text-yellow-300" /> Simple 4-Step Process
@@ -1086,7 +1086,7 @@ export function HomeClient({
             SECTION: RECENTLY VIEWED ITEMS
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-14 bg-white">
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-8">
+          <div className="w-full px-3 sm:px-4 lg:px-6">
             <motion.div {...FU()} className="text-center mb-10">
               <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center justify-center gap-2 font-headline">
                 <Eye size={24} className="text-[#464674]" />
@@ -1143,7 +1143,7 @@ export function HomeClient({
             SECTION: STATS BAND
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-14 bg-gradient-to-br from-[#1a1a4e]/5 via-[#f7f7fc] to-white border-y border-[#464674]/8">
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-8">
+          <div className="w-full px-3 sm:px-4 lg:px-6">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-6 divide-y md:divide-y-0 md:divide-x divide-[#464674]/10">
               {[
                 { icon: <ShoppingCart size={22} className="text-[#464674]" />, bg: 'bg-[#464674]/10', val: '10,000+', lbl: 'Orders Completed' },
@@ -1166,7 +1166,7 @@ export function HomeClient({
             SECTION: TESTIMONIALS
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-16 bg-white">
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-8">
+          <div className="w-full px-3 sm:px-4 lg:px-6">
             <motion.div {...FU()} className="text-center mb-12">
               <span className="inline-flex items-center gap-1.5 bg-yellow-50 text-yellow-600 text-[11px] font-bold tracking-wide px-3 py-1 rounded-full mb-3 border border-yellow-100 font-display">
                 <Star size={12} className="fill-yellow-400 text-yellow-400" /> 4.9 / 5 Rating
@@ -1222,7 +1222,7 @@ export function HomeClient({
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1.5px, transparent 0)', backgroundSize: '28px 28px' }} />
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-[120px] pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-500/10 rounded-full blur-[100px] pointer-events-none" />
-          <div className="max-w-screen-xl mx-auto px-4 lg:px-8 relative z-10 text-center">
+          <div className="w-full px-3 sm:px-4 lg:px-6 relative z-10 text-center">
             <motion.div {...FU()} className="max-w-3xl mx-auto space-y-7">
               <span className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white text-[11px] font-bold tracking-wide px-4 py-2 rounded-full font-display">
                 <Sparkles size={13} className="text-yellow-300" />

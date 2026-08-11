@@ -11,6 +11,8 @@ import { CartSheet } from "../cart/cart-sheet";
 import { cn } from "@/lib/utils";
 import { LayoutGrid, Home, Settings, ShieldCheck, Menu, Search } from "lucide-react";
 
+import { NoticeSlider } from "./notice-slider";
+
 type Session = Awaited<ReturnType<typeof getSession>>;
 
 export function Header() {
@@ -57,14 +59,15 @@ export function Header() {
 
   return (
     <header className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 flex flex-col justify-between",
         scrolled 
             ? isHome
-              ? "h-16 bg-[#464674]/95 backdrop-blur-xl border-b border-white/10 shadow-lg text-white"
-              : "h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm" 
-            : "h-24 bg-transparent"
+              ? "bg-[#464674]/95 backdrop-blur-xl border-b border-white/10 shadow-lg text-white"
+              : "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm" 
+            : "bg-transparent"
     )}>
-      <div className="container mx-auto h-full px-4 lg:px-8 flex items-center justify-between">
+      {!scrolled && <NoticeSlider />}
+      <div className="w-full h-16 sm:h-20 px-3 sm:px-4 lg:px-6 flex items-center justify-between">
         {/* Logo */}
         <div className="flex-shrink-0">
           <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-all active:scale-95" prefetch={false}>
