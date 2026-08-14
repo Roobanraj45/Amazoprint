@@ -196,7 +196,7 @@ export function Footer() {
             </div>
 
             {/* Payment methods */}
-            <div>
+             <div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">
                 We Accept
               </p>

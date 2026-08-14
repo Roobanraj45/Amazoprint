@@ -41,6 +41,7 @@ import {
   ThumbsUp,
   RefreshCw,
   Layers,
+  Store,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -1083,37 +1084,54 @@ export function HomeClient({
         </section>
 
         {/* ═══════════════════════════════════════════════════════════
-            SECTION: RECENTLY VIEWED ITEMS
+            SECTION: DIRECT SELLING PRODUCTS
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-14 bg-white">
           <div className="w-full px-3 sm:px-4 lg:px-6">
             <motion.div {...FU()} className="text-center mb-10">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#464674]/10 text-[#464674] text-xs font-black uppercase tracking-wider mb-3">
+                <Zap size={14} className="text-[#464674] animate-pulse" />
+                <span>Instant Direct Orders</span>
+              </div>
               <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center justify-center gap-2 font-headline">
-                <Eye size={24} className="text-[#464674]" />
-                Your recently viewed items
+                <Store size={26} className="text-[#464674]" />
+                Direct Selling Products
               </h2>
+              <p className="text-gray-500 text-xs sm:text-sm font-medium mt-1.5 max-w-xl mx-auto">
+                Ready-to-ship printed goods & merchandise available for immediate ordering from verified partners.
+              </p>
             </motion.div>
 
             {directSellingProducts && directSellingProducts.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {directSellingProducts.slice(0, 5).map((sp: any, i: number) => {
-                  const price = Number(sp.price || 0);
-                  const imgUrl = resolveImagePath(sp.imageUrl);
+                  const price = Number(sp.sellingPrice || sp.price || 0);
+                  const rawImg = (Array.isArray(sp.imageUrls) && sp.imageUrls.length > 0 ? sp.imageUrls[0] : null) || sp.imageUrl || '';
+                  const imgUrl = rawImg ? resolveImagePath(rawImg) : null;
                   return (
                     <motion.div key={sp.id || i} {...FU(i * 0.04)}>
-                      <Link href={`/products`} className="group block">
-                        <div className="rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 hover:shadow-lg transition-all duration-300">
-                          <div className="relative overflow-hidden aspect-square">
-                            {imgUrl ? (
-                              <Image src={imgUrl} alt={sp.name || 'Product'} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                                <Package className="w-8 h-8 text-gray-400" />
-                              </div>
-                            )}
+                      <Link href={`/products`} className="group block h-full">
+                        <div className="h-full rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
+                          <div>
+                            <div className="relative overflow-hidden aspect-square bg-slate-100">
+                              {imgUrl ? (
+                                <Image src={imgUrl} alt={sp.name || 'Product'} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                                  <Package className="w-8 h-8 text-gray-400" />
+                                </div>
+                              )}
+                              {sp.category && (
+                                <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-white/90 backdrop-blur-sm text-[9px] font-black text-[#464674] uppercase tracking-wider shadow-sm">
+                                  {sp.category}
+                                </span>
+                              )}
+                            </div>
+                            <div className="p-3 pb-1">
+                              <p className="text-xs font-black text-gray-800 line-clamp-1 group-hover:text-[#464674] transition-colors">{sp.name || 'Product'}</p>
+                            </div>
                           </div>
-                          <div className="p-3">
-                            <p className="text-xs font-black text-gray-800 line-clamp-1">{sp.name || 'Product'}</p>
+                          <div className="p-3 pt-0">
                             {price > 0 && <p className="text-sm font-black text-[#464674] mt-1">₹{price.toFixed(0)}</p>}
                           </div>
                         </div>

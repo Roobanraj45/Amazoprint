@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
-import { Home, List, Briefcase, CircleDollarSign, Wallet, LogOut, Search, Bell, Factory, Package, Settings, Clock, Sparkles, FileText, CreditCard, BarChart3, MessageSquare } from "lucide-react"
+import { Home, List, Briefcase, CircleDollarSign, Wallet, LogOut, Search, Bell, Factory, Package, Settings, Clock, Sparkles, FileText, CreditCard, BarChart3, MessageSquare, Store } from "lucide-react"
 import Link from "next/link"
 import { AmazoprintLogo } from "@/components/ui/logo"
 import { useRouter } from "next/navigation";
@@ -60,6 +60,7 @@ export default function PrinterLayout({ children }: { children: React.ReactNode 
   const menuItems = [
     { href: "/printer/dashboard", label: "Dashboard", icon: <Home size={16} />, color: "text-blue-500" },
     { href: "/printer/orders", label: "Order Queue", icon: <Package size={16} />, color: "text-amber-500" },
+    { href: "/printer/direct-selling", label: "Direct Products", icon: <Store size={16} />, color: "text-emerald-500" },
     { href: "/printer/shipments", label: "Shipping", icon: <Factory size={16} />, color: "text-cyan-500" },
     { href: "/printer/invoices", label: "Invoices", icon: <FileText size={16} />, color: "text-violet-500" },
     { href: "/printer/messages", label: "Admin Chat", icon: <MessageSquare size={16} />, color: "text-emerald-500" },

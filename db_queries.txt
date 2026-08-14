@@ -1,0 +1,33 @@
+-- ============================================================================
+-- AmazoPrint: Direct Selling Products Approval Workflow Database Migration
+-- ============================================================================
+
+-- 1. Add new columns to the `direct_selling_products` table
+ALTER TABLE direct_selling_products 
+  ADD COLUMN IF NOT EXISTS added_by VARCHAR(20) DEFAULT 'admin',
+  ADD COLUMN IF NOT EXISTS printer_id UUID REFERENCES print_press_users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) DEFAULT 'approved',
+  ADD COLUMN IF NOT EXISTS rejection_reason TEXT,
+  ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES admins(id) ON DELETE SET NULL;
+
+-- 2. Create indexes for high performance filtering & querying
+CREATE INDEX IF NOT EXISTS idx_dsp_printer_id 
+  ON direct_selling_products(printer_id);
+
+CREATE INDEX IF NOT EXISTS idx_dsp_approval_status 
+  ON direct_selling_products(approval_status);
+
+-- 3. Ensure all existing products are marked as 'admin' created and 'approved'
+UPDATE direct_selling_products 
+SET 
+  added_by = COALESCE(added_by, 'admin'),
+  approval_status = COALESCE(approval_status, 'approved')
+WHERE approval_status IS NULL OR added_by IS NULL;
+
+-- ============================================================================
+-- Verification Query (Optional - run to verify table structure)
+-- ============================================================================
+-- SELECT column_name, data_type, column_default 
+-- FROM information_schema.columns 
+-- WHERE table_name = 'direct_selling_products';

@@ -133,6 +133,7 @@ export const printPressUsersRelations = relations(printPressUsers, ({ many }) =>
   invoices: many(printerInvoices),
   bankDetails: many(bankDetails),
   printerPayments: many(printerPayments),
+  directSellingProducts: many(directSellingProducts),
 }));
 
 
@@ -539,12 +540,20 @@ export const directSellingProducts = pgTable('direct_selling_products', {
   supplierInfo: jsonb('supplier_info'),
   shippingInfo: jsonb('shipping_info'),
   textAllowed: boolean('text_allowed').default(false),
+  addedBy: varchar('added_by', { length: 20, enum: ['admin', 'printer'] }).default('admin'),
+  printerId: uuid('printer_id').references(() => printPressUsers.id, { onDelete: 'set null' }),
+  approvalStatus: varchar('approval_status', { length: 20, enum: ['pending', 'approved', 'rejected'] }).default('approved'),
+  rejectionReason: text('rejection_reason'),
+  approvedAt: timestamp('approved_at'),
+  approvedBy: uuid('approved_by').references(() => admins.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => ({
   slugIdx: index('idx_dsp_slug').on(table.slug),
   skuIdx: index('idx_dsp_sku').on(table.sku),
   categoryIdx: index('idx_dsp_category').on(table.category),
+  printerIdIdx: index('idx_dsp_printer_id').on(table.printerId),
+  approvalStatusIdx: index('idx_dsp_approval_status').on(table.approvalStatus),
 }));
 
 export const payments = pgTable('payments', {
@@ -789,6 +798,17 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     printerPayments: many(printerPayments),
     shipment: one(shipments),
     designVerifications: many(designVerifications),
+}));
+
+export const directSellingProductsRelations = relations(directSellingProducts, ({ one }) => ({
+  printer: one(printPressUsers, {
+    fields: [directSellingProducts.printerId],
+    references: [printPressUsers.id],
+  }),
+  approvedByAdmin: one(admins, {
+    fields: [directSellingProducts.approvedBy],
+    references: [admins.id],
+  }),
 }));
 
 export const orderLogsRelations = relations(orderLogs, ({ one }) => ({

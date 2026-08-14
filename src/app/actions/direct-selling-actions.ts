@@ -1,10 +1,9 @@
-
 'use server';
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { orders, directSellingProducts } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { orders, directSellingProducts, printPressUsers } from '@/db/schema';
+import { eq, desc, and, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import { recordOrderLog } from './order-actions';
@@ -14,11 +13,19 @@ async function verifyAdmin() {
     const session = await getSession();
     const adminRoles = ['admin', 'super_admin', 'company_admin'];
     if (!session?.sub || !adminRoles.includes(session.role)) {
-        throw new Error('Unauthorized');
+        throw new Error('Unauthorized: Admin access required');
     }
+    return session;
 }
 
-const arrayFromString = z.string().transform((val) => (val ? val.split(',').map(s => s.trim()).filter(Boolean) : []));
+// Helper to verify printer
+async function verifyPrinter() {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'printer') {
+        throw new Error('Unauthorized: Printer access required');
+    }
+    return session;
+}
 
 const jsonFromString = z.string().transform((val, ctx) => {
     if (!val || val.trim() === '') return undefined;
@@ -32,7 +39,6 @@ const jsonFromString = z.string().transform((val, ctx) => {
         return z.NEVER;
     }
 });
-
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -55,27 +61,82 @@ const formSchema = z.object({
   textAllowed: z.boolean().default(false),
 });
 
-
+// Admin: Get all direct selling products with printer info
 export async function getDirectSellingProducts() {
     await verifyAdmin();
     return await db.query.directSellingProducts.findMany({
         orderBy: [desc(directSellingProducts.createdAt)],
+        with: {
+            printer: {
+                columns: {
+                    id: true,
+                    fullName: true,
+                    companyName: true,
+                    email: true,
+                    phone: true,
+                    city: true,
+                }
+            },
+            approvedByAdmin: {
+                columns: {
+                    id: true,
+                    name: true,
+                    email: true,
+                }
+            }
+        }
     });
 }
 
+// Printer: Get only this printer's products
+export async function getPrinterDirectSellingProducts() {
+    const session = await verifyPrinter();
+    return await db.query.directSellingProducts.findMany({
+        where: eq(directSellingProducts.printerId, session.sub),
+        orderBy: [desc(directSellingProducts.createdAt)],
+    });
+}
+
+// Admin: Create product (automatically approved)
 export async function createDirectSellingProduct(data: z.infer<typeof formSchema>) {
-    await verifyAdmin();
+    const session = await verifyAdmin();
     const validatedData = formSchema.parse(data);
     const result = await db.insert(directSellingProducts).values({
       ...validatedData,
+      addedBy: 'admin',
+      approvalStatus: 'approved',
+      approvedAt: new Date(),
+      approvedBy: session.sub,
       imageUrls: validatedData.imageUrls ? validatedData.imageUrls.split(',').map(s => s.trim()).filter(Boolean) : [],
       tags: validatedData.tags ? validatedData.tags.split(',').map(s => s.trim()).filter(Boolean) : [],
     }).returning();
+
     revalidatePath('/admin/direct-selling');
+    revalidatePath('/products');
     revalidatePath('/');
     return result[0];
 }
 
+// Printer: Create product (starts in pending approval status)
+export async function createPrinterDirectSellingProduct(data: z.infer<typeof formSchema>) {
+    const session = await verifyPrinter();
+    const validatedData = formSchema.parse(data);
+    const result = await db.insert(directSellingProducts).values({
+      ...validatedData,
+      addedBy: 'printer',
+      printerId: session.sub,
+      approvalStatus: 'pending',
+      rejectionReason: null,
+      imageUrls: validatedData.imageUrls ? validatedData.imageUrls.split(',').map(s => s.trim()).filter(Boolean) : [],
+      tags: validatedData.tags ? validatedData.tags.split(',').map(s => s.trim()).filter(Boolean) : [],
+    }).returning();
+
+    revalidatePath('/printer/direct-selling');
+    revalidatePath('/admin/direct-selling');
+    return result[0];
+}
+
+// Admin: Update any direct selling product
 export async function updateDirectSellingProduct(id: number, data: z.infer<typeof formSchema>) {
     await verifyAdmin();
     const validatedData = formSchema.parse(data);
@@ -88,23 +149,130 @@ export async function updateDirectSellingProduct(id: number, data: z.infer<typeo
         })
         .where(eq(directSellingProducts.id, id))
         .returning();
+
     revalidatePath('/admin/direct-selling');
+    revalidatePath('/printer/direct-selling');
+    revalidatePath('/products');
     revalidatePath('/');
     return result[0];
 }
 
+// Printer: Update printer's own product (resets to pending for review)
+export async function updatePrinterDirectSellingProduct(id: number, data: z.infer<typeof formSchema>) {
+    const session = await verifyPrinter();
+    
+    // Verify ownership
+    const existing = await db.query.directSellingProducts.findFirst({
+        where: and(
+            eq(directSellingProducts.id, id),
+            eq(directSellingProducts.printerId, session.sub)
+        ),
+    });
+
+    if (!existing) {
+        throw new Error('Product not found or you do not have permission to edit it.');
+    }
+
+    const validatedData = formSchema.parse(data);
+    const result = await db.update(directSellingProducts)
+        .set({ 
+          ...validatedData, 
+          approvalStatus: 'pending',
+          rejectionReason: null,
+          imageUrls: validatedData.imageUrls ? validatedData.imageUrls.split(',').map(s => s.trim()).filter(Boolean) : [],
+          tags: validatedData.tags ? validatedData.tags.split(',').map(s => s.trim()).filter(Boolean) : [],
+          updatedAt: new Date() 
+        })
+        .where(and(
+            eq(directSellingProducts.id, id),
+            eq(directSellingProducts.printerId, session.sub)
+        ))
+        .returning();
+
+    revalidatePath('/printer/direct-selling');
+    revalidatePath('/admin/direct-selling');
+    revalidatePath('/products');
+    revalidatePath('/');
+    return result[0];
+}
+
+// Admin: Delete any direct selling product
 export async function deleteDirectSellingProduct(id: number) {
     await verifyAdmin();
     await db.delete(directSellingProducts).where(eq(directSellingProducts.id, id));
     revalidatePath('/admin/direct-selling');
+    revalidatePath('/printer/direct-selling');
+    revalidatePath('/products');
     revalidatePath('/');
 }
 
+// Printer: Delete own direct selling product
+export async function deletePrinterDirectSellingProduct(id: number) {
+    const session = await verifyPrinter();
+    await db.delete(directSellingProducts).where(and(
+        eq(directSellingProducts.id, id),
+        eq(directSellingProducts.printerId, session.sub)
+    ));
+    revalidatePath('/printer/direct-selling');
+    revalidatePath('/admin/direct-selling');
+    revalidatePath('/products');
+    revalidatePath('/');
+}
+
+// Admin: Approve a pending product
+export async function approveDirectSellingProduct(id: number) {
+    const session = await verifyAdmin();
+    const result = await db.update(directSellingProducts)
+        .set({
+            approvalStatus: 'approved',
+            approvedAt: new Date(),
+            approvedBy: session.sub,
+            rejectionReason: null,
+            isActive: true,
+            updatedAt: new Date(),
+        })
+        .where(eq(directSellingProducts.id, id))
+        .returning();
+
+    revalidatePath('/admin/direct-selling');
+    revalidatePath('/printer/direct-selling');
+    revalidatePath('/products');
+    revalidatePath('/');
+    return { success: true, product: result[0] };
+}
+
+// Admin: Reject a direct product with reason
+export async function rejectDirectSellingProduct(id: number, reason: string) {
+    await verifyAdmin();
+    if (!reason || !reason.trim()) {
+        throw new Error('Please provide a reason for rejecting this product.');
+    }
+
+    const result = await db.update(directSellingProducts)
+        .set({
+            approvalStatus: 'rejected',
+            rejectionReason: reason.trim(),
+            isActive: false,
+            updatedAt: new Date(),
+        })
+        .where(eq(directSellingProducts.id, id))
+        .returning();
+
+    revalidatePath('/admin/direct-selling');
+    revalidatePath('/printer/direct-selling');
+    revalidatePath('/products');
+    revalidatePath('/');
+    return { success: true, product: result[0] };
+}
+
+// Public catalog: Only show approved & active products
 export async function getPublicDirectSellingProducts() {
     return await db.query.directSellingProducts.findMany({
-        where: eq(directSellingProducts.isActive, true),
+        where: and(
+            eq(directSellingProducts.isActive, true),
+            eq(directSellingProducts.approvalStatus, 'approved')
+        ),
         orderBy: [desc(directSellingProducts.isFeatured), desc(directSellingProducts.createdAt)],
-        // limit: 4, We can show more now
     });
 }
 
@@ -118,15 +286,29 @@ export async function placeDirectOrder(items: any[], shippingAddress: any, payme
         throw new Error('Your cart is empty.');
     }
 
+    // Retrieve printer associations for products if any
+    const productIds = items.map(i => i.id).filter(Boolean);
+    const dbProducts = productIds.length > 0 
+        ? await db.query.directSellingProducts.findMany({
+            where: inArray(directSellingProducts.id, productIds),
+          })
+        : [];
+
+    const productMap = new Map(dbProducts.map(p => [p.id, p]));
+
     const orderValues = items.map(item => {
         const sellingPrice = parseFloat(item.sellingPrice);
         if (isNaN(sellingPrice)) {
             throw new Error(`Invalid selling price for product: ${item.name}`);
         }
         const totalAmount = sellingPrice * item.quantity;
+        const matchedProduct = productMap.get(item.id);
+
         return {
             userId: session.sub,
             directSellingProductId: item.id,
+            printerAssigned: matchedProduct?.printerId || null,
+            printerAssignedAt: matchedProduct?.printerId ? new Date() : null,
             quantity: item.quantity,
             unitPrice: String(sellingPrice),
             totalAmount: String(totalAmount),
@@ -159,6 +341,7 @@ export async function placeDirectOrder(items: any[], shippingAddress: any, payme
     revalidatePath('/client/orders');
     revalidatePath('/freelancer/orders');
     revalidatePath('/admin/orders');
+    revalidatePath('/printer/orders');
 
     return { success: true, orderIds: newOrders.map(o => o.id) };
 }
