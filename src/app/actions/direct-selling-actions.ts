@@ -294,6 +294,18 @@ export async function getPublicDirectSellingProducts() {
     });
 }
 
+// Public catalog: Get single approved & active direct selling product by ID
+export async function getPublicDirectSellingProductById(id: number) {
+    if (!id || isNaN(id)) return null;
+    return await db.query.directSellingProducts.findFirst({
+        where: and(
+            eq(directSellingProducts.id, id),
+            eq(directSellingProducts.isActive, true),
+            eq(directSellingProducts.approvalStatus, 'approved')
+        ),
+    });
+}
+
 export async function placeDirectOrder(items: any[], shippingAddress: any, paymentId: number) {
     const session = await getSession();
     if (!session?.sub) {
@@ -334,6 +346,29 @@ export async function placeDirectOrder(items: any[], shippingAddress: any, payme
         };
     });
 
+    // 1. Verify stock availability and reduce stock
+    for (const item of items) {
+        if (!item.id) continue;
+        const dbProduct = await db.query.directSellingProducts.findFirst({
+            where: eq(directSellingProducts.id, item.id),
+        });
+
+        if (dbProduct) {
+            const currentStock = typeof dbProduct.stockQuantity === 'number' ? dbProduct.stockQuantity : (parseInt(dbProduct.stockQuantity as any) || 0);
+            if (currentStock < item.quantity) {
+                throw new Error(`Insufficient stock for "${dbProduct.name}". Only ${currentStock} item(s) available in stock.`);
+            }
+
+            const newStock = Math.max(0, currentStock - item.quantity);
+            await db.update(directSellingProducts)
+                .set({
+                    stockQuantity: newStock,
+                    updatedAt: new Date()
+                })
+                .where(eq(directSellingProducts.id, item.id));
+        }
+    }
+
     const newOrders = await db.insert(orders).values(orderValues).returning();
     
     // Log direct order creation
@@ -350,6 +385,10 @@ export async function placeDirectOrder(items: any[], shippingAddress: any, payme
         }
     }
     
+    revalidatePath('/products');
+    revalidatePath('/');
+    revalidatePath('/admin/direct-selling');
+    revalidatePath('/printer/direct-selling');
     revalidatePath('/client/orders');
     revalidatePath('/freelancer/orders');
     revalidatePath('/admin/orders');

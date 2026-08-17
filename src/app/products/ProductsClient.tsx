@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Sparkles, Package2, Leaf, ShieldCheck, Palette, ArrowRight, CheckCircle2, IndianRupee, Search, Filter, Star, Zap } from 'lucide-react';
+import { Sparkles, Package2, Leaf, ShieldCheck, Palette, ArrowRight, CheckCircle2, IndianRupee, Search, Filter, Star, Zap, Flame, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -12,7 +12,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { resolveImagePath, cn } from '@/lib/utils';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 // Helper function to extract discount info
 const getDiscountInfo = (subProduct: any) => {
@@ -60,60 +59,6 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
     const [activeCategory, setActiveCategory] = useState<string>('All');
     const [activeFinish, setActiveFinish] = useState<string>('All');
     const [sortBy, setSortBy] = useState<string>('default');
-
-    // Direct Order Modal State
-    const [selectedDirectProduct, setSelectedDirectProduct] = useState<any | null>(null);
-    const [selectedSize, setSelectedSize] = useState<string>('');
-    const [quantity, setQuantity] = useState<number>(1);
-    const [customText, setCustomText] = useState<string>('');
-    const [shippingAddress, setShippingAddress] = useState({
-        name: '',
-        phone: '',
-        addressLine1: '',
-        city: '',
-        state: '',
-        zip: '',
-        country: 'India',
-    });
-    const router = useRouter();
-    const { toast } = useToast();
-
-    // Helper to get normalized sizes array from product
-    const getProductSizes = (prod: any): { name: string; price?: number }[] => {
-        if (!prod || !prod.sizes) return [];
-        const raw = prod.sizes;
-        if (Array.isArray(raw)) {
-            return raw.map((s: any) => {
-                if (typeof s === 'string') return { name: s };
-                return { name: s.name || s.size || String(s), price: s.price ? Number(s.price) : undefined };
-            });
-        }
-        if (typeof raw === 'string') {
-            try {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed)) {
-                    return parsed.map((s: any) => {
-                        if (typeof s === 'string') return { name: s };
-                        return { name: s.name || s.size || String(s), price: s.price ? Number(s.price) : undefined };
-                    });
-                }
-            } catch {
-                return raw.split(',').map(s => ({ name: s.trim() })).filter(s => s.name);
-            }
-        }
-        return [];
-    };
-
-    // Calculate dynamic unit price if a size with custom price is chosen
-    const activeDirectUnitPrice = useMemo(() => {
-        if (!selectedDirectProduct) return 0;
-        const sizes = getProductSizes(selectedDirectProduct);
-        const matchingSize = sizes.find(s => s.name === selectedSize);
-        if (matchingSize && matchingSize.price && matchingSize.price > 0) {
-            return matchingSize.price;
-        }
-        return Number(selectedDirectProduct.sellingPrice || 0);
-    }, [selectedDirectProduct, selectedSize]);
 
     // Extract all unique categories (product names and direct selling categories) for the filter pills
     const categories = useMemo(() => {
@@ -214,6 +159,8 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                     description: product.description,
                     textAllowed: product.textAllowed,
                     isFeatured: product.isFeatured,
+                    stockQuantity: typeof product.stockQuantity === 'number' ? product.stockQuantity : (parseInt(product.stockQuantity as any) || 0),
+                    minStockLevel: product.minStockLevel || 5,
                     rawItem: product,
                 });
             });
@@ -230,56 +177,6 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
 
         return list;
     }, [initialProducts, directSellingProducts, searchQuery, activeCategory, activeFinish, sortBy]);
-
-    const handleDirectOrderSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedDirectProduct) return;
-
-        const availableSizes = getProductSizes(selectedDirectProduct);
-        if (availableSizes.length > 0 && !selectedSize) {
-            toast({ variant: 'destructive', title: 'Select Size', description: 'Please choose a size before proceeding.' });
-            return;
-        }
-
-        if (selectedDirectProduct.textAllowed && !customText.trim()) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please enter the customization text.' });
-            return;
-        }
-
-        if (!shippingAddress.name || !shippingAddress.phone || !shippingAddress.addressLine1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zip) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please fill in all shipping address fields.' });
-            return;
-        }
-
-        const unitPrice = activeDirectUnitPrice;
-        const totalAmount = unitPrice * quantity;
-
-        const orderPayload = {
-            orderData: {
-                items: [{
-                    id: selectedDirectProduct.id,
-                    name: selectedDirectProduct.name,
-                    sellingPrice: unitPrice,
-                    quantity: quantity,
-                    sku: selectedDirectProduct.sku,
-                    selectedSize: selectedSize || undefined,
-                    customText: customText.trim() || undefined,
-                }],
-                shippingAddress: shippingAddress,
-            },
-            amount: totalAmount,
-            items: [{ 
-                name: selectedDirectProduct.name, 
-                quantity: quantity,
-                selectedSize: selectedSize || undefined,
-                customText: customText.trim() || undefined,
-            }],
-            shippingAddress: shippingAddress,
-        };
-
-        const encodedData = btoa(encodeURIComponent(JSON.stringify(orderPayload)));
-        router.push(`/payment?orderType=direct&orderData=${encodedData}`);
-    };
 
     return (
         <div className="min-h-screen bg-[#F0F7FF] dark:bg-[#0B1528]">
@@ -589,16 +486,10 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                             // Direct selling product card
                                             const imageUrl = resolveImagePath(item.imageUrl || '/uploads/hero.png');
                                             return (
-                                                <div
+                                                <Link
                                                     key={item.id}
-                                                    onClick={() => {
-                                                        const sizes = getProductSizes(item.rawItem);
-                                                        setSelectedDirectProduct(item.rawItem);
-                                                        setSelectedSize(sizes.length > 0 ? sizes[0].name : '');
-                                                        setQuantity(1);
-                                                        setCustomText('');
-                                                    }}
-                                                    className="group relative block h-full outline-none cursor-pointer"
+                                                    href={`/products/direct/${item.rawId}`}
+                                                    className="group relative block h-full outline-none"
                                                 >
                                                     <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-amber-200/70 dark:border-amber-900/40 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-amber-500/60 hover:-translate-y-1.5">
                                                         
@@ -617,10 +508,23 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                             )}
                                                             
                                                             {/* Floating Badges */}
-                                                            <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+                                                            <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
                                                                 <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
                                                                     <Zap className="w-2.5 h-2.5 fill-current" /> Direct Order
                                                                 </Badge>
+                                                                {item.stockQuantity <= 0 ? (
+                                                                    <Badge variant="destructive" className="bg-rose-600 text-white border-none shadow-md text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                                        Out of Stock
+                                                                    </Badge>
+                                                                ) : item.stockQuantity <= item.minStockLevel ? (
+                                                                    <Badge className="bg-gradient-to-r from-orange-500 to-rose-500 text-white border-none shadow-md text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 animate-pulse">
+                                                                        <Flame size={10} className="fill-current" /> Only {item.stockQuantity} Left
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Badge className="bg-emerald-600/90 text-white border-none shadow-md text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                                        {item.stockQuantity} in Stock
+                                                                    </Badge>
+                                                                )}
                                                             </div>
 
                                                             {item.discountText && (
@@ -633,9 +537,15 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
 
                                                             {/* Quick Order CTA Overlay */}
                                                             <div className="absolute inset-x-3 bottom-3 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10">
-                                                                <span className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl">
-                                                                    Order Directly <ArrowRight className="w-3 h-3 ml-1" />
-                                                                </span>
+                                                                {item.stockQuantity <= 0 ? (
+                                                                    <span className="inline-flex items-center gap-1.5 bg-slate-800 text-slate-300 text-[10px] font-black px-4 py-2 rounded-xl shadow-xl">
+                                                                        Out of Stock
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl">
+                                                                        Order Directly <ArrowRight className="w-3 h-3 ml-1" />
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
 
@@ -645,11 +555,16 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                     <p className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider leading-none">
                                                                         {item.category}
                                                                     </p>
-                                                                    {item.textAllowed && (
-                                                                        <span className="text-[9px] font-bold text-slate-400 flex items-center gap-0.5">
-                                                                            <Sparkles size={10} className="text-amber-500" /> Customizable
-                                                                        </span>
-                                                                    )}
+                                                                    <span className={cn(
+                                                                        "text-[9px] font-bold px-1.5 py-0.5 rounded-md",
+                                                                        item.stockQuantity <= 0 
+                                                                            ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400" 
+                                                                            : item.stockQuantity <= item.minStockLevel
+                                                                                ? "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 font-extrabold"
+                                                                                : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                                                    )}>
+                                                                        {item.stockQuantity <= 0 ? 'Out of stock' : `${item.stockQuantity} left`}
+                                                                    </span>
                                                                 </div>
                                                                 <h3 className="text-base font-bold tracking-tight leading-snug group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors text-slate-800 dark:text-white line-clamp-2">
                                                                     {item.name}
@@ -678,12 +593,12 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex items-center gap-1 text-[10px] font-black text-amber-600 dark:text-amber-400 group-hover:translate-x-0.5 transition-transform">
-                                                                    Buy Now →
+                                                                    {item.stockQuantity <= 0 ? 'View Details →' : 'Order Now →'}
                                                                 </div>
                                                             </div>
                                                         </CardContent>
                                                     </Card>
-                                                </div>
+                                                </Link>
                                             );
                                         }
                                     })}
@@ -693,215 +608,6 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                     </div>
                 </div>
             </section>
-
-            {/* Direct Order Checkout Dialog */}
-            <Dialog open={!!selectedDirectProduct} onOpenChange={(open) => !open && setSelectedDirectProduct(null)}>
-                <DialogContent className="sm:max-w-lg rounded-3xl border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
-                    <DialogHeader className="space-y-2">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary w-fit text-xs font-extrabold border border-primary/20">
-                            <Sparkles className="w-3.5 h-3.5 animate-pulse" /> Instant Direct Order
-                        </div>
-                        <DialogTitle className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                            {selectedDirectProduct?.name}
-                        </DialogTitle>
-                        <DialogDescription className="text-sm text-muted-foreground font-medium">
-                            {selectedDirectProduct?.description}
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    {selectedDirectProduct && (
-                        <form onSubmit={handleDirectOrderSubmit} className="space-y-6 pt-4">
-                            {/* Available Sizes Picker */}
-                            {getProductSizes(selectedDirectProduct).length > 0 && (
-                                <div className="space-y-2 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
-                                    <label className="text-xs font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center justify-between">
-                                        <span>Select Size / Dimension</span>
-                                        {selectedSize && <span className="text-slate-700 dark:text-slate-300 font-bold lowercase">Selected: {selectedSize}</span>}
-                                    </label>
-                                    <div className="flex flex-wrap gap-2 pt-1">
-                                        {getProductSizes(selectedDirectProduct).map((sz) => {
-                                            const isSelected = selectedSize === sz.name;
-                                            return (
-                                                <button
-                                                    key={sz.name}
-                                                    type="button"
-                                                    onClick={() => setSelectedSize(sz.name)}
-                                                    className={cn(
-                                                        "px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm",
-                                                        isSelected
-                                                            ? "bg-amber-500 text-white shadow-amber-500/20 scale-105"
-                                                            : "bg-background border border-border/80 text-foreground hover:border-amber-400"
-                                                    )}
-                                                >
-                                                    <span>{sz.name}</span>
-                                                    {sz.price && sz.price > 0 && (
-                                                        <span className={cn(
-                                                            "text-[10px] px-1.5 py-0.5 rounded-md",
-                                                            isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
-                                                        )}>
-                                                            ₹{sz.price}
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Product & Price Summary */}
-                            <div className="p-4 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-between gap-4">
-                                <div className="space-y-1">
-                                    <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Unit Price</span>
-                                    <div className="text-lg font-extrabold text-primary flex items-center">
-                                        <IndianRupee size={16} className="mr-0.5" />{activeDirectUnitPrice}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Quantity</span>
-                                    <div className="flex items-center gap-2">
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="h-8 w-8 rounded-lg font-bold" 
-                                            onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                                        >
-                                            -
-                                        </Button>
-                                        <span className="font-extrabold text-base w-8 text-center">{quantity}</span>
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="h-8 w-8 rounded-lg font-bold" 
-                                            onClick={() => setQuantity(q => q + 1)}
-                                        >
-                                            +
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1 text-right">
-                                    <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Total Amount</span>
-                                    <div className="text-xl font-black text-primary flex items-center justify-end">
-                                        <IndianRupee size={18} className="mr-0.5" />{activeDirectUnitPrice * quantity}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Custom Text Field if Allowed */}
-                            {selectedDirectProduct.textAllowed && (
-                                <div className="space-y-2 p-4 rounded-2xl bg-primary/5 border border-primary/20 animate-in fade-in duration-500">
-                                    <label className="text-xs font-extrabold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                                        <Sparkles size={14} /> Customization Text / Inscription
-                                    </label>
-                                    <Input 
-                                        required
-                                        placeholder="Enter the custom text or name to be printed..." 
-                                        value={customText} 
-                                        onChange={e => setCustomText(e.target.value)}
-                                        className="h-11 rounded-xl bg-background border-primary/30 focus-visible:ring-primary font-semibold"
-                                    />
-                                    <p className="text-[10px] text-muted-foreground font-medium">This product supports custom text engraving or printing. Please enter your desired text above.</p>
-                                </div>
-                            )}
-
-                            {/* Shipping Address Form */}
-                            <div className="space-y-4">
-                                <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                                    <Package2 size={16} className="text-primary" /> Shipping Address
-                                </h4>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Full Name</label>
-                                        <Input 
-                                            required 
-                                            placeholder="John Doe" 
-                                            value={shippingAddress.name} 
-                                            onChange={e => setShippingAddress(s => ({ ...s, name: e.target.value }))}
-                                            className="h-11 rounded-xl bg-background border-border/60"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Phone Number</label>
-                                        <Input 
-                                            required 
-                                            placeholder="+91 9876543210" 
-                                            value={shippingAddress.phone} 
-                                            onChange={e => setShippingAddress(s => ({ ...s, phone: e.target.value }))}
-                                            className="h-11 rounded-xl bg-background border-border/60"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">Address Line 1</label>
-                                    <Input 
-                                        required 
-                                        placeholder="Flat / House No., Street Name" 
-                                        value={shippingAddress.addressLine1} 
-                                        onChange={e => setShippingAddress(s => ({ ...s, addressLine1: e.target.value }))}
-                                        className="h-11 rounded-xl bg-background border-border/60"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">City</label>
-                                        <Input 
-                                            required 
-                                            placeholder="Mumbai" 
-                                            value={shippingAddress.city} 
-                                            onChange={e => setShippingAddress(s => ({ ...s, city: e.target.value }))}
-                                            className="h-11 rounded-xl bg-background border-border/60"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">State</label>
-                                        <Input 
-                                            required 
-                                            placeholder="Maharashtra" 
-                                            value={shippingAddress.state} 
-                                            onChange={e => setShippingAddress(s => ({ ...s, state: e.target.value }))}
-                                            className="h-11 rounded-xl bg-background border-border/60"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">ZIP Code</label>
-                                        <Input 
-                                            required 
-                                            placeholder="400001" 
-                                            value={shippingAddress.zip} 
-                                            onChange={e => setShippingAddress(s => ({ ...s, zip: e.target.value }))}
-                                            className="h-11 rounded-xl bg-background border-border/60"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <DialogFooter className="pt-4 border-t border-border/40 gap-3 flex-col sm:flex-row">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    onClick={() => setSelectedDirectProduct(null)}
-                                    className="h-12 rounded-xl font-bold w-full sm:w-auto"
-                                >
-                                    Cancel
-                                </Button>
-                                <Button 
-                                    type="submit" 
-                                    className="h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 w-full sm:w-auto"
-                                >
-                                    Proceed to Payment <ArrowRight className="w-4 h-4 ml-2" />
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    )}
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
 import fs from 'fs';
-import os from 'os';
 
 export async function GET() {
   const folders: Record<string, Set<string>> = {};
@@ -30,13 +29,9 @@ export async function GET() {
   };
 
   try {
-    // Scan storage/uploads in local and temp
-    await scanDir(join(process.cwd(), 'storage', 'uploads'), '/api/media');
-    await scanDir(join(os.tmpdir(), 'amazoprint', 'storage', 'uploads'), '/api/media');
-
-    // Scan public/uploads in local and temp for backward compatibility
+    // Scan server public/uploads directory
     await scanDir(join(process.cwd(), 'public', 'uploads'), '/api/media');
-    await scanDir(join(os.tmpdir(), 'amazoprint', 'public', 'uploads'), '/api/media');
+    await scanDir(join(process.cwd(), 'storage', 'uploads'), '/api/media');
 
     const result = Object.entries(folders).map(([name, files]) => ({
       name,
