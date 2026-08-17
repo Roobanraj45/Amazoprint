@@ -213,6 +213,7 @@ export const subProducts = pgTable('sub_products', {
   updatedAt: timestamp('updated_at').defaultNow(),
   unitType: varchar('unit_type', { length: 10 }).default('mm').notNull(),
   backSideCost: numeric('back_side_cost', { precision: 10, scale: 2 }).default('0.00'),
+  hsnCode: varchar('hsn_code', { length: 50 }),
 }, (table) => {
   return {
     productIdx: index('idx_sub_products_product').on(table.productId),

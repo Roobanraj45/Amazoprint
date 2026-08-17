@@ -174,7 +174,7 @@ export default async function InvoicePage({ params }: { params: { orderId: strin
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="py-4 px-4 text-center font-mono text-slate-500">49111090</td>
+                                        <td className="py-4 px-4 text-center font-mono text-slate-500 font-bold">{(order.subProduct as any)?.hsnCode || '49111090'}</td>
                                         <td className="py-4 px-4 text-center font-extrabold text-slate-900 dark:text-white print:text-black">{order.quantity}</td>
                                         <td className="py-4 px-4 text-right font-mono">₹{unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                         <td className="py-4 px-4 text-right font-mono font-extrabold text-slate-900 dark:text-white print:text-black">₹{baseSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>

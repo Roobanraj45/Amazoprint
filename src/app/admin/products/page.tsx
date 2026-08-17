@@ -101,6 +101,7 @@ const subProductSchema = z.object({
   allowedCardTextures: z.array(z.coerce.number()).optional(),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
   backSideCost: z.coerce.number().optional().default(0),
+  hsnCode: z.string().optional().nullable(),
 });
 
 type Product = Awaited<ReturnType<typeof getProducts>>[0];
@@ -566,7 +567,17 @@ function SubProductsManager({ product, onUpdate, foilTypes, dieCuts, cardTexture
                                       {sp.isActive ? 'Active' : 'Inactive'}
                                   </Badge>
                                 </CardTitle>
-                                <CardDescription className="text-xs font-semibold text-slate-500 dark:text-slate-400">SKU Code: {sp.sku || 'N/A'}</CardDescription>
+                                <CardDescription className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-2">
+                                    <span>SKU: {sp.sku || 'N/A'}</span>
+                                    {sp.hsnCode && (
+                                        <>
+                                            <span>•</span>
+                                            <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-200/60 dark:border-indigo-800/60">
+                                                HSN/SAC: {sp.hsnCode}
+                                            </span>
+                                        </>
+                                    )}
+                                </CardDescription>
                                 {sp.description && (
                                     <p className="text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-1 mt-0.5">{sp.description}</p>
                                 )}
@@ -684,7 +695,7 @@ function SubProductForm({
     setValue,
   } = useForm<z.infer<typeof subProductSchema>>({
     resolver: zodResolver(subProductSchema),
-    defaultValues: { isActive: true, imageUrl: '', imageUrls: [], description: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [], allowedDieCuts: [], allowedCardTextures: [], dieCutPrices: {}, cardTexturePrices: {}, unitType: 'mm', backSideCost: 0 },
+    defaultValues: { isActive: true, imageUrl: '', imageUrls: [], description: '', spotUvAllowed: false, maxPages: 1, allowedFoils: [], allowedDieCuts: [], allowedCardTextures: [], dieCutPrices: {}, cardTexturePrices: {}, unitType: 'mm', backSideCost: 0, hsnCode: '' },
   });
   
   const imageUrl = watch('imageUrl');
@@ -712,11 +723,13 @@ function SubProductForm({
           backSideCost: Number(subProduct.backSideCost || 0),
           imageUrls: subProduct.imageUrls || [],
           description: subProduct.description || '',
+          hsnCode: (subProduct as any).hsnCode || '',
       });
     } else {
         reset({
             name: '',
             sku: '',
+            hsnCode: '',
             description: '',
             price: undefined,
             width: 0,
@@ -789,10 +802,14 @@ function SubProductForm({
                             <Label htmlFor="sp-description" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Description</Label>
                             <Textarea id="sp-description" placeholder="Provide details about material finish, recommended usage, etc..." className="min-h-[80px] rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 p-3 text-sm font-medium" {...register('description')} />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="sp-sku" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">SKU Code</Label>
-                                <Input id="sp-sku" placeholder="e.g. BC-STD-MATTE" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500" {...register('sku')} />
+                                <Input id="sp-sku" placeholder="e.g. BC-MATTE" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500" {...register('sku')} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="sp-hsnCode" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">HSN / SAC</Label>
+                                <Input id="sp-hsnCode" placeholder="e.g. 49111090" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-mono text-xs font-bold" {...register('hsnCode')} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="sp-price" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Base Price (₹)</Label>

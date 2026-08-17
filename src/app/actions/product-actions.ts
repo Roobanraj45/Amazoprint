@@ -37,6 +37,7 @@ const subProductSchema = z.object({
   cardTexturePrices: z.record(z.string(), z.coerce.number()).optional().default({}),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
   backSideCost: z.coerce.number().optional().default(0),
+  hsnCode: z.string().optional().nullable(),
 });
 
 export async function getProducts() {
