@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { resolveImagePath } from '@/lib/utils';
+import { resolveImagePath, cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -57,6 +57,7 @@ const formSchema = z.object({
   minStockLevel: z.coerce.number().int().optional().default(5),
   weight: z.coerce.number().optional(),
   dimensions: jsonFromString.optional(),
+  sizes: z.string().optional(),
   imageUrls: z.string().optional(),
   tags: z.string().optional(),
   isFeatured: z.boolean().default(false),
@@ -142,6 +143,128 @@ function ImageManager({ value, onChange }: { value?: string; onChange: (value: s
                 </div>
             </div>
              <p className="text-xs text-muted-foreground font-medium italic">First image will be the primary catalog thumbnail shown to shoppers.</p>
+        </div>
+    );
+}
+
+// --- Size Manager Component ---
+function SizeManager({ value, onChange }: { value?: string; onChange: (value: string) => void }) {
+    const [inputVal, setInputVal] = useState('');
+    const sizes = useMemo(() => {
+        if (!value) return [];
+        if (Array.isArray(value)) return value;
+        try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) {
+                return parsed.map((s: any) => typeof s === 'string' ? s : s.name || JSON.stringify(s));
+            }
+        } catch {}
+        return value.split(',').map(s => s.trim()).filter(Boolean);
+    }, [value]);
+
+    const addSize = (sizeToAdd: string) => {
+        const trimmed = sizeToAdd.trim();
+        if (!trimmed) return;
+        if (!sizes.includes(trimmed)) {
+            const newSizes = [...sizes, trimmed];
+            onChange(newSizes.join(', '));
+        }
+        setInputVal('');
+    };
+
+    const removeSize = (sizeToRemove: string) => {
+        const newSizes = sizes.filter(s => s !== sizeToRemove);
+        onChange(newSizes.join(', '));
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addSize(inputVal);
+        }
+    };
+
+    const PRESETS = ['S', 'M', 'L', 'XL', 'XXL', 'A5', 'A4', 'A3', '4x6', '5x7', '8x10', '12x18'];
+
+    return (
+        <div className="space-y-3">
+            <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Available Product Sizes & Dimensions
+                </Label>
+                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                    {sizes.length} {sizes.length === 1 ? 'size active' : 'sizes active'}
+                </span>
+            </div>
+
+            {/* Configured Size Tags */}
+            <div className="min-h-12 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-2">
+                {sizes.length === 0 ? (
+                    <span className="text-xs text-muted-foreground italic px-1">No sizes added yet. Type a size below or select quick presets.</span>
+                ) : (
+                    sizes.map((sz) => (
+                        <span
+                            key={sz}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 text-xs font-black shadow-sm animate-in fade-in"
+                        >
+                            <span>{sz}</span>
+                            <button
+                                type="button"
+                                onClick={() => removeSize(sz)}
+                                className="hover:bg-indigo-200 dark:hover:bg-indigo-800 rounded-full p-0.5 transition-colors"
+                            >
+                                <X size={12} />
+                            </button>
+                        </span>
+                    ))
+                )}
+            </div>
+
+            {/* Input to add size */}
+            <div className="flex gap-2">
+                <Input
+                    value={inputVal}
+                    onChange={(e) => setInputVal(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type size (e.g. Medium, 12x18, A4) and press Enter or click Add"
+                    className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                />
+                <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => addSize(inputVal)}
+                    disabled={!inputVal.trim()}
+                    className="h-10 px-4 rounded-xl font-bold text-xs bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100"
+                >
+                    <PlusCircle size={14} className="mr-1.5" /> Add
+                </Button>
+            </div>
+
+            {/* Quick Presets */}
+            <div className="space-y-1.5 pt-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Presets</p>
+                <div className="flex flex-wrap gap-1.5">
+                    {PRESETS.map((preset) => {
+                        const isAdded = sizes.includes(preset);
+                        return (
+                            <button
+                                key={preset}
+                                type="button"
+                                onClick={() => isAdded ? removeSize(preset) : addSize(preset)}
+                                className={cn(
+                                    "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border",
+                                    isAdded
+                                        ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                                        : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-indigo-400"
+                                )}
+                            >
+                                {isAdded ? `✓ ${preset}` : `+ ${preset}`}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 }
@@ -514,6 +637,17 @@ function PrinterProductForm({ onSubmit, product, onClose }: { onSubmit: (data: a
 
   useEffect(() => {
     if (product) {
+        let formattedSizes = '';
+        if (product.sizes) {
+            if (Array.isArray(product.sizes)) {
+                formattedSizes = product.sizes.map((s: any) => typeof s === 'string' ? s : s.name || JSON.stringify(s)).join(', ');
+            } else if (typeof product.sizes === 'string') {
+                formattedSizes = product.sizes;
+            } else {
+                formattedSizes = JSON.stringify(product.sizes);
+            }
+        }
+
         reset({
             ...product,
             costPrice: Number(product.costPrice),
@@ -521,6 +655,7 @@ function PrinterProductForm({ onSubmit, product, onClose }: { onSubmit: (data: a
             weight: Number(product.weight),
             imageUrls: product.imageUrls?.join(', ') || '',
             tags: product.tags?.join(', ') || '',
+            sizes: formattedSizes,
             dimensions: product.dimensions ? JSON.stringify(product.dimensions, null, 2) : '',
             supplierInfo: product.supplierInfo ? JSON.stringify(product.supplierInfo, null, 2) : '',
             shippingInfo: product.shippingInfo ? JSON.stringify(product.shippingInfo, null, 2) : '',
@@ -540,6 +675,7 @@ function PrinterProductForm({ onSubmit, product, onClose }: { onSubmit: (data: a
         minStockLevel: 5, 
         weight: 0, 
         dimensions: '', 
+        sizes: '',
         imageUrls: '', 
         tags: '', 
         isFeatured: false, 
@@ -699,6 +835,16 @@ function PrinterProductForm({ onSubmit, product, onClose }: { onSubmit: (data: a
                                 <Input id="minStockLevel" type="number" placeholder="5" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('minStockLevel')} />
                             </div>
                         </div>
+
+                        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <Controller
+                                name="sizes"
+                                control={control}
+                                render={({ field }) => (
+                                    <SizeManager value={field.value} onChange={field.onChange} />
+                                )}
+                            />
+                        </div>
                     </CardContent>
                 </Card>
               </TabsContent>
@@ -723,13 +869,18 @@ function PrinterProductForm({ onSubmit, product, onClose }: { onSubmit: (data: a
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-4 border-t border-slate-100 dark:border-slate-800">
                             <div className="space-y-2">
+                                <Label htmlFor="sizes" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Available Sizes</Label>
+                                <Input id="sizes" placeholder="e.g. S, M, L, XL or A5, A4, A3" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold text-xs" {...register('sizes')} />
+                                <p className="text-[10px] text-muted-foreground">Separate sizes with commas (e.g. Small, Medium, Large or 10x12, 12x18)</p>
+                            </div>
+                            <div className="space-y-2">
                                 <Label htmlFor="weight" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Weight (kg)</Label>
                                 <Input id="weight" type="number" step="0.01" placeholder="e.g. 0.35" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('weight')} />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="dimensions" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Dimensions JSON (Optional)</Label>
-                                <Textarea id="dimensions" {...register('dimensions')} placeholder='e.g. {"length": 15, "width": 10, "height": 5}' className="rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold p-3 font-mono text-xs" rows={2} />
-                            </div>
+                        </div>
+                        <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                            <Label htmlFor="dimensions" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Dimensions JSON (Optional)</Label>
+                            <Textarea id="dimensions" {...register('dimensions')} placeholder='e.g. {"length": 15, "width": 10, "height": 5}' className="rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold p-3 font-mono text-xs" rows={2} />
                         </div>
                      </CardContent>
                  </Card>

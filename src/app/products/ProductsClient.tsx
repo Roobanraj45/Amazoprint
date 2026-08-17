@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Sparkles, Package2, Leaf, ShieldCheck, Palette, ArrowRight, CheckCircle2, IndianRupee, Search, Filter, Star } from 'lucide-react';
+import { Sparkles, Package2, Leaf, ShieldCheck, Palette, ArrowRight, CheckCircle2, IndianRupee, Search, Filter, Star, Zap } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -63,6 +63,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
 
     // Direct Order Modal State
     const [selectedDirectProduct, setSelectedDirectProduct] = useState<any | null>(null);
+    const [selectedSize, setSelectedSize] = useState<string>('');
     const [quantity, setQuantity] = useState<number>(1);
     const [customText, setCustomText] = useState<string>('');
     const [shippingAddress, setShippingAddress] = useState({
@@ -77,88 +78,168 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
     const router = useRouter();
     const { toast } = useToast();
 
-    // Extract all unique categories (product names) for the filter pills
-    const categories = ['All', ...Array.from(new Set(initialProducts.map(p => p.name)))];
-
-    // Helper to get matching subproducts count
-    const getCategoryCount = (catName: string) => {
-        if (catName === 'All') {
-            return initialProducts.reduce((acc, p) => acc + p.subProducts.filter(sp => sp.isActive).length, 0);
+    // Helper to get normalized sizes array from product
+    const getProductSizes = (prod: any): { name: string; price?: number }[] => {
+        if (!prod || !prod.sizes) return [];
+        const raw = prod.sizes;
+        if (Array.isArray(raw)) {
+            return raw.map((s: any) => {
+                if (typeof s === 'string') return { name: s };
+                return { name: s.name || s.size || String(s), price: s.price ? Number(s.price) : undefined };
+            });
         }
-        const prod = initialProducts.find(p => p.name === catName);
-        return prod ? prod.subProducts.filter((sp: any) => sp.isActive).length : 0;
+        if (typeof raw === 'string') {
+            try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                    return parsed.map((s: any) => {
+                        if (typeof s === 'string') return { name: s };
+                        return { name: s.name || s.size || String(s), price: s.price ? Number(s.price) : undefined };
+                    });
+                }
+            } catch {
+                return raw.split(',').map(s => ({ name: s.trim() })).filter(s => s.name);
+            }
+        }
+        return [];
     };
 
-    // Filter products based on search, category, and activeFinish
-    const filteredProducts = useMemo(() => {
-        return initialProducts.map(product => {
-            // If category is selected and doesn't match this product, return null (filter out entirely)
-            if (activeCategory !== 'All' && product.name !== activeCategory) {
-                return null;
-            }
+    // Calculate dynamic unit price if a size with custom price is chosen
+    const activeDirectUnitPrice = useMemo(() => {
+        if (!selectedDirectProduct) return 0;
+        const sizes = getProductSizes(selectedDirectProduct);
+        const matchingSize = sizes.find(s => s.name === selectedSize);
+        if (matchingSize && matchingSize.price && matchingSize.price > 0) {
+            return matchingSize.price;
+        }
+        return Number(selectedDirectProduct.sellingPrice || 0);
+    }, [selectedDirectProduct, selectedSize]);
 
-            // Filter subproducts based on search query and activeFinish
-            const matchingSubProducts = product.subProducts.filter((sp: any) => {
-                if (!sp.isActive) return false;
-                
-                const searchLower = searchQuery.toLowerCase();
-                const matchesName = sp.name.toLowerCase().includes(searchLower);
-                const matchesParent = product.name.toLowerCase().includes(searchLower);
-                const matchesSearch = matchesName || matchesParent;
+    // Extract all unique categories (product names and direct selling categories) for the filter pills
+    const categories = useMemo(() => {
+        const initialCats = initialProducts.map(p => p.name);
+        const directCats = directSellingProducts.map(p => p.category).filter(Boolean);
+        return ['All', ...Array.from(new Set([...initialCats, ...directCats]))];
+    }, [initialProducts, directSellingProducts]);
 
-                if (!matchesSearch) return false;
+    // Helper to get matching products count for a category
+    const getCategoryCount = (catName: string) => {
+        const initialCount = catName === 'All'
+            ? initialProducts.reduce((acc, p) => acc + p.subProducts.filter((sp: any) => sp.isActive).length, 0)
+            : (initialProducts.find(p => p.name === catName)?.subProducts.filter((sp: any) => sp.isActive).length || 0);
 
-                if (activeFinish === '✨ Spot UV') {
-                    return sp.spotUvAllowed === true;
-                }
-                if (activeFinish === '🏷️ Discounted') {
-                    return getDiscountInfo(sp) !== null;
-                }
+        const directCount = catName === 'All'
+            ? directSellingProducts.length
+            : directSellingProducts.filter((p: any) => p.category === catName).length;
 
-                return true;
-            });
+        return initialCount + directCount;
+    };
 
-            // If no subproducts match, filter out this product
-            if (matchingSubProducts.length === 0) {
-                return null;
-            }
-
-            // Return product with only matching subproducts
-            return {
-                ...product,
-                subProducts: matchingSubProducts
-            };
-        }).filter(Boolean); // Remove nulls
-    }, [initialProducts, searchQuery, activeCategory, activeFinish]);
-
-    // Flat subproducts list with parent slug details, and sorting applied
-    const flatSubProducts = useMemo(() => {
+    // Filter and combine both standard sub-products and direct selling products
+    const combinedProducts = useMemo(() => {
         const list: any[] = [];
-        filteredProducts.forEach((product: any) => {
-            product.subProducts.forEach((subProduct: any) => {
-                list.push({
-                    ...subProduct,
-                    parentProductSlug: product.slug,
-                    parentProductName: product.name,
+        const searchLower = searchQuery.toLowerCase().trim();
+
+        // 1. Process standard products & subproducts
+        if (activeFinish !== '⚡ Direct Orders') {
+            initialProducts.forEach(product => {
+                if (activeCategory !== 'All' && product.name !== activeCategory) {
+                    return;
+                }
+
+                product.subProducts.forEach((sp: any) => {
+                    if (!sp.isActive) return;
+
+                    const matchesName = sp.name.toLowerCase().includes(searchLower);
+                    const matchesParent = product.name.toLowerCase().includes(searchLower);
+                    if (searchLower && !matchesName && !matchesParent) return;
+
+                    if (activeFinish === '✨ Spot UV' && !sp.spotUvAllowed) return;
+                    if (activeFinish === '🏷️ Discounted' && !getDiscountInfo(sp)) return;
+
+                    list.push({
+                        type: 'custom',
+                        id: `custom-${sp.id}`,
+                        rawId: sp.id,
+                        name: sp.name,
+                        category: product.name,
+                        parentProductSlug: product.slug,
+                        parentProductName: product.name,
+                        imageUrl: sp.imageUrl,
+                        price: Number(sp.price || 0),
+                        spotUvAllowed: sp.spotUvAllowed ?? false,
+                        discountText: getDiscountInfo(sp),
+                        rawItem: sp,
+                    });
                 });
             });
-        });
+        }
 
-        // Apply sorting
+        // 2. Process direct selling products
+        if (activeFinish === 'All' || activeFinish === '⚡ Direct Orders' || activeFinish === '🏷️ Discounted') {
+            directSellingProducts.forEach(product => {
+                if (activeCategory !== 'All' && product.category !== activeCategory) {
+                    return;
+                }
+
+                const matchesName = product.name.toLowerCase().includes(searchLower);
+                const matchesCategory = (product.category || '').toLowerCase().includes(searchLower);
+                const matchesDesc = (product.description || '').toLowerCase().includes(searchLower);
+                const matchesTags = Array.isArray(product.tags) && product.tags.some((t: string) => t.toLowerCase().includes(searchLower));
+                
+                if (searchLower && !matchesName && !matchesCategory && !matchesDesc && !matchesTags) {
+                    return;
+                }
+
+                const price = Number(product.sellingPrice || 0);
+                const basePrice = Number(product.basePrice || 0);
+                const isDiscounted = basePrice > price;
+
+                if (activeFinish === '🏷️ Discounted' && !isDiscounted) {
+                    return;
+                }
+
+                list.push({
+                    type: 'direct',
+                    id: `direct-${product.id}`,
+                    rawId: product.id,
+                    name: product.name,
+                    category: product.category || 'Direct Order',
+                    parentProductName: product.category || 'Direct Selling',
+                    imageUrl: product.imageUrls?.[0],
+                    price: price,
+                    basePrice: basePrice,
+                    isDiscounted: isDiscounted,
+                    discountText: isDiscounted ? `${Math.round(((basePrice - price) / basePrice) * 100)}% OFF` : null,
+                    description: product.description,
+                    textAllowed: product.textAllowed,
+                    isFeatured: product.isFeatured,
+                    rawItem: product,
+                });
+            });
+        }
+
+        // 3. Sort list
         if (sortBy === 'price-low') {
-            list.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+            list.sort((a, b) => a.price - b.price);
         } else if (sortBy === 'price-high') {
-            list.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+            list.sort((a, b) => b.price - a.price);
         } else if (sortBy === 'name') {
             list.sort((a, b) => a.name.localeCompare(b.name));
         }
 
         return list;
-    }, [filteredProducts, sortBy]);
+    }, [initialProducts, directSellingProducts, searchQuery, activeCategory, activeFinish, sortBy]);
 
     const handleDirectOrderSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedDirectProduct) return;
+
+        const availableSizes = getProductSizes(selectedDirectProduct);
+        if (availableSizes.length > 0 && !selectedSize) {
+            toast({ variant: 'destructive', title: 'Select Size', description: 'Please choose a size before proceeding.' });
+            return;
+        }
 
         if (selectedDirectProduct.textAllowed && !customText.trim()) {
             toast({ variant: 'destructive', title: 'Error', description: 'Please enter the customization text.' });
@@ -170,16 +251,18 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
             return;
         }
 
-        const totalAmount = Number(selectedDirectProduct.sellingPrice) * quantity;
+        const unitPrice = activeDirectUnitPrice;
+        const totalAmount = unitPrice * quantity;
 
         const orderPayload = {
             orderData: {
                 items: [{
                     id: selectedDirectProduct.id,
                     name: selectedDirectProduct.name,
-                    sellingPrice: selectedDirectProduct.sellingPrice,
+                    sellingPrice: unitPrice,
                     quantity: quantity,
                     sku: selectedDirectProduct.sku,
+                    selectedSize: selectedSize || undefined,
                     customText: customText.trim() || undefined,
                 }],
                 shippingAddress: shippingAddress,
@@ -188,6 +271,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
             items: [{ 
                 name: selectedDirectProduct.name, 
                 quantity: quantity,
+                selectedSize: selectedSize || undefined,
                 customText: customText.trim() || undefined,
             }],
             shippingAddress: shippingAddress,
@@ -216,7 +300,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                 Explore Our <span className="bg-gradient-to-r from-primary via-indigo-600 to-pink-600 bg-clip-text text-transparent">Products</span>
                             </h1>
                             <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm leading-relaxed">
-                                Customize dimensions, paper types, and premium finishes.
+                                Customize dimensions, paper types, premium finishes, and instant direct orders.
                             </p>
                         </div>
                         
@@ -241,9 +325,10 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                         <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-4 justify-items-center">
                             {categories.map((category) => {
                                 const prod = initialProducts.find(p => p.name === category);
+                                const directProd = directSellingProducts.find(p => p.category === category);
                                 const productImg = category === 'All'
-                                    ? (initialProducts[0]?.imageUrl || '/uploads/hero.png')
-                                    : (prod?.imageUrl || prod?.subProducts?.[0]?.imageUrl || '/uploads/hero.png');
+                                    ? (initialProducts[0]?.imageUrl || directSellingProducts[0]?.imageUrls?.[0] || '/uploads/hero.png')
+                                    : (prod?.imageUrl || prod?.subProducts?.[0]?.imageUrl || directProd?.imageUrls?.[0] || '/uploads/hero.png');
                                 const resolvedImg = resolveImagePath(productImg);
                                 const asset = CATEGORY_ASSETS[category] || { emoji: '📦', bg: 'from-gray-50 to-slate-100', label: category };
                                 const count = getCategoryCount(category);
@@ -385,7 +470,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                             {/* Toolbar: results display & sorting */}
                             <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-850 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                 <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                                    Showing <span className="text-slate-800 dark:text-white font-black">{activeFinish === '⚡ Direct Orders' ? directSellingProducts.length : flatSubProducts.length}</span> results
+                                    Showing <span className="text-slate-800 dark:text-white font-black">{combinedProducts.length}</span> results
                                 </div>
                                 <div className="flex items-center gap-2 self-end sm:self-auto">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sort By:</span>
@@ -402,94 +487,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                 </div>
                             </div>
 
-                            {activeFinish === '⚡ Direct Orders' ? (
-                                <div className="space-y-24">
-                                    {directSellingProducts && directSellingProducts.length > 0 ? (
-                                        <div className="p-8 sm:p-12 rounded-[32px] bg-gradient-to-br from-slate-950 via-slate-900 to-[#2f2f54] border border-white/5 shadow-2xl relative overflow-hidden text-white space-y-8">
-                                            {/* Glows */}
-                                            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:24px_24px]" />
-                                            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none -mr-32 -mt-32" />
-                                            
-                                            <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
-                                                <div className="space-y-2 max-w-xl">
-                                                    <Badge variant="outline" className="bg-primary/20 text-primary border-primary/30 text-xs px-4 py-1.5 rounded-full font-bold backdrop-blur-md uppercase tracking-wider">
-                                                        🔥 Direct Order Showcase
-                                                    </Badge>
-                                                    <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                                                        Premium Direct Selling Bundles
-                                                    </h2>
-                                                    <p className="text-slate-300 text-sm font-medium">
-                                                        Skip the custom design tool. Order our verified, high-demand industrial print packages directly.
-                                                    </p>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-xs font-bold text-primary bg-white/5 border border-white/10 px-4 py-2 rounded-2xl backdrop-blur-md">
-                                                    <Sparkles className="w-4 h-4 text-primary animate-pulse" /> Same Day Pre-Press Dispatch
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-                                                {directSellingProducts.map((product) => {
-                                                    const img = product.imageUrls?.[0] || '/uploads/hero.png';
-                                                    const price = Number(product.sellingPrice || 0);
-                                                    const basePrice = Number(product.basePrice || 0);
-                                                    
-                                                    return (
-                                                        <div key={product.id} className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md space-y-6 shadow-xl hover:bg-white/[0.07] hover:border-primary/30 transition-all duration-300 hover:shadow-primary/5 flex flex-col justify-between group">
-                                                            <div className="space-y-4">
-                                                                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-slate-950/60 border border-white/10">
-                                                                    <Image src={resolveImagePath(img)} alt={product.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110 p-2" />
-                                                                    <div className="absolute top-3 left-3">
-                                                                        <Badge className="bg-primary text-white font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider border-none shadow-lg">
-                                                                            {product.category || 'Featured'}
-                                                                        </Badge>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <div className="flex items-center justify-between">
-                                                                        <h3 className="text-xl font-bold text-white tracking-tight group-hover:text-primary transition-colors line-clamp-1">
-                                                                            {product.name}
-                                                                        </h3>
-                                                                        {basePrice > price && (
-                                                                            <span className="text-xs font-bold text-slate-400 line-through">₹{basePrice}</span>
-                                                                        )}
-                                                                    </div>
-                                                                    <p className="text-xs text-slate-300 font-medium leading-relaxed line-clamp-2">
-                                                                        {product.description || 'Premium pre-configured industrial print package.'}
-                                                                    </p>
-                                                                </div>
-                                                                <div className="pt-2 flex items-baseline gap-1">
-                                                                    <span className="text-2xl font-bold text-white">₹{price}</span>
-                                                                    <span className="text-[10px] text-slate-400 font-bold uppercase">/ unit</span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="pt-4 border-t border-white/10">
-                                                                <Button 
-                                                                    onClick={() => {
-                                                                        setSelectedDirectProduct(product);
-                                                                        setQuantity(1);
-                                                                        setCustomText('');
-                                                                    }}
-                                                                    className="w-full h-12 rounded-xl bg-white text-slate-950 hover:bg-primary hover:text-white font-extrabold transition-all duration-300 shadow-md hover:shadow-lg"
-                                                                >
-                                                                    Order Directly <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-20 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm">
-                                            <h3 className="text-xl font-bold mb-2">No direct products available</h3>
-                                            <p className="text-muted-foreground font-medium text-xs max-w-xs mx-auto">There are currently no direct selling bundles available.</p>
-                                            <Button variant="outline" className="mt-6 rounded-2xl font-bold text-xs px-6 h-10" onClick={() => setActiveFinish('All')}>
-                                                View All Products
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : flatSubProducts.length === 0 ? (
+                            {combinedProducts.length === 0 ? (
                                 <div className="text-center py-20 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 shadow-sm">
                                     <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                                         <Search className="h-8 w-8 text-primary" />
@@ -502,94 +500,192 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {flatSubProducts.map((subProduct: any) => {
-                                        const imageUrl = resolveImagePath(subProduct.imageUrl || '/uploads/hero.png');
-                                        const spotUvAllowed = subProduct.spotUvAllowed ?? false;
-                                        const price = Number(subProduct.price || 0);
-                                        const discountText = getDiscountInfo(subProduct);
-                                        
-                                        return (
-                                            <Link key={subProduct.id} href={`/design/${subProduct.parentProductSlug}/start?subProductId=${subProduct.id}`} className="group relative block h-full outline-none">
-                                                <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-slate-150/60 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[#464674]/40 hover:-translate-y-1.5">
-                                                    
-                                                    {/* Image Container */}
-                                                    <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
-                                                        {imageUrl ? (
-                                                            <Image
-                                                                src={imageUrl}
-                                                                alt={subProduct.name}
-                                                                fill
-                                                                className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                                                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                                                            />
-                                                        ) : (
-                                                            <div className="flex items-center justify-center h-full"><Palette className="h-16 w-16 text-muted-foreground/20 group-hover:scale-105 transition-transform duration-700" /></div>
-                                                        )}
+                                    {combinedProducts.map((item: any) => {
+                                        if (item.type === 'custom') {
+                                            const imageUrl = resolveImagePath(item.imageUrl || '/uploads/hero.png');
+                                            return (
+                                                <Link key={item.id} href={`/design/${item.parentProductSlug}/start?subProductId=${item.rawId}`} className="group relative block h-full outline-none">
+                                                    <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-slate-150/60 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[#464674]/40 hover:-translate-y-1.5">
                                                         
-                                                        {/* Floating Badges */}
-                                                        <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
-                                                            {spotUvAllowed && (
-                                                                <Badge className="bg-violet-600 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                                                                    UV Coat
-                                                                </Badge>
+                                                        {/* Image Container */}
+                                                        <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
+                                                            {imageUrl ? (
+                                                                <Image
+                                                                    src={imageUrl}
+                                                                    alt={item.name}
+                                                                    fill
+                                                                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex items-center justify-center h-full"><Palette className="h-16 w-16 text-muted-foreground/20 group-hover:scale-105 transition-transform duration-700" /></div>
                                                             )}
+                                                            
+                                                            {/* Floating Badges */}
+                                                            <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+                                                                {item.spotUvAllowed && (
+                                                                    <Badge className="bg-violet-600 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                                        UV Coat
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+
+                                                            {item.discountText && (
+                                                                <div className="absolute top-3 right-3 z-10">
+                                                                    <Badge variant="destructive" className="bg-rose-500 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                                        {item.discountText}
+                                                                    </Badge>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Quick Order CTA Overlay */}
+                                                            <div className="absolute inset-x-3 bottom-3 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10">
+                                                                <span className="inline-flex items-center gap-1.5 bg-[#464674] text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl">
+                                                                    Select & Customize
+                                                                </span>
+                                                            </div>
                                                         </div>
 
-                                                        {discountText && (
-                                                            <div className="absolute top-3 right-3 z-10">
-                                                                <Badge variant="destructive" className="bg-rose-500 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                                                                    {discountText}
+                                                        <CardContent className="p-5 flex-grow flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900">
+                                                            <div className="space-y-1">
+                                                                <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                                                                    {item.parentProductName}
+                                                                </p>
+                                                                <h3 className="text-base font-bold tracking-tight leading-snug group-hover:text-primary transition-colors text-slate-800 dark:text-white line-clamp-2">
+                                                                    {item.name}
+                                                                </h3>
+                                                                
+                                                                {/* Rating stars */}
+                                                                <div className="flex gap-0.5 text-amber-400 py-1">
+                                                                    {[1, 2, 3, 4, 5].map(star => (
+                                                                        <Star key={star} size={11} fill="currentColor" className="stroke-none" />
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="pt-3 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between">
+                                                                <div className="space-y-0.5">
+                                                                    <span className="text-[8px] text-slate-400 font-extrabold uppercase block leading-none">Starting at</span>
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <span className="text-sm font-black text-slate-900 dark:text-white flex items-center leading-none">
+                                                                            ₹{item.price}
+                                                                        </span>
+                                                                        {item.price > 0 && (
+                                                                            <span className="text-[9px] text-slate-400 font-medium line-through">
+                                                                                ₹{(item.price * 1.3).toFixed(0)}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-1 text-[10px] font-black text-[#464674] dark:text-white/80 group-hover:translate-x-0.5 transition-transform">
+                                                                    Design →
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                </Link>
+                                            );
+                                        } else {
+                                            // Direct selling product card
+                                            const imageUrl = resolveImagePath(item.imageUrl || '/uploads/hero.png');
+                                            return (
+                                                <div
+                                                    key={item.id}
+                                                    onClick={() => {
+                                                        const sizes = getProductSizes(item.rawItem);
+                                                        setSelectedDirectProduct(item.rawItem);
+                                                        setSelectedSize(sizes.length > 0 ? sizes[0].name : '');
+                                                        setQuantity(1);
+                                                        setCustomText('');
+                                                    }}
+                                                    className="group relative block h-full outline-none cursor-pointer"
+                                                >
+                                                    <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-amber-200/70 dark:border-amber-900/40 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-amber-500/60 hover:-translate-y-1.5">
+                                                        
+                                                        {/* Image Container */}
+                                                        <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
+                                                            {imageUrl ? (
+                                                                <Image
+                                                                    src={imageUrl}
+                                                                    alt={item.name}
+                                                                    fill
+                                                                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex items-center justify-center h-full"><Package2 className="h-16 w-16 text-muted-foreground/20 group-hover:scale-105 transition-transform duration-700" /></div>
+                                                            )}
+                                                            
+                                                            {/* Floating Badges */}
+                                                            <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+                                                                <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                                                    <Zap className="w-2.5 h-2.5 fill-current" /> Direct Order
                                                                 </Badge>
                                                             </div>
-                                                        )}
 
-                                                        {/* Quick Order CTA Overlay */}
-                                                        <div className="absolute inset-x-3 bottom-3 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10">
-                                                            <span className="inline-flex items-center gap-1.5 bg-[#464674] text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl">
-                                                                Select & Customize
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                                                            {item.discountText && (
+                                                                <div className="absolute top-3 right-3 z-10">
+                                                                    <Badge variant="destructive" className="bg-rose-500 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                                        {item.discountText}
+                                                                    </Badge>
+                                                                </div>
+                                                            )}
 
-                                                    <CardContent className="p-5 flex-grow flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900">
-                                                        <div className="space-y-1">
-                                                            <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
-                                                                {subProduct.parentProductName}
-                                                            </p>
-                                                            <h3 className="text-base font-bold tracking-tight leading-snug group-hover:text-primary transition-colors text-slate-800 dark:text-white line-clamp-2">
-                                                                {subProduct.name}
-                                                            </h3>
-                                                            
-                                                            {/* Rating stars matching Aprin layout */}
-                                                            <div className="flex gap-0.5 text-amber-400 py-1">
-                                                                {[1, 2, 3, 4, 5].map(star => (
-                                                                    <Star key={star} size={11} fill="currentColor" className="stroke-none" />
-                                                                ))}
+                                                            {/* Quick Order CTA Overlay */}
+                                                            <div className="absolute inset-x-3 bottom-3 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10">
+                                                                <span className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl">
+                                                                    Order Directly <ArrowRight className="w-3 h-3 ml-1" />
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                        
-                                                        <div className="pt-3 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between">
-                                                            <div className="space-y-0.5">
-                                                                <span className="text-[8px] text-slate-400 font-extrabold uppercase block leading-none">Starting at</span>
-                                                                <div className="flex items-baseline gap-1">
-                                                                    <span className="text-sm font-black text-slate-900 dark:text-white flex items-center leading-none">
-                                                                        ₹{price}
-                                                                    </span>
-                                                                    {price > 0 && (
-                                                                        <span className="text-[9px] text-slate-400 font-medium line-through">
-                                                                            ₹{(price * 1.3).toFixed(0)}
+
+                                                        <CardContent className="p-5 flex-grow flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900">
+                                                            <div className="space-y-1">
+                                                                <div className="flex items-center justify-between">
+                                                                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider leading-none">
+                                                                        {item.category}
+                                                                    </p>
+                                                                    {item.textAllowed && (
+                                                                        <span className="text-[9px] font-bold text-slate-400 flex items-center gap-0.5">
+                                                                            <Sparkles size={10} className="text-amber-500" /> Customizable
                                                                         </span>
                                                                     )}
                                                                 </div>
+                                                                <h3 className="text-base font-bold tracking-tight leading-snug group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors text-slate-800 dark:text-white line-clamp-2">
+                                                                    {item.name}
+                                                                </h3>
+                                                                
+                                                                {/* Rating stars */}
+                                                                <div className="flex gap-0.5 text-amber-400 py-1">
+                                                                    {[1, 2, 3, 4, 5].map(star => (
+                                                                        <Star key={star} size={11} fill="currentColor" className="stroke-none" />
+                                                                    ))}
+                                                                </div>
                                                             </div>
-                                                            <div className="flex items-center gap-1 text-[10px] font-black text-[#464674] dark:text-white/80 group-hover:translate-x-0.5 transition-transform">
-                                                                Design →
+                                                            
+                                                            <div className="pt-3 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between">
+                                                                <div className="space-y-0.5">
+                                                                    <span className="text-[8px] text-slate-400 font-extrabold uppercase block leading-none">Direct Price</span>
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <span className="text-sm font-black text-slate-900 dark:text-white flex items-center leading-none">
+                                                                            ₹{item.price}
+                                                                        </span>
+                                                                        {item.basePrice > item.price && (
+                                                                            <span className="text-[9px] text-slate-400 font-medium line-through">
+                                                                                ₹{item.basePrice}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-1 text-[10px] font-black text-amber-600 dark:text-amber-400 group-hover:translate-x-0.5 transition-transform">
+                                                                    Buy Now →
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            </Link>
-                                        )
+                                                        </CardContent>
+                                                    </Card>
+                                                </div>
+                                            );
+                                        }
                                     })}
                                 </div>
                             )}
@@ -615,12 +711,50 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
 
                     {selectedDirectProduct && (
                         <form onSubmit={handleDirectOrderSubmit} className="space-y-6 pt-4">
+                            {/* Available Sizes Picker */}
+                            {getProductSizes(selectedDirectProduct).length > 0 && (
+                                <div className="space-y-2 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
+                                    <label className="text-xs font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center justify-between">
+                                        <span>Select Size / Dimension</span>
+                                        {selectedSize && <span className="text-slate-700 dark:text-slate-300 font-bold lowercase">Selected: {selectedSize}</span>}
+                                    </label>
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                        {getProductSizes(selectedDirectProduct).map((sz) => {
+                                            const isSelected = selectedSize === sz.name;
+                                            return (
+                                                <button
+                                                    key={sz.name}
+                                                    type="button"
+                                                    onClick={() => setSelectedSize(sz.name)}
+                                                    className={cn(
+                                                        "px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm",
+                                                        isSelected
+                                                            ? "bg-amber-500 text-white shadow-amber-500/20 scale-105"
+                                                            : "bg-background border border-border/80 text-foreground hover:border-amber-400"
+                                                    )}
+                                                >
+                                                    <span>{sz.name}</span>
+                                                    {sz.price && sz.price > 0 && (
+                                                        <span className={cn(
+                                                            "text-[10px] px-1.5 py-0.5 rounded-md",
+                                                            isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                                                        )}>
+                                                            ₹{sz.price}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Product & Price Summary */}
                             <div className="p-4 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-between gap-4">
                                 <div className="space-y-1">
                                     <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Unit Price</span>
                                     <div className="text-lg font-extrabold text-primary flex items-center">
-                                        <IndianRupee size={16} className="mr-0.5" />{Number(selectedDirectProduct.sellingPrice)}
+                                        <IndianRupee size={16} className="mr-0.5" />{activeDirectUnitPrice}
                                     </div>
                                 </div>
 
@@ -652,7 +786,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                 <div className="space-y-1 text-right">
                                     <span className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Total Amount</span>
                                     <div className="text-xl font-black text-primary flex items-center justify-end">
-                                        <IndianRupee size={18} className="mr-0.5" />{Number(selectedDirectProduct.sellingPrice) * quantity}
+                                        <IndianRupee size={18} className="mr-0.5" />{activeDirectUnitPrice * quantity}
                                     </div>
                                 </div>
                             </div>

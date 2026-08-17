@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { 
     IndianRupee, User, Package, Truck, CreditCard, Hash, FileText, 
-    Download, ShieldCheck, Clock, Tag, Receipt, Mail, Phone, MapPin, Factory, Trophy, Sparkles 
+    Download, ShieldCheck, Clock, Tag, Receipt, Mail, Phone, MapPin, Factory, Trophy, Sparkles, Info 
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Image from 'next/image';
@@ -696,6 +696,10 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                 currentPrintingAmount={order.printingAmount}
                                 printers={approvedPrinters as any} 
                                 printerPayments={(order as any).printerPayments}
+                                directSellingProduct={order.directSellingProduct as any}
+                                quantity={order.quantity}
+                                selectedSize={order.selectedSize}
+                                orderTotalAmount={order.totalAmount}
                             />
                         </CardContent>
                     </Card>

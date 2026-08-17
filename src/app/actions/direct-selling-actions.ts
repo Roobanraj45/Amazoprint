@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { db } from '@/db';
 import { orders, directSellingProducts, printPressUsers } from '@/db/schema';
-import { eq, desc, and, inArray } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import { recordOrderLog } from './order-actions';
@@ -40,6 +40,19 @@ const jsonFromString = z.string().transform((val, ctx) => {
     }
 });
 
+const sizesField = z.preprocess((val) => {
+    if (!val) return undefined;
+    if (typeof val === 'string') {
+        if (!val.trim()) return undefined;
+        try {
+            return JSON.parse(val);
+        } catch {
+            return val.split(',').map(s => s.trim()).filter(Boolean);
+        }
+    }
+    return val;
+}, z.any().optional());
+
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   slug: z.string().min(1, 'Slug is required'),
@@ -52,6 +65,7 @@ const formSchema = z.object({
   minStockLevel: z.coerce.number().int().optional().default(5),
   weight: z.coerce.number().optional(),
   dimensions: jsonFromString.optional(),
+  sizes: sizesField,
   imageUrls: z.string().optional(),
   tags: z.string().optional(),
   isFeatured: z.boolean().default(false),
@@ -103,6 +117,7 @@ export async function createDirectSellingProduct(data: z.infer<typeof formSchema
     const validatedData = formSchema.parse(data);
     const result = await db.insert(directSellingProducts).values({
       ...validatedData,
+      sizes: validatedData.sizes || [],
       addedBy: 'admin',
       approvalStatus: 'approved',
       approvedAt: new Date(),
@@ -123,6 +138,7 @@ export async function createPrinterDirectSellingProduct(data: z.infer<typeof for
     const validatedData = formSchema.parse(data);
     const result = await db.insert(directSellingProducts).values({
       ...validatedData,
+      sizes: validatedData.sizes || [],
       addedBy: 'printer',
       printerId: session.sub,
       approvalStatus: 'pending',
@@ -143,6 +159,7 @@ export async function updateDirectSellingProduct(id: number, data: z.infer<typeo
     const result = await db.update(directSellingProducts)
         .set({ 
           ...validatedData, 
+          sizes: validatedData.sizes || [],
           imageUrls: validatedData.imageUrls ? validatedData.imageUrls.split(',').map(s => s.trim()).filter(Boolean) : [],
           tags: validatedData.tags ? validatedData.tags.split(',').map(s => s.trim()).filter(Boolean) : [],
           updatedAt: new Date() 
@@ -177,6 +194,7 @@ export async function updatePrinterDirectSellingProduct(id: number, data: z.infe
     const result = await db.update(directSellingProducts)
         .set({ 
           ...validatedData, 
+          sizes: validatedData.sizes || [],
           approvalStatus: 'pending',
           rejectionReason: null,
           imageUrls: validatedData.imageUrls ? validatedData.imageUrls.split(',').map(s => s.trim()).filter(Boolean) : [],
@@ -286,29 +304,18 @@ export async function placeDirectOrder(items: any[], shippingAddress: any, payme
         throw new Error('Your cart is empty.');
     }
 
-    // Retrieve printer associations for products if any
-    const productIds = items.map(i => i.id).filter(Boolean);
-    const dbProducts = productIds.length > 0 
-        ? await db.query.directSellingProducts.findMany({
-            where: inArray(directSellingProducts.id, productIds),
-          })
-        : [];
-
-    const productMap = new Map(dbProducts.map(p => [p.id, p]));
-
     const orderValues = items.map(item => {
         const sellingPrice = parseFloat(item.sellingPrice);
         if (isNaN(sellingPrice)) {
             throw new Error(`Invalid selling price for product: ${item.name}`);
         }
         const totalAmount = sellingPrice * item.quantity;
-        const matchedProduct = productMap.get(item.id);
 
         return {
             userId: session.sub,
             directSellingProductId: item.id,
-            printerAssigned: matchedProduct?.printerId || null,
-            printerAssignedAt: matchedProduct?.printerId ? new Date() : null,
+            printerAssigned: null,
+            printerAssignedAt: null,
             quantity: item.quantity,
             unitPrice: String(sellingPrice),
             totalAmount: String(totalAmount),
@@ -317,6 +324,11 @@ export async function placeDirectOrder(items: any[], shippingAddress: any, payme
             paymentMethod: 'Card', // Placeholder
             paymentStatus: 'paid', // Placeholder
             orderStatus: 'confirmed',
+            selectedSize: item.selectedSize || undefined,
+            customisation: {
+                ...(item.selectedSize ? { selectedSize: item.selectedSize } : {}),
+                ...(item.customText ? { customText: item.customText } : {}),
+            },
             specialInstructions: item.customText || undefined,
             paymentId: paymentId,
         };

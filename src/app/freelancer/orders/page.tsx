@@ -10,7 +10,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 
 export default async function MyOrdersPage() {
-    const orders = await getMyOrders();
+    const { orders = [] } = await getMyOrders();
 
     return (
         <div className="min-h-full p-4 md:p-8 lg:p-10 space-y-8">

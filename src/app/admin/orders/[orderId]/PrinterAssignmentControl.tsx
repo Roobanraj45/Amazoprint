@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Printer, IndianRupee, Calendar, CreditCard, History, Crown, Sparkles } from "lucide-react";
+import { Loader2, Printer, IndianRupee, Calendar, CreditCard, History, Crown, Sparkles, Calculator, Check, TrendingUp, Tag, Coins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -27,12 +27,26 @@ interface PrinterPayment {
     notes: string | null;
 }
 
+export interface DirectSellingProductInfo {
+    id: number;
+    name: string;
+    category?: string | null;
+    basePrice?: string | number | null;
+    costPrice?: string | number | null;
+    sellingPrice?: string | number | null;
+    sizes?: any;
+}
+
 interface PrinterAssignmentControlProps {
     orderId: number;
     currentPrinterId: string | null;
     currentPrintingAmount: string;
     printers: Printer[];
     printerPayments?: PrinterPayment[];
+    directSellingProduct?: DirectSellingProductInfo | null;
+    quantity?: number;
+    selectedSize?: string | null;
+    orderTotalAmount?: string | number | null;
 }
 
 export function PrinterAssignmentControl({ 
@@ -40,14 +54,77 @@ export function PrinterAssignmentControl({
     currentPrinterId, 
     currentPrintingAmount, 
     printers,
-    printerPayments = []
+    printerPayments = [],
+    directSellingProduct,
+    quantity = 1,
+    selectedSize,
+    orderTotalAmount
 }: PrinterAssignmentControlProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
     
+    // Calculate direct selling base price and suggestion
+    const getDirectBasePrice = (): { unitBasePrice: number; sizeMatched: boolean; source: string } => {
+        if (!directSellingProduct) return { unitBasePrice: 0, sizeMatched: false, source: 'none' };
+        
+        // 1. Check if size-specific base price or cost price exists
+        if (selectedSize && directSellingProduct.sizes) {
+            try {
+                const parsedSizes = Array.isArray(directSellingProduct.sizes)
+                    ? directSellingProduct.sizes
+                    : typeof directSellingProduct.sizes === 'string' && directSellingProduct.sizes.trim().startsWith('[')
+                        ? JSON.parse(directSellingProduct.sizes)
+                        : [];
+                
+                const matched = parsedSizes.find((s: any) => {
+                    if (typeof s === 'object' && s !== null) {
+                        return (s.name || s.size || '').toLowerCase() === selectedSize.toLowerCase();
+                    }
+                    return false;
+                });
+
+                if (matched) {
+                    const sizeBase = parseFloat(matched.basePrice || matched.costPrice || matched.price || '0');
+                    if (!isNaN(sizeBase) && sizeBase > 0) {
+                        return { unitBasePrice: sizeBase, sizeMatched: true, source: 'size' };
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing sizes for base price calculation', e);
+            }
+        }
+
+        // 2. Base Price
+        const rawBase = parseFloat(String(directSellingProduct.basePrice || '0'));
+        if (!isNaN(rawBase) && rawBase > 0) {
+            return { unitBasePrice: rawBase, sizeMatched: false, source: 'basePrice' };
+        }
+
+        // 3. Cost Price fallback
+        const rawCost = parseFloat(String(directSellingProduct.costPrice || '0'));
+        if (!isNaN(rawCost) && rawCost > 0) {
+            return { unitBasePrice: rawCost, sizeMatched: false, source: 'costPrice' };
+        }
+
+        return { unitBasePrice: 0, sizeMatched: false, source: 'none' };
+    };
+
+    const { unitBasePrice, sizeMatched } = getDirectBasePrice();
+    const orderQty = quantity || 1;
+    const suggestedTotalPayout = unitBasePrice * orderQty;
+    const totalOrderRevenue = parseFloat(String(orderTotalAmount || '0')) || (parseFloat(String(directSellingProduct?.sellingPrice || '0')) * orderQty);
+    const estimatedPlatformMargin = totalOrderRevenue > suggestedTotalPayout ? totalOrderRevenue - suggestedTotalPayout : 0;
+    const marginPercentage = totalOrderRevenue > 0 ? ((estimatedPlatformMargin / totalOrderRevenue) * 100).toFixed(0) : '0';
+
     // Core states
     const [selectedPrinter, setSelectedPrinter] = useState<string>(currentPrinterId || "none");
-    const [amount, setAmount] = useState<string>(currentPrintingAmount || "0.00");
+    const [amount, setAmount] = useState<string>(
+        currentPrintingAmount && currentPrintingAmount !== "0.00" 
+            ? currentPrintingAmount 
+            : suggestedTotalPayout > 0 
+                ? suggestedTotalPayout.toFixed(2) 
+                : (currentPrintingAmount || "0.00")
+    );
     const [advancePaid, setAdvancePaid] = useState<string>("0.00");
     const [advanceRefNumber, setAdvanceRefNumber] = useState<string>("");
     const [advancePaymentMethod, setAdvancePaymentMethod] = useState<string>("bank_transfer");
@@ -62,6 +139,16 @@ export function PrinterAssignmentControl({
     const totalPaid = printerPayments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
     const printingCost = parseFloat(amount) || 0;
     const remainingBalance = printingCost - totalPaid;
+
+    const handleApplySuggestedPayout = () => {
+        if (suggestedTotalPayout > 0) {
+            setAmount(suggestedTotalPayout.toFixed(2));
+            toast({
+                title: "Suggested Payout Applied",
+                description: `Set printing payout to ₹${suggestedTotalPayout.toFixed(2)} based on base price ₹${unitBasePrice.toFixed(2)} × ${orderQty} units.`
+            });
+        }
+    };
 
     const handleSaveAssignment = () => {
         const targetId = selectedPrinter === "none" ? null : selectedPrinter;
@@ -215,10 +302,85 @@ export function PrinterAssignmentControl({
                 </SelectContent>
             </Select>
 
+            {/* Direct Selling Base Price & Payout Suggestion Card */}
+            {directSellingProduct && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-blue-50/40 to-slate-50 dark:from-indigo-950/30 dark:via-blue-950/20 dark:to-slate-900 border border-indigo-200/60 dark:border-indigo-800/50 space-y-2.5 shadow-sm">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-[10px] font-black text-indigo-950 dark:text-indigo-300 uppercase tracking-wider">
+                            <Calculator size={13} className="text-indigo-600 dark:text-indigo-400" />
+                            <span>Direct Selling Cost Suggestion</span>
+                        </div>
+                        {selectedSize && (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                                Size: {selectedSize}
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-0.5">
+                        <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-indigo-100 dark:border-slate-800">
+                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Base Price / Unit</span>
+                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-0.5 mt-0.5">
+                                <IndianRupee size={10} className="text-slate-400" />
+                                {unitBasePrice.toFixed(2)}
+                            </span>
+                        </div>
+                        <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-indigo-100 dark:border-slate-800">
+                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">Order Quantity</span>
+                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-0.5 mt-0.5">
+                                {orderQty} {orderQty === 1 ? 'unit' : 'units'}
+                            </span>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1 p-2 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/20">
+                            <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Suggested Payout</span>
+                            <span className="text-xs font-black text-indigo-700 dark:text-indigo-300 flex items-center gap-0.5 mt-0.5">
+                                <IndianRupee size={10} className="text-indigo-500" />
+                                {suggestedTotalPayout.toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+
+                    {totalOrderRevenue > 0 && suggestedTotalPayout > 0 && (
+                        <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 dark:text-slate-400 px-1">
+                            <span>Selling Total: ₹{totalOrderRevenue.toFixed(2)}</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-extrabold">
+                                <TrendingUp size={10} />
+                                Est. Margin: ₹{estimatedPlatformMargin.toFixed(2)} ({marginPercentage}%)
+                            </span>
+                        </div>
+                    )}
+
+                    {!currentPrinterId && suggestedTotalPayout > 0 && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleApplySuggestedPayout}
+                            className="w-full h-7 text-[10px] font-bold bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 shadow-none gap-1.5 transition-all"
+                        >
+                            <Sparkles size={11} className="text-indigo-500" />
+                            Apply Suggested Payout (₹{suggestedTotalPayout.toFixed(2)})
+                        </Button>
+                    )}
+                </div>
+            )}
+
             {selectedPrinter !== "none" && (
                 <div className="space-y-3 animate-in slide-in-from-top-1 duration-200">
                     <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Printing Cost (Payout)</label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Printing Cost (Payout)</label>
+                            {suggestedTotalPayout > 0 && !currentPrinterId && (
+                                <button
+                                    type="button"
+                                    onClick={handleApplySuggestedPayout}
+                                    className="text-[9px] font-bold text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 underline underline-offset-2 flex items-center gap-0.5"
+                                >
+                                    <Sparkles size={9} />
+                                    Use ₹{suggestedTotalPayout.toFixed(2)}
+                                </button>
+                            )}
+                        </div>
                         <div className="relative">
                             <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                             <Input
