@@ -19,6 +19,7 @@ import { PrinterAssignmentControl } from "./PrinterAssignmentControl";
 import { FreelancerVerificationControl } from "./FreelancerVerificationControl";
 import { OrderStatusControl } from "./OrderStatusControl";
 import { PrintVerificationReview } from "./PrintVerificationReview";
+import { calculateGstBreakdown } from "@/lib/gst";
 
 const DPI = 300;
 const MM_TO_PX = DPI / 25.4;
@@ -144,9 +145,15 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
         baseSubtotal = parseFloat(order.payment.amount);
     }
 
-    const gstRate = 0.18;
-    const taxableAmount = totalAmountVal / (1 + gstRate);
-    const gstAmount = totalAmountVal - taxableAmount;
+    const targetState = shippingAddress?.state || billingAddress?.state || 'Tamil Nadu';
+
+    const gstCalc = calculateGstBreakdown({
+        totalAmount: totalAmountVal,
+        stateInput: targetState,
+        gstRate: 0.18,
+    });
+    const taxableAmount = gstCalc.taxableAmount;
+    const gstAmount = gstCalc.gstAmount;
 
     return (
         <div className="space-y-6 pb-20 max-w-[1600px] mx-auto p-2 animate-in fade-in duration-500">
@@ -417,11 +424,35 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                     </div>
 
                                     <div className="flex justify-between items-center text-xs text-slate-500 border-b border-slate-100 dark:border-zinc-800 pb-2">
-                                        <span>Inclusive GST Amount</span>
+                                        <span>GST State Code</span>
                                         <span className="font-bold text-slate-800 dark:text-slate-200">
-                                            ₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            {gstCalc.stateCode}
                                         </span>
                                     </div>
+
+                                    {gstCalc.isIntrastate ? (
+                                        <>
+                                            <div className="flex justify-between items-center text-xs text-slate-500 border-b border-slate-100 dark:border-zinc-800 pb-2">
+                                                <span>CGST (9%) [{gstCalc.stateCode}]</span>
+                                                <span className="font-bold text-slate-800 dark:text-slate-200">
+                                                    ₹{gstCalc.cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-xs text-slate-500 border-b border-slate-100 dark:border-zinc-800 pb-2">
+                                                <span>SGST (9%) [{gstCalc.stateCode}]</span>
+                                                <span className="font-bold text-slate-800 dark:text-slate-200">
+                                                    ₹{gstCalc.sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex justify-between items-center text-xs text-slate-500 border-b border-slate-100 dark:border-zinc-800 pb-2">
+                                            <span>IGST (18%) [{gstCalc.stateCode}]</span>
+                                            <span className="font-bold text-slate-800 dark:text-slate-200">
+                                                ₹{gstCalc.igstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                    )}
 
                                     <div className="flex justify-between items-center text-xs text-slate-500">
                                         <span>Shipping & Logistics Cost</span>

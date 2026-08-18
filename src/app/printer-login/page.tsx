@@ -11,12 +11,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowRight, ShieldCheck, Printer, CheckCircle2 } from 'lucide-react';
+import { 
+  Loader2, ArrowRight, ShieldCheck, Printer, CheckCircle2, 
+  Factory, Coins, Truck, BarChart3, Clock, Eye, EyeOff, Sparkles, Building2 
+} from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { loginPrinter } from '@/app/actions/printer-actions';
 
 const loginSchema = z.object({
-  email: z.string().email({ message: 'Invalid email address' }),
+  email: z.string().email({ message: 'Please enter a valid work email' }),
   password: z.string().min(1, { message: 'Password is required' }),
   keepLoggedIn: z.boolean().default(false).optional(),
 });
@@ -27,6 +30,7 @@ export default function PrinterLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const methods = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -48,8 +52,8 @@ export default function PrinterLoginPage() {
       const result = await loginPrinter(data);
       
       toast({
-        title: 'Authentication successful',
-        description: 'Welcome to the Printer Dashboard.',
+        title: 'Partner Verified',
+        description: 'Welcome to your Production & Payout Dashboard.',
       });
       
       router.push('/printer/dashboard');
@@ -59,7 +63,7 @@ export default function PrinterLoginPage() {
       toast({
         variant: 'destructive',
         title: 'Access Denied',
-        description: error.message || 'Verification failed.',
+        description: error.message || 'Verification failed. Please check credentials.',
       });
     } finally {
       setIsLoading(false);
@@ -67,159 +71,262 @@ export default function PrinterLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950">
-      {/* Left Side: Industrial Brand Presence */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-slate-900 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-multiply grayscale" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 font-sans">
+      
+      {/* Left Side: Industrial Partner Network Content */}
+      <div className="hidden lg:flex lg:w-7/12 relative bg-slate-950 overflow-hidden flex-col justify-between p-12 xl:p-16 text-white selection:bg-violet-500 selection:text-white">
         
-        <div className="relative z-10 w-full flex flex-col justify-between p-16">
-          <Link href="/">
-             <AmazoprintLogo className="brightness-0 invert scale-125 origin-left" />
+        {/* Background Visual Texture & Glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-violet-900/30 via-slate-950 to-black" />
+        <div className="absolute top-1/4 right-0 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+        
+        {/* Header Branding */}
+        <div className="relative z-10 flex items-center justify-between">
+          <Link href="/" className="inline-block">
+            <AmazoprintLogo className="brightness-0 invert scale-110 origin-left" />
           </Link>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-black uppercase tracking-wider">
+            <Printer size={13} />
+            <span>Industrial Press Network</span>
+          </div>
+        </div>
+
+        {/* Center Content: Partner Features & Value Propositions */}
+        <div className="relative z-10 my-auto py-6 space-y-8 max-w-2xl">
           
-          <div className="space-y-10">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-black uppercase tracking-widest">
-                <Printer size={14} />
-                Printer Partner Portal
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
+              <Sparkles size={13} /> High-Volume Print Production Hub
             </div>
-            <h1 className="text-6xl font-black text-white leading-[1.1] tracking-tighter uppercase font-headline">
-              Powering<br />
-              <span className="text-primary">Production</span><br />
-              at Scale.
+            <h1 className="text-4xl xl:text-5xl font-black text-white leading-tight tracking-tight">
+              Scale your printing facility with <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-emerald-400">
+                automated orders & guaranteed payouts.
+              </span>
             </h1>
-            <p className="text-lg text-slate-400 max-w-lg font-medium leading-relaxed">
-              Access the industrial command center to manage orders, track fulfillment metrics, and synchronize your printing facility with global demand.
+            <p className="text-slate-300 text-sm font-medium leading-relaxed max-w-lg">
+              AmazoPrint connects commercial offset, digital, and screen-printing facilities with verified nationwide client demand. Maximize machine uptime without sales overhead.
             </p>
+          </div>
+
+          {/* Printer Partner Pillars */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
-            <div className="flex flex-col gap-4 pt-4">
-                {[
-                    "Live order management",
-                    "Automated fulfillment tracking",
-                    "Quality audit dashboard",
-                    "Direct payout integration"
-                ].map((feature, i) => (
-                    <div key={i} className="flex items-center gap-3 text-slate-300 font-bold text-sm">
-                        <CheckCircle2 size={18} className="text-primary" />
-                        {feature}
-                    </div>
-                ))}
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md space-y-2 hover:border-violet-500/30 transition-all">
+              <div className="w-8 h-8 rounded-xl bg-violet-500/20 flex items-center justify-center text-violet-400">
+                <Factory size={18} />
+              </div>
+              <h3 className="text-sm font-bold text-white">Direct Production Feeds</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Receive pre-flighted print-ready 300 DPI vector artwork, die-cuts, and precise job specifications ready for press.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md space-y-2 hover:border-emerald-500/30 transition-all">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <Coins size={18} />
+              </div>
+              <h3 className="text-sm font-bold text-white">48-Hr Split GST Payouts</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Automated partner tax invoicing with CGST, SGST, and IGST breakdowns directly settled into your verified bank account.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md space-y-2 hover:border-indigo-500/30 transition-all">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <Truck size={18} />
+              </div>
+              <h3 className="text-sm font-bold text-white">Doorstep Logistics Integration</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Integrated Shiprocket courier pickups. Print the pre-generated shipping label and dispatch with zero courier coordination hassle.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-md space-y-2 hover:border-amber-500/30 transition-all">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+                <BarChart3 size={18} />
+              </div>
+              <h3 className="text-sm font-bold text-white">Real-Time Capacity Telemetry</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Control your active machinery capacity, update turnaround times, and track material utilization metrics from one unified screen.
+              </p>
+            </div>
+
+          </div>
+
+          {/* Operational Metrics Bar */}
+          <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-violet-950/20 border border-violet-500/20 text-center">
+            <div>
+              <p className="text-lg font-black text-violet-400 font-mono">100+</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Active Presses</p>
+            </div>
+            <div className="border-x border-violet-500/20">
+              <p className="text-lg font-black text-emerald-400 font-mono">48 Hrs</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Fast Settlement</p>
+            </div>
+            <div>
+              <p className="text-lg font-black text-indigo-400 font-mono">99.4%</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">On-Time SLA</p>
             </div>
           </div>
-          
-          <p className="text-slate-600 text-[11px] font-black uppercase tracking-widest">
-            Industrial Systems Interface v4.0
-          </p>
+
         </div>
+
+        {/* Footer Info */}
+        <div className="relative z-10 flex items-center justify-between text-slate-500 text-[11px] font-medium border-t border-slate-900 pt-4">
+          <p>© {new Date().getFullYear()} AmazoPrint Manufacturing Network. High Precision Industrial Systems.</p>
+          <div className="flex gap-4">
+            <Link href="/printer-registration" className="text-violet-400 hover:underline">Register New Press</Link>
+            <Link href="/support" className="hover:text-slate-400 transition-colors">Vendor Support</Link>
+          </div>
+        </div>
+
       </div>
 
-      {/* Right Side: Login Terminal */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 sm:p-12 lg:p-24 bg-white dark:bg-slate-950">
-        <div className="w-full max-w-md space-y-10">
-          <div className="space-y-4">
-            <div className="lg:hidden mb-8">
+      {/* Right Side: High-Security Printer Login Terminal */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 lg:p-16 relative">
+        <div className="w-full max-w-md space-y-8">
+          
+          <div className="space-y-2">
+            <div className="lg:hidden mb-6">
                <AmazoprintLogo />
             </div>
-            <h2 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase font-headline">Partner Login</h2>
-            <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">
-              Secure access for verified print-press facilities
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 text-[11px] font-bold">
+              <Printer size={12} /> Partner Operations Portal
+            </div>
+            <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+              Partner Login
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">
+              Access your production queue, dispatch schedules, and payment ledger.
             </p>
           </div>
 
           <FormProvider {...methods}>
-            <form onSubmit={handleSubmit(handleLogin)} className="space-y-6">
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Identity (Email)</Label>
+            <form onSubmit={handleSubmit(handleLogin)} className="space-y-5">
+              
+              <div className="space-y-4">
+                
+                {/* Work Email Field */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Registered Facility Email
+                  </Label>
                   <Input 
                       id="email" 
                       type="email" 
-                      placeholder="factory.lead@amazoprint.com" 
-                      className="h-14 px-6 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 focus:border-primary focus:ring-0 transition-all font-bold text-sm"
+                      placeholder="factory.ops@printpartner.com" 
+                      className="h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-500/20 transition-all font-medium text-sm"
                       {...register('email')} 
                   />
-                  {errors.email && <p className="text-[11px] font-bold text-red-500 ml-4">{errors.email.message}</p>}
+                  {errors.email && <p className="text-[11px] font-bold text-red-500">{errors.email.message}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center px-1">
-                    <Label htmlFor="password" className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Security Key</Label>
-                    <Link href="#" className="text-[10px] font-black text-primary hover:opacity-70 transition-opacity uppercase tracking-widest">Forgot key?</Link>
+                {/* Password Field with Eye Toggle */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="password" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Security Key / Password
+                    </Label>
+                    <Link href="#" className="text-xs font-bold text-violet-600 hover:underline">
+                      Forgot Password?
+                    </Link>
                   </div>
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    placeholder="••••••••"
-                    className="h-14 px-6 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 focus:border-primary focus:ring-0 transition-all font-bold text-sm"
-                    {...register('password')} 
-                  />
-                  {errors.password && <p className="text-[11px] font-bold text-red-500 ml-4">{errors.password.message}</p>}
+                  <div className="relative">
+                    <Input 
+                      id="password" 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="Enter your security key"
+                      className="h-12 pl-4 pr-11 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:border-violet-600 focus:ring-2 focus:ring-violet-500/20 transition-all font-medium text-sm"
+                      {...register('password')} 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-[11px] font-bold text-red-500">{errors.password.message}</p>}
                 </div>
 
-                <div className="flex items-center space-x-3 px-1 pt-2">
+                {/* Maintain Session */}
+                <div className="flex items-center space-x-2 pt-1">
                     <Controller
-                    control={control}
-                    name="keepLoggedIn"
-                    render={({ field }) => (
-                        <Checkbox
-                        id="keep-logged-in"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="rounded-md h-5 w-5 border-2"
-                        />
-                    )}
+                      control={control}
+                      name="keepLoggedIn"
+                      render={({ field }) => (
+                          <Checkbox
+                            id="keep-logged-in"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="rounded h-4 w-4"
+                          />
+                      )}
                     />
-                    <Label htmlFor="keep-logged-in" className="text-xs font-bold text-slate-500 cursor-pointer select-none">Maintain persistent session</Label>
+                    <Label htmlFor="keep-logged-in" className="text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+                      Maintain persistent session for this machine
+                    </Label>
                 </div>
+
               </div>
 
-              <Button type="submit" className="w-full h-16 rounded-2xl text-base font-black uppercase tracking-widest shadow-2xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-[0.98] group" disabled={isLoading}>
+              {/* Submit Action */}
+              <Button 
+                type="submit" 
+                className="w-full h-12 rounded-xl text-sm font-extrabold shadow-lg shadow-violet-600/20 hover:shadow-violet-600/30 transition-all active:scale-[0.98] group bg-violet-600 hover:bg-violet-700 text-white" 
+                disabled={isLoading}
+              >
                 {isLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                     <>
-                        Initialize Dashboard
-                        <ArrowRight size={20} className="ml-3 group-hover:translate-x-1 transition-transform" />
+                        Access Production Dashboard
+                        <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
                     </>
                 )}
               </Button>
             </form>
           </FormProvider>
 
-          <div className="pt-10 text-center space-y-6 border-t-2 border-slate-50 dark:border-slate-900 border-dashed">
-            <div className="space-y-2">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    Not a partner yet?
-                </p>
-                <Link 
-                    href="/printer-registration" 
-                    className="inline-flex items-center gap-2 text-sm font-black text-primary hover:underline underline-offset-4 decoration-2"
-                >
-                    Apply for Production Access
-                </Link>
+          {/* Registration & Other Portals */}
+          <div className="pt-6 text-center space-y-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Operate a printing or fabrication press?
+              </p>
+              <Link 
+                  href="/printer-registration" 
+                  className="text-sm font-bold text-violet-600 dark:text-violet-400 hover:underline inline-flex items-center gap-1"
+              >
+                  Apply to Join AmazoPrint Press Network
+                  <ArrowRight size={14} />
+              </Link>
             </div>
             
-            <div className="flex justify-center items-center gap-6">
-                <Link 
-                    href="/admin-login" 
-                    className="inline-flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors group uppercase tracking-widest"
-                >
-                    <ShieldCheck size={14} className="group-hover:rotate-12 transition-transform" />
-                    Internal Admin
-                </Link>
-                <span className="w-1 h-1 rounded-full bg-slate-300" />
+            <div className="pt-2 flex flex-wrap justify-center items-center gap-3">
                 <Link 
                     href="/login" 
-                    className="inline-flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors group uppercase tracking-widest"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors group"
                 >
-                    Customer Login
+                    <Building2 size={13} className="text-primary group-hover:rotate-12 transition-transform" />
+                    Customer Store Login
+                </Link>
+                <Link 
+                    href="/admin-login" 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors group"
+                >
+                    <ShieldCheck size={13} className="text-emerald-500 group-hover:rotate-12 transition-transform" />
+                    Admin Portal
                 </Link>
             </div>
           </div>
+
         </div>
       </div>
+
     </div>
   );
 }
-
-

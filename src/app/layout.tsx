@@ -65,6 +65,8 @@ export const metadata: Metadata = {
 
 import { StructuredData } from '@/components/layout/structured-data';
 
+import { Suspense } from 'react';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -81,7 +83,9 @@ export default function RootLayout({
       </head>
       <body className="font-body">
         <CartProviderWrapper>
-          <PageLoader />
+          <Suspense fallback={null}>
+            <PageLoader />
+          </Suspense>
           {children}
           <Toaster />
         </CartProviderWrapper>

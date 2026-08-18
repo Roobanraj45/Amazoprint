@@ -6,6 +6,7 @@ import { IndianRupee, ArrowLeft, ShieldCheck, Building2, Phone, Mail, Ban, Check
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { InvoiceActions } from "./invoice-actions";
+import { getGstStateInfo, SUPPLIER_GSTIN, SUPPLIER_STATE_CODE, SUPPLIER_STATE_NAME } from "@/lib/gst";
 
 export default async function StandalonePrinterInvoicePage({ params }: { params: Promise<{ invoiceId: string }> }) {
     const { invoiceId } = await params;
@@ -48,15 +49,13 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
 
     const displayItems = items.length > 0 ? items : fallbackItems;
 
-    // GST logic
+    // GST logic with unified Indian GST state code mapping
     const hasGst = !!printer.gstNumber?.trim();
+    const printerStateInfo = getGstStateInfo(printer.state, printer.gstNumber);
+    const isIntrastate = printerStateInfo.isIntrastate;
     const gstRate = 0.18;
     const taxableAmount = hasGst ? (totalAmount / (1 + gstRate)) : totalAmount;
     const gstAmount = totalAmount - taxableAmount;
-
-    // State check for intrastate (Tamilnadu check)
-    const printerState = (printer.state || '').toLowerCase().replace(/\s+/g, '');
-    const isIntrastate = printerState.includes('tamilnadu') || printerState.includes('tamil');
 
     const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
         pending: {
@@ -84,7 +83,7 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
     const currentStatus = statusConfig[invoice.status] || statusConfig.pending;
 
     return (
-        <div className="min-h-screen bg-slate-100 dark:bg-slate-950 py-6 px-4 sm:px-6 lg:px-8 font-sans text-slate-900 dark:text-slate-100 selection:bg-violet-500 selection:text-white">
+        <div className="min-h-screen bg-slate-100 dark:bg-slate-950 py-5 px-3 sm:px-6 font-sans text-slate-900 dark:text-slate-100 selection:bg-violet-500 selection:text-white">
             {/* Embedded styles to strip default margins & force rich color printing */}
             <style dangerouslySetInnerHTML={{ __html: `
                 @page {
@@ -95,17 +94,16 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                         background-color: #f8fafc !important;
-                        padding: 1.5cm !important;
+                        padding: 1cm !important;
                         margin: 0 !important;
                     }
                     .print-card {
                         background-color: #ffffff !important;
-                        border-radius: 1rem !important;
+                        border-radius: 0.75rem !important;
                         box-shadow: none !important;
                         border: 1px solid #e2e8f0 !important;
-                        padding: 2rem !important;
+                        padding: 1.5rem !important;
                     }
-                    /* Ensure print colors are preserved */
                     .bg-slate-50 {
                         background-color: #f8fafc !important;
                     }
@@ -120,8 +118,8 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
 
             <div className="max-w-3xl mx-auto space-y-4">
                 
-                {/* Floating Non-Printable Action Bar */}
-                <div className="print:hidden flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900 dark:bg-slate-900/80 backdrop-blur-xl text-white p-5 rounded-2xl shadow-xl border border-slate-800">
+                {/* Floating Non-Printable Action Bar (Compact) */}
+                <div className="print:hidden flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900 dark:bg-slate-900/80 backdrop-blur-xl text-white p-3.5 rounded-2xl shadow-lg border border-slate-800">
                     <div className="flex items-center gap-3">
                         <Button asChild variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl h-8 text-xs">
                             <Link href={backUrl}>
@@ -131,35 +129,38 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
                         <div className="h-5 w-[1px] bg-slate-800 hidden sm:block" />
                         <div>
                             <h2 className="text-xs font-black tracking-wider uppercase text-violet-400">Vendor Invoice</h2>
-                            <p className="text-[10px] text-slate-400 font-medium">Ready for PDF download & printing</p>
+                            <p className="text-[10px] text-slate-400 font-medium">Ready for PDF download & print</p>
                         </div>
                     </div>
                     
                     <InvoiceActions />
                 </div>
 
-                {/* Printable Invoice Sheet */}
-                <div className="print-card bg-white dark:bg-slate-900 p-6 sm:p-10 rounded-2xl shadow-lg border border-slate-200/80 dark:border-slate-800/80">
+                {/* Printable Invoice Sheet (20% Reduced Footprint) */}
+                <div className="print-card bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-200/80 dark:border-slate-800/80">
                     
                     {/* Header: Printer Info vs Invoice Title */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
-                        <div className="space-y-2">
-                            <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
-                                <Building2 className="w-5 h-5 text-violet-600" />
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-5 border-b border-slate-200 dark:border-slate-800">
+                        <div className="space-y-1.5">
+                            <h1 className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+                                <Building2 className="w-4 h-4 text-violet-600" />
                                 {printerName}
                             </h1>
-                            <div className="space-y-0.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                            <div className="space-y-0.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">
                                 {printer.address && <p>{printer.address}</p>}
                                 <p>
-                                    {[printer.city, printer.state, printer.postalCode].filter(Boolean).join(', ')}
+                                    {[printer.city, printerStateInfo.stateName, printer.postalCode].filter(Boolean).join(', ')}
                                     {printer.country && ` · ${printer.country}`}
                                 </p>
-                                <p className="pt-0.5 flex items-center gap-2.5">
+                                <p className="font-bold text-slate-700 dark:text-slate-300 text-[10px]">
+                                    State Code: {printerStateInfo.stateCode} ({printerStateInfo.stateName})
+                                </p>
+                                <p className="pt-0.5 flex items-center gap-2 text-[10px]">
                                     {printer.phone && <span className="flex items-center gap-0.5"><Phone className="w-3 h-3" /> {printer.phone}</span>}
                                     <span className="flex items-center gap-0.5"><Mail className="w-3 h-3" /> {printer.email}</span>
                                 </p>
                                 {hasGst && (
-                                    <p className="text-[9px] text-slate-400 font-bold tracking-wider pt-0.5 uppercase">
+                                    <p className="text-[10px] text-violet-600 dark:text-violet-400 font-bold tracking-wider pt-0.5 uppercase">
                                         GSTIN: {printer.gstNumber}
                                     </p>
                                 )}
@@ -167,13 +168,14 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
                         </div>
 
                         <div className="sm:text-right space-y-1">
-                            <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
+                            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
                                 Invoice
                             </h2>
                             <div className="space-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
                                 <p><span className="font-bold text-slate-900 dark:text-white">Invoice No:</span> <span className="font-mono font-bold text-violet-600">{invoice.invoiceNumber}</span></p>
                                 <p><span className="font-bold text-slate-900 dark:text-white">Date:</span> {format(new Date(invoice.createdAt || invoice.sentAt || new Date()), 'dd MMM yyyy')}</p>
                                 {order && <p><span className="font-bold text-slate-900 dark:text-white">Order Ref:</span> #{order.id}</p>}
+                                <p><span className="font-bold text-slate-900 dark:text-white">GST State Code:</span> <span className="font-bold text-slate-700 dark:text-slate-300">{SUPPLIER_STATE_CODE}</span></p>
                                 <p className="flex items-center sm:justify-end gap-1 pt-0.5">
                                     <span className="font-bold text-slate-900 dark:text-white">Status:</span>
                                     {currentStatus.icon}
@@ -184,26 +186,26 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
                     </div>
 
                     {/* Parties Info Box */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-6 border-b border-slate-200 dark:border-slate-800">
-                        <div className="space-y-1.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4 border-b border-slate-200 dark:border-slate-800">
+                        <div className="space-y-1">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                                Billed To
+                                Billed To (Buyer)
                             </h3>
-                            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 space-y-0.5 text-[11px] text-slate-700 dark:text-slate-300 font-medium">
+                            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 space-y-0.5 text-[11px] text-slate-700 dark:text-slate-300 font-medium">
                                 <p className="font-extrabold text-xs text-slate-900 dark:text-white">AMAZOPRINT</p>
                                 <p>No.21/2, Udayarpalayam, Attur Mainroad</p>
                                 <p>Udayarpalayam, Thammampatti - 636113</p>
-                                <p>Tamilnadu, India.</p>
-                                <p className="pt-1.5 font-bold text-slate-600 dark:text-slate-400">GSTIN: 33BNLPK5597H1ZJ</p>
+                                <p>Tamil Nadu, India (State Code: {SUPPLIER_STATE_CODE})</p>
+                                <p className="pt-1 font-bold text-slate-800 dark:text-slate-200">GSTIN: {SUPPLIER_GSTIN}</p>
                             </div>
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="space-y-1">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                                 Order Details
                             </h3>
                             {order ? (
-                                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 space-y-0.5 text-[11px] text-slate-700 dark:text-slate-300 font-medium">
+                                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 space-y-0.5 text-[11px] text-slate-700 dark:text-slate-300 font-medium">
                                     <p className="font-extrabold text-xs text-slate-900 dark:text-white">Order #{order.id}</p>
                                     <p><span className="text-slate-400 font-bold">Product:</span> {productName}</p>
                                     <p><span className="text-slate-400 font-bold">Customer:</span> {order.user.name}</p>
@@ -211,7 +213,7 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
                                     <p><span className="text-slate-400 font-bold">Completion:</span> {order.updatedAt ? format(new Date(order.updatedAt), 'dd MMM yyyy') : '—'}</p>
                                 </div>
                             ) : (
-                                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 flex items-center justify-center h-[96px] text-[11px] text-slate-400 italic">
+                                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 flex items-center justify-center h-[96px] text-[11px] text-slate-400 italic">
                                     Order details not available
                                 </div>
                             )}
@@ -219,7 +221,7 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
                     </div>
 
                     {/* Particulars Table */}
-                    <div className="py-6 space-y-3 border-b border-slate-200 dark:border-slate-800">
+                    <div className="py-4 space-y-2.5 border-b border-slate-200 dark:border-slate-800">
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                             Service Particulars
                         </h3>
@@ -228,23 +230,23 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
-                                        <th className="py-2 px-3">#</th>
-                                        <th className="py-2 px-3">Item Description</th>
-                                        <th className="py-2 px-3 text-center">Qty</th>
-                                        <th className="py-2 px-3 text-right">Unit Rate</th>
-                                        <th className="py-2 px-3 text-right">Total</th>
+                                        <th className="py-2 px-2.5">#</th>
+                                        <th className="py-2 px-2.5">Item Description</th>
+                                        <th className="py-2 px-2.5 text-center">Qty</th>
+                                        <th className="py-2 px-2.5 text-right">Unit Rate</th>
+                                        <th className="py-2 px-2.5 text-right">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-[11px] font-medium divide-y divide-slate-100 dark:divide-slate-800">
                                     {displayItems.map((item, idx) => (
                                         <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                                            <td className="py-3 px-3 font-bold text-slate-500">{idx + 1}</td>
-                                            <td className="py-3 px-3">
+                                            <td className="py-2.5 px-2.5 font-bold text-slate-500">{idx + 1}</td>
+                                            <td className="py-2.5 px-2.5">
                                                 <p className="font-extrabold text-slate-900 dark:text-white">{item.description}</p>
                                             </td>
-                                            <td className="py-3 px-3 text-center font-extrabold text-slate-900 dark:text-white">{item.qty}</td>
-                                            <td className="py-3 px-3 text-right font-mono">₹{item.unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                            <td className="py-3 px-3 text-right font-mono font-extrabold text-slate-900 dark:text-white">
+                                            <td className="py-2.5 px-2.5 text-center font-extrabold text-slate-900 dark:text-white">{item.qty}</td>
+                                            <td className="py-2.5 px-2.5 text-right font-mono">₹{item.unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                            <td className="py-2.5 px-2.5 text-right font-mono font-extrabold text-slate-900 dark:text-white">
                                                 ₹{(item.total || (item.qty * item.unitPrice)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                             </td>
                                         </tr>
@@ -254,20 +256,20 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
                         </div>
                     </div>
 
-                    {/* Financial Summary */}
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 py-6 items-start">
-                        <div className="sm:col-span-7 space-y-3">
+                    {/* Financial Summary & Split GST based on Vendor State */}
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 py-4 items-start">
+                        <div className="sm:col-span-7 space-y-2.5">
                             {/* Notes / Remarks */}
                             {(invoice.notes || invoice.adminNote) && (
                                 <div className="space-y-2">
                                     {invoice.notes && (
-                                        <div className="text-[11px] leading-relaxed">
+                                        <div className="text-[10px] leading-normal">
                                             <p className="font-bold text-slate-900 dark:text-white mb-0.5">Vendor Remarks:</p>
                                             <p className="text-slate-500 dark:text-slate-400 italic">"{invoice.notes}"</p>
                                         </div>
                                     )}
                                     {invoice.adminNote && (
-                                        <div className="text-[11px] leading-relaxed p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-lg">
+                                        <div className="text-[10px] leading-normal p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-lg">
                                             <p className="font-bold text-amber-800 dark:text-amber-400 mb-0.5">Admin Feedback:</p>
                                             <p className="text-amber-700 dark:text-amber-500 italic">"{invoice.adminNote}"</p>
                                         </div>
@@ -277,41 +279,41 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
 
                             {/* Payout & Settlement Ledger */}
                             {order && (
-                                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 space-y-3 print:bg-white print:border-slate-200">
+                                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2 print:bg-white print:border-slate-200">
                                     <div className="flex items-center justify-between">
-                                        <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
-                                            <Banknote className="w-3.5 h-3.5 text-violet-500" />
+                                        <h4 className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                                            <Banknote className="w-3 h-3 text-violet-500" />
                                             Payout Settlement Ledger
                                         </h4>
                                         {invoice.status === 'paid' ? (
-                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                                                 Paid & Settled
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                                                 Unpaid
                                             </span>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4 text-xs font-semibold">
-                                        <div className="p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
-                                            <span className="text-[10px] text-slate-400 block mb-0.5">Total Paid So Far</span>
-                                            <span className="font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">
+                                    <div className="grid grid-cols-2 gap-3 text-[11px] font-semibold">
+                                        <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                                            <span className="text-[9px] text-slate-400 block mb-0.5">Total Paid So Far</span>
+                                            <span className="font-mono text-xs font-black text-emerald-600 dark:text-emerald-400">
                                                 ₹{(order.printerPayments || []).reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                             </span>
                                         </div>
-                                        <div className="p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/10">
-                                            <span className="text-[10px] text-slate-400 block mb-0.5">Remaining Balance</span>
-                                            <span className="font-mono text-sm font-black text-amber-600 dark:text-amber-400">
+                                        <div className="p-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
+                                            <span className="text-[9px] text-slate-400 block mb-0.5">Remaining Balance</span>
+                                            <span className="font-mono text-xs font-black text-amber-600 dark:text-amber-400">
                                                 ₹{Math.max(0, (parseFloat((order as any).printingAmount || '0') || totalAmount) - (order.printerPayments || []).reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                             </span>
                                         </div>
                                     </div>
                                     {(order.printerPayments || []).length > 0 && (
-                                        <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
-                                            <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider block">Payment Logs</span>
+                                        <div className="pt-1.5 border-t border-slate-200 dark:border-slate-800 space-y-1 max-h-[100px] overflow-y-auto pr-1">
+                                            <span className="text-[8px] text-slate-400 uppercase font-bold tracking-wider block">Payment Logs</span>
                                             {(order.printerPayments || []).map((payment: any, pIdx: number) => (
-                                                <div key={payment.id || pIdx} className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400 py-1 border-b border-dashed border-slate-100 dark:border-slate-800 last:border-0">
+                                                <div key={payment.id || pIdx} className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 py-0.5 border-b border-dashed border-slate-100 dark:border-slate-800 last:border-0">
                                                     <div className="flex flex-col">
                                                         <span className="font-bold text-slate-700 dark:text-slate-300">{payment.description || 'Installment Payment'}</span>
                                                         <span className="text-[8px] text-slate-400">{payment.createdAt ? format(new Date(payment.createdAt), 'dd MMM yyyy HH:mm') : ''}</span>
@@ -327,18 +329,18 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
                                 </div>
                             )}
                             
-                            <div className="space-y-0.5 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                            <div className="space-y-0.5 text-[10px] text-slate-500 dark:text-slate-400 leading-normal font-medium">
                                 <p className="font-extrabold text-slate-900 dark:text-white uppercase tracking-wider mb-1">Terms & Declarations</p>
-                                <p>1. Supplied strictly in accordance with approved requirements.</p>
-                                <p>2. Digital tax invoice generated via print partner network.</p>
+                                <p>1. Tax categorized under <span className="font-bold text-slate-700 dark:text-slate-300">{isIntrastate ? 'Intra-State (CGST + SGST)' : 'Inter-State (IGST)'}</span> based on Vendor State ({printerStateInfo.stateCode} - {printerStateInfo.stateName}).</p>
+                                <p>2. Supplied strictly in accordance with approved requirements.</p>
                             </div>
-                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-violet-600 pt-1">
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-violet-600 pt-0.5">
                                 <ShieldCheck className="w-3.5 h-3.5 text-violet-500" /> Print Vendor Partner Verified
                             </div>
                         </div>
 
-                        <div className="sm:col-span-5 space-y-2.5 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 font-medium">
-                            <div className="flex justify-between items-center text-[11px]">
+                        <div className="sm:col-span-5 space-y-2 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800/60 font-medium text-[11px]">
+                            <div className="flex justify-between items-center">
                                 <span className="text-slate-600 dark:text-slate-400">Subtotal (Taxable Value)</span>
                                 <span className="font-mono font-bold text-slate-900 dark:text-white">₹{taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                             </div>
@@ -347,37 +349,43 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
                                 <>
                                     {isIntrastate ? (
                                         <>
-                                            <div className="flex justify-between items-center text-[11px]">
-                                                <span className="text-slate-600 dark:text-slate-400">CGST (9%)</span>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-600 dark:text-slate-400">
+                                                    CGST (9%) <span className="text-[9px] text-slate-400">[{printerStateInfo.stateCode}]</span>
+                                                </span>
                                                 <span className="font-mono font-bold text-slate-900 dark:text-white">₹{(gstAmount / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                             </div>
-                                            <div className="flex justify-between items-center text-[11px]">
-                                                <span className="text-slate-600 dark:text-slate-400">SGST (9%)</span>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-600 dark:text-slate-400">
+                                                    SGST (9%) <span className="text-[9px] text-slate-400">[{printerStateInfo.stateCode}]</span>
+                                                </span>
                                                 <span className="font-mono font-bold text-slate-900 dark:text-white">₹{(gstAmount / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                             </div>
                                         </>
                                     ) : (
-                                        <div className="flex justify-between items-center text-[11px]">
-                                            <span className="text-slate-600 dark:text-slate-400">IGST (18%)</span>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-600 dark:text-slate-400">
+                                                IGST (18%) <span className="text-[9px] text-slate-400">[{printerStateInfo.stateCode}]</span>
+                                            </span>
                                             <span className="font-mono font-bold text-slate-900 dark:text-white">₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                     )}
                                 </>
                             ) : (
-                                <div className="flex justify-between items-center text-[11px] text-slate-400">
+                                <div className="flex justify-between items-center text-slate-400">
                                     <span>GST (Exempt/Unregistered)</span>
                                     <span>₹0.00</span>
                                 </div>
                             )}
 
-                            <div className="flex justify-between items-center pt-3 mt-1.5 border-t border-slate-200 dark:border-slate-700">
-                                <div className="space-y-0.5">
-                                    <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-wider block">Grand Total</span>
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Net Payable</span>
+                            <div className="flex justify-between items-center pt-2.5 mt-1 border-t border-slate-200 dark:border-slate-700">
+                                <div className="space-y-0.2">
+                                    <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-wider block">Grand Total</span>
+                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block">Net Payable</span>
                                 </div>
                                 <div className="flex items-center gap-0.5 text-violet-600 dark:text-violet-400">
                                     <IndianRupee className="w-4 h-4 font-extrabold" />
-                                    <span className="text-xl font-black font-mono tracking-tighter">
+                                    <span className="text-2xl font-black font-mono tracking-tighter">
                                         {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </span>
                                 </div>
@@ -386,14 +394,14 @@ export default async function StandalonePrinterInvoicePage({ params }: { params:
                     </div>
 
                     {/* Signatory / Verification */}
-                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-slate-500">
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] text-slate-500">
                         <div className="space-y-0.5 text-center sm:text-left">
                             <p className="font-bold text-slate-900 dark:text-white">Thank you for your valuable partnership!</p>
                             <p>For payout queries: <span className="text-violet-600 font-bold">finance@amazoprint.com</span></p>
                         </div>
 
                         <div className="text-center sm:text-right space-y-1">
-                            <div className="h-10 w-28 border-b border-dashed border-slate-300 mx-auto sm:ml-auto flex items-end justify-center">
+                            <div className="h-8 w-24 border-b border-dashed border-slate-300 mx-auto sm:ml-auto flex items-end justify-center">
                                 <span className="font-mono font-bold text-violet-600/30 text-[8px] tracking-widest uppercase">Verified Hub</span>
                             </div>
                             <p className="font-extrabold text-slate-900 dark:text-white text-[10px]">Authorized Signatory</p>

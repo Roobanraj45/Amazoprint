@@ -1,68 +1,77 @@
-
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { AmazonPrintLoaderDialog } from '@/components/ui/amazon-print-loader-dialog';
 
 export function PageLoader() {
   const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
-  const [animationKey, setAnimationKey] = useState(0);
+  const searchParams = useSearchParams();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Hide loader on new page load
+  // Hide loader when route changes
   useEffect(() => {
     if (isLoading) {
-      setIsLoading(false);
+      const exitTimer = setTimeout(() => {
+        setIsLoading(false);
+      }, 100);
+      return () => clearTimeout(exitTimer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, searchParams]);
 
-  // Show loader on link click
+  // Handle link clicks across the application
   const handleLinkClick = useCallback((event: MouseEvent) => {
     try {
       const target = event.target as HTMLElement;
-      // Find the closest 'a' tag, in case the click is on an element inside a link
       const anchor = target.closest('a');
 
       if (anchor) {
         const href = anchor.getAttribute('href');
         const targetAttr = anchor.getAttribute('target');
+        const isDownload = anchor.hasAttribute('download');
         
-        if (!href) return;
+        if (!href || isDownload) return;
 
-        const url = new URL(href, window.location.origin);
-        
-        // Don't show for external links or new tabs
-        if (url.origin !== window.location.origin || targetAttr === '_blank' || event.ctrlKey || event.metaKey) {
+        if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) {
           return;
         }
 
-        // Don't show for same-page hash links
-        if (url.pathname === pathname && url.hash) {
-            return;
+        const url = new URL(href, window.location.origin);
+        
+        if (url.origin !== window.location.origin || targetAttr === '_blank' || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+          return;
         }
-        // Don't show if the path is identical (and there's no search/hash)
+
+        if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) {
+          return;
+        }
+
         if (url.href === window.location.href) {
-            return;
+          return;
         }
         
         setIsLoading(true);
-        setAnimationKey(prev => prev + 1); // Ensure animation re-runs
+
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => {
+          setIsLoading(false);
+        }, 6000);
       }
     } catch (err) {
-      // Ignore errors from invalid URLs (like 'mailto:')
+      // Ignore URL parsing errors
     }
-  }, [pathname]);
+  }, []);
 
   useEffect(() => {
     document.addEventListener('click', handleLinkClick);
     return () => {
       document.removeEventListener('click', handleLinkClick);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [handleLinkClick]);
   
-  // Stop loading if the user uses browser back/forward buttons
   useEffect(() => {
     const handlePopState = () => {
       setIsLoading(false);
@@ -72,19 +81,12 @@ export function PageLoader() {
   }, []);
 
   return (
-    <div className="fixed top-0 left-0 right-0 h-1 z-[9999] pointer-events-none">
-      <AnimatePresence>
-        {isLoading && (
-          <motion.div
-            key={animationKey}
-            className="h-full bg-gradient-to-r from-primary via-blue-500 to-emerald-500"
-            initial={{ width: "0%" }}
-            animate={{ width: "95%" }}
-            transition={{ duration: 1.5, ease: "circOut" }}
-            exit={{ width: "100%", opacity: 0, transition: { duration: 0.2 } }}
-          />
-        )}
-      </AnimatePresence>
-    </div>
+    <AmazonPrintLoaderDialog
+      isOpen={isLoading}
+      onClose={() => setIsLoading(false)}
+      showText={false} // Clean, minimal pure loader without text or card
+      intervalDuration={1400} // Fast and fluid
+      size="md"
+    />
   );
 }
