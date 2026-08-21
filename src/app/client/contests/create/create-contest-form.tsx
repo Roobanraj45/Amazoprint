@@ -46,7 +46,7 @@ const contestFormSchema = z.object({
   description: z.string().optional(),
   productId: z.coerce.number().min(1, 'Product is required'),
   subProductId: z.coerce.number({invalid_type_error: "Product variant is required"}).min(1, 'Product variant is required'),
-  prizeAmount: z.coerce.number().min(1, 'Prize amount must be positive'),
+  prizeAmount: z.coerce.number({ invalid_type_error: 'Winner prize amount is required' }).min(200, 'Winner prize must be at least ₹200'),
   pricingRuleId: z.coerce.number().optional().nullable(),
   endDate: z.coerce.date().refine(date => date > new Date(), { message: "End date must be in the future" }),
   imageUrl: z.string().optional(),
@@ -1018,23 +1018,27 @@ export function CreateContestForm() {
                                 name="prizeAmount"
                                 control={control}
                                 render={({ field }) => (
-                                    <Select 
-                                        onValueChange={(val) => field.onChange(val ? Number(val) : undefined)} 
-                                        value={field.value ? String(field.value) : ""}
-                                    >
-                                        <SelectTrigger className="h-11 rounded-2xl bg-background/80 border-border text-foreground font-extrabold text-xs shadow-sm focus:ring-rose-500">
-                                            <SelectValue placeholder="Select prize amount..." />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-border bg-card shadow-lg p-2 max-h-[220px] overflow-y-auto">
-                                            {Array.from({ length: 20 }, (_, i) => (i + 1) * 50).map(amount => (
-                                                <SelectItem key={amount} value={String(amount)} className="font-semibold text-xs py-2">
-                                                    ₹{amount}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="relative">
+                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none z-10">
+                                            ₹
+                                        </span>
+                                        <Input
+                                            id="prizeAmount"
+                                            type="number"
+                                            min={200}
+                                            step={10}
+                                            placeholder="Enter winner prize amount (min ₹200)"
+                                            className="h-11 pl-8 rounded-2xl bg-background/80 border-border text-foreground font-extrabold text-xs shadow-sm focus-visible:ring-rose-500"
+                                            value={field.value ?? ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                field.onChange(val === '' ? undefined : Number(val));
+                                            }}
+                                        />
+                                    </div>
                                 )}
                             />
+                            <p className="text-[10px] text-muted-foreground font-medium">Minimum prize amount is ₹200.</p>
                             {errors.prizeAmount && <p className="text-[10px] font-semibold text-rose-500 flex items-center gap-1 mt-1"><AlertCircle className="w-3 h-3" /> {errors.prizeAmount.message}</p>}
                         </div>
                     </div>

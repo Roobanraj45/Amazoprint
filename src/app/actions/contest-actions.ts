@@ -12,7 +12,7 @@ const contestSchema = z.object({
   description: z.string().optional(),
   productId: z.coerce.number().min(1, 'Product is required'),
   subProductId: z.coerce.number().min(1, 'Product variant is required'),
-  prizeAmount: z.coerce.number().min(1, 'Prize amount must be positive'),
+  prizeAmount: z.coerce.number().min(200, 'Winner prize must be at least ₹200'),
   maxFreelancers: z.coerce.number().min(1, 'Max freelancers must be at least 1'),
   entryFee: z.coerce.number().optional(),
   endDate: z.coerce.date().refine(date => date > new Date(), { message: "End date must be in the future" }),
