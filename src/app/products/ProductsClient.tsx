@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Sparkles, Package2, Leaf, ShieldCheck, Palette, ArrowRight, CheckCircle2, IndianRupee, Search, Filter, Star, Zap, Flame, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +45,9 @@ const getDiscountInfo = (subProduct: any) => {
 const CATEGORY_ASSETS: Record<string, { emoji: string, bg: string, label: string }> = {
     'All': { emoji: '🛍️', bg: 'from-slate-100 to-slate-200', label: 'All Categories' },
     'Business Cards': { emoji: '🪪', bg: 'from-[#464674]/5 to-[#464674]/20', label: 'Business Cards' },
+    'Visiting Cards': { emoji: '🪪', bg: 'from-[#464674]/5 to-[#464674]/20', label: 'Visiting Cards' },
+    'Letterhead': { emoji: '📄', bg: 'from-blue-50 to-indigo-100', label: 'Letterhead' },
+    'Letterheads': { emoji: '📄', bg: 'from-blue-50 to-indigo-100', label: 'Letterheads' },
     'Flyers': { emoji: '📄', bg: 'from-orange-50 to-amber-100', label: 'Flyers' },
     'Brochures': { emoji: '📋', bg: 'from-violet-50 to-purple-100', label: 'Brochures' },
     'Stickers': { emoji: '⭐', bg: 'from-yellow-50 to-lime-100', label: 'Stickers' },
@@ -52,9 +55,15 @@ const CATEGORY_ASSETS: Record<string, { emoji: string, bg: string, label: string
     'Banners': { emoji: '🏳️', bg: 'from-red-50 to-rose-100', label: 'Banners' },
     'Packaging': { emoji: '📦', bg: 'from-amber-50 to-orange-100', label: 'Packaging' },
     'T-Shirts': { emoji: '👕', bg: 'from-pink-50 to-fuchsia-100', label: 'T-Shirts' },
+    'Invitations': { emoji: '💌', bg: 'from-purple-50 to-pink-100', label: 'Invitations' },
+    'Envelopes': { emoji: '✉️', bg: 'from-emerald-50 to-teal-100', label: 'Envelopes' },
+    'Gifts': { emoji: '🎁', bg: 'from-amber-50 to-yellow-100', label: 'Gifts' },
+    'ID Cards': { emoji: '🪪', bg: 'from-sky-50 to-blue-100', label: 'ID Cards' },
+    'Calendars': { emoji: '📅', bg: 'from-cyan-50 to-blue-100', label: 'Calendars' },
 };
 
 export function ProductsClient({ initialProducts, directSellingProducts = [] }: { initialProducts: any[]; directSellingProducts?: any[] }) {
+    const searchParams = useSearchParams();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState<string>('All');
     const [activeFinish, setActiveFinish] = useState<string>('All');
@@ -66,6 +75,27 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
         const directCats = directSellingProducts.map(p => p.category).filter(Boolean);
         return ['All', ...Array.from(new Set([...initialCats, ...directCats]))];
     }, [initialProducts, directSellingProducts]);
+
+    useEffect(() => {
+        const catParam = searchParams.get('category') || searchParams.get('cat') || searchParams.get('product');
+        const qParam = searchParams.get('q') || searchParams.get('search');
+        if (catParam) {
+            const cleanParam = decodeURIComponent(catParam).trim().toLowerCase();
+            const matched = categories.find(
+                c => c.toLowerCase() === cleanParam ||
+                     c.toLowerCase().replace(/\s+/g, '-') === cleanParam ||
+                     c.toLowerCase().replace(/-/g, ' ') === cleanParam ||
+                     cleanParam.includes(c.toLowerCase()) ||
+                     c.toLowerCase().includes(cleanParam)
+            );
+            if (matched) {
+                setActiveCategory(matched);
+            }
+        }
+        if (qParam) {
+            setSearchQuery(decodeURIComponent(qParam).trim());
+        }
+    }, [searchParams, categories]);
 
     // Helper to get matching products count for a category
     const getCategoryCount = (catName: string) => {

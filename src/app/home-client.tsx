@@ -172,16 +172,16 @@ const ECOSYSTEM_TABS = [
   },
   {
     id: 'templates',
-    label: 'Free Design Template',
-    heading: 'Thousands of free premium templates',
-    description: 'Start your print project instantly with our library of beautifully crafted, print-ready templates across every category.',
-    ctaText: 'Browse Free Templates',
+    label: 'Templates & Products',
+    heading: 'Thousands of free templates & custom products',
+    description: 'Start your print project instantly with our library of beautifully crafted, print-ready templates and customizable products across every category.',
+    ctaText: 'Browse Templates & Products',
     ctaHref: '/templates',
     subFeatures: [
-      { title: '10,000+ Templates', desc: 'Professionally designed for every industry and occasion.' },
-      { title: 'Fully Customizable', desc: 'Edit text, colors, fonts, and images with our design studio.' },
+      { title: '10,000+ Free Templates', desc: 'Professionally designed for every industry and occasion.' },
+      { title: 'Customizable Products', desc: 'Personalize designs directly on real commercial print products.' },
       { title: 'Print-Ready Formats', desc: 'Every template exports at 300 DPI with proper bleed margins.' },
-      { title: 'New Templates Weekly', desc: 'Our design team adds fresh templates every week for free.' },
+      { title: 'New Designs Weekly', desc: 'Our design team adds fresh templates and products every week.' },
     ],
   },
 ];
@@ -366,208 +366,547 @@ function PrintingMockup() {
   );
 }
 
-function TemplatesMockup() {
-  const templates = [
-    { name: 'Business Card', bg: 'from-[#464674] to-[#5c5c96]', label: 'Classic' },
-    { name: 'Flyer Design', bg: 'from-orange-500 to-red-500', label: 'Bold' },
-    { name: 'Event Poster', bg: 'from-emerald-500 to-teal-600', label: 'Modern' },
-    { name: 'Letterhead', bg: 'from-violet-500 to-purple-600', label: 'Pro' },
+function TemplatesMockup({ subProducts = [] }: { subProducts?: any[] }) {
+  const [viewMode, setViewMode] = React.useState<'products' | 'templates'>('products');
+
+  const existingTemplates = [
+    { name: 'Business Card', bg: 'from-[#464674] to-[#5c5c96]', label: 'Classic', category: 'Corporate' },
+    { name: 'Flyer Design', bg: 'from-orange-500 to-red-500', label: 'Bold', category: 'Marketing' },
+    { name: 'Event Poster', bg: 'from-emerald-500 to-teal-600', label: 'Modern', category: 'Events' },
+    { name: 'Letterhead', bg: 'from-violet-500 to-purple-600', label: 'Pro', category: 'Stationery' },
   ];
+
+  const displayProducts = subProducts && subProducts.length > 0 ? subProducts.slice(0, 4) : [];
+  const showProducts = viewMode === 'products' && displayProducts.length > 0;
+
   return (
     <div className="w-full max-w-[460px] bg-slate-950/95 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+      {/* Mockup Header */}
       <div className="bg-slate-900 border-b border-white/5 px-4 py-2.5 flex items-center justify-between">
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 items-center">
           <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
           <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
           <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+          <span className="text-[10px] text-gray-400 font-bold tracking-widest uppercase ml-2 hidden sm:inline">
+            {showProducts ? 'Product Templates' : 'Template Library'}
+          </span>
         </div>
-        <span className="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Template Library</span>
-        <span className="text-[8px] bg-[#464674]/30 text-[#8b8bb3] font-black px-2 py-0.5 rounded-full">10,000+ Free</span>
-      </div>
-      <div className="p-4 bg-slate-950 min-h-[220px]">
-        <div className="grid grid-cols-2 gap-2">
-          {templates.map((t, i) => (
-            <div key={i} className="rounded-xl overflow-hidden border border-white/5 group cursor-pointer hover:border-[#464674]/60 transition-all">
-              <div className={cn('aspect-[4/3] bg-gradient-to-br flex items-center justify-center', t.bg)}>
-                <div className="text-center">
-                  <p className="text-[8px] font-black text-white">{t.name}</p>
-                  <p className="text-[6px] text-white/60">{t.label}</p>
-                </div>
-              </div>
-              <div className="bg-slate-900 px-2 py-1.5 flex items-center justify-between">
-                <span className="text-[8px] text-gray-300 font-bold">{t.name}</span>
-                <span className="text-[7px] bg-emerald-500/20 text-emerald-400 px-1.5 rounded font-black">FREE</span>
-              </div>
-            </div>
-          ))}
+
+        {/* View mode toggle */}
+        <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-white/5">
+          <button
+            type="button"
+            onClick={() => setViewMode('products')}
+            className={cn(
+              'text-[8px] font-black px-2 py-0.5 rounded transition-all',
+              viewMode === 'products'
+                ? 'bg-[#464674] text-white shadow'
+                : 'text-gray-400 hover:text-white'
+            )}
+          >
+            Products ({displayProducts.length > 0 ? displayProducts.length : 'All'})
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('templates')}
+            className={cn(
+              'text-[8px] font-black px-2 py-0.5 rounded transition-all',
+              viewMode === 'templates'
+                ? 'bg-[#464674] text-white shadow'
+                : 'text-gray-400 hover:text-white'
+            )}
+          >
+            Templates (10K+)
+          </button>
         </div>
       </div>
-    </div>
-  );
-}
 
-// ─── Announcement Bar ─────────────────────────────────────────────────────────
-function AnnouncementBar() {
-  return (
-    <div className="bg-gradient-to-r from-[#1a1a4e] via-[#464674] to-[#1a1a4e] text-white py-2 overflow-hidden relative">
-      <div className="flex items-center">
-        <motion.div
-          animate={{ x: [0, -2000] }}
-          transition={{ duration: 28, repeat: Infinity, ease: 'linear' }}
-          className="flex items-center gap-12 whitespace-nowrap text-[11px] font-semibold tracking-wide"
-        >
-          {[...PROMO_ITEMS, ...PROMO_ITEMS].map((item, i) => (
-            <span key={i} className="flex items-center gap-2">
-              {item}
-              <span className="text-white/30 mx-3">|</span>
-            </span>
-          ))}
-        </motion.div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Hero Monitor Mockup (LEFT side) ─────────────────────────────────────────
-function HeroMonitorMockup() {
-  const steps = [
-    { num: '1', label: 'Choose Your Brand Printing Product', color: 'bg-[#464674]' },
-    { num: '2', label: 'Start Design & Check Corrections', color: 'bg-orange-500' },
-    { num: '3', label: 'Add To Cart & Place Order',        color: 'bg-emerald-500' },
-  ];
-  return (
-    <div className="relative flex items-end justify-center">
-      {/* CUSTOMIZED DESIGN — vertical left label */}
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 hidden lg:flex">
-        <span
-          className="text-[9px] font-black text-white/60 uppercase tracking-[0.25em]"
-          style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-        >
-          Customized Design
-        </span>
-      </div>
-
-      {/* HIGH QUALITY PRINTING — vertical right label */}
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 hidden lg:flex">
-        <span
-          className="text-[9px] font-black text-white/60 uppercase tracking-[0.25em]"
-          style={{ writingMode: 'vertical-rl' }}
-        >
-          High Quality Printing
-        </span>
-      </div>
-
-      {/* Monitor frame */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="relative w-full max-w-[460px] mx-8"
-      >
-        {/* Screen bezel */}
-        <div className="bg-gradient-to-b from-[#2a2a5a] to-[#1a1a3e] rounded-2xl p-2 shadow-2xl shadow-[#464674]/40 border border-white/10">
-          {/* Screen content */}
-          <div className="bg-[#0d0d20] rounded-xl overflow-hidden">
-            {/* Browser bar */}
-            <div className="bg-[#1a1a35] border-b border-white/5 px-3 py-2 flex items-center gap-2">
-              <div className="flex gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-red-500/80" />
-                <div className="w-2 h-2 rounded-full bg-yellow-500/80" />
-                <div className="w-2 h-2 rounded-full bg-green-500/80" />
-              </div>
-              <div className="flex-1 bg-white/5 rounded h-4 flex items-center px-2">
-                <span className="text-[8px] text-white/30 font-medium">amazoprint.in/design</span>
-              </div>
-            </div>
-
-            {/* Main screen area */}
-            <div className="p-5 min-h-[280px] flex flex-col justify-center gap-4">
-              {/* Design studio preview area */}
-              <div className="bg-gradient-to-br from-[#464674]/30 to-[#2f2f54]/40 rounded-xl p-4 border border-white/5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#464674] to-[#5c5c96] flex items-center justify-center shadow-lg">
-                    <Palette size={14} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-white">AmazoPrint Design Studio</p>
-                    <p className="text-[7px] text-white/50">Create · Customize · Order</p>
-                  </div>
-                  <div className="ml-auto">
-                    <span className="text-[7px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-black">● Live</span>
-                  </div>
-                </div>
-                {/* Mini canvas preview */}
-                <div className="bg-gradient-to-br from-[#464674] to-[#5c5c96] rounded-lg aspect-[2.5/1] relative overflow-hidden flex items-center justify-center">
-                  <div className="text-center">
-                    <p className="text-[9px] font-black text-white tracking-wide">YOUR BRAND HERE</p>
-                    <p className="text-[6px] text-white/60 mt-0.5">Business Card · 3.5 × 2 in</p>
-                  </div>
-                  <div className="absolute inset-2 border border-dashed border-white/20 rounded pointer-events-none" />
-                  <motion.div
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="absolute top-1 right-1 w-4 h-4 rounded bg-white/20 flex items-center justify-center"
-                  >
-                    <Sparkles size={8} className="text-white" />
-                  </motion.div>
-                </div>
-              </div>
-
-              {/* Step list */}
-              <div className="space-y-2">
-                {steps.map((s, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 + i * 0.15, duration: 0.5 }}
-                    className="flex items-center gap-2.5"
-                  >
-                    <div className={cn('w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-black flex-shrink-0', s.color)}>
-                      {s.num}
+      {/* Mockup Content Grid */}
+      <div className="p-3.5 bg-slate-950 min-h-[220px]">
+        {showProducts ? (
+          <div className="grid grid-cols-2 gap-2">
+            {displayProducts.map((sp: any) => {
+              const imgUrl = resolveImagePath(sp.imageUrl || sp.parentProductImageUrl);
+              return (
+                <Link
+                  key={sp.id}
+                  href={`/design/${sp.productSlug}/start?subProductId=${sp.id}`}
+                  className="rounded-xl overflow-hidden border border-white/10 group cursor-pointer hover:border-[#464674] hover:shadow-lg transition-all bg-slate-900 flex flex-col"
+                >
+                  <div className="aspect-[4/3] bg-slate-800 overflow-hidden relative flex-shrink-0">
+                    {imgUrl ? (
+                      <Image
+                        src={imgUrl}
+                        alt={sp.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#464674]/40 to-slate-900">
+                        <Package className="w-6 h-6 text-white/40" />
+                      </div>
+                    )}
+                    <span className="absolute top-1.5 right-1.5 text-[7px] bg-[#464674]/90 text-white font-black px-1.5 py-0.5 rounded backdrop-blur-sm shadow">
+                      {sp.width && sp.height ? `${sp.width}×${sp.height}${sp.unitType || 'mm'}` : 'Custom'}
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
+                      <span className="text-[7px] font-black text-white bg-[#464674] px-1.5 py-0.5 rounded w-full text-center">
+                        Customize Design →
+                      </span>
                     </div>
-                    <p className="text-[9px] text-white/70 font-medium">{s.label}</p>
-                    {i < 2 && <ArrowRight size={8} className="text-white/30 flex-shrink-0 ml-auto" />}
-                    {i === 2 && <span className="text-[7px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-black ml-auto">Done!</span>}
-                  </motion.div>
+                  </div>
+                  <div className="p-2 flex items-center justify-between gap-1 flex-1">
+                    <div className="min-w-0">
+                      <p className="text-[8px] font-bold text-gray-200 truncate group-hover:text-white transition-colors">
+                        {sp.name}
+                      </p>
+                      <p className="text-[7px] text-gray-400 truncate">
+                        {sp.productName || 'Print Product'}
+                      </p>
+                    </div>
+                    <span className="text-[7px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded font-black flex-shrink-0">
+                      {sp.price ? `₹${Number(sp.price).toFixed(0)}` : 'FREE'}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {existingTemplates.map((t, i) => (
+              <Link
+                key={i}
+                href="/templates"
+                className="rounded-xl overflow-hidden border border-white/5 group cursor-pointer hover:border-[#464674]/60 transition-all block bg-slate-900"
+              >
+                <div className={cn('aspect-[4/3] bg-gradient-to-br flex items-center justify-center relative', t.bg)}>
+                  <div className="text-center p-1">
+                    <p className="text-[9px] font-black text-white">{t.name}</p>
+                    <p className="text-[6px] text-white/70">{t.label} • {t.category}</p>
+                  </div>
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-[7px] font-black text-white bg-white/20 px-2 py-0.5 rounded backdrop-blur-sm">
+                      Use Template
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-slate-900 px-2 py-1.5 flex items-center justify-between">
+                  <span className="text-[8px] text-gray-300 font-bold">{t.name}</span>
+                  <span className="text-[7px] bg-emerald-500/20 text-emerald-400 px-1.5 rounded font-black">FREE</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Hero Computer & Emerging Multi-Product 3D Showcase (LEFT side) ────────
+function HeroMonitorMockup() {
+  const [hoveredItem, setHoveredItem] = React.useState<string | null>(null);
+  const [activeStudioTab, setActiveStudioTab] = React.useState<'card' | 'flyer' | 'apparel' | 'box'>('card');
+
+  // Studio canvas content variations
+  const studioTemplates = {
+    card: {
+      title: 'LUXURY BUSINESS CARD',
+      subtitle: '3.5 × 2.0 in · Velvet Matte & Spot UV',
+      badge: 'Gold Foil Ready',
+      color: 'from-[#1a1a40] to-[#282860]',
+    },
+    flyer: {
+      title: 'MARKETING FLYER A5',
+      subtitle: '5.8 × 8.3 in · 170 GSM Art Gloss',
+      badge: 'High Speed Offset',
+      color: 'from-orange-600/30 to-pink-600/30',
+    },
+    apparel: {
+      title: 'CUSTOM BRANDED APPAREL',
+      subtitle: 'DTF Printing · 220 GSM Cotton',
+      badge: 'Screen & DTF HD',
+      color: 'from-emerald-600/30 to-teal-600/30',
+    },
+    box: {
+      title: 'RIGID PACKAGING BOX',
+      subtitle: 'Custom Die-cut · Kraft & White',
+      badge: '3D Folded Proof',
+      color: 'from-purple-600/30 to-indigo-600/30',
+    },
+  };
+
+  const activeTpl = studioTemplates[activeStudioTab];
+
+  return (
+    <div className="relative flex items-center justify-center min-h-[380px] sm:min-h-[460px] lg:min-h-[540px] w-full py-4 sm:py-6 lg:py-8 select-none overflow-visible">
+      {/* Dynamic atmospheric lighting */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[300px] sm:w-[420px] h-[300px] sm:h-[420px] bg-gradient-to-tr from-[#464674]/30 via-orange-500/20 to-pink-500/15 rounded-full blur-[70px] sm:blur-[100px] animate-pulse" />
+      </div>
+
+      {/* Floating CMYK Particle Drops */}
+      <motion.div
+        animate={{ y: [-5, 5, -5], rotate: [0, 180, 360] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+        className="absolute top-4 left-6 sm:left-12 w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-cyan-400 shadow-lg shadow-cyan-400/50 hidden sm:block pointer-events-none opacity-80"
+      />
+      <motion.div
+        animate={{ y: [6, -6, 6], rotate: [360, 180, 0] }}
+        transition={{ duration: 7, repeat: Infinity, ease: 'linear' }}
+        className="absolute bottom-10 right-8 sm:right-16 w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-pink-500 shadow-lg shadow-pink-500/50 hidden sm:block pointer-events-none opacity-80"
+      />
+
+      {/* ── CENTRAL STUDIO COMPUTER WORKSTATION ── */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 18 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        className="relative w-full max-w-[340px] sm:max-w-[400px] lg:max-w-[460px] z-10 mx-auto"
+      >
+        {/* Curved Bezel Frame with Metallic Chamfer */}
+        <div className="bg-gradient-to-b from-[#2a2a56] via-[#1a1a3a] to-[#101024] rounded-2xl sm:rounded-3xl p-2 sm:p-3 shadow-2xl shadow-[#101028]/80 border-2 border-white/20 relative overflow-hidden backdrop-blur-md">
+          {/* Glass Gloss Shimmer */}
+          <div className="absolute -top-24 -left-24 w-72 h-72 bg-gradient-to-br from-white/15 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+          {/* Screen Display */}
+          <div className="bg-[#090918] rounded-xl sm:rounded-2xl overflow-hidden border border-white/10 relative">
+            {/* Top Workspace Bar */}
+            <div className="bg-[#12122b] border-b border-white/10 px-2.5 sm:px-3.5 py-2 sm:py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-500/90 shadow-xs" />
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-500/90 shadow-xs" />
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500/90 shadow-xs" />
+              </div>
+
+              {/* Interactive Product Tabs in Studio Screen */}
+              <div className="flex items-center gap-0.5 sm:gap-1 bg-black/40 p-0.5 rounded-lg border border-white/5">
+                {(['card', 'flyer', 'apparel', 'box'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setActiveStudioTab(tab)}
+                    className={cn(
+                      'text-[7px] sm:text-[8px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md transition-all capitalize',
+                      activeStudioTab === tab
+                        ? 'bg-[#464674] text-white shadow-xs'
+                        : 'text-white/40 hover:text-white/80'
+                    )}
+                  >
+                    {tab}
+                  </button>
                 ))}
+              </div>
+
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                <span className="text-[7px] sm:text-[8px] font-black text-emerald-400">Live</span>
+              </div>
+            </div>
+
+            {/* Main Studio Canvas */}
+            <div className="p-3 sm:p-4 min-h-[220px] sm:min-h-[260px] flex flex-col justify-between relative bg-gradient-to-b from-[#0e0e22] via-[#090918] to-[#050510]">
+              {/* Ruler & Alignment Grid */}
+              <div
+                className="absolute inset-0 opacity-15 pointer-events-none"
+                style={{
+                  backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
+                  backgroundSize: '16px 16px',
+                }}
+              />
+
+              {/* Studio Top Control Ribbon */}
+              <div className="flex items-center justify-between relative z-10 pb-1.5 sm:pb-2 border-b border-white/5">
+                <div className="flex items-center gap-1 bg-white/5 p-0.5 sm:p-1 rounded-lg">
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-[#464674] flex items-center justify-center text-white shadow-xs">
+                    <PenTool size={9} />
+                  </div>
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded hover:bg-white/10 flex items-center justify-center text-white/60">
+                    <Palette size={9} />
+                  </div>
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded hover:bg-white/10 flex items-center justify-center text-white/60">
+                    <Layers size={9} />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 text-[7px] sm:text-[8px] font-semibold text-white/70">
+                  <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                    CMYK 300DPI
+                  </span>
+                  <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded hidden sm:inline-block">
+                    SPOT UV
+                  </span>
+                </div>
+              </div>
+
+              {/* Active Artwork Preview On Digital Canvas */}
+              <div className="relative my-auto py-2 flex items-center justify-center">
+                <motion.div
+                  key={activeStudioTab}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className={cn(
+                    'w-[160px] sm:w-[190px] h-[95px] sm:h-[110px] rounded-xl bg-gradient-to-br border-2 border-dashed border-[#464674]/70 p-2.5 relative shadow-inner flex flex-col justify-between',
+                    activeTpl.color
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <div className="w-4 h-4 rounded-md bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-[8px] font-black text-slate-950 shadow">
+                        AP
+                      </div>
+                      <span className="text-[7px] sm:text-[8px] font-black text-white tracking-wide">AMAZOPRINT</span>
+                    </div>
+                    <span className="text-[6px] sm:text-[7px] text-amber-300 font-bold bg-amber-400/20 px-1.5 py-0.5 rounded border border-amber-400/30">
+                      {activeTpl.badge}
+                    </span>
+                  </div>
+
+                  <div>
+                    <p className="text-[8px] sm:text-[9px] font-black text-white tracking-wider">{activeTpl.title}</p>
+                    <p className="text-[6px] sm:text-[7px] text-white/60 font-medium">{activeTpl.subtitle}</p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-white/10">
+                    <div className="h-1 w-10 sm:w-14 bg-white/40 rounded-full" />
+                    <span className="text-[5px] sm:text-[6px] font-mono text-cyan-300">PRINT READY ✔</span>
+                  </div>
+
+                  {/* Vector Pen Drawing Handle */}
+                  <motion.div
+                    animate={{
+                      x: [0, 15, -8, 0],
+                      y: [0, -8, 6, 0],
+                    }}
+                    transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute -top-1 -right-1 w-4 h-4 bg-white text-[#464674] rounded-full shadow-lg flex items-center justify-center border-2 border-[#464674]"
+                  >
+                    <Sparkles size={8} />
+                  </motion.div>
+                </motion.div>
+
+                {/* Laser Ray Burst Portals (Digital -> Physical Transfer) */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <motion.div
+                    animate={{ scale: [0.92, 1.3, 0.92], opacity: [0.2, 0.6, 0.2] }}
+                    transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                    className="w-[170px] sm:w-[200px] h-[105px] sm:h-[120px] rounded-2xl border-2 border-cyan-400/40 bg-cyan-400/5 blur-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Studio Bottom Stream Bar */}
+              <div className="flex items-center justify-between text-[7px] sm:text-[8px] text-white/50 pt-1 border-t border-white/5">
+                <span className="flex items-center gap-1 text-cyan-300 font-bold">
+                  <Flame size={9} className="text-orange-400" /> Exporting into Real Print Products...
+                </span>
+                <span className="font-mono text-emerald-400 hidden sm:inline-block">100% Vector</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Monitor stand */}
+        {/* Studio Stand */}
         <div className="flex flex-col items-center">
-          <div className="w-16 h-3 bg-gradient-to-b from-[#2a2a5a] to-[#1e1e48] rounded-b-sm" />
-          <div className="w-32 h-2 bg-gradient-to-b from-[#1e1e48] to-[#141430] rounded-b-md" />
-          <div className="w-40 h-1.5 bg-[#141430] rounded-full shadow-lg" />
+          <div className="w-16 sm:w-20 h-2.5 sm:h-3.5 bg-gradient-to-b from-[#2a2a56] to-[#1a1a38] rounded-b-sm shadow" />
+          <div className="w-28 sm:w-36 h-2 sm:h-3 bg-gradient-to-b from-[#1a1a38] to-[#0e0e22] rounded-b-md" />
+          <div className="w-36 sm:w-48 h-1.5 sm:h-2 bg-[#090918] rounded-full shadow-2xl" />
         </div>
       </motion.div>
 
-      {/* Floating badges */}
+      {/* ═══════════════════════════════════════════════════════════════
+          RESPONSIVE 3D PHYSICAL PRODUCTS BURSTING OUT
+      ═══════════════════════════════════════════════════════════════ */}
+
+      {/* ── 1. LUXURY GOLD FOIL VISITING CARD (Top-Right) ──────────── */}
       <motion.div
-        animate={{ y: [0, -8, 0] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute top-4 -left-4 z-20 bg-white rounded-xl shadow-2xl px-3.5 py-2 flex items-center gap-2 border-2 border-white ring-2 ring-orange-500/20"
+        animate={{
+          y: [0, -8, 0],
+          rotate: [-8, -5, -8],
+        }}
+        transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
+        whileHover={{ scale: 1.06, rotate: 0, zIndex: 50 }}
+        onHoverStart={() => setHoveredItem('card')}
+        onHoverEnd={() => setHoveredItem(null)}
+        className="absolute -top-3 sm:-top-5 right-0 sm:-right-4 lg:-right-8 z-30 cursor-pointer scale-[0.80] sm:scale-95 lg:scale-100 origin-top-right"
       >
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white flex-shrink-0">
-          <Tag size={13} />
+        <Link href="/products?category=Visiting%20Cards">
+          <div className="w-[165px] sm:w-[190px] h-[100px] sm:h-[115px] bg-gradient-to-br from-[#1c1c3c] via-[#24244f] to-[#121228] rounded-xl p-2.5 sm:p-3 shadow-2xl shadow-black/70 border-2 border-amber-400/50 relative overflow-hidden group/card">
+            {/* Metallic Gold Sheen */}
+            <div className="absolute -inset-full bg-gradient-to-r from-transparent via-amber-300/20 to-transparent rotate-45 group-hover/card:animate-shimmer pointer-events-none" />
+
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-[9px] sm:text-[10px] shadow">
+                  ★
+                </div>
+                <div>
+                  <p className="text-[8px] sm:text-[9px] font-black text-white tracking-wider">AURA STUDIO</p>
+                  <p className="text-[5px] sm:text-[6px] text-amber-300 font-bold uppercase tracking-widest">Executive Card</p>
+                </div>
+              </div>
+              <span className="text-[6px] sm:text-[7px] font-black px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                Gold Foil
+              </span>
+            </div>
+
+            <div className="mt-2">
+              <p className="text-[9px] sm:text-[10px] font-bold text-white leading-tight">Alexander Vance</p>
+              <p className="text-[6px] sm:text-[7px] text-white/60">Creative Director</p>
+            </div>
+
+            <div className="mt-1.5 pt-1 border-t border-white/10 flex items-center justify-between text-[5px] sm:text-[6px] text-white/60 font-mono">
+              <span>+91 98765 43210</span>
+              <span className="text-amber-300 font-bold">350 GSM Velvet</span>
+            </div>
+          </div>
+        </Link>
+      </motion.div>
+
+      {/* ── 2. VIBRANT GLOSS MARKETING FLYER (Top-Left) ────────────── */}
+      <motion.div
+        animate={{
+          y: [0, 10, 0],
+          rotate: [6, 9, 6],
+        }}
+        transition={{ duration: 4.8, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+        whileHover={{ scale: 1.06, rotate: 0, zIndex: 50 }}
+        onHoverStart={() => setHoveredItem('flyer')}
+        onHoverEnd={() => setHoveredItem(null)}
+        className="absolute top-8 sm:top-10 left-0 sm:-left-6 lg:-left-10 z-30 cursor-pointer scale-[0.75] sm:scale-90 lg:scale-100 origin-top-left"
+      >
+        <Link href="/products?category=Flyers">
+          <div className="w-[145px] sm:w-[170px] h-[180px] sm:h-[210px] bg-gradient-to-br from-orange-500 via-rose-500 to-pink-600 rounded-2xl p-2.5 sm:p-3 shadow-2xl shadow-orange-500/30 border-2 border-white/90 relative overflow-hidden text-white group/flyer">
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent pointer-events-none" />
+
+            <div className="flex items-center justify-between">
+              <span className="text-[6px] sm:text-[7px] font-black bg-white text-orange-600 px-1.5 py-0.5 rounded-full shadow">
+                A5 FLYER
+              </span>
+              <span className="text-[7px] sm:text-[8px] font-black bg-black/30 px-1.5 py-0.5 rounded">
+                170 GSM Art
+              </span>
+            </div>
+
+            <div className="my-1.5 sm:my-2 text-center bg-white/10 rounded-xl p-1.5 sm:p-2 border border-white/20">
+              <p className="text-[7px] sm:text-[8px] font-black tracking-widest text-amber-200 uppercase">SUMMER FEST</p>
+              <p className="text-base sm:text-lg font-black leading-none my-0.5 text-white drop-shadow">50% OFF</p>
+              <p className="text-[6px] sm:text-[7px] font-medium text-white/90">Grand Opening Event</p>
+            </div>
+
+            <div className="space-y-1 my-1">
+              <div className="h-1 bg-white/30 rounded-full w-full" />
+              <div className="h-1 bg-white/20 rounded-full w-4/5" />
+            </div>
+
+            <div className="mt-auto pt-1 border-t border-white/20 flex items-center justify-between text-[6px] sm:text-[7px] font-bold">
+              <span className="bg-white text-rose-600 px-2 py-0.5 rounded-md font-black shadow">
+                Order Now
+              </span>
+              <span className="text-white/90 font-mono">₹0.85/pc</span>
+            </div>
+          </div>
+        </Link>
+      </motion.div>
+
+      {/* ── 3. CUSTOM BRANDED APPAREL TAG (Mid-Right on Desktop/Tablet) ── */}
+      <motion.div
+        animate={{
+          y: [0, -7, 0],
+          rotate: [-14, -10, -14],
+        }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 1.0 }}
+        whileHover={{ scale: 1.1, rotate: 0, zIndex: 50 }}
+        className="absolute top-28 -right-2 sm:-right-6 lg:-right-8 z-20 cursor-pointer hidden sm:block scale-90 lg:scale-100"
+      >
+        <Link href="/products?category=T-Shirts">
+          <div className="w-[125px] sm:w-[135px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 rounded-2xl p-2.5 shadow-2xl shadow-black/50 border-2 border-emerald-400/40 relative text-white">
+            <div className="w-2 h-2 rounded-full bg-slate-950 border border-white/30 mx-auto -mt-3.5 mb-1 shadow-inner" />
+            <div className="flex items-center justify-between">
+              <span className="text-[7px] font-black bg-emerald-500 text-slate-950 px-1.5 py-0.5 rounded-full">
+                APPAREL DTF
+              </span>
+              <span className="text-[6px] text-emerald-300 font-bold">100% Cotton</span>
+            </div>
+            <p className="text-[8px] font-black text-white mt-1">Custom T-Shirt</p>
+            <p className="text-[6px] text-white/50">High-Density Print</p>
+          </div>
+        </Link>
+      </motion.div>
+
+      {/* ── 4. DIE-CUT HOLOGRAPHIC VINYL STICKER (Bottom-Right) ────── */}
+      <motion.div
+        animate={{
+          y: [0, -8, 0],
+          rotate: [10, 14, 10],
+        }}
+        transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut', delay: 1.4 }}
+        whileHover={{ scale: 1.12, rotate: 0, zIndex: 50 }}
+        className="absolute -bottom-2 sm:-bottom-4 right-0 sm:right-4 lg:right-2 z-30 cursor-pointer scale-[0.75] sm:scale-90 lg:scale-100 origin-bottom-right"
+      >
+        <Link href="/products?category=Stickers">
+          <div className="w-[95px] sm:w-[115px] h-[95px] sm:h-[115px] rounded-full bg-gradient-to-tr from-cyan-400 via-violet-500 to-pink-500 p-0.5 shadow-2xl shadow-purple-500/40 relative group/sticker flex items-center justify-center text-white">
+            <div className="w-full h-full rounded-full bg-[#10102b] p-1.5 sm:p-2 flex flex-col items-center justify-center text-center relative overflow-hidden border border-white/20">
+              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-300 to-orange-500 flex items-center justify-center text-slate-950 font-black text-[10px] shadow-md mb-0.5">
+                ★
+              </div>
+              <p className="text-[7px] sm:text-[8px] font-black tracking-wide text-white">DIE-CUT</p>
+              <p className="text-[5px] sm:text-[6px] text-cyan-300 font-bold">Holographic Vinyl</p>
+              <span className="text-[5px] sm:text-[6px] bg-white/10 text-white/80 px-1.5 py-0.2 rounded-full mt-0.5">
+                Waterproof
+              </span>
+            </div>
+            <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-tl-lg bg-white/40 backdrop-blur-xs border border-white/60 shadow" />
+          </div>
+        </Link>
+      </motion.div>
+
+      {/* ── 5. SMART NFC ID CARD (Bottom-Left on Tablet/Desktop) ───── */}
+      <motion.div
+        animate={{
+          y: [0, 8, 0],
+          rotate: [-12, -9, -12],
+        }}
+        transition={{ duration: 4.4, repeat: Infinity, ease: 'easeInOut', delay: 1.8 }}
+        whileHover={{ scale: 1.08, rotate: 0, zIndex: 50 }}
+        className="absolute -bottom-3 sm:-bottom-5 left-0 sm:left-2 lg:left-0 z-30 cursor-pointer scale-[0.75] sm:scale-90 lg:scale-100 origin-bottom-left"
+      >
+        <Link href="/products?category=ID%20Cards">
+          <div className="w-[135px] sm:w-[155px] h-[80px] sm:h-[92px] bg-gradient-to-br from-white via-slate-50 to-slate-200 rounded-xl p-2 sm:p-2.5 shadow-2xl shadow-black/30 border-2 border-white relative text-slate-800">
+            <div className="w-4 h-1 bg-slate-300 rounded-full mx-auto -mt-1 mb-1" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded bg-[#464674] flex items-center justify-center text-white text-[6px] font-bold">
+                  AP
+                </div>
+                <span className="text-[6px] sm:text-[7px] font-black text-slate-900">amazoprint.in</span>
+              </div>
+              <span className="text-[5px] sm:text-[6px] font-bold text-emerald-600">● NFC Active</span>
+            </div>
+            <p className="text-[7px] sm:text-[8px] font-bold text-slate-700 mt-1">Smart Access Pass</p>
+            <div className="flex items-center justify-between text-[5px] sm:text-[6px] text-slate-400 mt-0.5">
+              <span>HD PVC Card</span>
+              <span className="text-[#464674] font-black">2400 DPI</span>
+            </div>
+          </div>
+        </Link>
+      </motion.div>
+
+      {/* ── 6. TOP PRESS QUALITY SEAL ─────────────────────────────── */}
+      <motion.div
+        animate={{ y: [0, -5, 0] }}
+        transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute -top-3 sm:-top-4 left-2 sm:left-6 lg:left-8 z-30 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1.5 sm:gap-2 border border-gray-100 ring-2 ring-orange-500/20"
+      >
+        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white flex-shrink-0 shadow">
+          <Printer size={11} />
         </div>
         <div>
-          <p className="text-[8px] text-gray-400 font-black uppercase tracking-wider">Grand Opening</p>
-          <p className="text-xs font-black text-gray-900">Flat 30% OFF 🎉</p>
+          <p className="text-[6px] sm:text-[7px] text-gray-400 font-black uppercase tracking-wider">Direct Press</p>
+          <p className="text-[9px] sm:text-[10px] font-black text-gray-900">2400 DPI Offset</p>
         </div>
-      </motion.div>
-
-      <motion.div
-        animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-        className="absolute bottom-16 -right-4 z-20 bg-white rounded-xl shadow-xl px-3 py-2 border border-gray-100"
-      >
-        <p className="text-[8px] text-gray-400 font-black uppercase tracking-wider">All Over India</p>
-        <p className="text-xs font-black text-[#464674] flex items-center gap-1">
-          <Truck size={11} /> Shipping Available
-        </p>
       </motion.div>
     </div>
   );
@@ -594,10 +933,6 @@ export function HomeClient({
 
   return (
     <div className="flex flex-col min-h-screen bg-white text-gray-900 overflow-x-hidden">
-
-      {/* ─── Announcement Bar ─────────────────────────────────────────── */}
-      <AnnouncementBar />
-
       <Navbar />
 
       <main className="flex-1">
@@ -612,44 +947,44 @@ export function HomeClient({
           <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#464674]/8 rounded-full blur-[120px] pointer-events-none -translate-x-1/3 -translate-y-1/3" />
           <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-orange-400/6 rounded-full blur-[100px] pointer-events-none translate-x-1/4 translate-y-1/4" />
 
-          <div className="w-full px-3 sm:px-4 lg:px-6 py-10 lg:py-16">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <div className="w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-10 lg:py-16">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-16 items-center">
 
-              {/* ── LEFT: Monitor Mockup ── */}
+              {/* ── Visual Showcase (Order 2 on mobile, Order 1 on Desktop) ── */}
               <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.75 }}
-                className="relative"
+                className="relative order-2 lg:order-1 w-full"
               >
                 <HeroMonitorMockup />
               </motion.div>
 
-              {/* ── RIGHT: Copy + CTA ── */}
+              {/* ── Copy + CTA (Order 1 on mobile, Order 2 on Desktop) ── */}
               <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.75, delay: 0.1 }}
-                className="space-y-6 lg:pl-4"
+                className="space-y-4 sm:space-y-6 lg:pl-4 order-1 lg:order-2"
               >
                 {/* Trust badge */}
-                <span className="inline-flex items-center gap-2 bg-[#464674]/10 border border-[#464674]/20 text-[#464674] text-[11px] font-bold tracking-wide px-4 py-1.5 rounded-full">
+                <span className="inline-flex items-center gap-2 bg-[#464674]/10 border border-[#464674]/20 text-[#464674] text-[10px] sm:text-[11px] font-bold tracking-wide px-3.5 py-1.5 rounded-full">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   India's Most Trusted Printing Ecosystem
                 </span>
 
                 {/* Headline */}
-                <div className="space-y-3">
-                  <h1 className="text-3xl sm:text-4xl lg:text-[2.85rem] font-black text-gray-900 tracking-tight leading-[1.15] font-display">
+                <div className="space-y-2 sm:space-y-3">
+                  <h1 className="text-2xl sm:text-4xl lg:text-[2.85rem] font-black text-gray-900 tracking-tight leading-[1.2] lg:leading-[1.15] font-display">
                     Create beautiful designs on{' '}
                     <span className="text-[#464674] font-classy italic font-black">Amazoprint</span>
                     <br />
-                    <span className="text-gray-800 text-2xl sm:text-3xl font-black font-display">and get printing delivered</span>{' '}
-                    <span className="text-gray-500 text-xl sm:text-2xl font-semibold font-body">right on doorstep!</span>
+                    <span className="text-gray-800 text-xl sm:text-3xl font-black font-display">and get printing delivered</span>{' '}
+                    <span className="text-gray-500 text-lg sm:text-2xl font-semibold font-body">right on doorstep!</span>
                   </h1>
 
                   {/* Tagline */}
-                  <p className="text-gray-800 text-xl md:text-2xl font-black leading-tight font-display">
+                  <p className="text-gray-800 text-lg sm:text-2xl font-black leading-tight font-display">
                     Let's execute thoughts{' '}
                     <span className="relative inline-block">
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 font-classy italic font-bold">with color</span>
@@ -663,10 +998,10 @@ export function HomeClient({
                 </div>
 
                 {/* CTA button */}
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2.5 sm:gap-3 pt-1">
                   <Link
                     href="/products"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-[#464674] to-[#5c5c96] hover:from-[#5c5c96] hover:to-[#464674] text-white font-black text-sm px-7 py-3.5 rounded-xl shadow-xl shadow-[#464674]/25 transition-all hover:-translate-y-0.5 group"
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-[#464674] to-[#5c5c96] hover:from-[#5c5c96] hover:to-[#464674] text-white font-black text-xs sm:text-sm px-5 sm:px-7 py-3 sm:py-3.5 rounded-xl shadow-xl shadow-[#464674]/25 transition-all hover:-translate-y-0.5 group"
                   >
                     Start Your Unique Designs
                     <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
@@ -868,7 +1203,7 @@ export function HomeClient({
                     {activeTab === 'verification' && <VerificationMockup />}
                     {activeTab === 'contests'     && <ContestsMockup />}
                     {activeTab === 'printing'     && <PrintingMockup />}
-                    {activeTab === 'templates'    && <TemplatesMockup />}
+                    {activeTab === 'templates'    && <TemplatesMockup subProducts={subProducts} />}
                   </div>
                 </div>
               </motion.div>

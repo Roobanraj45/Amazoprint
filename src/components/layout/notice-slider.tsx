@@ -96,6 +96,7 @@ export function NoticeSlider({ className, variant = 'dark' }: NoticeSliderProps)
   const [direction, setDirection] = useState<1 | -1>(1);
   const [isPaused, setIsPaused] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isMobilePaused, setIsMobilePaused] = useState(false);
 
   useEffect(() => {
     if (isPaused || isDismissed) return;
@@ -141,19 +142,87 @@ export function NoticeSlider({ className, variant = 'dark' }: NoticeSliderProps)
   return (
     <div
       className={cn(
-        'relative w-full h-11 sm:h-12 z-40 overflow-hidden flex items-center transition-colors duration-300 select-none border-b-2 border-white shadow-md',
+        'relative w-full h-10 sm:h-11 md:h-12 z-40 overflow-hidden flex items-center transition-colors duration-300 select-none border-b border-white/20 shadow-md',
         variant === 'dark'
           ? 'bg-gradient-to-r from-[#0a0a24] via-[#141440] to-[#222254] text-white'
-          : 'bg-[#1a1a4e] text-white border-b-2 border-white shadow-md',
+          : 'bg-[#1a1a4e] text-white border-b border-white/20 shadow-md',
         className
       )}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="w-full h-full px-3 sm:px-4 lg:px-6 flex items-center justify-between gap-3">
+      {/* ═══════════════════════════════════════════════════════════════
+          1. SMALL SCREENS (< md): SEAMLESS INFINITE MARQUEE STYLE
+      ═══════════════════════════════════════════════════════════════ */}
+      <div
+        className="flex md:hidden w-full h-full relative items-center overflow-hidden"
+        onTouchStart={() => setIsMobilePaused(true)}
+        onTouchEnd={() => setIsMobilePaused(false)}
+        onMouseEnter={() => setIsMobilePaused(true)}
+        onMouseLeave={() => setIsMobilePaused(false)}
+      >
+        {/* Left & Right gradient edge fades */}
+        <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#0a0a24] to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#222254] to-transparent z-10 pointer-events-none" />
+
+        {/* Continuous Marquee Track */}
+        <motion.div
+          animate={isMobilePaused ? {} : { x: ['0%', '-50%'] }}
+          transition={{
+            duration: 26,
+            repeat: Infinity,
+            ease: 'linear',
+          }}
+          className="flex items-center gap-6 whitespace-nowrap will-change-transform"
+        >
+          {/* Double list to create seamless infinite loop */}
+          {[...DUMMY_NOTICES, ...DUMMY_NOTICES].map((notice, idx) => {
+            const ItemIcon = notice.icon;
+            return (
+              <Link
+                key={`marquee-${notice.id}-${idx}`}
+                href={notice.link || '/products'}
+                className="inline-flex items-center gap-2 text-xs font-bold text-white hover:text-yellow-200 transition-colors group flex-shrink-0"
+              >
+                {/* Badge */}
+                <span className="inline-flex items-center gap-1 text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full border border-white/40 bg-white/15 text-white uppercase shadow-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-300 animate-pulse" />
+                  {notice.badge}
+                </span>
+
+                {/* Icon */}
+                <ItemIcon className="w-3.5 h-3.5 text-yellow-300 flex-shrink-0" />
+
+                {/* Text */}
+                <span className="font-semibold text-white/95">
+                  {notice.text}
+                </span>
+
+                {/* Highlight */}
+                {notice.highlight && (
+                  <span className="font-black text-yellow-300 bg-yellow-400/10 px-1.5 py-0.2 rounded border border-yellow-300/30">
+                    {notice.highlight}
+                  </span>
+                )}
+
+                {/* Separator icon between items */}
+                <span className="text-white/30 text-xs font-mono ml-4">✦</span>
+              </Link>
+            );
+          })}
+        </motion.div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          2. DESKTOP SCREENS (>= md): INTERACTIVE CAROUSEL SLIDER
+      ═══════════════════════════════════════════════════════════════ */}
+      <div
+        className="hidden md:flex w-full h-full px-4 lg:px-6 items-center justify-between gap-3"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
         {/* Left Arrow Controls */}
         <button
           onClick={handlePrev}
+          type="button"
           aria-label="Previous notice"
           className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/20 border border-white/40 transition-all flex-shrink-0"
         >
@@ -176,7 +245,7 @@ export function NoticeSlider({ className, variant = 'dark' }: NoticeSliderProps)
               {/* Badge with White Border */}
               <span
                 className={cn(
-                  'hidden sm:inline-flex items-center gap-1.5 text-xs font-black tracking-wider px-3.5 py-1 rounded-full border-2 border-white shadow-md flex-shrink-0 uppercase bg-white/20 text-white'
+                  'inline-flex items-center gap-1.5 text-xs font-black tracking-wider px-3.5 py-1 rounded-full border-2 border-white shadow-md flex-shrink-0 uppercase bg-white/20 text-white'
                 )}
               >
                 <span className="w-2 h-2 rounded-full bg-yellow-300 animate-pulse" />
@@ -200,7 +269,7 @@ export function NoticeSlider({ className, variant = 'dark' }: NoticeSliderProps)
               {currentNotice.link && (
                 <Link
                   href={currentNotice.link}
-                  className="hidden md:inline-flex items-center gap-1.5 text-xs font-black text-white hover:text-[#1a1a4e] transition-all bg-white/15 hover:bg-white border-2 border-white shadow-md px-3.5 py-1 rounded-lg flex-shrink-0 ml-1.5"
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-white hover:text-[#1a1a4e] transition-all bg-white/15 hover:bg-white border-2 border-white shadow-md px-3.5 py-1 rounded-lg flex-shrink-0 ml-1.5"
                 >
                   {currentNotice.linkText || 'Learn More'}
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -214,16 +283,18 @@ export function NoticeSlider({ className, variant = 'dark' }: NoticeSliderProps)
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={handleNext}
+            type="button"
             aria-label="Next notice"
             className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/20 border border-white/40 transition-all"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
-          <div className="h-4 w-[1.5px] bg-white/40 mx-1 hidden sm:block" />
+          <div className="h-4 w-[1.5px] bg-white/40 mx-1 block" />
           <button
             onClick={() => setIsDismissed(true)}
+            type="button"
             aria-label="Dismiss notice bar"
-            className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-all hidden sm:block"
+            className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-all"
           >
             <X className="w-4 h-4" />
           </button>

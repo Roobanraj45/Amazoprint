@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Menu,
@@ -33,7 +34,6 @@ import { LogoutButton } from '@/components/layout/logout-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CartSheet } from '@/components/cart/cart-sheet';
 import { NoticeSlider } from '@/components/layout/notice-slider';
-import { usePathname } from 'next/navigation';
 import { cn, resolveImagePath } from '@/lib/utils';
 import { getProducts } from '@/app/actions/product-actions';
 import NextImage from 'next/image';
@@ -54,6 +54,7 @@ function ProductsMegaMenu({
   activeIdx: number;
   setActiveIdx: (i: number) => void;
   onClose: () => void;
+  align?: string;
 }) {
   return (
     <motion.div
@@ -129,7 +130,7 @@ function ProductsMegaMenu({
                         </p>
                       </div>
                       <Link
-                        href={`/design/${productsData[activeIdx].slug}`}
+                        href={`/products?category=${encodeURIComponent(productsData[activeIdx].name)}`}
                         onClick={onClose}
                         className="text-xs font-bold text-[#464674] hover:text-[#5c5c96] flex items-center gap-1 whitespace-nowrap"
                       >
@@ -148,7 +149,7 @@ function ProductsMegaMenu({
                             return (
                               <Link
                                 key={sp.id}
-                                href={`/design/${productsData[activeIdx].slug}/start?subProductId=${sp.id}`}
+                                href={`/products?category=${encodeURIComponent(productsData[activeIdx].name)}&q=${encodeURIComponent(sp.name)}`}
                                 onClick={onClose}
                                 className="group/sub flex flex-col gap-1.5 p-2.5 rounded-xl border border-transparent hover:border-[#464674]/20 hover:bg-[#464674]/5 transition-all"
                               >
@@ -221,14 +222,136 @@ function ProductsMegaMenu({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SINGLE PRODUCT DROPDOWN
+// ─────────────────────────────────────────────────────────────────────────────
+function SingleProductDropdown({
+  product,
+  onClose,
+  align = 'left',
+}: {
+  product: any;
+  onClose: () => void;
+  align?: 'left' | 'right';
+}) {
+  const activeSubProducts = product.subProducts?.filter((sp: any) => sp.isActive) || [];
+
+  const defaultOptions = [
+    { id: 'opt-std', name: `Standard ${product.name}`, width: 'Standard', height: 'Size', price: '199' },
+    { id: 'opt-prem', name: `Premium ${product.name}`, width: 'High GSM', height: 'Finish', price: '349' },
+    { id: 'opt-matte', name: `Matte / Gloss ${product.name}`, width: 'Laminated', height: 'Quality', price: '499' },
+    { id: 'opt-custom', name: `Custom ${product.name}`, width: 'Multi', height: 'Custom', price: '299' },
+  ];
+
+  const displayList = activeSubProducts.length > 0 ? activeSubProducts : defaultOptions;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 6, scale: 0.98 }}
+      transition={{ duration: 0.14, ease: 'easeOut' }}
+      className={cn(
+        'absolute top-full pt-1.5 z-[9999]',
+        align === 'right' ? 'right-0' : 'left-0'
+      )}
+      style={{ width: displayList.length > 2 ? 440 : 280 }}
+    >
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-black/10 p-3.5">
+        <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 mb-2.5 px-1">
+          <div>
+            <h4 className="text-xs font-black text-gray-900">{product.name}</h4>
+            <p className="text-[10px] text-gray-400 font-medium">
+              {displayList.length} options available
+            </p>
+          </div>
+          <Link
+            href={`/products?category=${encodeURIComponent(product.name)}`}
+            onClick={onClose}
+            className="text-[11px] font-bold text-[#464674] hover:text-[#5c5c96] flex items-center gap-1 whitespace-nowrap"
+          >
+            View all <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        <div className={cn(
+          'grid gap-1.5',
+          displayList.length > 2 ? 'grid-cols-2' : 'grid-cols-1'
+        )}>
+          {displayList.slice(0, 6).map((sp: any) => {
+            const imgUrl = resolveImagePath(sp.imageUrl || product.imageUrl);
+            const targetUrl = String(sp.id || '').startsWith('opt-')
+              ? `/products?category=${encodeURIComponent(product.name)}`
+              : `/products?category=${encodeURIComponent(product.name)}&q=${encodeURIComponent(sp.name)}`;
+
+            return (
+              <Link
+                key={sp.id}
+                href={targetUrl}
+                onClick={onClose}
+                className="group/sub flex items-center gap-2.5 p-2 rounded-xl border border-transparent hover:border-[#464674]/20 hover:bg-[#464674]/5 transition-all"
+              >
+                <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden relative flex-shrink-0">
+                  {imgUrl ? (
+                    <NextImage
+                      src={imgUrl}
+                      alt={sp.name}
+                      fill
+                      className="object-cover group-hover/sub:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[#464674]/5">
+                      <Package className="w-4 h-4 text-[#464674]" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold text-gray-800 group-hover/sub:text-[#464674] transition-colors truncate">
+                    {sp.name}
+                  </p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    {sp.width && (
+                      <span className="text-[8px] font-semibold text-gray-400 bg-gray-100 px-1 py-0.2 rounded whitespace-nowrap">
+                        {sp.width}{sp.height ? `×${sp.height}` : ''}
+                      </span>
+                    )}
+                    {sp.price && (
+                      <span className="text-[9px] font-black text-[#464674]">
+                        ₹{Number(sp.price).toFixed(0)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <ChevronRight className="w-3 h-3 text-gray-300 group-hover/sub:text-[#464674] flex-shrink-0" />
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between px-1">
+          <Link
+            href={`/products?category=${encodeURIComponent(product.name)}`}
+            onClick={onClose}
+            className="w-full py-1.5 text-center text-[11px] font-bold text-white bg-[#464674] hover:bg-[#5c5c96] rounded-xl transition-colors flex items-center justify-center gap-1"
+          >
+            Browse {product.name} <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SIMPLE DROPDOWN
 // ─────────────────────────────────────────────────────────────────────────────
 function SimpleDropdown({
   items,
   onClose,
+  align = 'left',
 }: {
   items: { label: string; href: string; desc?: string; icon?: React.ReactNode }[];
   onClose: () => void;
+  align?: 'left' | 'right';
 }) {
   return (
     <motion.div
@@ -236,15 +359,18 @@ function SimpleDropdown({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 6 }}
       transition={{ duration: 0.14 }}
-      className="absolute top-full left-0 pt-2 z-[999] min-w-[220px]"
+      className={cn(
+        'absolute top-full pt-1.5 z-[9999] min-w-[230px]',
+        align === 'right' ? 'right-0' : 'left-0'
+      )}
     >
-      <div className="bg-white border border-[#464674]/10 rounded-2xl shadow-xl overflow-hidden ring-1 ring-[#464674]/5 py-1.5">
+      <div className="bg-white border border-[#464674]/10 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-black/10 py-1.5">
         {items.map((item) => (
           <Link
             key={`${item.href}-${item.label}`}
             href={item.href}
             onClick={onClose}
-            className="flex items-start gap-3 px-4 py-3 hover:bg-[#464674]/5 transition-colors group"
+            className="flex items-start gap-3 px-4 py-2.5 hover:bg-[#464674]/5 transition-colors group"
           >
             {item.icon && (
               <div className="w-7 h-7 rounded-lg bg-[#464674]/8 group-hover:bg-[#464674]/15 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors">
@@ -252,8 +378,8 @@ function SimpleDropdown({
               </div>
             )}
             <div>
-              <p className="text-sm font-bold text-gray-800 group-hover:text-[#464674] transition-colors">{item.label}</p>
-              {item.desc && <p className="text-[11px] text-gray-400 font-medium mt-0.5">{item.desc}</p>}
+              <p className="text-xs font-bold text-gray-800 group-hover:text-[#464674] transition-colors">{item.label}</p>
+              {item.desc && <p className="text-[10px] text-gray-400 font-medium mt-0.5">{item.desc}</p>}
             </div>
           </Link>
         ))}
@@ -265,7 +391,23 @@ function SimpleDropdown({
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN NAVBAR
 // ─────────────────────────────────────────────────────────────────────────────
+const FALLBACK_PRODUCTS = [
+  { id: 'p1', name: 'Visiting Cards', slug: 'visiting-cards', subProducts: [] },
+  { id: 'p2', name: 'Letterheads', slug: 'letterhead', subProducts: [] },
+  { id: 'p3', name: 'Flyers', slug: 'flyers', subProducts: [] },
+  { id: 'p4', name: 'Invitations', slug: 'invitations', subProducts: [] },
+  { id: 'p5', name: 'Stickers', slug: 'stickers', subProducts: [] },
+  { id: 'p6', name: 'Envelopes', slug: 'envelope', subProducts: [] },
+  { id: 'p7', name: 'Posters', slug: 'posters', subProducts: [] },
+  { id: 'p8', name: 'T-Shirts', slug: 't-shirt', subProducts: [] },
+  { id: 'p9', name: 'Gifts', slug: 'gifts', subProducts: [] },
+  { id: 'p10', name: 'ID Cards', slug: 'id-cards', subProducts: [] },
+  { id: 'p11', name: 'Calendars', slug: 'calendar', subProducts: [] },
+  { id: 'p12', name: 'Brochures', slug: 'brochure', subProducts: [] },
+];
+
 export function Navbar() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = React.useState(false);
   const [session, setSession] = React.useState<Session | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -273,20 +415,38 @@ export function Navbar() {
   const [productsData, setProductsData] = React.useState<any[]>([]);
   const [activeCatIdx, setActiveCatIdx] = React.useState(0);
 
-  // Separate state keys prevent the top "Categories" btn and bottom "Products"
-  // nav link from accidentally rendering two dropdowns at once.
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
   const closeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Search State
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+  const searchContainerRef = React.useRef<HTMLDivElement>(null);
 
   const pathname = usePathname();
 
   React.useEffect(() => {
     getSession().then((s) => { setSession(s); setLoading(false); });
-    getProducts().then((data: any[]) => setProductsData(data.filter((p) => p.isActive)));
+    getProducts().then((data: any[]) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setProductsData(data.filter((p) => p.isActive));
+      }
+    });
 
     const onScroll = () => setScrolled(window.scrollY > 8);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Close search suggestions on outside click
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const getDashboardUrl = (role?: string) => {
@@ -313,52 +473,69 @@ export function Navbar() {
     setOpenMenu(null);
   };
 
-  // Bottom nav items — "products-nav" key is distinct from "categories-btn"
-  const navItems = [
-    {
-      key: 'home',
-      label: 'Home',
-      href: '/',
-      icon: <Home className="w-3.5 h-3.5" />,
-    },
-    {
-      key: 'products-nav',   // ← different key from 'categories-btn'
-      label: 'Products',
-      href: '/products',
-      icon: <LayoutGrid className="w-3.5 h-3.5" />,
-      hasMega: true,
-    },
-    {
-      key: 'templates',
-      label: 'Templates',
-      href: '/templates',
-      icon: <FileText className="w-3.5 h-3.5" />,
-      dropdown: [
-        { label: 'Business Templates', href: '/templates', desc: 'Cards, letterheads & more', icon: <FileText className="w-3.5 h-3.5" /> },
-        { label: 'Marketing Templates', href: '/templates', desc: 'Flyers, banners & posters', icon: <Flame className="w-3.5 h-3.5" /> },
-        { label: 'Event Templates', href: '/templates', desc: 'Invitations & programs', icon: <Gift className="w-3.5 h-3.5" /> },
-      ],
-    },
-    {
-      key: 'design-studio',
-      label: 'Design Studio',
-      href: '/design',
-      icon: <Sparkles className="w-3.5 h-3.5" />,
-      dropdown: [
-        { label: 'Open Studio', href: '/design', desc: 'Create your design online', icon: <Sparkles className="w-3.5 h-3.5" /> },
-        { label: 'Design Contests', href: '/contests', desc: 'Win prizes & recognition', icon: <Star className="w-3.5 h-3.5" /> },
-        { label: 'Hire a Designer', href: '/freelancer/verifications', desc: 'Get professional help', icon: <PenTool className="w-3.5 h-3.5" /> },
-      ],
-    },
+  // Products to directly display in the bottom navbar bar — fills full width
+  const activeProductsList = productsData.length > 0 ? productsData : FALLBACK_PRODUCTS;
+
+  // Compute live search suggestions
+  const searchResults = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    const results: any[] = [];
+
+    // Search active products
+    const list = productsData.length > 0 ? productsData : FALLBACK_PRODUCTS;
+    for (const product of list) {
+      if (product.name?.toLowerCase().includes(q)) {
+        results.push({
+          type: 'category',
+          id: `cat-${product.id || product.slug}`,
+          name: product.name,
+          category: 'Category',
+          imageUrl: product.imageUrl,
+          href: `/products?category=${encodeURIComponent(product.name)}`,
+        });
+      }
+
+      if (Array.isArray(product.subProducts)) {
+        for (const sp of product.subProducts) {
+          if (sp.isActive && (sp.name?.toLowerCase().includes(q) || product.name?.toLowerCase().includes(q))) {
+            results.push({
+              type: 'product',
+              id: `sp-${sp.id}`,
+              name: sp.name,
+              category: product.name,
+              imageUrl: sp.imageUrl || product.imageUrl,
+              price: sp.price,
+              href: `/products?category=${encodeURIComponent(product.name)}&q=${encodeURIComponent(sp.name)}`,
+            });
+          }
+        }
+      }
+    }
+    return results.slice(0, 7);
+  }, [searchQuery, productsData]);
+
+  // Handle Search Submission
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const q = searchQuery.trim();
+    if (q) {
+      setIsSearchFocused(false);
+      router.push(`/products?q=${encodeURIComponent(q)}`);
+    }
+  };
+
+  // Service Navigation Items
+  const serviceNavItems = [
     {
       key: 'printers',
       label: 'Printers',
       href: '/printer-registration',
       icon: <Printer className="w-3.5 h-3.5" />,
       dropdown: [
-        { label: 'Become a Partner', href: '/printer-registration', desc: 'Register your press', icon: <Printer className="w-3.5 h-3.5" /> },
-        { label: 'Printer Dashboard', href: '/printer/dashboard', desc: 'Manage your orders', icon: <LayoutGrid className="w-3.5 h-3.5" /> },
-        { label: 'Printer Login', href: '/printer-login', desc: 'Access your account', icon: <LogIn className="w-3.5 h-3.5" /> },
+        { label: 'Become a Partner', href: '/printer-registration', desc: 'Register your printing press', icon: <Printer className="w-3.5 h-3.5" /> },
+        { label: 'Printer Dashboard', href: '/printer/dashboard', desc: 'Manage your print orders', icon: <LayoutGrid className="w-3.5 h-3.5" /> },
+        { label: 'Printer Login', href: '/printer-login', desc: 'Access your partner account', icon: <LogIn className="w-3.5 h-3.5" /> },
       ],
     },
     {
@@ -367,16 +544,21 @@ export function Navbar() {
       href: '/freelancer/verifications',
       icon: <Star className="w-3.5 h-3.5" />,
       dropdown: [
-        { label: 'Join as Designer', href: '/freelancer/verifications', desc: 'Start earning today', icon: <PenTool className="w-3.5 h-3.5" /> },
-        { label: 'Design Contests', href: '/contests', desc: 'Compete & win prizes', icon: <Star className="w-3.5 h-3.5" /> },
+        { label: 'Join as Designer', href: '/freelancer/verifications', desc: 'Earn with print verification', icon: <PenTool className="w-3.5 h-3.5" /> },
+        { label: 'Design Contests', href: '/contests', desc: 'Compete, submit entries & win prizes', icon: <Star className="w-3.5 h-3.5" /> },
+        { label: 'Hire a Designer', href: '/freelancer/verifications', desc: 'Get professional design assistance', icon: <Sparkles className="w-3.5 h-3.5" /> },
       ],
     },
     {
-      key: 'deals',
-      label: "Today's Deals",
-      href: '/products',
-      icon: <Flame className="w-3.5 h-3.5 text-orange-500" />,
-      isHighlight: true,
+      key: 'freelancers',
+      label: 'Freelancers',
+      href: '/freelancer/dashboard',
+      icon: <PenTool className="w-3.5 h-3.5" />,
+      dropdown: [
+        { label: 'Freelancer Dashboard', href: '/freelancer/dashboard', desc: 'View design jobs & payouts', icon: <LayoutGrid className="w-3.5 h-3.5" /> },
+        { label: 'Print Verifications', href: '/freelancer/verifications', desc: 'Verify client print files', icon: <FileText className="w-3.5 h-3.5" /> },
+        { label: 'Active Quests', href: '/contests', desc: 'Browse available contest briefs', icon: <Star className="w-3.5 h-3.5" /> },
+      ],
     },
   ];
 
@@ -393,7 +575,7 @@ export function Navbar() {
       >
         <NoticeSlider />
         {/* ── TOP ROW ─────────────────────────────────────────────── */}
-        <div className="bg-gradient-to-r from-[#1a1a4e] via-[#282860] to-[#1a1a4e] border-b border-white/10">
+        <div className="bg-gradient-to-r from-[#1a1a4e] via-[#282860] to-[#1a1a4e] border-b border-white/10 relative z-20">
           <div className="w-full px-3 sm:px-4 lg:px-6 h-[76px] sm:h-[84px] flex items-center gap-3 lg:gap-5 py-2">
 
             {/* Logo */}
@@ -439,15 +621,107 @@ export function Navbar() {
             </div>
 
             {/* Search */}
-            <div className="hidden md:block flex-1 max-w-lg">
-              <div className="flex items-center gap-2.5 bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 focus-within:border-white/40 focus-within:bg-white/15 transition-all">
-                <Search className="w-4 h-4 text-white/60 flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="What are you looking for?"
-                  className="flex-1 bg-transparent text-sm text-white placeholder-white/40 outline-none font-medium min-w-0"
-                />
-              </div>
+            <div ref={searchContainerRef} className="hidden md:block flex-1 max-w-lg relative">
+              <form onSubmit={handleSearchSubmit}>
+                <div className="flex items-center gap-2.5 bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 focus-within:border-white/50 focus-within:bg-white/15 transition-all">
+                  <Search className="w-4 h-4 text-white/70 flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setIsSearchFocused(true);
+                    }}
+                    onFocus={() => setIsSearchFocused(true)}
+                    placeholder="Search cards, flyers, stickers, gifts..."
+                    className="flex-1 bg-transparent text-sm text-white placeholder-white/50 outline-none font-medium min-w-0"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="text-white/50 hover:text-white transition-colors"
+                      aria-label="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              {/* Live Search Autocomplete Dropdown */}
+              <AnimatePresence>
+                {isSearchFocused && searchQuery.trim().length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 4, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                    transition={{ duration: 0.12 }}
+                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden ring-1 ring-black/10 z-[9999] p-2"
+                  >
+                    {searchResults.length > 0 ? (
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 py-1">
+                          Suggestions
+                        </p>
+                        {searchResults.map((item) => {
+                          const img = resolveImagePath(item.imageUrl);
+                          return (
+                            <Link
+                              key={item.id}
+                              href={item.href}
+                              onClick={() => {
+                                setIsSearchFocused(false);
+                                setSearchQuery('');
+                              }}
+                              className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[#464674]/5 transition-colors group"
+                            >
+                              <div className="w-9 h-9 rounded-lg bg-gray-100 overflow-hidden relative flex-shrink-0 flex items-center justify-center">
+                                {img ? (
+                                  <NextImage src={img} alt={item.name} fill className="object-cover" />
+                                ) : (
+                                  <Package className="w-4 h-4 text-gray-400" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-gray-800 group-hover:text-[#464674] truncate transition-colors">
+                                  {item.name}
+                                </p>
+                                <p className="text-[10px] text-gray-400 font-medium truncate">
+                                  {item.category}
+                                </p>
+                              </div>
+                              {item.price && (
+                                <span className="text-[11px] font-black text-[#464674]">
+                                  ₹{Number(item.price).toFixed(0)}
+                                </span>
+                              )}
+                              <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#464674] transition-colors flex-shrink-0" />
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center">
+                        <p className="text-xs text-gray-500 font-medium">
+                          No exact matches found for &quot;{searchQuery}&quot;
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="pt-2 mt-1 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => handleSearchSubmit()}
+                        className="w-full py-2 px-3 text-left text-xs font-bold text-[#464674] hover:bg-[#464674]/5 rounded-xl transition-colors flex items-center justify-between"
+                      >
+                        <span>Search all for &quot;{searchQuery}&quot;</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Contact — only on large screens */}
@@ -533,83 +807,115 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* ── BOTTOM NAV ROW ──────────────────────────────────────── */}
-        <div className="hidden lg:block bg-[#282860] border-b border-white/10">
-          <div className="w-full px-3 sm:px-4 lg:px-6">
-            <nav className="flex items-center h-11">
-              {navItems.map((item) => {
-                const isActive = pathname === item.href;
-                const isMenuOpen = openMenu === item.key;
+        {/* ── BOTTOM NAV ROW — FULL-WIDTH DIRECT PRODUCTS & SERVICES ─── */}
+        <div className="hidden lg:block bg-[#282860] border-b border-white/10 relative z-10">
+          <div className="w-full px-2 sm:px-3 lg:px-4">
+            <nav className="flex items-center justify-between h-11 w-full gap-0.5">
+              {/* Product Direct Items — Fills available width */}
+              <div className="flex items-center gap-0.5 xl:gap-1 flex-1 min-w-0">
+                {activeProductsList.map((product) => {
+                  const menuKey = `prod-${product.id || product.slug}`;
+                  const isMenuOpen = openMenu === menuKey;
+                  const isActive = pathname === '/products';
 
-                return (
-                  <div
-                    key={item.key}
-                    className="relative"
-                    onMouseEnter={() => (item.dropdown || item.hasMega) ? enter(item.key) : undefined}
-                    onMouseLeave={() => (item.dropdown || item.hasMega) ? leave() : undefined}
-                  >
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        'flex items-center gap-1.5 px-3.5 h-11 text-[13px] font-bold transition-all relative group whitespace-nowrap',
-                        isActive ? 'text-white' : item.isHighlight
-                          ? 'text-orange-400 hover:text-orange-300'
-                          : 'text-white/75 hover:text-white'
-                      )}
+                  return (
+                    <div
+                      key={product.id || product.slug}
+                      className="relative flex-shrink-0"
+                      onMouseEnter={() => enter(menuKey)}
+                      onMouseLeave={leave}
                     >
-                      {item.icon}
-                      {item.label}
-                      {(item.dropdown || item.hasMega) && (
+                      <Link
+                        href={`/products?category=${encodeURIComponent(product.name)}`}
+                        className={cn(
+                          'flex items-center gap-1 px-2 xl:px-2.5 h-11 text-[12px] xl:text-[13px] font-bold transition-all relative group whitespace-nowrap',
+                          'text-white/80 hover:text-white'
+                        )}
+                      >
+                        {product.name}
                         <ChevronDown className={cn(
-                          'w-3 h-3 transition-transform duration-200',
-                          isMenuOpen && 'rotate-180'
+                          'w-3 h-3 transition-transform duration-200 opacity-60 group-hover:opacity-100',
+                          isMenuOpen && 'rotate-180 opacity-100'
                         )} />
-                      )}
-                      {/* Active + hover underline */}
-                      <span className={cn(
-                        'absolute bottom-0 left-2 right-2 h-0.5 bg-white rounded-t-full transition-all duration-200',
-                        isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'
-                      )} />
-                    </Link>
+                        {/* Active + hover underline */}
+                        <span className={cn(
+                          'absolute bottom-0 left-1.5 right-1.5 h-0.5 bg-white rounded-t-full transition-all duration-200',
+                          'opacity-0 group-hover:opacity-60'
+                        )} />
+                      </Link>
 
-                    {/* Mega-menu for Products — key 'products-nav' */}
-                    {item.hasMega && (
+                      {/* Single Product Dropdown */}
                       <AnimatePresence>
                         {isMenuOpen && (
-                          <div onMouseEnter={() => enter(item.key)} onMouseLeave={leave}>
-                            <ProductsMegaMenu
-                              productsData={productsData}
-                              activeIdx={activeCatIdx}
-                              setActiveIdx={setActiveCatIdx}
+                          <div onMouseEnter={() => enter(menuKey)} onMouseLeave={leave}>
+                            <SingleProductDropdown
+                              product={product}
                               onClose={close}
                             />
                           </div>
                         )}
                       </AnimatePresence>
-                    )}
+                    </div>
+                  );
+                })}
+              </div>
 
-                    {/* Simple dropdown */}
-                    {item.dropdown && (
+              {/* Separator */}
+              <div className="h-4 w-[1px] bg-white/20 mx-1 flex-shrink-0" />
+
+              {/* Service Navigation Items: Printers, Designers, Freelancers */}
+              <div className="flex items-center gap-0.5 flex-shrink-0">
+                {serviceNavItems.map((item) => {
+                  const isMenuOpen = openMenu === item.key;
+                  const isActive = pathname === item.href;
+
+                  return (
+                    <div
+                      key={item.key}
+                      className="relative flex-shrink-0"
+                      onMouseEnter={() => enter(item.key)}
+                      onMouseLeave={leave}
+                    >
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-1.5 px-2 xl:px-2.5 h-11 text-[12px] xl:text-[13px] font-bold transition-all relative group whitespace-nowrap',
+                          isActive ? 'text-white' : 'text-white/80 hover:text-white'
+                        )}
+                      >
+                        {item.icon}
+                        {item.label}
+                        <ChevronDown className={cn(
+                          'w-3 h-3 transition-transform duration-200 opacity-60',
+                          isMenuOpen && 'rotate-180 opacity-100'
+                        )} />
+                        <span className={cn(
+                          'absolute bottom-0 left-1.5 right-1.5 h-0.5 bg-white rounded-t-full transition-all duration-200',
+                          isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'
+                        )} />
+                      </Link>
+
+                      {/* Simple Dropdown */}
                       <AnimatePresence>
                         {isMenuOpen && (
                           <div onMouseEnter={() => enter(item.key)} onMouseLeave={leave}>
-                            <SimpleDropdown items={item.dropdown} onClose={close} />
+                            <SimpleDropdown items={item.dropdown} onClose={close} align="right" />
                           </div>
                         )}
                       </AnimatePresence>
-                    )}
-                  </div>
-                );
-              })}
+                    </div>
+                  );
+                })}
 
-              {/* Personalized Gifts pill */}
-              <Link
-                href="/products"
-                className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white text-[12px] font-bold hover:shadow-lg hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-100 transition-all"
-              >
-                <Gift className="w-3.5 h-3.5" />
-                Today's Deals
-              </Link>
+                {/* Right Side: Today's Deals */}
+                <Link
+                  href="/products"
+                  className="ml-1.5 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white text-[11px] xl:text-[12px] font-bold hover:shadow-lg hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-100 transition-all flex-shrink-0 whitespace-nowrap"
+                >
+                  <Flame className="w-3.5 h-3.5" />
+                  Today's Deals
+                </Link>
+              </div>
             </nav>
           </div>
         </div>
@@ -643,18 +949,63 @@ export function Navbar() {
             >
               <div className="w-full px-3 sm:px-4 py-4 flex flex-col gap-1.5">
                 {/* Search Bar in Mobile Menu */}
-                <div className="md:hidden mb-2">
-                  <div className="flex items-center gap-2.5 bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 focus-within:border-white/40 transition-all">
-                    <Search className="w-4 h-4 text-white/50 flex-shrink-0" />
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (searchQuery.trim()) {
+                      setIsOpen(false);
+                      router.push(`/products?q=${encodeURIComponent(searchQuery.trim())}`);
+                    }
+                  }}
+                  className="md:hidden mb-2"
+                >
+                  <div className="flex items-center gap-2.5 bg-white/10 border border-white/20 rounded-xl px-3.5 py-2 focus-within:border-white/50 transition-all">
+                    <Search className="w-4 h-4 text-white/60 flex-shrink-0" />
                     <input
                       type="text"
-                      placeholder="What are you looking for?"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search cards, flyers, gifts..."
                       className="flex-1 bg-transparent text-sm text-white placeholder-white/40 outline-none font-medium min-w-0"
                     />
+                    {searchQuery.trim() && (
+                      <button
+                        type="submit"
+                        className="text-[11px] font-black bg-white text-[#464674] px-2.5 py-1 rounded-lg shadow-sm"
+                      >
+                        Search
+                      </button>
+                    )}
                   </div>
-                </div>
+                </form>
 
-                {navItems.map((item) => (
+                {/* Products */}
+                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest px-4 pb-1 pt-1">
+                  Products
+                </p>
+                {activeProductsList.map((product) => (
+                  <Link
+                    key={product.id || product.slug}
+                    href={`/products?category=${encodeURIComponent(product.name)}`}
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      'flex items-center justify-between px-4 py-3 rounded-xl font-bold text-sm transition-all',
+                      'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
+                    )}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <LayoutGrid className="w-4 h-4 text-white/70" />
+                      {product.name}
+                    </span>
+                    <ChevronRight className="w-4 h-4 opacity-40" />
+                  </Link>
+                ))}
+
+                {/* Services */}
+                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest px-4 pb-1 pt-3 border-t border-white/10 mt-2">
+                  Services & Portals
+                </p>
+                {serviceNavItems.map((item) => (
                   <Link
                     key={item.key}
                     href={item.href}
@@ -666,7 +1017,10 @@ export function Navbar() {
                         : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
                     )}
                   >
-                    <span className="flex items-center gap-2.5">{item.icon} {item.label}</span>
+                    <span className="flex items-center gap-2.5">
+                      {item.icon}
+                      {item.label}
+                    </span>
                     <ChevronRight className="w-4 h-4 opacity-40" />
                   </Link>
                 ))}
