@@ -44,10 +44,17 @@ export default async function InvoicePage({ params }: { params: { orderId: strin
         parsedCustomisation = typeof rawCustomisation === 'string' ? JSON.parse(rawCustomisation) : rawCustomisation;
     } catch (e) {}
 
-    const breakup = parsedCustomisation?.priceBreakup;
-    const addonsTotal = breakup?.addons?.reduce((acc: number, addon: any) => acc + addon.totalAmount, 0) || 0;
-    const discount = breakup?.discount || 0;
-    const baseSubtotal = totalAmount - addonsTotal + discount;
+    const breakup = parsedCustomisation?.priceBreakup || parsedCustomisation?.pricing;
+    const addonsTotal = breakup?.addons?.reduce((acc: number, addon: any) => acc + parseFloat(addon.totalAmount || addon.amount || 0), 0) || 0;
+    const discount = parseFloat(breakup?.discount || 0);
+    
+    const delivery = parsedCustomisation?.deliveryOption || breakup?.delivery || {
+        name: 'Standard Delivery',
+        fee: Number(order.subProduct?.deliveryAmount || 0)
+    };
+    const deliveryFee = Number(delivery.fee || 0);
+
+    const baseSubtotal = Math.max(0, totalAmount - addonsTotal - deliveryFee + discount);
 
     // State-based Split GST calculation (CGST+SGST for Tamil Nadu, IGST for Inter-state)
     const gstCalc = calculateGstBreakdown({
@@ -282,8 +289,12 @@ export default async function InvoicePage({ params }: { params: { orderId: strin
                             )}
 
                             <div className="flex justify-between items-center pt-1.5 border-t border-slate-200 dark:border-slate-700 print:border-slate-300">
-                                <span className="text-slate-600 dark:text-slate-400 print:text-slate-700">Shipping & Packaging</span>
-                                <span className="font-mono font-bold text-emerald-600 print:text-emerald-800 uppercase text-[9px] tracking-wider">Free Express</span>
+                                <span className="text-slate-600 dark:text-slate-400 print:text-slate-700">{delivery.name || 'Shipping & Dispatch'}</span>
+                                {deliveryFee > 0 ? (
+                                    <span className="font-mono font-bold text-slate-900 dark:text-white print:text-black">₹{deliveryFee.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                ) : (
+                                    <span className="font-mono font-bold text-emerald-600 print:text-emerald-800 uppercase text-[9px] tracking-wider">Free Express</span>
+                                )}
                             </div>
 
                             <div className="flex justify-between items-center pt-2.5 mt-1 border-t-2 border-slate-900 dark:border-white print:border-black">

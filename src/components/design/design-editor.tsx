@@ -108,6 +108,7 @@ type DesignEditorProps = {
   selectedAddons?: number[];
   selectedDie?: number | null;
   selectedTexture?: number | null;
+  deliveryOption?: { id: string; name: string; days: string; fee: number };
   pricingRules?: any[];
   dieCuts?: any[];
   cardTextures?: any[];
@@ -135,6 +136,7 @@ function DesignEditorInternal({
   selectedAddons: initialSelectedAddons = [],
   selectedDie: initialSelectedDie = null,
   selectedTexture: initialSelectedTexture = null,
+  deliveryOption,
   pricingRules = [],
   dieCuts = [],
   cardTextures = [],
@@ -424,15 +426,26 @@ function DesignEditorInternal({
         }
     }
 
+    const deliveryFee = Number(deliveryOption?.fee || (subProduct as any)?.deliveryAmount || 0);
+    const deliveryName = deliveryOption?.name || 'Standard Delivery';
+    const deliveryDays = deliveryOption?.days || (subProduct as any)?.deliveryDays || '3-5 Business Days';
+
     setCalculatedPrice({
-        original: (basePrice + addonTotalPerUnit) * qty,
-        final: (finalPrice + addonTotalPerUnit) * qty,
+        basePriceTotal: basePrice * qty,
+        original: (basePrice + addonTotalPerUnit) * qty + deliveryFee,
+        final: (finalPrice + addonTotalPerUnit) * qty + deliveryFee,
         discount: discount * qty,
         description: discountDescription,
         addons: addonBreakdown,
+        delivery: {
+            id: deliveryOption?.id || 'standard',
+            name: deliveryName,
+            days: deliveryDays,
+            fee: deliveryFee,
+        }
     });
 
-  }, [quantity, initialProduct, pricingRules, initialSelectedAddons, totalPages, initialSelectedDie, dieCuts, initialSelectedTexture, cardTextures, initialSpotUv]);
+  }, [quantity, initialProduct, pricingRules, initialSelectedAddons, totalPages, initialSelectedDie, dieCuts, initialSelectedTexture, cardTextures, initialSpotUv, deliveryOption]);
 
   useEffect(() => {
     currentElementsRef.current = currentElements;
@@ -1525,6 +1538,7 @@ function DesignEditorInternal({
         spotUv: initialSpotUv,
         addons: initialSelectedAddons,
         dieCut: initialSelectedDie,
+        deliveryOption: deliveryOption || null,
         priceBreakup: calculatedPrice,
         pages: totalPages
     }));
@@ -1590,6 +1604,7 @@ function DesignEditorInternal({
         spotUv: initialSpotUv,
         addons: initialSelectedAddons,
         dieCut: initialSelectedDie,
+        deliveryOption: deliveryOption || null,
         priceBreakup: calculatedPrice,
         pages: totalPages
       }));

@@ -319,6 +319,25 @@ export default async function PrinterOrderDetailPage({ params }: { params: { ord
                                             <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Lamination</span>
                                             <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs capitalize">{lamination}</span>
                                         </div>
+                                        <div className={cn(
+                                            "flex flex-col gap-0.5 p-3 rounded-xl border sm:col-span-3",
+                                            parsedCustomisation?.deliveryOption?.id && parsedCustomisation.deliveryOption.id !== 'standard'
+                                                ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-800/60"
+                                                : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-100/50"
+                                        )}>
+                                            <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider flex items-center gap-1">
+                                                <Truck className="w-3 h-3 text-indigo-500" />
+                                                <span>Delivery & Dispatch Timeline</span>
+                                            </span>
+                                            <span className={cn(
+                                                "font-extrabold text-xs flex items-center gap-2",
+                                                parsedCustomisation?.deliveryOption?.id && parsedCustomisation.deliveryOption.id !== 'standard'
+                                                    ? "text-amber-600 dark:text-amber-400"
+                                                    : "text-slate-800 dark:text-slate-200"
+                                            )}>
+                                                {parsedCustomisation?.deliveryOption ? `${parsedCustomisation.deliveryOption.name} • ${parsedCustomisation.deliveryOption.days}` : (order.estimatedDeliveryDate ? `Standard • Est. ${order.estimatedDeliveryDate}` : 'Standard (3-5 Business Days)')}
+                                            </span>
+                                        </div>
                                     </div>
                                 );
                             })()}

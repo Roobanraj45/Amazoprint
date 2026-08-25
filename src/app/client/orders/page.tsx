@@ -3,8 +3,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import Image from "next/image";
-import { resolveImagePath } from "@/lib/utils";
-import { FileText, IndianRupee, Package, Clock, ShieldCheck, Search, Filter, ArrowRight, Download } from "lucide-react";
+import { resolveImagePath, cn } from "@/lib/utils";
+import { 
+    FileText, IndianRupee, Package, Clock, ShieldCheck, Search, Filter, 
+    ArrowRight, Download, Truck, Zap, CheckCircle2, Sparkles, AlertCircle
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -14,40 +17,40 @@ export default async function MyOrdersPage({ searchParams }: { searchParams: { p
     const { orders, totalPages, currentPage } = await getMyOrders(page, 10);
 
     return (
-        <div className="min-h-full p-4 md:p-8 lg:p-10 space-y-8">
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-4 border-b border-border/40">
-                <div className="space-y-1">
-                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 mb-2 uppercase text-[10px] tracking-widest font-bold">Order History</Badge>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight font-headline">My Orders</h1>
-                    <p className="text-muted-foreground font-medium">Track and manage your recent print productions.</p>
+        <div className="min-h-full p-4 md:p-8 lg:p-10 space-y-8 max-w-7xl mx-auto">
+            {/* Header Area */}
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-6 border-b border-slate-200/80 dark:border-slate-800/80">
+                <div className="space-y-1.5">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest">
+                        <Package className="w-3.5 h-3.5" /> Order Control & History
+                    </div>
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white">My Orders</h1>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Track print production status, view delivery schedules, and download tax invoices.</p>
                 </div>
                 {orders.length > 0 && (
                     <div className="flex gap-3 w-full md:w-auto">
                         <div className="relative flex-1 md:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input placeholder="Search order ID..." className="pl-9 bg-card border-border/50 focus-visible:ring-primary/20 rounded-xl" />
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Input placeholder="Search orders..." className="h-10 pl-9 rounded-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-semibold" />
                         </div>
-                        <Button variant="outline" className="bg-card border-border/50 rounded-xl px-4">
-                            <Filter className="w-4 h-4 mr-2" /> Filter
-                        </Button>
                     </div>
                 )}
             </header>
             
             {orders.length === 0 ? (
-                <Card className="py-32 text-center border-dashed border-border/60 bg-muted/10 shadow-none">
-                    <CardContent className="flex flex-col items-center justify-center space-y-6">
-                        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-                            <Package className="h-10 w-10 text-primary" />
+                <Card className="py-24 text-center border-dashed border-slate-300 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 rounded-3xl shadow-none">
+                    <CardContent className="flex flex-col items-center justify-center space-y-5">
+                        <div className="w-20 h-20 rounded-3xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner">
+                            <Package className="h-10 w-10" />
                         </div>
-                        <div className="space-y-2">
-                            <h3 className="text-2xl font-black font-headline">No Orders Yet</h3>
-                            <p className="text-muted-foreground font-medium max-w-sm mx-auto">Once you place your first industrial print order, it will appear here for tracking.</p>
+                        <div className="space-y-1 max-w-sm mx-auto">
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white">No Orders Placed Yet</h3>
+                            <p className="text-xs text-slate-500 font-medium">Create your first custom design or upload artwork to launch commercial print production.</p>
                         </div>
-                         <Button asChild size="lg" className="rounded-xl shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 mt-4 font-bold tracking-widest uppercase text-xs">
+                        <Button asChild size="lg" className="rounded-2xl shadow-lg shadow-indigo-500/25 bg-indigo-600 hover:bg-indigo-500 font-bold text-xs gap-2">
                             <Link href="/products">
-                                <Package className="mr-2 h-4 w-4" />
-                                Browse Catalog
+                                <Sparkles className="h-4 w-4" />
+                                Explore Catalog & Start Customizing
                             </Link>
                         </Button>
                     </CardContent>
@@ -56,86 +59,146 @@ export default async function MyOrdersPage({ searchParams }: { searchParams: { p
                 <div className="grid grid-cols-1 gap-6">
                     {orders.map(order => {
                         const isDirectSale = !!order.directSellingProduct;
-                        const productName = isDirectSale ? order.directSellingProduct.name : order.product?.name;
-                        const subProductName = isDirectSale ? order.directSellingProduct.category : order.subProduct?.name;
+                        const productName = isDirectSale ? order.directSellingProduct.name : (order.product?.name || 'Custom Product');
+                        const subProductName = isDirectSale ? order.directSellingProduct.category : (order.subProduct?.name || 'Custom Specs');
                         const imageSrc = isDirectSale 
                             ? order.directSellingProduct.imageUrls?.[0] 
                             : (order.designUpload?.thumbnailPath 
                                 || (order.designUpload?.mimeType?.startsWith('image/') ? order.designUpload.filePath : null)
                                 || order.design?.thumbnailUrl);
 
+                        let parsedCustomisation: any = null;
+                        try {
+                            const raw = (order as any).customisation || order.design?.customisation || order.designUpload?.customisation;
+                            parsedCustomisation = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                        } catch (e) {}
+
+                        const delivery = parsedCustomisation?.deliveryOption || parsedCustomisation?.priceBreakup?.delivery || {
+                            name: 'Standard Delivery',
+                            days: order.subProduct?.deliveryDays || '3-5 Days',
+                            fee: Number(order.subProduct?.deliveryAmount || 0)
+                        };
+                        const isExpedited = delivery.id && delivery.id !== 'standard';
+
+                        const totalAmountNum = (order.contestId && order.contest?.payments?.[0])
+                            ? parseFloat(order.contest.payments[0].amount)
+                            : parseFloat(order.totalAmount || '0');
+
                         return (
-                            <Card key={order.id} className="overflow-hidden border border-border/40 bg-card/40 backdrop-blur-sm shadow-xl shadow-black/5 hover:border-primary/30 hover:shadow-2xl transition-all duration-300 group">
-                                <CardHeader className="bg-muted/20 border-b border-border/40 pb-4">
+                            <Card key={order.id} className="overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-md hover:shadow-xl hover:border-indigo-500/30 transition-all duration-300 group">
+                                <CardHeader className="bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800/80 p-5 md:px-6">
                                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="p-3 bg-background rounded-xl border border-border/50 shadow-sm">
-                                                <Package className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                        <div className="flex items-center gap-3.5">
+                                            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                                                <Package className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <CardTitle className="text-lg font-black tracking-tight">Order #{order.id}</CardTitle>
-                                                <CardDescription className="flex items-center gap-1.5 mt-1 font-medium text-xs">
-                                                    <Clock className="w-3 h-3" /> Placed {format(new Date(order.createdAt), 'PPP')}
+                                                <div className="flex items-center gap-2">
+                                                    <CardTitle className="text-base font-black text-slate-900 dark:text-white">Order #{order.id}</CardTitle>
+                                                    <span className="text-xs text-slate-400">•</span>
+                                                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                                                        {format(new Date(order.createdAt), 'PPP')}
+                                                    </span>
+                                                </div>
+                                                <CardDescription className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                                                    <Clock className="w-3.5 h-3.5" /> Placed at {format(new Date(order.createdAt), 'p')}
                                                 </CardDescription>
                                             </div>
                                         </div>
-                                         <Badge className={`capitalize px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase ${
-                                            order.orderStatus === 'delivered' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 
-                                            'bg-blue-500/10 text-blue-600 border border-blue-500/20 hover:bg-blue-500/20'
-                                         }`}>
-                                            {order.orderStatus}
-                                         </Badge>
+
+                                        <div className="flex items-center gap-2">
+                                            {/* Delivery Speed Chip */}
+                                            <div className={cn(
+                                                "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider",
+                                                isExpedited 
+                                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30" 
+                                                    : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
+                                            )}>
+                                                {isExpedited ? <Zap className="w-3 h-3 text-amber-500 animate-pulse" /> : <Truck className="w-3 h-3" />}
+                                                <span>{delivery.name} ({delivery.days})</span>
+                                            </div>
+
+                                            {/* Status Badge */}
+                                            <Badge className={cn(
+                                                "capitalize px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border",
+                                                order.orderStatus === 'delivered' 
+                                                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' 
+                                                    : order.orderStatus === 'in_production' || order.orderStatus === 'printing'
+                                                    ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/30'
+                                                    : 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                                            )}>
+                                                {order.orderStatus.replace('_', ' ')}
+                                            </Badge>
+                                        </div>
                                     </div>
                                 </CardHeader>
-                                <CardContent className="p-6">
-                                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                                        <div className="w-24 h-24 bg-muted/50 rounded-2xl flex items-center justify-center flex-shrink-0 border border-border/50 overflow-hidden relative group-hover:border-primary/20 transition-colors">
-                                            {imageSrc ? (
-                                                <Image src={resolveImagePath(imageSrc)} alt="preview" fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
-                                            ) : (
-                                                <FileText className="h-8 w-8 text-muted-foreground/50"/>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 space-y-2">
-                                            <p className="font-black text-xl tracking-tight">{productName}</p>
-                                            <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">{subProductName || 'Custom Print'}</p>
-                                            <div className="flex items-center gap-4 mt-4">
-                                                <Badge variant="outline" className="bg-background font-bold text-[10px] uppercase tracking-widest">Qty: {order.quantity}</Badge>
-                                                <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 uppercase tracking-widest">
-                                                    <ShieldCheck className="w-3 h-3" /> Verified Quality
-                                                </span>
+
+                                <CardContent className="p-5 md:p-6">
+                                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                                        <div className="flex items-center gap-5 min-w-0">
+                                            <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-800 overflow-hidden relative shadow-inner">
+                                                {imageSrc ? (
+                                                    <Image src={resolveImagePath(imageSrc)} alt="preview" fill className="object-contain p-1" />
+                                                ) : (
+                                                    <FileText className="h-8 w-8 text-slate-500"/>
+                                                )}
+                                            </div>
+                                            <div className="space-y-1 min-w-0">
+                                                <p className="font-black text-base text-slate-900 dark:text-white truncate">{productName}</p>
+                                                <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate">{subProductName}</p>
+                                                
+                                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                                    <Badge variant="outline" className="text-[10px] font-extrabold bg-slate-50 dark:bg-slate-800/80">
+                                                        Qty: {order.quantity} Cards
+                                                    </Badge>
+                                                    {parsedCustomisation?.pages && (
+                                                        <Badge variant="outline" className="text-[10px] font-bold text-slate-500">
+                                                            {parsedCustomisation.pages === 2 ? 'Double Sided' : 'Single Sided'}
+                                                        </Badge>
+                                                    )}
+                                                    {parsedCustomisation?.spotUv && (
+                                                        <Badge className="text-[10px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/30">
+                                                            Spot UV
+                                                        </Badge>
+                                                    )}
+                                                    {parsedCustomisation?.dieCut?.name && (
+                                                        <Badge className="text-[10px] font-bold bg-indigo-500/10 text-indigo-600 border border-indigo-500/30">
+                                                            {parsedCustomisation.dieCut.name}
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                         <div className="text-right sm:text-right mt-4 sm:mt-0 bg-background/50 p-4 rounded-2xl border border-border/40">
-                                             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Total Amount</p>
-                                             <div className="flex flex-col items-end">
-                                                 <p className="text-2xl font-black tracking-tighter flex items-center justify-end text-primary">
-                                                     <IndianRupee className="h-5 w-5 mr-0.5" />{(() => {
-                                                         const amt = (order.contestId && order.contest?.payments?.[0])
-                                                             ? parseFloat(order.contest.payments[0].amount)
-                                                             : parseFloat(order.totalAmount);
-                                                         return amt.toLocaleString('en-IN', {minimumFractionDigits: 2});
-                                                     })()}
-                                                 </p>
-                                             </div>
-                                         </div>
+
+                                        <div className="text-left sm:text-right shrink-0 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 w-full sm:w-auto">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Total Paid</p>
+                                            <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center sm:justify-end">
+                                                <IndianRupee className="h-5 w-5 mr-0.5 text-indigo-600 dark:text-indigo-400" />
+                                                {totalAmountNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </p>
+                                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center sm:justify-end gap-1 mt-0.5">
+                                                <ShieldCheck className="w-3 h-3" /> GST Paid • Verified
+                                            </span>
+                                        </div>
                                     </div>
                                 </CardContent>
-                                <CardFooter className="bg-muted/10 p-4 border-t border-border/40 flex justify-between items-center">
-                                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Tracking Available
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                        <Button asChild variant="outline" size="sm" className="font-bold text-xs uppercase tracking-widest text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 shadow-sm">
+
+                                <CardFooter className="bg-slate-50/40 dark:bg-slate-900/40 p-4 px-5 md:px-6 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span>Turnaround: <strong className="text-slate-700 dark:text-slate-300 font-bold">{delivery.days}</strong></span>
+                                    </div>
+                                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                                        <Button asChild variant="outline" size="sm" className="rounded-xl font-bold text-xs text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 h-9 px-3.5">
                                             <Link href={`/client/orders/${order.id}/invoice`} target="_blank">
-                                                <Download className="w-3 h-3 mr-1.5" /> Invoice
+                                                <Download className="w-3.5 h-3.5 mr-1.5" /> Tax Invoice (PDF)
                                             </Link>
                                         </Button>
-                                        <Link href={`/client/orders/${order.id}`}>
-                                            <Button variant="ghost" size="sm" className="font-bold text-xs uppercase tracking-widest hover:text-primary">
-                                                View Details <ArrowRight className="w-3 h-3 ml-2" />
-                                            </Button>
-                                        </Link>
+                                        <Button asChild size="sm" className="rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs h-9 px-4">
+                                            <Link href={`/client/orders/${order.id}`}>
+                                                Order Details <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                                            </Link>
+                                        </Button>
                                     </div>
                                 </CardFooter>
                             </Card>
@@ -143,17 +206,21 @@ export default async function MyOrdersPage({ searchParams }: { searchParams: { p
                     })}
                     
                     {totalPages > 1 && (
-                        <div className="flex items-center justify-between pt-6 border-t border-border/40 mt-4">
-                            <p className="text-sm text-muted-foreground font-medium">
-                                Page <span className="font-bold text-foreground">{currentPage}</span> of <span className="font-bold text-foreground">{totalPages}</span>
+                        <div className="flex items-center justify-between pt-6 border-t border-slate-200/80 dark:border-slate-800/80 mt-4">
+                            <p className="text-xs text-slate-500 font-medium">
+                                Page <span className="font-bold text-slate-900 dark:text-white">{currentPage}</span> of <span className="font-bold text-slate-900 dark:text-white">{totalPages}</span>
                             </p>
                             <div className="flex gap-2">
-                                <Button asChild variant="outline" size="sm" disabled={currentPage <= 1} className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}>
-                                    <Link href={`/client/orders?page=${currentPage - 1}`}>Previous</Link>
-                                </Button>
-                                <Button asChild variant="outline" size="sm" disabled={currentPage >= totalPages} className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}>
-                                    <Link href={`/client/orders?page=${currentPage + 1}`}>Next</Link>
-                                </Button>
+                                {currentPage > 1 && (
+                                    <Button asChild variant="outline" size="sm" className="rounded-xl font-bold text-xs">
+                                        <Link href={`/client/orders?page=${currentPage - 1}`}>Previous</Link>
+                                    </Button>
+                                )}
+                                {currentPage < totalPages && (
+                                    <Button asChild variant="outline" size="sm" className="rounded-xl font-bold text-xs">
+                                        <Link href={`/client/orders?page=${currentPage + 1}`}>Next</Link>
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     )}

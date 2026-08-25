@@ -342,6 +342,99 @@ function SingleProductDropdown({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MORE CATEGORIES DROPDOWN
+// ─────────────────────────────────────────────────────────────────────────────
+function MoreCategoriesDropdown({
+  products,
+  onClose,
+}: {
+  products: any[];
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 6, scale: 0.98 }}
+      transition={{ duration: 0.14, ease: 'easeOut' }}
+      className="absolute top-full left-0 pt-1.5 z-[9999]"
+      style={{ width: products.length > 4 ? 460 : 300 }}
+    >
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-black/10 p-3.5">
+        <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 mb-2 px-1">
+          <div>
+            <h4 className="text-xs font-black text-gray-900">All Categories</h4>
+            <p className="text-[10px] text-gray-400 font-medium">
+              {products.length} categories available
+            </p>
+          </div>
+          <Link
+            href="/products"
+            onClick={onClose}
+            className="text-[11px] font-bold text-[#464674] hover:text-[#5c5c96] flex items-center gap-1 whitespace-nowrap"
+          >
+            View all <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        <div className={cn(
+          'grid gap-1.5 max-h-[380px] overflow-y-auto pr-1',
+          products.length > 4 ? 'grid-cols-2' : 'grid-cols-1'
+        )}>
+          {products.map((product) => {
+            const imgUrl = resolveImagePath(product.imageUrl);
+            const subCount = product.subProducts?.filter((sp: any) => sp.isActive).length || 0;
+
+            return (
+              <Link
+                key={product.id || product.slug}
+                href={`/products?category=${encodeURIComponent(product.name)}`}
+                onClick={onClose}
+                className="group/sub flex items-center gap-2.5 p-2 rounded-xl border border-transparent hover:border-[#464674]/20 hover:bg-[#464674]/5 transition-all"
+              >
+                <div className="w-9 h-9 rounded-lg bg-gray-100 overflow-hidden relative flex-shrink-0 flex items-center justify-center">
+                  {imgUrl ? (
+                    <NextImage
+                      src={imgUrl}
+                      alt={product.name}
+                      fill
+                      className="object-cover group-hover/sub:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-[#464674]/5">
+                      <LayoutGrid className="w-4 h-4 text-[#464674]" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold text-gray-800 group-hover/sub:text-[#464674] transition-colors truncate">
+                    {product.name}
+                  </p>
+                  <p className="text-[9px] text-gray-400 font-medium truncate">
+                    {subCount > 0 ? `${subCount} options` : 'Custom Print'}
+                  </p>
+                </div>
+                <ChevronRight className="w-3 h-3 text-gray-300 group-hover/sub:text-[#464674] flex-shrink-0" />
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between px-1">
+          <Link
+            href="/products"
+            onClick={onClose}
+            className="w-full py-1.5 text-center text-[11px] font-bold text-white bg-[#464674] hover:bg-[#5c5c96] rounded-xl transition-colors flex items-center justify-center gap-1"
+          >
+            Browse Full Product Catalog <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SIMPLE DROPDOWN
 // ─────────────────────────────────────────────────────────────────────────────
 function SimpleDropdown({
@@ -473,7 +566,7 @@ export function Navbar() {
     setOpenMenu(null);
   };
 
-  // Products to directly display in the bottom navbar bar — fills full width
+  // Products to directly display in the bottom navbar bar
   const activeProductsList = productsData.length > 0 ? productsData : FALLBACK_PRODUCTS;
 
   // Compute live search suggestions
@@ -576,7 +669,7 @@ export function Navbar() {
         <NoticeSlider />
         {/* ── TOP ROW ─────────────────────────────────────────────── */}
         <div className="bg-gradient-to-r from-[#1a1a4e] via-[#282860] to-[#1a1a4e] border-b border-white/10 relative z-20">
-          <div className="w-full px-3 sm:px-4 lg:px-6 h-[76px] sm:h-[84px] flex items-center gap-3 lg:gap-5 py-2">
+          <div className="w-full px-3 sm:px-4 lg:px-6 h-[72px] sm:h-[80px] flex items-center gap-3 lg:gap-4 xl:gap-5 py-2">
 
             {/* Logo */}
             <Link href="/" prefetch={false} className="flex-shrink-0">
@@ -592,7 +685,7 @@ export function Navbar() {
               <button
                 type="button"
                 className={cn(
-                  'flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[12px] font-bold px-4 py-2.5 rounded-xl transition-all',
+                  'flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[12px] font-bold px-3.5 py-2.5 rounded-xl transition-all',
                   openMenu === 'categories-btn' && 'bg-white/20 border-white/30'
                 )}
               >
@@ -621,7 +714,7 @@ export function Navbar() {
             </div>
 
             {/* Search */}
-            <div ref={searchContainerRef} className="hidden md:block flex-1 max-w-lg relative">
+            <div ref={searchContainerRef} className="hidden md:block flex-1 max-w-xs lg:max-w-md xl:max-w-lg min-w-0 relative">
               <form onSubmit={handleSearchSubmit}>
                 <div className="flex items-center gap-2.5 bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 focus-within:border-white/50 focus-within:bg-white/15 transition-all">
                   <Search className="w-4 h-4 text-white/70 flex-shrink-0" />
@@ -724,11 +817,11 @@ export function Navbar() {
               </AnimatePresence>
             </div>
 
-            {/* Contact — only on large screens */}
-            <div className="hidden xl:flex items-center gap-5 flex-shrink-0">
+            {/* Contact — on wide screens */}
+            <div className="hidden 2xl:flex items-center gap-5 flex-shrink-0">
               <a href="tel:+916001234567" className="flex items-center gap-2.5 group">
-                <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center flex-shrink-0 transition-colors border border-white/15">
-                  <Phone className="w-4 h-4 text-white/80" />
+                <div className="w-8 h-8 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center flex-shrink-0 transition-colors border border-white/15">
+                  <Phone className="w-3.5 h-3.5 text-white/80" />
                 </div>
                 <div>
                   <p className="text-xs font-black text-white leading-tight">+1600-123 456 789</p>
@@ -736,8 +829,8 @@ export function Navbar() {
                 </div>
               </a>
               <a href="mailto:support@amazoprint.in" className="flex items-center gap-2.5 group">
-                <div className="w-9 h-9 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center flex-shrink-0 transition-colors border border-white/15">
-                  <Mail className="w-4 h-4 text-white/80" />
+                <div className="w-8 h-8 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center flex-shrink-0 transition-colors border border-white/15">
+                  <Mail className="w-3.5 h-3.5 text-white/80" />
                 </div>
                 <div>
                   <p className="text-xs font-black text-white leading-tight">support@amazoprint.in</p>
@@ -747,7 +840,7 @@ export function Navbar() {
             </div>
 
             {/* Right action icons */}
-            <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+            <div className="flex items-center gap-1 sm:gap-1.5 ml-auto flex-shrink-0">
               {/* Account */}
               {loading ? (
                 <Skeleton className="h-9 w-9 rounded-full bg-white/10" />
@@ -784,11 +877,11 @@ export function Navbar() {
 
               {/* Auth buttons */}
               {!loading && !session && (
-                <div className="hidden sm:flex items-center gap-1.5 ml-1.5 pl-1.5 border-l border-white/15">
-                  <Button asChild variant="ghost" size="sm" className="rounded-xl font-bold text-xs text-white/80 hover:text-white hover:bg-white/10 h-9 px-3">
+                <div className="hidden sm:flex items-center gap-1.5 ml-1 pl-1.5 border-l border-white/15">
+                  <Button asChild variant="ghost" size="sm" className="rounded-xl font-bold text-xs text-white/80 hover:text-white hover:bg-white/10 h-8.5 px-3">
                     <Link href="/login">Login</Link>
                   </Button>
-                  <Button asChild size="sm" className="rounded-xl font-bold text-xs bg-white hover:bg-slate-50 text-[#464674] border-none h-9 px-4 shadow-md shadow-black/20">
+                  <Button asChild size="sm" className="rounded-xl font-bold text-xs bg-white hover:bg-slate-50 text-[#464674] border-none h-8.5 px-3.5 shadow-md shadow-black/20">
                     <Link href="/register">Register</Link>
                   </Button>
                 </div>
@@ -807,21 +900,33 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* ── BOTTOM NAV ROW — FULL-WIDTH DIRECT PRODUCTS & SERVICES ─── */}
+        {/* ── BOTTOM NAV ROW — RESPONSIVE CATEGORIES & SERVICES ──────── */}
         <div className="hidden lg:block bg-[#282860] border-b border-white/10 relative z-10">
-          <div className="w-full px-2 sm:px-3 lg:px-4">
-            <nav className="flex items-center justify-between h-11 w-full gap-0.5">
-              {/* Product Direct Items — Fills available width */}
-              <div className="flex items-center gap-0.5 xl:gap-1 flex-1 min-w-0">
-                {activeProductsList.map((product) => {
+          <div className="w-full px-3 sm:px-4 lg:px-6">
+            <nav className="flex items-center justify-between h-11 w-full gap-2">
+              {/* Product Direct Items with Responsive Breakpoint Filtering */}
+              <div className="flex items-center gap-1 xl:gap-1.5 flex-1 min-w-0">
+                {activeProductsList.map((product, idx) => {
                   const menuKey = `prod-${product.id || product.slug}`;
                   const isMenuOpen = openMenu === menuKey;
-                  const isActive = pathname === '/products';
+
+                  // Breakpoint responsive visibility:
+                  // - First 4 items (0, 1, 2, 3): visible on all lg+ screens
+                  // - Items 4, 5: visible on xl+ (1280px+)
+                  // - Items 6, 7: visible on 2xl+ (1536px+)
+                  // - Items 8+: accessible via "More Categories"
+                  const visibilityClass = idx < 4 
+                    ? 'block' 
+                    : idx < 6 
+                      ? 'hidden xl:block' 
+                      : idx < 8 
+                        ? 'hidden 2xl:block' 
+                        : 'hidden';
 
                   return (
                     <div
                       key={product.id || product.slug}
-                      className="relative flex-shrink-0"
+                      className={cn('relative flex-shrink-0', visibilityClass)}
                       onMouseEnter={() => enter(menuKey)}
                       onMouseLeave={leave}
                     >
@@ -832,9 +937,9 @@ export function Navbar() {
                           'text-white/80 hover:text-white'
                         )}
                       >
-                        {product.name}
+                        <span className="truncate max-w-[150px] xl:max-w-[180px]">{product.name}</span>
                         <ChevronDown className={cn(
-                          'w-3 h-3 transition-transform duration-200 opacity-60 group-hover:opacity-100',
+                          'w-3 h-3 transition-transform duration-200 opacity-60 group-hover:opacity-100 flex-shrink-0',
                           isMenuOpen && 'rotate-180 opacity-100'
                         )} />
                         {/* Active + hover underline */}
@@ -858,13 +963,49 @@ export function Navbar() {
                     </div>
                   );
                 })}
+
+                {/* "More Categories" Dropdown Button */}
+                {activeProductsList.length > 4 && (
+                  <div
+                    className="relative flex-shrink-0"
+                    onMouseEnter={() => enter('more-categories')}
+                    onMouseLeave={leave}
+                  >
+                    <button
+                      type="button"
+                      className={cn(
+                        'flex items-center gap-1 px-2.5 xl:px-3 h-8.5 rounded-lg text-[12px] font-bold transition-all whitespace-nowrap bg-white/10 hover:bg-white/20 text-white/90 hover:text-white border border-white/15',
+                        openMenu === 'more-categories' && 'bg-white/25 text-white border-white/30'
+                      )}
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5 opacity-80" />
+                      <span>More</span>
+                      <ChevronDown className={cn(
+                        'w-3 h-3 transition-transform duration-200 opacity-60',
+                        openMenu === 'more-categories' && 'rotate-180 opacity-100'
+                      )} />
+                    </button>
+
+                    {/* More Categories Dropdown */}
+                    <AnimatePresence>
+                      {openMenu === 'more-categories' && (
+                        <div onMouseEnter={() => enter('more-categories')} onMouseLeave={leave}>
+                          <MoreCategoriesDropdown
+                            products={activeProductsList}
+                            onClose={close}
+                          />
+                        </div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
 
               {/* Separator */}
               <div className="h-4 w-[1px] bg-white/20 mx-1 flex-shrink-0" />
 
               {/* Service Navigation Items: Printers, Designers, Freelancers */}
-              <div className="flex items-center gap-0.5 flex-shrink-0">
+              <div className="flex items-center gap-0.5 xl:gap-1 flex-shrink-0">
                 {serviceNavItems.map((item) => {
                   const isMenuOpen = openMenu === item.key;
                   const isActive = pathname === item.href;
@@ -906,16 +1047,16 @@ export function Navbar() {
                     </div>
                   );
                 })}
+              </div>
 
                 {/* Right Side: Today's Deals */}
                 <Link
                   href="/products"
-                  className="ml-1.5 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white text-[11px] xl:text-[12px] font-bold hover:shadow-lg hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-100 transition-all flex-shrink-0 whitespace-nowrap"
+                  className="ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white text-[11px] xl:text-[12px] font-bold hover:shadow-lg hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-100 transition-all flex-shrink-0 whitespace-nowrap"
                 >
                   <Flame className="w-3.5 h-3.5" />
                   Today's Deals
                 </Link>
-              </div>
             </nav>
           </div>
         </div>

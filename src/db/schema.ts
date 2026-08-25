@@ -214,6 +214,19 @@ export const subProducts = pgTable('sub_products', {
   unitType: varchar('unit_type', { length: 10 }).default('mm').notNull(),
   backSideCost: numeric('back_side_cost', { precision: 10, scale: 2 }).default('0.00'),
   hsnCode: varchar('hsn_code', { length: 50 }),
+  minOrderQuantity: integer('min_order_quantity').default(1).notNull(),
+  maxOrderQuantity: integer('max_order_quantity').default(100000).notNull(),
+  deliveryDays: varchar('delivery_days', { length: 100 }).default('3-5 Business Days'),
+  deliveryAmount: numeric('delivery_amount', { precision: 10, scale: 2 }).default('0.00'),
+  deliveryTiers: jsonb('delivery_tiers').$type<Array<{
+    id: string;
+    name: string;
+    estimatedTime: string;
+    amount: number;
+    minCount: number;
+    maxCount: number;
+    isActive: boolean;
+  }>>().default([]),
 }, (table) => {
   return {
     productIdx: index('idx_sub_products_product').on(table.productId),

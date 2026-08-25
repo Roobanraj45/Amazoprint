@@ -17,6 +17,16 @@ const productSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+const deliveryTierSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Name is required'),
+  estimatedTime: z.string().min(1, 'Estimated time is required'),
+  amount: z.coerce.number().min(0).default(0),
+  minCount: z.coerce.number().min(1).default(1),
+  maxCount: z.coerce.number().min(1).default(100000),
+  isActive: z.boolean().default(true),
+});
+
 const subProductSchema = z.object({
   productId: z.number(),
   name: z.string().min(1, 'Name is required'),
@@ -38,6 +48,11 @@ const subProductSchema = z.object({
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
   backSideCost: z.coerce.number().optional().default(0),
   hsnCode: z.string().optional().nullable(),
+  minOrderQuantity: z.preprocess((val) => (val === '' || val === null || val === undefined ? 1 : val), z.coerce.number().min(1).default(1)),
+  maxOrderQuantity: z.preprocess((val) => (val === '' || val === null || val === undefined ? 100000 : val), z.coerce.number().min(1).default(100000)),
+  deliveryDays: z.string().optional().default('3-5 Business Days'),
+  deliveryAmount: z.coerce.number().optional().default(0),
+  deliveryTiers: z.array(deliveryTierSchema).optional().default([]),
 });
 
 export async function getProducts() {
@@ -53,6 +68,34 @@ export async function getProducts() {
       },
     },
     orderBy: [asc(products.createdAt)],
+  });
+}
+
+export async function getProductById(id: number) {
+  return await db.query.products.findFirst({
+    where: eq(products.id, id),
+    with: {
+      subProducts: {
+        orderBy: [asc(subProducts.createdAt)],
+        with: {
+          pricingRules: {
+            where: eq(subProductPricing.isActive, true),
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function getSubProductById(id: number) {
+  return await db.query.subProducts.findFirst({
+    where: eq(subProducts.id, id),
+    with: {
+      product: true,
+      pricingRules: {
+        where: eq(subProductPricing.isActive, true),
+      },
+    },
   });
 }
 
@@ -96,6 +139,8 @@ export async function createSubProduct(data: z.infer<typeof subProductSchema>) {
   const validated = subProductSchema.parse(data);
   const result = await db.insert(subProducts).values({
     ...validated,
+    deliveryAmount: (validated.deliveryAmount ?? 0).toString(),
+    deliveryTiers: validated.deliveryTiers || [],
     dieCutPrices: validated.dieCutPrices || {},
     cardTexturePrices: validated.cardTexturePrices || {},
   }).returning();
@@ -110,6 +155,8 @@ export async function updateSubProduct(id: number, data: Omit<z.infer<typeof sub
     const result = await db.update(subProducts)
         .set({ 
             ...validated, 
+            deliveryAmount: (validated.deliveryAmount ?? 0).toString(),
+            deliveryTiers: validated.deliveryTiers || [],
             dieCutPrices: validated.dieCutPrices || {},
             cardTexturePrices: validated.cardTexturePrices || {},
             updatedAt: new Date() 

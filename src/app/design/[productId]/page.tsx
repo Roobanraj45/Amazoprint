@@ -247,6 +247,18 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
     where: eq(cardTextures.isActive, true)
   });
 
+  const deliveryTier = searchParams.deliveryTier || 'standard';
+  const deliveryDays = searchParams.deliveryDays || subProductForDims?.deliveryDays || '3-5 Business Days';
+  const deliveryFee = Number(searchParams.deliveryFee || subProductForDims?.deliveryAmount || 0);
+  const deliveryName = searchParams.deliveryName || (deliveryTier === 'standard' ? 'Standard Delivery' : 'Expedited Delivery');
+
+  const deliveryOption = {
+    id: deliveryTier,
+    name: deliveryName,
+    days: deliveryDays,
+    fee: deliveryFee,
+  };
+
   return (
     <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="animate-spin h-8 w-8" /></div>}>
       <DesignEditor
@@ -265,6 +277,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
         selectedAddons={selectedAddons}
         selectedDie={selectedDie}
         selectedTexture={selectedTexture}
+        deliveryOption={deliveryOption}
         pricingRules={pricingRules}
         dieCuts={allDieCuts}
         cardTextures={allCardTextures}

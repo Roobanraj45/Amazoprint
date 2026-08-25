@@ -268,13 +268,24 @@ export function UploadDesignContent() {
         });
     }
 
+    const deliveryTier = searchParams.get('deliveryTier') || 'standard';
+    const deliveryDays = searchParams.get('deliveryDays') || subProduct?.deliveryDays || '3-5 Business Days';
+    const deliveryFee = Number(searchParams.get('deliveryFee') || subProduct?.deliveryAmount || 0);
+    const deliveryName = searchParams.get('deliveryName') || (deliveryTier === 'standard' ? 'Standard Delivery' : 'Expedited Delivery');
+
     const calculatedPrice = subProduct ? {
         basePriceTotal: basePrice * qty,
-        original: (basePrice + addonTotalPerUnit) * qty,
-        final: (finalPrice + addonTotalPerUnit) * qty,
+        original: (basePrice + addonTotalPerUnit) * qty + deliveryFee,
+        final: (finalPrice + addonTotalPerUnit) * qty + deliveryFee,
         discount: discount * qty,
         description: discountDescription,
         addons: addonBreakdown,
+        delivery: {
+            id: deliveryTier,
+            name: deliveryName,
+            days: deliveryDays,
+            fee: deliveryFee,
+        },
     } : null;
 
     const handleUpload = async (data: UploadFormValues) => {
@@ -312,6 +323,12 @@ export function UploadDesignContent() {
             cardTexture: selectedTextureObj ? { id: selectedTextureObj.id, name: selectedTextureObj.name } : null,
             addons: selectedAddonsList.map(a => ({ id: a.id, name: a.addonName, price: a.addonPriceAmount })),
             quantity: qty,
+            deliveryOption: {
+                id: deliveryTier,
+                name: deliveryName,
+                days: deliveryDays,
+                fee: deliveryFee,
+            },
             pricing: calculatedPrice,
             priceBreakup: calculatedPrice,
         };

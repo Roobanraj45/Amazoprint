@@ -1024,6 +1024,17 @@ function OrderCard({
                                     Contest
                                 </span>
                             )}
+                            {parsedCustomisation?.deliveryOption && (
+                                <span className={cn(
+                                    "text-[9px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1",
+                                    parsedCustomisation.deliveryOption.id !== 'standard'
+                                        ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-800 font-extrabold"
+                                        : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800"
+                                )}>
+                                    <Truck className="h-2.5 w-2.5" />
+                                    {parsedCustomisation.deliveryOption.name} ({parsedCustomisation.deliveryOption.days})
+                                </span>
+                            )}
                         </div>
                         <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 dark:text-zinc-500">
                             <span className="flex items-center gap-1">
@@ -1187,13 +1198,18 @@ function OrderCard({
                         {/* Print specs grid */}
                         <div>
                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-2">Print Specifications</p>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
                                 <SpecChip label="Print Sides" value={pages} highlight={pages === 'Double Sided'} />
                                 <SpecChip label="Dimensions" value={dimensions} />
                                 <SpecChip label="Spot UV" value={spotUv} highlight={spotUv === 'Yes'} />
                                 <SpecChip label="Foil" value={foil} highlight={foil !== 'None'} />
                                 <SpecChip label="Die Cut" value={dieCut} highlight={dieCut !== 'Standard'} />
                                 <SpecChip label="Lamination" value={lamination} highlight={lamination !== 'None'} />
+                                <SpecChip
+                                    label="Shipping Speed"
+                                    value={parsedCustomisation?.deliveryOption ? `${parsedCustomisation.deliveryOption.name} (${parsedCustomisation.deliveryOption.days})` : 'Standard Delivery'}
+                                    highlight={parsedCustomisation?.deliveryOption?.id && parsedCustomisation.deliveryOption.id !== 'standard'}
+                                />
                             </div>
                         </div>
 

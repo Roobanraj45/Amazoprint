@@ -57,6 +57,7 @@ export function StartDesignContent() {
   const [dieCuts, setDieCuts] = useState<any[]>([]);
   const [selectedTexture, setSelectedTexture] = useState<number | null>(null);
   const [cardTextures, setCardTextures] = useState<any[]>([]);
+  const [selectedDeliveryTier, setSelectedDeliveryTier] = useState<string>(searchParams.get('deliveryTier') || 'standard');
 
   // Navigation & View States
   const [activeTab, setActiveTab] = useState('details'); // 'details', 'templates', 'guidelines', 'shipping', 'reviews'
@@ -249,16 +250,31 @@ export function StartDesignContent() {
         }
     }
 
+    const availableTiers = (subProduct as any).deliveryTiers || [];
+    const selectedTierObj = selectedDeliveryTier === 'standard'
+      ? null
+      : availableTiers.find((t: any) => t.id === selectedDeliveryTier && t.isActive);
+
+    const deliveryFee = selectedTierObj ? Number(selectedTierObj.amount || 0) : Number(subProduct.deliveryAmount || 0);
+    const deliveryName = selectedTierObj ? selectedTierObj.name : 'Standard Delivery';
+    const deliveryDays = selectedTierObj ? selectedTierObj.estimatedTime : (subProduct.deliveryDays || '3-5 Business Days');
+
     setCalculatedPrice({
         basePriceTotal: basePrice * qty,
-        original: (basePrice + addonTotalPerUnit) * qty,
-        final: (finalPrice + addonTotalPerUnit) * qty,
+        original: (basePrice + addonTotalPerUnit) * qty + deliveryFee,
+        final: (finalPrice + addonTotalPerUnit) * qty + deliveryFee,
         discount: discount * qty,
         description: discountDescription,
         addons: addonBreakdown,
+        delivery: {
+            id: selectedDeliveryTier,
+            name: deliveryName,
+            days: deliveryDays,
+            fee: deliveryFee,
+        },
     });
 
-  }, [quantity, subProduct, pricingRules, selectedAddons, pages, selectedDie, dieCuts, selectedTexture, cardTextures]);
+  }, [quantity, subProduct, pricingRules, selectedAddons, pages, selectedDie, dieCuts, selectedTexture, cardTextures, selectedDeliveryTier]);
 
   const constructedQuery = useMemo(() => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -284,6 +300,22 @@ export function StartDesignContent() {
     } else {
       newParams.delete('cardTexture');
     }
+
+    // Carry forward delivery tier choice
+    if (selectedDeliveryTier) {
+      newParams.set('deliveryTier', selectedDeliveryTier);
+      const tiers = (subProduct as any)?.deliveryTiers || [];
+      const tierObj = tiers.find((t: any) => t.id === selectedDeliveryTier);
+      if (tierObj) {
+        newParams.set('deliveryName', tierObj.name);
+        newParams.set('deliveryDays', tierObj.estimatedTime);
+        newParams.set('deliveryFee', String(tierObj.amount || 0));
+      } else {
+        newParams.set('deliveryName', 'Standard Delivery');
+        newParams.set('deliveryDays', subProduct?.deliveryDays || '3-5 Business Days');
+        newParams.set('deliveryFee', String(subProduct?.deliveryAmount || 0));
+      }
+    }
     
     if (subProduct?.width === 0 && subProduct?.height === 0) {
       if (customWidth) newParams.set('width', customWidth);
@@ -291,7 +323,7 @@ export function StartDesignContent() {
     }
 
     return newParams.toString();
-  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, customWidth, customHeight, selectedDie, selectedTexture]);
+  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, customWidth, customHeight, selectedDie, selectedTexture, selectedDeliveryTier]);
 
   const thumbnailImages = useMemo(() => {
     if (!subProduct && !product) return [];
@@ -888,6 +920,73 @@ export function StartDesignContent() {
                               </Select>
                           )}
                       </div>
+
+                      {/* 7. Choose Delivery & Shipping Speed */}
+                      <div className="space-y-2.5 pt-1">
+                          <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center justify-between uppercase">
+                              <span className="flex items-center gap-1.5">
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">7.</span> Delivery & Turnaround Speed
+                              </span>
+                              <span className="text-[10px] font-semibold text-slate-400 normal-case">Insured Courier Shipping</span>
+                          </Label>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {/* Standard Delivery Option */}
+                              <button
+                                  type="button"
+                                  onClick={() => setSelectedDeliveryTier('standard')}
+                                  className={cn(
+                                      "p-3.5 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-2 shadow-xs",
+                                      selectedDeliveryTier === 'standard'
+                                          ? "border-indigo-600 dark:border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20"
+                                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                                  )}
+                              >
+                                  <div className="flex items-center justify-between w-full">
+                                      <div className="flex items-center gap-2">
+                                          <Truck className={cn("w-4 h-4", selectedDeliveryTier === 'standard' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400")} />
+                                          <span className="text-xs font-bold text-slate-900 dark:text-white">Standard Delivery</span>
+                                      </div>
+                                      <Badge variant="secondary" className="text-[10px] font-bold">
+                                          {Number(subProduct.deliveryAmount || 0) > 0 ? `₹${subProduct.deliveryAmount}` : 'Free'}
+                                      </Badge>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                                      {subProduct.deliveryDays || '3-5 Business Days'} turnaround
+                                  </p>
+                              </button>
+
+                              {/* Custom Expedited Tiers */}
+                              {((subProduct as any).deliveryTiers || [])
+                                  .filter((tier: any) => tier.isActive && parseInt(quantity || '100', 10) >= (tier.minCount || 1) && parseInt(quantity || '100', 10) <= (tier.maxCount || 100000))
+                                  .map((tier: any) => (
+                                      <button
+                                          key={tier.id}
+                                          type="button"
+                                          onClick={() => setSelectedDeliveryTier(tier.id)}
+                                          className={cn(
+                                              "p-3.5 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-2 shadow-xs",
+                                              selectedDeliveryTier === tier.id
+                                                  ? "border-indigo-600 dark:border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20"
+                                                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                                          )}
+                                      >
+                                          <div className="flex items-center justify-between w-full">
+                                              <div className="flex items-center gap-2">
+                                                  <Zap className={cn("w-4 h-4", selectedDeliveryTier === tier.id ? "text-indigo-600 dark:text-indigo-400" : "text-amber-500")} />
+                                                  <span className="text-xs font-bold text-slate-900 dark:text-white">{tier.name}</span>
+                                              </div>
+                                              <Badge className="bg-indigo-600 text-white text-[10px] font-bold">
+                                                  +₹{tier.amount}
+                                              </Badge>
+                                          </div>
+                                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                                              ⚡ {tier.estimatedTime} expedited turnaround
+                                          </p>
+                                      </button>
+                                  ))}
+                          </div>
+                      </div>
                   </div>
 
                   {/* Price Box Container */}
@@ -913,7 +1012,12 @@ export function StartDesignContent() {
                               </div>
                           </div>
                           <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950 py-2 px-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                              <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" /> Ships in 2-3 Business Days
+                              <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                              <span>{calculatedPrice?.delivery?.days || subProduct.deliveryDays || '3-5 Business Days'}</span>
+                              <span className="text-slate-300 dark:text-slate-700">•</span>
+                              <span className="text-indigo-600 dark:text-indigo-400">
+                                {calculatedPrice?.delivery?.fee > 0 ? `₹${calculatedPrice.delivery.fee} Shipping` : 'Free Shipping'}
+                              </span>
                           </div>
                       </div>
 
@@ -942,6 +1046,13 @@ export function StartDesignContent() {
                                           </span>
                                       </div>
                                   ))}
+                                  {/* Delivery Option Line */}
+                                  <div className="flex justify-between items-center py-1 border-t border-slate-100 dark:border-slate-800/60 text-indigo-600 dark:text-indigo-400 font-semibold">
+                                      <span>{calculatedPrice.delivery?.name || 'Delivery'} ({calculatedPrice.delivery?.days || '3-5 Days'})</span>
+                                      <span className="font-bold">
+                                          {calculatedPrice.delivery?.fee > 0 ? `+₹${calculatedPrice.delivery.fee.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : 'Free'}
+                                      </span>
+                                  </div>
                                   <div className="flex justify-between items-center py-2 border-t border-slate-200 dark:border-slate-800 font-bold text-sm text-slate-900 dark:text-white">
                                       <span>Total Estimated Price</span>
                                       <span>₹{calculatedPrice.final.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -1165,22 +1276,30 @@ export function StartDesignContent() {
 
                   {activeTab === 'shipping' && (
                       <div className="space-y-5">
-                          <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Shipping Information</h3>
+                          <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Shipping & Turnaround Timeline</h3>
                           <p className="text-sm text-slate-600 dark:text-slate-400 font-normal leading-relaxed">
                               We offer secure, insured courier delivery across all major destinations with complete tracking visibility from dispatch to your doorstep.
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5">
                                   <h4 className="text-sm font-bold text-slate-900 dark:text-white">Standard Delivery</h4>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">3-5 business days after dispatch.</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">{subProduct.deliveryDays || '3-5 business days'} after dispatch.</p>
+                                  <Badge variant="secondary" className="text-[10px] font-bold mt-1">
+                                    {Number(subProduct.deliveryAmount || 0) > 0 ? `₹${subProduct.deliveryAmount} Flat Rate` : 'Free Shipping'}
+                                  </Badge>
                               </div>
-                              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 space-y-1.5">
-                                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Express Priority</h4>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">1-2 business days after dispatch.</p>
-                              </div>
+                              {((subProduct as any).deliveryTiers || []).filter((t: any) => t.isActive).map((tier: any) => (
+                                <div key={tier.id} className="p-5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-800/60 space-y-1.5">
+                                  <h4 className="text-sm font-bold text-indigo-950 dark:text-indigo-200">{tier.name}</h4>
+                                  <p className="text-xs text-slate-600 dark:text-slate-400 font-normal">{tier.estimatedTime} turnaround.</p>
+                                  <Badge className="bg-indigo-600 text-white text-[10px] font-bold mt-1">
+                                    ₹{tier.amount} Extra
+                                  </Badge>
+                                </div>
+                              ))}
                               <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 space-y-1.5">
                                   <h4 className="text-sm font-bold text-slate-900 dark:text-white">Packaging Assurance</h4>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">Weatherproof, rigid box transit packing.</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">Weatherproof, rigid box transit packing for damage protection.</p>
                               </div>
                           </div>
                       </div>

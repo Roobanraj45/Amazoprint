@@ -83,14 +83,79 @@ export async function createOrder(data: CreateOrderData) {
     let unitPrice = 0;
 
     const customisation = (sourceDetails as any).customisation || {};
-    if (customisation.priceBreakup || customisation.pricing) {
-        const breakup = customisation.priceBreakup || customisation.pricing;
-        totalAmount = breakup.final;
-        unitPrice = totalAmount / quantity;
-    } else {
-        unitPrice = parseFloat(subProductInfo.price);
-        totalAmount = unitPrice * quantity;
+    const deliveryOption = customisation.deliveryOption || customisation.priceBreakup?.delivery || customisation.pricing?.delivery || {
+        id: 'standard',
+        name: 'Standard Delivery',
+        days: subProductInfo.deliveryDays || '3-5 Business Days',
+        fee: Number(subProductInfo.deliveryAmount || 0),
+    };
+    customisation.deliveryOption = deliveryOption;
+    const deliveryFee = Number(deliveryOption.fee || 0);
+
+    const pricingRules = await getPricingRulesForSubProduct(subProductId);
+    let baseUnitPrice = parseFloat(subProductInfo.price || '0');
+    let finalUnitPrice = baseUnitPrice;
+    let totalDiscount = 0;
+
+    const standardRule = pricingRules.find(r => !r.isDiscount && !r.isContest && !r.isVerification && quantity >= (r.minQuantity || 1) && (!r.maxQuantity || quantity <= r.maxQuantity));
+    if (standardRule && standardRule.unitPrice) {
+        baseUnitPrice = Number(standardRule.unitPrice);
+        finalUnitPrice = baseUnitPrice;
     }
+
+    const discountRule = pricingRules.find(r => r.isDiscount && quantity >= (r.minQuantity || 1) && (!r.maxQuantity || quantity <= r.maxQuantity));
+    if (discountRule && discountRule.discountValue) {
+        let perItemDiscount = 0;
+        if (discountRule.discountType === 'percentage') {
+            perItemDiscount = baseUnitPrice * (Number(discountRule.discountValue) / 100);
+        } else if (discountRule.discountType === 'fixed') {
+            perItemDiscount = Number(discountRule.discountValue);
+        }
+        finalUnitPrice = baseUnitPrice - perItemDiscount;
+        totalDiscount = perItemDiscount * quantity;
+    }
+
+    let addonsTotal = 0;
+    const breakup = customisation.priceBreakup || customisation.pricing;
+    if (breakup) {
+        if (breakup.addons && Array.isArray(breakup.addons)) {
+            addonsTotal = breakup.addons.reduce((acc: number, a: any) => acc + Number(a.totalAmount || a.amount || 0), 0);
+        }
+        if (typeof breakup.discount === 'number') {
+            totalDiscount = breakup.discount;
+        }
+        if (typeof breakup.basePriceTotal === 'number') {
+            baseUnitPrice = breakup.basePriceTotal / quantity;
+            finalUnitPrice = (breakup.basePriceTotal - totalDiscount) / quantity;
+        }
+        customisation.priceBreakup = {
+            ...breakup,
+            basePriceTotal: baseUnitPrice * quantity,
+            delivery: deliveryOption,
+            original: (baseUnitPrice * quantity) + addonsTotal + deliveryFee,
+            final: (finalUnitPrice * quantity) + addonsTotal + deliveryFee,
+            discount: totalDiscount,
+        };
+    }
+
+    totalAmount = (finalUnitPrice * quantity) + addonsTotal + deliveryFee;
+    unitPrice = finalUnitPrice;
+
+    let estDate = new Date();
+    const deliveryDaysStr = customisation.deliveryOption?.days || subProductInfo.deliveryDays || '3-5 Business Days';
+    let daysToAdd = 5;
+    if (deliveryDaysStr.toLowerCase().includes('hour')) {
+        const match = deliveryDaysStr.match(/(\d+)\s*hour/i);
+        const hours = match ? parseInt(match[1], 10) : 48;
+        daysToAdd = Math.max(1, Math.ceil(hours / 24));
+    } else {
+        const matches = deliveryDaysStr.match(/(\d+)/g);
+        if (matches && matches.length > 0) {
+            daysToAdd = parseInt(matches[matches.length - 1], 10);
+        }
+    }
+    estDate.setDate(estDate.getDate() + daysToAdd);
+    const estimatedDeliveryDate = estDate.toISOString().split('T')[0];
 
     const result = await db.insert(orders).values({
         userId: session.sub,
@@ -106,6 +171,7 @@ export async function createOrder(data: CreateOrderData) {
         paymentMethod: 'Card', // Placeholder
         paymentStatus: 'paid', // Placeholder
         orderStatus: 'confirmed',
+        estimatedDeliveryDate: estimatedDeliveryDate as any,
         paymentId,
         customisation,
     }).returning();
@@ -192,46 +258,93 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
     let finalUnitPrice = baseUnitPrice;
     let discountDescription: string | null = null;
     let totalDiscount = 0;
-    let customisation = (details as any).design?.customisation || (details as any).upload?.customisation || {};
-
-    // If we have a saved price breakup in customisation, use it as a reference or primary source
-    if (customisation.priceBreakup || customisation.pricing) {
-        const breakup = customisation.priceBreakup || customisation.pricing;
-        customisation.priceBreakup = breakup; // Normalize so checkout UI works seamlessly
-        // The breakup.final is the total for the quantity
-        // We can use it to derive the unit price
-        finalUnitPrice = breakup.final / quantity;
-        baseUnitPrice = breakup.original / quantity;
-        totalDiscount = breakup.discount;
-        discountDescription = breakup.description;
-    } else {
-        // 1. Find the most specific base price for the quantity
-        const standardRule = pricingRules.find(r => !r.isDiscount && !r.isContest && !r.isVerification && quantity >= (r.minQuantity || 1) && (!r.maxQuantity || quantity <= r.maxQuantity));
-        if (standardRule && standardRule.unitPrice) {
-            baseUnitPrice = Number(standardRule.unitPrice);
-            finalUnitPrice = baseUnitPrice;
+    
+    let rawCustomisation = (details as any).design?.customisation || (details as any).upload?.customisation || {};
+    let customisation: any = {};
+    if (typeof rawCustomisation === 'string') {
+        try {
+            customisation = JSON.parse(rawCustomisation);
+        } catch {
+            customisation = {};
         }
-
-        // 2. Find a discount rule that applies
-        const discountRule = pricingRules.find(r => r.isDiscount && quantity >= (r.minQuantity || 1) && (!r.maxQuantity || quantity <= r.maxQuantity));
-        if (discountRule && discountRule.discountValue) {
-            let perItemDiscount = 0;
-            if (discountRule.discountType === 'percentage') {
-                perItemDiscount = finalUnitPrice * (Number(discountRule.discountValue) / 100);
-                discountDescription = `${discountRule.discountValue}% off`;
-            } else if (discountRule.discountType === 'fixed') {
-                perItemDiscount = Number(discountRule.discountValue);
-                discountDescription = `₹${discountRule.discountValue} off per item`;
-            }
-            finalUnitPrice -= perItemDiscount;
-            totalDiscount = perItemDiscount * quantity;
-        }
+    } else if (rawCustomisation && typeof rawCustomisation === 'object') {
+        customisation = { ...rawCustomisation };
     }
 
-    const originalTotal = baseUnitPrice * quantity;
-    const total = finalUnitPrice * quantity;
+    // Resolve delivery option
+    const deliveryOption = customisation.deliveryOption || customisation.priceBreakup?.delivery || customisation.pricing?.delivery || {
+        id: 'standard',
+        name: 'Standard Delivery',
+        days: details.subProduct.deliveryDays || '3-5 Business Days',
+        fee: Number(details.subProduct.deliveryAmount || 0),
+    };
+    customisation.deliveryOption = deliveryOption;
+    const deliveryFee = Number(deliveryOption.fee || 0);
 
-    return { ...details, unitPrice: finalUnitPrice, total, originalTotal, discountDescription, totalDiscount, customisation };
+    // 1. Determine standard base unit price for the quantity
+    const standardRule = pricingRules.find(r => !r.isDiscount && !r.isContest && !r.isVerification && quantity >= (r.minQuantity || 1) && (!r.maxQuantity || quantity <= r.maxQuantity));
+    if (standardRule && standardRule.unitPrice) {
+        baseUnitPrice = Number(standardRule.unitPrice);
+        finalUnitPrice = baseUnitPrice;
+    }
+
+    // 2. Determine discount
+    const discountRule = pricingRules.find(r => r.isDiscount && quantity >= (r.minQuantity || 1) && (!r.maxQuantity || quantity <= r.maxQuantity));
+    if (discountRule && discountRule.discountValue) {
+        let perItemDiscount = 0;
+        if (discountRule.discountType === 'percentage') {
+            perItemDiscount = baseUnitPrice * (Number(discountRule.discountValue) / 100);
+            discountDescription = `${discountRule.discountValue}% off`;
+        } else if (discountRule.discountType === 'fixed') {
+            perItemDiscount = Number(discountRule.discountValue);
+            discountDescription = `₹${discountRule.discountValue} off`;
+        }
+        finalUnitPrice = baseUnitPrice - perItemDiscount;
+        totalDiscount = perItemDiscount * quantity;
+    }
+
+    // 3. If we have a saved price breakup, incorporate custom add-ons
+    let addonsTotal = 0;
+    const breakup = customisation.priceBreakup || customisation.pricing;
+    if (breakup) {
+        if (breakup.addons && Array.isArray(breakup.addons)) {
+            addonsTotal = breakup.addons.reduce((acc: number, a: any) => acc + Number(a.totalAmount || a.amount || 0), 0);
+        }
+        if (typeof breakup.discount === 'number') {
+            totalDiscount = breakup.discount;
+        }
+        if (breakup.description) {
+            discountDescription = breakup.description;
+        }
+        if (typeof breakup.basePriceTotal === 'number') {
+            baseUnitPrice = breakup.basePriceTotal / quantity;
+            finalUnitPrice = (breakup.basePriceTotal - totalDiscount) / quantity;
+        }
+
+        customisation.priceBreakup = {
+            ...breakup,
+            basePriceTotal: baseUnitPrice * quantity,
+            delivery: deliveryOption,
+            original: (baseUnitPrice * quantity) + addonsTotal + deliveryFee,
+            final: (finalUnitPrice * quantity) + addonsTotal + deliveryFee,
+            discount: totalDiscount,
+            description: discountDescription,
+        };
+    }
+
+    const originalTotal = (baseUnitPrice * quantity) + addonsTotal + deliveryFee;
+    const total = (finalUnitPrice * quantity) + addonsTotal + deliveryFee;
+
+    return { 
+        ...details, 
+        unitPrice: finalUnitPrice, 
+        total, 
+        originalTotal, 
+        discountDescription, 
+        totalDiscount, 
+        customisation,
+        deliveryOption 
+    };
 }
 
 export async function getMyOrders(page: number = 1, limit: number = 10) {

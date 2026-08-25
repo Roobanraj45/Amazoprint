@@ -533,6 +533,35 @@ export default function AdminOrdersPage() {
                                                         {order.quantity} pcs · ₹{parseFloat(order.unitPrice).toFixed(2)}/ea
                                                     </span>
                                                 </div>
+                                                {(() => {
+                                                    const raw = order.design?.customisation || (order as any).customisation;
+                                                    let customisation: any = null;
+                                                    try {
+                                                        customisation = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                                                    } catch {}
+                                                    const delivery = customisation?.deliveryOption;
+                                                    if (delivery) {
+                                                        const isExpedited = delivery.id !== 'standard';
+                                                        return (
+                                                            <div className="flex items-center gap-1 mt-1.5">
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className={cn(
+                                                                        "text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1",
+                                                                        isExpedited
+                                                                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-extrabold"
+                                                                            : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
+                                                                    )}
+                                                                >
+                                                                    <Truck className="h-2.5 w-2.5" />
+                                                                    <span>{delivery.name} ({delivery.days})</span>
+                                                                    {delivery.fee > 0 && <span className="font-extrabold">• ₹{delivery.fee}</span>}
+                                                                </Badge>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
                                             </td>
 
                                             {/* Status */}
