@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2, Truck, Lock, Check, ChevronLeft, ChevronRight, Search, FileText, MessageSquare, Upload, Copy } from 'lucide-react';
+import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2, Truck, Lock, Check, ChevronLeft, ChevronRight, Search, FileText, MessageSquare, Upload, Copy, Play, Video, ExternalLink, FileDown, Download } from 'lucide-react';
 import { getFoilTypes } from '@/app/actions/foil-actions';
 import { getDieCuts } from '@/app/actions/die-cut-actions';
 import { getCardTextures } from '@/app/actions/card-texture-actions';
@@ -20,6 +20,22 @@ import { resolveImagePath, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+
+function getYouTubeEmbedUrl(url?: string | null): string | null {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  const regExp = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+  const match = trimmed.match(regExp);
+  if (match && match[1]) {
+    return `https://www.youtube-nocookie.com/embed/${match[1]}`;
+  }
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return `https://www.youtube-nocookie.com/embed/${trimmed}`;
+  }
+  return null;
+}
 
 type ProductWithSubProducts = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
 type SubProductData = ProductWithSubProducts['subProducts'][0];
@@ -75,7 +91,7 @@ export function StartDesignContent() {
       const productId = params.productId as string;
       const subProductId = searchParams.get('subProductId');
 
-      if (!productId || !subProductId) {
+      if (!productId) {
         router.push('/products');
         return;
       }
@@ -89,7 +105,10 @@ export function StartDesignContent() {
 
       if (productData) {
         setProduct(productData);
-        const sp = productData.subProducts.find(s => s.id === Number(subProductId));
+        let sp = subProductId ? productData.subProducts.find(s => s.id === Number(subProductId)) : null;
+        if (!sp && productData.subProducts && productData.subProducts.length > 0) {
+          sp = productData.subProducts.find(s => s.isActive) || productData.subProducts[0];
+        }
         if (sp) {
             setSubProduct(sp);
             if (!sp.spotUvAllowed) {
@@ -106,6 +125,9 @@ export function StartDesignContent() {
         } else {
             setSubProduct(null);
         }
+      } else {
+        router.push('/products');
+        return;
       }
       setLoading(false);
     }
@@ -376,7 +398,7 @@ export function StartDesignContent() {
   const currentDisplayImage = thumbnailImages[activeThumbnailIndex] || resolveImagePath(subProduct?.imageUrl || product.imageUrl);
 
   return (
-    <main className="flex-grow pt-24 pb-24 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-indigo-500 selection:text-white">
+    <main className="flex-grow pt-32 sm:pt-36 md:pt-40 pb-24 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-indigo-500 selection:text-white">
         <div className="container mx-auto px-4 sm:px-6 max-w-[1400px] space-y-16">
           
           {/* Breadcrumb Navigation */}
@@ -522,6 +544,68 @@ export function StartDesignContent() {
                               <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">PDF is highly recommended. High-quality vector formats give the best print.</p>
                           </div>
                       </div>
+
+                      {/* Downloadable Sample Files / Starter Templates */}
+                      {Array.isArray((subProduct as any)?.sampleFiles) && (subProduct as any).sampleFiles.length > 0 && (
+                          <div className="p-4 bg-gradient-to-br from-indigo-50/80 to-purple-50/50 dark:from-indigo-950/40 dark:to-purple-950/20 border border-indigo-200/80 dark:border-indigo-800/60 rounded-2xl shadow-xs space-y-3">
+                              <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                                          <FileDown className="w-3.5 h-3.5" />
+                                      </div>
+                                      <div>
+                                          <h4 className="text-[11px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                                              Download Starter Templates
+                                          </h4>
+                                          <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                              Pre-set starter files & die-lines for your design
+                                          </p>
+                                      </div>
+                                  </div>
+                                  <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                                      {(subProduct as any).sampleFiles.length} { (subProduct as any).sampleFiles.length === 1 ? 'File' : 'Files' }
+                                  </Badge>
+                              </div>
+
+                              <div className="space-y-2">
+                                  {(subProduct as any).sampleFiles.map((file: any, idx: number) => {
+                                      const fileFormat = (file.fileType || 'FILE').toUpperCase();
+                                      return (
+                                          <div 
+                                              key={file.id || idx}
+                                              className="p-2.5 bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900/50 rounded-xl flex items-center justify-between gap-3 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-700 transition-all group"
+                                          >
+                                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-extrabold text-[9px] uppercase shrink-0">
+                                                      {fileFormat.slice(0, 4)}
+                                                  </div>
+                                                  <div className="min-w-0 flex-1">
+                                                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                                          {file.name}
+                                                      </p>
+                                                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                                          <span className="font-semibold text-indigo-600 dark:text-indigo-400">{fileFormat}</span>
+                                                          {file.fileSize && <span>• {file.fileSize}</span>}
+                                                      </div>
+                                                  </div>
+                                              </div>
+                                              <Button
+                                                  asChild
+                                                  size="sm"
+                                                  variant="outline"
+                                                  className="h-7 px-2.5 rounded-lg border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 text-[11px] font-bold shrink-0 transition-all gap-1 shadow-xs"
+                                              >
+                                                  <a href={file.fileUrl} download target="_blank" rel="noopener noreferrer">
+                                                      <Download className="w-3 h-3" />
+                                                      <span>Download</span>
+                                                  </a>
+                                              </Button>
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      )}
                   </div>  </div>
               </div>
 
@@ -1062,67 +1146,77 @@ export function StartDesignContent() {
                       )}
 
                       {/* Choose Your Design Path Container */}
-                      <div className="space-y-5 pt-3 border-t border-slate-200 dark:border-slate-800">
-                          <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm tracking-tight">
-                                  <Sparkles className="w-4 h-4 animate-pulse" /> Choose Your Design Path
-                              </div>
-                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Select how you&apos;d like to create your custom print.</p>
-                          </div>
+                      {((subProduct ? (subProduct.allowDesignerTool ?? true) : true) || 
+                        (subProduct ? (subProduct.allowFileUpload ?? true) : true) || 
+                        (subProduct ? (subProduct.allowFreelancerContest ?? true) : true)) && (
+                        <div className="space-y-5 pt-3 border-t border-slate-200 dark:border-slate-800">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm tracking-tight">
+                                    <Sparkles className="w-4 h-4 animate-pulse" /> Choose Your Design Path
+                                </div>
+                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Select how you&apos;d like to create your custom print.</p>
+                            </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                              {/* Customize Online Card */}
-                              <div className="p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 group hover:border-indigo-500/50 transition-all">
-                                  <div className="flex items-start gap-3">
-                                      <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
-                                          <PenSquare className="w-4.5 h-4.5" />
-                                      </div>
-                                      <div>
-                                          <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">Customize Online</h4>
-                                          <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Personalize with our intuitive studio.</p>
-                                      </div>
-                                  </div>
-                                  <Button asChild className="w-full h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-bold shadow hover:shadow-md hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
-                                      <Link href={`/design/${product.slug}?${constructedQuery}`}>Start Designing</Link>
-                                  </Button>
-                              </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                                {/* Customize Online Card */}
+                                {(subProduct ? (subProduct.allowDesignerTool ?? true) : true) && (
+                                    <div className="p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 group hover:border-indigo-500/50 transition-all">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
+                                                <PenSquare className="w-4.5 h-4.5" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">Customize Online</h4>
+                                                <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Personalize with our intuitive studio.</p>
+                                            </div>
+                                        </div>
+                                        <Button asChild className="w-full h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-bold shadow hover:shadow-md hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
+                                            <Link href={`/design/${product.slug}?${constructedQuery}`}>Start Designing</Link>
+                                        </Button>
+                                    </div>
+                                )}
 
-                              {/* Upload Artwork Card */}
-                              <div className="p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 group hover:border-indigo-500/50 transition-all">
-                                  <div className="flex items-start gap-3">
-                                      <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
-                                          <Upload className="w-4.5 h-4.5" />
-                                      </div>
-                                      <div>
-                                          <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">Upload Artwork</h4>
-                                          <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Upload print-ready PDF/image directly.</p>
-                                      </div>
-                                  </div>
-                                  <Button asChild variant="outline" className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
-                                      <Link href={isLoggedIn ? `/design/${product.slug}/upload?${constructedQuery}` : `/login?redirect_url=/design/${product.slug}/upload%3F${constructedQuery}`}>Upload Print File</Link>
-                                  </Button>
-                              </div>
+                                {/* Upload Artwork Card */}
+                                {(subProduct ? (subProduct.allowFileUpload ?? true) : true) && (
+                                    <div className="p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 group hover:border-indigo-500/50 transition-all">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
+                                                <Upload className="w-4.5 h-4.5" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">Upload Artwork</h4>
+                                                <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Upload print-ready PDF/image directly.</p>
+                                            </div>
+                                        </div>
+                                        <Button asChild variant="outline" className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
+                                            <Link href={isLoggedIn ? `/design/${product.slug}/upload?${constructedQuery}` : `/login?redirect_url=/design/${product.slug}/upload%3F${constructedQuery}`}>Upload Print File</Link>
+                                        </Button>
+                                    </div>
+                                )}
 
-                              {/* Expert Design Service Card */}
-                              <div className="p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 group hover:border-pink-500/50 transition-all relative overflow-hidden">
-                                  <div className="absolute top-2 right-2 bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border border-pink-200 dark:border-pink-800 px-1.5 py-0.2 rounded-full text-[8px] font-black tracking-tight uppercase">
-                                      Popular
-                                  </div>
-                                  <div className="flex items-start gap-3 pr-8">
-                                      <div className="w-8 h-8 rounded-xl bg-pink-50 dark:bg-pink-950/50 border border-pink-100 dark:border-pink-900 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0 group-hover:scale-105 transition-transform">
-                                          <Trophy className="w-4.5 h-4.5" />
-                                      </div>
-                                      <div>
-                                          <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">Expert Service</h4>
-                                          <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Collaborate with designers.</p>
-                                      </div>
-                                  </div>
-                                  <Button asChild variant="outline" className="w-full h-9 rounded-xl border border-pink-600 text-pink-600 dark:border-pink-500 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/30 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
-                                      <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct.id}&${constructedQuery}`}>Hire a Designer</Link>
-                                  </Button>
-                              </div>
-                          </div>
-                      </div>
+                                {/* Expert Design Service Card */}
+                                {(subProduct ? (subProduct.allowFreelancerContest ?? true) : true) && (
+                                    <div className="p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col justify-between space-y-4 group hover:border-pink-500/50 transition-all relative overflow-hidden">
+                                        <div className="absolute top-2 right-2 bg-pink-50 text-pink-600 dark:bg-pink-950/50 dark:text-pink-400 border border-pink-200 dark:border-pink-800 px-1.5 py-0.2 rounded-full text-[8px] font-black tracking-tight uppercase">
+                                            Popular
+                                        </div>
+                                        <div className="flex items-start gap-3 pr-8">
+                                            <div className="w-8 h-8 rounded-xl bg-pink-50 dark:bg-pink-950/50 border border-pink-100 dark:border-pink-900 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0 group-hover:scale-105 transition-transform">
+                                                <Trophy className="w-4.5 h-4.5" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">Expert Service</h4>
+                                                <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Collaborate with designers.</p>
+                                            </div>
+                                        </div>
+                                        <Button asChild variant="outline" className="w-full h-9 rounded-xl border border-pink-600 text-pink-600 dark:border-pink-500 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/30 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
+                                            <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct ? subProduct.id : ''}&${constructedQuery}`}>Hire a Designer</Link>
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                      )}
                   </div>
               </div>
           </div>
@@ -1256,12 +1350,42 @@ export function StartDesignContent() {
                   )}
 
                   {activeTab === 'guidelines' && (
-                      <div className="space-y-5">
-                          <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Design Guidelines</h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 font-normal leading-relaxed">
-                              To ensure the highest quality print results, please ensure your uploaded artwork adheres to our pre-press technical specifications.
-                          </p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                      <div className="space-y-6">
+                          <div className="space-y-1">
+                              <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Design Guidelines & Starter Templates</h3>
+                              <p className="text-sm text-slate-600 dark:text-slate-400 font-normal leading-relaxed">
+                                  To ensure the highest quality print results, please ensure your uploaded artwork adheres to our pre-press technical specifications.
+                              </p>
+                          </div>
+
+                          {/* Downloadable Starter Files in Guidelines Tab */}
+                          {Array.isArray((subProduct as any)?.sampleFiles) && (subProduct as any).sampleFiles.length > 0 && (
+                              <div className="p-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
+                                  <div className="flex items-center justify-between">
+                                      <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                          <FileDown className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Download Pre-Press Starter Templates
+                                      </h4>
+                                      <span className="text-xs text-muted-foreground font-medium">Click to download file</span>
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      {(subProduct as any).sampleFiles.map((file: any, idx: number) => (
+                                          <div key={file.id || idx} className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-xs">
+                                              <div className="min-w-0 flex-1">
+                                                  <span className="text-xs font-bold text-slate-900 dark:text-white block truncate">{file.name}</span>
+                                                  <span className="text-[10px] text-muted-foreground font-medium">{(file.fileType || 'FILE').toUpperCase()} {file.fileSize ? `• ${file.fileSize}` : ''}</span>
+                                              </div>
+                                              <Button asChild size="sm" variant="outline" className="h-8 rounded-xl border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 font-bold text-xs shrink-0">
+                                                  <a href={file.fileUrl} download target="_blank" rel="noopener noreferrer">
+                                                      <Download className="w-3.5 h-3.5 mr-1" /> Get File
+                                                  </a>
+                                              </Button>
+                                          </div>
+                                      ))}
+                                  </div>
+                              </div>
+                          )}
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                               <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
                                   <h4 className="text-sm font-bold text-slate-900 dark:text-white">Bleed & Safety Margins</h4>
                                   <p className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-relaxed">Include a 3mm bleed around all edges. Keep critical text and logos within the safety margin.</p>
@@ -1468,6 +1592,54 @@ export function StartDesignContent() {
                   })()}
               </div>
           </div>
+
+          {/* YOUTUBE VIDEO TUTORIAL / PLAY OPTION SECTION AT THE LAST */}
+          {(() => {
+            const youtubeUrl = (subProduct as any)?.youtubeUrl || (product as any)?.youtubeUrl;
+            const youtubeEmbedUrl = getYouTubeEmbedUrl(youtubeUrl);
+            if (!youtubeEmbedUrl) return null;
+
+            return (
+              <div id="video-tutorial" className="space-y-6 pt-10 border-t border-slate-200 dark:border-slate-800 scroll-mt-20">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white shadow-md shadow-red-500/20 animate-pulse">
+                        <Play className="h-3 w-3 fill-current ml-0.5" />
+                      </span>
+                      <Badge variant="outline" className="bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 border-red-200 dark:border-red-800 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5">
+                        Video Tutorial
+                      </Badge>
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                      Watch How to Design & Order Your {subProduct?.name || product.name}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                      Follow this step-by-step video guide to learn how to create your artwork, select finishes, and place your order.
+                    </p>
+                  </div>
+                  {youtubeUrl && (
+                    <Button asChild variant="outline" size="sm" className="h-9 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20 font-bold text-xs shadow-xs shrink-0 self-start sm:self-auto">
+                      <a href={youtubeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
+                        <span>Open on YouTube</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
+
+                <div className="relative rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl bg-slate-950 aspect-video w-full max-w-5xl mx-auto group">
+                  <iframe
+                    src={youtubeEmbedUrl}
+                    title={`How to design and order ${subProduct?.name || product.name}`}
+                    className="w-full h-full border-0 rounded-3xl"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            );
+          })()}
 
         </div>
     </main>

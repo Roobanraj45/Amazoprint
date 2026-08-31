@@ -145,6 +145,7 @@ export const products = pgTable('products', {
   category: varchar('category', { length: 100 }),
   basePrice: numeric('base_price', { precision: 10, scale: 2 }).default('0.00'),
   imageUrl: text('image_url'),
+  youtubeUrl: text('youtube_url'),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -218,6 +219,17 @@ export const subProducts = pgTable('sub_products', {
   maxOrderQuantity: integer('max_order_quantity').default(100000).notNull(),
   deliveryDays: varchar('delivery_days', { length: 100 }).default('3-5 Business Days'),
   deliveryAmount: numeric('delivery_amount', { precision: 10, scale: 2 }).default('0.00'),
+  allowDesignerTool: boolean('allow_designer_tool').default(true).notNull(),
+  allowFreelancerContest: boolean('allow_freelancer_contest').default(true).notNull(),
+  allowFileUpload: boolean('allow_file_upload').default(true).notNull(),
+  youtubeUrl: text('youtube_url'),
+  sampleFiles: jsonb('sample_files').$type<Array<{
+    id: string;
+    name: string;
+    fileUrl: string;
+    fileType?: string;
+    fileSize?: string;
+  }>>().default([]),
   deliveryTiers: jsonb('delivery_tiers').$type<Array<{
     id: string;
     name: string;

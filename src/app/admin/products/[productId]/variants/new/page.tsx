@@ -48,6 +48,11 @@ import {
   Clock,
   PackageCheck,
   Plus,
+  PenSquare,
+  Upload,
+  Trophy,
+  Video,
+  FileDown,
 } from 'lucide-react';
 
 const deliveryTierSchema = z.object({
@@ -58,6 +63,14 @@ const deliveryTierSchema = z.object({
   minCount: z.coerce.number().min(1).default(1),
   maxCount: z.coerce.number().min(1).default(100000),
   isActive: z.boolean().default(true),
+});
+
+const sampleFileSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Name is required'),
+  fileUrl: z.string().min(1, 'File is required'),
+  fileType: z.string().optional().default('PDF'),
+  fileSize: z.string().optional().default(''),
 });
 
 const subProductSchema = z.object({
@@ -84,6 +97,11 @@ const subProductSchema = z.object({
   maxOrderQuantity: z.preprocess((val) => (val === '' || val === null || val === undefined ? 100000 : val), z.coerce.number().min(1).default(100000)),
   deliveryDays: z.string().optional().default('3-5 Business Days'),
   deliveryAmount: z.coerce.number().optional().default(0),
+  allowDesignerTool: z.boolean().default(true),
+  allowFreelancerContest: z.boolean().default(true),
+  allowFileUpload: z.boolean().default(true),
+  youtubeUrl: z.string().optional().or(z.literal('')),
+  sampleFiles: z.array(sampleFileSchema).optional().default([]),
   deliveryTiers: z.array(deliveryTierSchema).optional().default([]),
 });
 
@@ -126,6 +144,11 @@ export default function NewVariantPage() {
       imageUrls: [],
       isActive: true,
       spotUvAllowed: false,
+      allowDesignerTool: true,
+      allowFreelancerContest: true,
+      allowFileUpload: true,
+      youtubeUrl: '',
+      sampleFiles: [],
       maxPages: 1,
       allowedFoils: [],
       allowedDieCuts: [],
@@ -146,6 +169,44 @@ export default function NewVariantPage() {
   const imageUrls = watch('imageUrls') || [];
   const spotUvAllowed = watch('spotUvAllowed');
   const deliveryTiers = watch('deliveryTiers') || [];
+  const sampleFiles = watch('sampleFiles') || [];
+
+  const handleSampleFileUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const ext = file.name.split('.').pop()?.toUpperCase() || 'FILE';
+    const sizeInMb = (file.size / (1024 * 1024)).toFixed(2);
+    const sizeStr = `${sizeInMb} MB`;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', 'samples');
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        const updated = [...sampleFiles];
+        updated[index] = {
+          ...updated[index],
+          fileUrl: data.url,
+          name: updated[index].name || file.name.replace(/\.[^/.]+$/, ''),
+          fileType: ext,
+          fileSize: sizeStr,
+        };
+        setValue('sampleFiles', updated, { shouldDirty: true, shouldValidate: true });
+        toast({ title: 'File Uploaded', description: `Uploaded "${file.name}" successfully.` });
+      } else {
+        toast({ variant: 'destructive', title: 'Upload Failed', description: data.error || 'Could not upload file' });
+      }
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Upload Error', description: err.message });
+    }
+  };
 
   useEffect(() => {
     register('dieCutPrices');
@@ -809,6 +870,252 @@ export default function NewVariantPage() {
                     )}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Allowed Design Creation Pathways Card */}
+            <Card className="border border-slate-200/80 dark:border-slate-800/80 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4 bg-slate-50/50 dark:bg-slate-950/50">
+                <div className="flex items-center gap-2">
+                  <PenSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <CardTitle className="text-base font-bold text-slate-900 dark:text-white">
+                    Allowed Design Creation Pathways
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-xs">
+                  Choose which design creation workflows are enabled for customers selecting this size variant.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                {/* 1. Designer Tool Switch */}
+                <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="allowDesignerTool" className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <PenSquare className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> Online Designer Tool
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Allow customers to create and customize artwork directly in the interactive canvas editor.
+                    </p>
+                  </div>
+                  <Controller
+                    name="allowDesignerTool"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        id="allowDesignerTool"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="data-[state=checked]:bg-indigo-600"
+                      />
+                    )}
+                  />
+                </div>
+
+                {/* 2. File Upload Switch */}
+                <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="allowFileUpload" className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <Upload className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> File Upload / Upload Artwork
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Allow customers to upload their own print-ready files (PDF, PNG, JPG, AI).
+                    </p>
+                  </div>
+                  <Controller
+                    name="allowFileUpload"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        id="allowFileUpload"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="data-[state=checked]:bg-indigo-600"
+                      />
+                    )}
+                  />
+                </div>
+
+                {/* 3. Freelancer Contest Switch */}
+                <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="allowFreelancerContest" className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <Trophy className="w-3.5 h-3.5 text-pink-600 dark:text-pink-400" /> Freelancers Contest / Hire Designer
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Allow customers to start a design contest and hire community freelance designers.
+                    </p>
+                  </div>
+                  <Controller
+                    name="allowFreelancerContest"
+                    control={control}
+                    render={({ field }) => (
+                      <Switch
+                        id="allowFreelancerContest"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="data-[state=checked]:bg-pink-600"
+                      />
+                    )}
+                  />
+                </div>
+
+                {/* 4. YouTube Video Tutorial Link */}
+                <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <Label htmlFor="youtubeUrl" className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <Video className="w-3.5 h-3.5 text-red-500" /> YouTube Video Tutorial Link (Optional)
+                  </Label>
+                  <Input
+                    id="youtubeUrl"
+                    type="url"
+                    placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                    className="h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-red-500 text-xs font-medium"
+                    {...register('youtubeUrl')}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Provide a YouTube video tutorial specifically for this variant. If left empty, the parent product's tutorial will be used as fallback.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 5. Downloadable Sample & Guideline Files Card */}
+            <Card className="border border-slate-200/80 dark:border-slate-800/80 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4 bg-slate-50/50 dark:bg-slate-950/50 flex flex-row items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <FileDown className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <CardTitle className="text-base font-bold text-slate-900 dark:text-white">
+                      Downloadable Sample & Guideline Files ({sampleFiles.length})
+                    </CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Upload sample starter templates (PDF, PSD, AI, CDR, ZIP) that customers can download on the product page.
+                  </CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setValue('sampleFiles', [
+                      ...sampleFiles,
+                      { id: `sample-${Date.now()}`, name: '', fileUrl: '', fileType: 'PDF', fileSize: '' }
+                    ], { shouldDirty: true });
+                  }}
+                  className="h-8 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-800 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/50"
+                >
+                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Sample File
+                </Button>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                {sampleFiles.length === 0 ? (
+                  <div className="py-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-950/50 gap-2">
+                    <FileDown className="w-8 h-8 text-slate-300 dark:text-slate-700" />
+                    <p className="text-xs font-semibold text-slate-500">No sample files attached yet</p>
+                    <p className="text-[11px] text-muted-foreground max-w-sm">
+                      Click &quot;Add Sample File&quot; above to provide downloadable guideline files or starter templates for this variant.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {sampleFiles.map((fileItem, idx) => (
+                      <div
+                        key={fileItem.id || idx}
+                        className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] flex items-center justify-center font-black">
+                              {idx + 1}
+                            </span>
+                            Sample File #{idx + 1}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setValue('sampleFiles', sampleFiles.filter((_, i) => i !== idx), { shouldDirty: true });
+                            }}
+                            className="h-7 px-2 text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1" /> Remove
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                          {/* Display Name */}
+                          <div className="sm:col-span-5 space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              Display Name <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              placeholder="e.g. Photoshop PSD Bleed Template"
+                              value={fileItem.name}
+                              onChange={(e) => {
+                                const updated = [...sampleFiles];
+                                updated[idx].name = e.target.value;
+                                setValue('sampleFiles', updated, { shouldDirty: true });
+                              }}
+                              className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                            />
+                          </div>
+
+                          {/* File Type Badge / Format */}
+                          <div className="sm:col-span-2 space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              Format
+                            </Label>
+                            <Input
+                              placeholder="e.g. PSD, PDF"
+                              value={fileItem.fileType || ''}
+                              onChange={(e) => {
+                                const updated = [...sampleFiles];
+                                updated[idx].fileType = e.target.value.toUpperCase();
+                                setValue('sampleFiles', updated, { shouldDirty: true });
+                              }}
+                              className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-bold uppercase text-center"
+                            />
+                          </div>
+
+                          {/* File Upload / URL */}
+                          <div className="sm:col-span-5 space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              File Upload or URL <span className="text-red-500">*</span>
+                            </Label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                placeholder="/uploads/samples/... or https://..."
+                                value={fileItem.fileUrl}
+                                onChange={(e) => {
+                                  const updated = [...sampleFiles];
+                                  updated[idx].fileUrl = e.target.value;
+                                  setValue('sampleFiles', updated, { shouldDirty: true });
+                                }}
+                                className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-mono"
+                              />
+                              <label className="cursor-pointer inline-flex items-center justify-center h-10 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:hover:bg-indigo-900 dark:text-indigo-300 font-bold text-xs shrink-0 border border-indigo-200 dark:border-indigo-800 transition-colors">
+                                <Upload className="w-3.5 h-3.5 mr-1" /> Upload
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  onChange={(e) => handleSampleFileUpload(idx, e)}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+                        {fileItem.fileUrl && (
+                          <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground font-medium">
+                            <span className="truncate max-w-[350px]">Link: {fileItem.fileUrl}</span>
+                            {fileItem.fileSize && <span className="font-semibold text-slate-700 dark:text-slate-300">Size: {fileItem.fileSize}</span>}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

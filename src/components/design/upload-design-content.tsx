@@ -350,7 +350,7 @@ export function UploadDesignContent() {
     };
 
     return (
-        <main className="flex-grow pt-24 sm:pt-28 pb-12 sm:pb-16 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-indigo-500 selection:text-white print:hidden">
+        <main className="flex-grow pt-32 sm:pt-36 md:pt-40 pb-12 sm:pb-16 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-indigo-500 selection:text-white print:hidden">
             <div className="w-full px-4 sm:px-8 md:px-12 lg:px-16 space-y-8">
                 
                 {/* Breadcrumb Navigation */}

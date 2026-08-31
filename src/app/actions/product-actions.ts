@@ -14,6 +14,7 @@ const productSchema = z.object({
   category: z.string().optional(),
   basePrice: z.coerce.number().optional(),
   imageUrl: z.string().optional().or(z.literal('')),
+  youtubeUrl: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
 });
 
@@ -25,6 +26,14 @@ const deliveryTierSchema = z.object({
   minCount: z.coerce.number().min(1).default(1),
   maxCount: z.coerce.number().min(1).default(100000),
   isActive: z.boolean().default(true),
+});
+
+const sampleFileSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Name is required'),
+  fileUrl: z.string().min(1, 'File is required'),
+  fileType: z.string().optional().default('PDF'),
+  fileSize: z.string().optional().default(''),
 });
 
 const subProductSchema = z.object({
@@ -52,6 +61,11 @@ const subProductSchema = z.object({
   maxOrderQuantity: z.preprocess((val) => (val === '' || val === null || val === undefined ? 100000 : val), z.coerce.number().min(1).default(100000)),
   deliveryDays: z.string().optional().default('3-5 Business Days'),
   deliveryAmount: z.coerce.number().optional().default(0),
+  allowDesignerTool: z.boolean().default(true),
+  allowFreelancerContest: z.boolean().default(true),
+  allowFileUpload: z.boolean().default(true),
+  youtubeUrl: z.string().optional().nullable(),
+  sampleFiles: z.array(sampleFileSchema).optional().default([]),
   deliveryTiers: z.array(deliveryTierSchema).optional().default([]),
 });
 
@@ -141,6 +155,7 @@ export async function createSubProduct(data: z.infer<typeof subProductSchema>) {
     ...validated,
     deliveryAmount: (validated.deliveryAmount ?? 0).toString(),
     deliveryTiers: validated.deliveryTiers || [],
+    sampleFiles: validated.sampleFiles || [],
     dieCutPrices: validated.dieCutPrices || {},
     cardTexturePrices: validated.cardTexturePrices || {},
   }).returning();
@@ -157,6 +172,7 @@ export async function updateSubProduct(id: number, data: Omit<z.infer<typeof sub
             ...validated, 
             deliveryAmount: (validated.deliveryAmount ?? 0).toString(),
             deliveryTiers: validated.deliveryTiers || [],
+            sampleFiles: validated.sampleFiles || [],
             dieCutPrices: validated.dieCutPrices || {},
             cardTexturePrices: validated.cardTexturePrices || {},
             updatedAt: new Date() 

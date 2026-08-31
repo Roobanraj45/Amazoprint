@@ -5,7 +5,7 @@ import { ProductsClient } from './ProductsClient';
 
 export default async function ProductsPage() {
     const productsFromDb = await getProducts();
-    const activeProducts = productsFromDb.filter(p => p.isActive && p.subProducts.some(sp => sp.isActive));
+    const activeProducts = productsFromDb.filter(p => p.isActive);
     const directSellingProducts = await getPublicDirectSellingProducts();
 
     return (

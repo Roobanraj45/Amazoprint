@@ -53,6 +53,7 @@ import {
   FileText,
   Package,
   Truck,
+  PenSquare,
 } from 'lucide-react';
 import { resolveImagePath } from '@/lib/utils';
 
@@ -361,7 +362,7 @@ function SubProductsList({ product, onUpdate }: { product: Product; onUpdate: ()
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 text-sm">
                   <div className="space-y-1 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-inner">
                     <Label className="text-[10px] uppercase tracking-wider font-extrabold text-muted-foreground flex items-center gap-1">
                       <Tag className="w-3 h-3 text-indigo-500" /> Base Price
@@ -400,6 +401,25 @@ function SubProductsList({ product, onUpdate }: { product: Product; onUpdate: ()
                       )}
                       {!sp.spotUvAllowed && !sp.allowedFoils?.length && !sp.allowedDieCuts?.length && !sp.allowedCardTextures?.length && (
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium italic">None</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-inner">
+                    <Label className="text-[10px] uppercase tracking-wider font-extrabold text-muted-foreground flex items-center gap-1">
+                      <PenSquare className="w-3 h-3 text-indigo-500" /> Design Options
+                    </Label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {(sp.allowDesignerTool ?? true) && (
+                        <Badge variant="outline" className="bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800 text-[9px] h-4.5 font-extrabold px-1.5 rounded shadow-xs">STUDIO</Badge>
+                      )}
+                      {(sp.allowFileUpload ?? true) && (
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800 text-[9px] h-4.5 font-extrabold px-1.5 rounded shadow-xs">UPLOAD</Badge>
+                      )}
+                      {(sp.allowFreelancerContest ?? true) && (
+                        <Badge variant="outline" className="bg-pink-50 text-pink-600 border-pink-200 dark:bg-pink-950 dark:text-pink-300 dark:border-pink-800 text-[9px] h-4.5 font-extrabold px-1.5 rounded shadow-xs">CONTEST</Badge>
+                      )}
+                      {!(sp.allowDesignerTool ?? true) && !(sp.allowFileUpload ?? true) && !(sp.allowFreelancerContest ?? true) && (
+                        <span className="text-[10px] text-red-500 font-medium italic">None</span>
                       )}
                     </div>
                   </div>

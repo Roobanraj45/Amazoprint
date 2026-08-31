@@ -25,7 +25,7 @@ export default async function ContestDetailsPage({ params }: { params: { contest
     const progressValue = (participantsCount / contest.maxFreelancers) * 100;
 
     return (
-        <main className="flex-1 py-8 pt-24 bg-gradient-to-b from-sky-50/50 to-white dark:from-slate-950 dark:to-background min-h-screen">
+        <main className="flex-1 py-8 pt-32 sm:pt-36 bg-gradient-to-b from-sky-50/50 to-white dark:from-slate-950 dark:to-background min-h-screen">
             <div className="container px-4 max-w-5xl mx-auto">
                 {/* Breadcrumb / Back Link */}
                 <Link href="/contests" className="inline-flex items-center text-xs font-bold text-muted-foreground hover:text-sky-600 mb-6 transition-colors uppercase tracking-widest">

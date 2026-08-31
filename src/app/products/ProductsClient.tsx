@@ -69,11 +69,11 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
     const [activeFinish, setActiveFinish] = useState<string>('All');
     const [sortBy, setSortBy] = useState<string>('default');
 
-    // Extract all unique categories (product names and direct selling categories) for the filter pills
+    // Extract all unique categories (product categories/names and direct selling categories) for the filter pills
     const categories = useMemo(() => {
-        const initialCats = initialProducts.map(p => p.name);
-        const directCats = directSellingProducts.map(p => p.category).filter(Boolean);
-        return ['All', ...Array.from(new Set([...initialCats, ...directCats]))];
+        const productCategories = initialProducts.map(p => p.category?.trim() || p.name?.trim()).filter(Boolean);
+        const directCats = directSellingProducts.map(p => p.category?.trim()).filter(Boolean);
+        return ['All', ...Array.from(new Set([...productCategories, ...directCats]))];
     }, [initialProducts, directSellingProducts]);
 
     useEffect(() => {
@@ -99,13 +99,23 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
 
     // Helper to get matching products count for a category
     const getCategoryCount = (catName: string) => {
-        const initialCount = catName === 'All'
-            ? initialProducts.reduce((acc, p) => acc + p.subProducts.filter((sp: any) => sp.isActive).length, 0)
-            : (initialProducts.find(p => p.name === catName)?.subProducts.filter((sp: any) => sp.isActive).length || 0);
+        if (catName === 'All') {
+            const initialCount = initialProducts.reduce((acc, p) => {
+                const activeSubs = (p.subProducts || []).filter((sp: any) => sp.isActive);
+                return acc + (activeSubs.length > 0 ? activeSubs.length : 1);
+            }, 0);
+            return initialCount + directSellingProducts.length;
+        }
 
-        const directCount = catName === 'All'
-            ? directSellingProducts.length
-            : directSellingProducts.filter((p: any) => p.category === catName).length;
+        const catLower = catName.toLowerCase().trim();
+        const initialCount = initialProducts
+            .filter(p => (p.category && p.category.toLowerCase().trim() === catLower) || (p.name && p.name.toLowerCase().trim() === catLower))
+            .reduce((acc, p) => {
+                const activeSubs = (p.subProducts || []).filter((sp: any) => sp.isActive);
+                return acc + (activeSubs.length > 0 ? activeSubs.length : 1);
+            }, 0);
+
+        const directCount = directSellingProducts.filter((p: any) => (p.category && p.category.toLowerCase().trim() === catLower) || (p.name && p.name.toLowerCase().trim() === catLower)).length;
 
         return initialCount + directCount;
     };
@@ -118,47 +128,94 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
         // 1. Process standard products & subproducts
         if (activeFinish !== '⚡ Direct Orders') {
             initialProducts.forEach(product => {
-                if (activeCategory !== 'All' && product.name !== activeCategory) {
+                if (!product.isActive) return;
+
+                const prodCatLower = (product.category || '').toLowerCase().trim();
+                const prodNameLower = (product.name || '').toLowerCase().trim();
+                const activeCatLower = activeCategory.toLowerCase().trim();
+
+                const matchesCategoryFilter = activeCategory === 'All' || 
+                    prodCatLower === activeCatLower || 
+                    prodNameLower === activeCatLower;
+
+                if (!matchesCategoryFilter) {
                     return;
                 }
 
-                product.subProducts.forEach((sp: any) => {
-                    if (!sp.isActive) return;
+                const activeSubs = (product.subProducts || []).filter((sp: any) => sp.isActive);
 
-                    const matchesName = sp.name.toLowerCase().includes(searchLower);
-                    const matchesParent = product.name.toLowerCase().includes(searchLower);
-                    if (searchLower && !matchesName && !matchesParent) return;
+                if (activeSubs.length > 0) {
+                    activeSubs.forEach((sp: any) => {
+                        const matchesName = (sp.name || '').toLowerCase().includes(searchLower);
+                        const matchesParent = prodNameLower.includes(searchLower);
+                        const matchesCat = prodCatLower.includes(searchLower);
+                        const matchesDesc = (sp.description || product.description || '').toLowerCase().includes(searchLower);
 
-                    if (activeFinish === '✨ Spot UV' && !sp.spotUvAllowed) return;
-                    if (activeFinish === '🏷️ Discounted' && !getDiscountInfo(sp)) return;
+                        if (searchLower && !matchesName && !matchesParent && !matchesCat && !matchesDesc) return;
+
+                        if (activeFinish === '✨ Spot UV' && !sp.spotUvAllowed) return;
+                        if (activeFinish === '🏷️ Discounted' && !getDiscountInfo(sp)) return;
+
+                        list.push({
+                            type: 'custom',
+                            id: `custom-${sp.id}`,
+                            rawId: sp.id,
+                            name: sp.name,
+                            category: product.category || product.name,
+                            parentProductSlug: product.slug,
+                            parentProductName: product.name,
+                            imageUrl: sp.imageUrl || product.imageUrl,
+                            price: Number(sp.price || product.basePrice || 0),
+                            spotUvAllowed: sp.spotUvAllowed ?? false,
+                            discountText: getDiscountInfo(sp),
+                            rawItem: sp,
+                        });
+                    });
+                } else {
+                    // Standalone master product with no subproducts
+                    const matchesName = prodNameLower.includes(searchLower);
+                    const matchesCat = prodCatLower.includes(searchLower);
+                    const matchesDesc = (product.description || '').toLowerCase().includes(searchLower);
+
+                    if (searchLower && !matchesName && !matchesCat && !matchesDesc) return;
+
+                    if (activeFinish === '✨ Spot UV' || activeFinish === '🏷️ Discounted') return;
 
                     list.push({
                         type: 'custom',
-                        id: `custom-${sp.id}`,
-                        rawId: sp.id,
-                        name: sp.name,
-                        category: product.name,
+                        id: `custom-prod-${product.id}`,
+                        rawId: null,
+                        name: product.name,
+                        category: product.category || product.name,
                         parentProductSlug: product.slug,
                         parentProductName: product.name,
-                        imageUrl: sp.imageUrl,
-                        price: Number(sp.price || 0),
-                        spotUvAllowed: sp.spotUvAllowed ?? false,
-                        discountText: getDiscountInfo(sp),
-                        rawItem: sp,
+                        imageUrl: product.imageUrl,
+                        price: Number(product.basePrice || 0),
+                        spotUvAllowed: false,
+                        discountText: null,
+                        rawItem: product,
                     });
-                });
+                }
             });
         }
 
         // 2. Process direct selling products
         if (activeFinish === 'All' || activeFinish === '⚡ Direct Orders' || activeFinish === '🏷️ Discounted') {
             directSellingProducts.forEach(product => {
-                if (activeCategory !== 'All' && product.category !== activeCategory) {
+                const prodCatLower = (product.category || '').toLowerCase().trim();
+                const prodNameLower = (product.name || '').toLowerCase().trim();
+                const activeCatLower = activeCategory.toLowerCase().trim();
+
+                const matchesCategoryFilter = activeCategory === 'All' || 
+                    prodCatLower === activeCatLower || 
+                    prodNameLower === activeCatLower;
+
+                if (!matchesCategoryFilter) {
                     return;
                 }
 
-                const matchesName = product.name.toLowerCase().includes(searchLower);
-                const matchesCategory = (product.category || '').toLowerCase().includes(searchLower);
+                const matchesName = prodNameLower.includes(searchLower);
+                const matchesCategory = prodCatLower.includes(searchLower);
                 const matchesDesc = (product.description || '').toLowerCase().includes(searchLower);
                 const matchesTags = Array.isArray(product.tags) && product.tags.some((t: string) => t.toLowerCase().includes(searchLower));
                 
@@ -251,11 +308,12 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                         
                         <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-4 justify-items-center">
                             {categories.map((category) => {
-                                const prod = initialProducts.find(p => p.name === category);
-                                const directProd = directSellingProducts.find(p => p.category === category);
+                                const catLower = category.toLowerCase().trim();
+                                const prod = initialProducts.find(p => (p.category && p.category.toLowerCase().trim() === catLower) || (p.name && p.name.toLowerCase().trim() === catLower));
+                                const directProd = directSellingProducts.find(p => (p.category && p.category.toLowerCase().trim() === catLower) || (p.name && p.name.toLowerCase().trim() === catLower));
                                 const productImg = category === 'All'
                                     ? (initialProducts[0]?.imageUrl || directSellingProducts[0]?.imageUrls?.[0] || '/uploads/hero.png')
-                                    : (prod?.imageUrl || prod?.subProducts?.[0]?.imageUrl || directProd?.imageUrls?.[0] || '/uploads/hero.png');
+                                    : (prod?.imageUrl || prod?.subProducts?.find((s: any) => s.isActive)?.imageUrl || prod?.subProducts?.[0]?.imageUrl || directProd?.imageUrls?.[0] || '/uploads/hero.png');
                                 const resolvedImg = resolveImagePath(productImg);
                                 const asset = CATEGORY_ASSETS[category] || { emoji: '📦', bg: 'from-gray-50 to-slate-100', label: category };
                                 const count = getCategoryCount(category);
@@ -431,7 +489,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                         if (item.type === 'custom') {
                                             const imageUrl = resolveImagePath(item.imageUrl || '/uploads/hero.png');
                                             return (
-                                                <Link key={item.id} href={`/design/${item.parentProductSlug}/start?subProductId=${item.rawId}`} className="group relative block h-full outline-none">
+                                                <Link key={item.id} href={item.rawId ? `/design/${item.parentProductSlug}/start?subProductId=${item.rawId}` : `/design/${item.parentProductSlug}/start`} className="group relative block h-full outline-none">
                                                     <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-slate-150/60 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[#464674]/40 hover:-translate-y-1.5">
                                                         
                                                         {/* Image Container */}

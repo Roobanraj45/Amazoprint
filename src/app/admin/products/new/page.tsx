@@ -34,6 +34,7 @@ import {
   Package,
   Sparkles,
   Tag,
+  Video,
 } from 'lucide-react';
 
 const productSchema = z.object({
@@ -43,6 +44,7 @@ const productSchema = z.object({
   category: z.string().optional(),
   basePrice: z.coerce.number().optional(),
   imageUrl: z.string().optional().or(z.literal('')),
+  youtubeUrl: z.string().optional().or(z.literal('')),
   isActive: z.boolean().default(true),
 });
 
@@ -69,6 +71,7 @@ export default function NewProductPage() {
       category: '',
       description: '',
       imageUrl: '',
+      youtubeUrl: '',
       isActive: true,
     },
   });
@@ -229,6 +232,22 @@ export default function NewProductPage() {
                     className="min-h-[140px] rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 p-3.5 text-sm font-medium leading-relaxed"
                     {...register('description')}
                   />
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <Label htmlFor="youtubeUrl" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Video className="w-4 h-4 text-red-500" /> YouTube Video Tutorial Link
+                  </Label>
+                  <Input
+                    id="youtubeUrl"
+                    type="url"
+                    placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://youtu.be/..."
+                    className="h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-red-500 text-xs font-medium"
+                    {...register('youtubeUrl')}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Link to a YouTube video tutorial showing how to design or order this product. It will be embedded at the bottom of the product page.
+                  </p>
                 </div>
               </CardContent>
             </Card>

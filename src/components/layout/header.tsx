@@ -63,8 +63,10 @@ export function Header() {
         scrolled 
             ? isHome
               ? "bg-[#464674]/95 backdrop-blur-xl border-b border-white/10 shadow-lg text-white"
-              : "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm" 
-            : "bg-transparent"
+              : "bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800/60 shadow-sm text-foreground" 
+            : isHome
+              ? "bg-transparent"
+              : "bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800/60 shadow-xs text-foreground"
     )}>
       {!scrolled && <NoticeSlider />}
       <div className="w-full h-20 sm:h-24 md:h-26 px-3 sm:px-4 lg:px-6 flex items-center justify-between py-2">

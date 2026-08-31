@@ -429,8 +429,8 @@ function TemplatesMockup({ subProducts = [] }: { subProducts?: any[] }) {
               const imgUrl = resolveImagePath(sp.imageUrl || sp.parentProductImageUrl);
               return (
                 <Link
-                  key={sp.id}
-                  href={`/design/${sp.productSlug}/start?subProductId=${sp.id}`}
+                  key={sp.id || sp.productSlug}
+                  href={sp.id ? `/design/${sp.productSlug}/start?subProductId=${sp.id}` : `/design/${sp.productSlug}/start`}
                   className="rounded-xl overflow-hidden border border-white/10 group cursor-pointer hover:border-[#464674] hover:shadow-lg transition-all bg-slate-900 flex flex-col"
                 >
                   <div className="aspect-[4/3] bg-slate-800 overflow-hidden relative flex-shrink-0">
@@ -1232,9 +1232,9 @@ export function HomeClient({
                   const price = Number(sp.price || 0);
                   const imgUrl = resolveImagePath(sp.imageUrl || sp.parentProductImageUrl);
                   return (
-                    <motion.div key={sp.id} {...FU(i * 0.04)}>
+                    <motion.div key={sp.id || sp.productSlug || i} {...FU(i * 0.04)}>
                       <Link
-                        href={`/design/${sp.productSlug}/start?subProductId=${sp.id}`}
+                        href={sp.id ? `/design/${sp.productSlug}/start?subProductId=${sp.id}` : `/design/${sp.productSlug}/start`}
                         className="group block h-full"
                       >
                         <div className="h-full rounded-2xl overflow-hidden border border-gray-100 bg-white transition-all duration-300 shadow-sm hover:shadow-2xl hover:-translate-y-1.5 hover:border-[#464674]/20 flex flex-col">
