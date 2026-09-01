@@ -95,6 +95,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
     dieCutPrices: subProductForDims?.dieCutPrices,
     cardTexturePrices: subProductForDims?.cardTexturePrices,
     price: subProductForDims?.price,
+    youtubeUrl: (subProductForDims as any)?.youtubeUrl || (productData as any)?.youtubeUrl || null,
   };
 
 

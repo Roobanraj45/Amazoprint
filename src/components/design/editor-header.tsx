@@ -125,6 +125,11 @@ export function EditorHeader(props: any) {
     const iconClass = "h-4.5 w-4.5";
     const labelClass = "text-[10px] font-bold opacity-70 group-hover:opacity-100 transition-opacity";
 
+    const handleOpenTutorial = () => {
+        const tutorialUrl = product?.youtubeUrl || 'https://www.youtube.com/results?search_query=how+to+design+print+templates+online';
+        window.open(tutorialUrl, '_blank', 'noopener,noreferrer');
+    };
+
     return (
         <header className="relative z-20 flex h-16 items-center justify-between border-b bg-white px-2 lg:px-4 whitespace-nowrap overflow-hidden shadow-sm">
 
@@ -337,38 +342,146 @@ export function EditorHeader(props: any) {
 
                 <Button onClick={handleDuplicateElement} disabled={!selectedElements.length} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                     <Copy className={iconClass} />
-                    <span className={labelClass}>Copy</span>
+                    <span className={labelClass}>Duplicate</span>
                 </Button>
 
-                <Button onClick={handleDeleteElement} disabled={!selectedElements.length} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group text-red-500 hover:text-red-600 hover:bg-red-50/50 shrink-0">
+                <Button onClick={handleDeleteElement} disabled={selectedElements.length === 0} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group text-destructive hover:text-destructive shrink-0">
                     <Trash2 className={iconClass} />
                     <span className={labelClass}>Delete</span>
                 </Button>
 
-                <Separator orientation="vertical" className="h-5 mx-0.5 shrink-0" />
+                <div className="w-2 shrink-0" />
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button disabled={selectedElements.length === 0} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
+                            <ChevronsUp className={iconClass} />
+                            <span className={labelClass}>Position</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center">
+                        <DropdownMenuItem onSelect={() => moveLayer(selectedElementIds[0], 'front')}>
+                            <BringToFront className="mr-2 h-4 w-4" /> Bring to Front
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => moveLayer(selectedElementIds[0], 'forward')}>
+                            <ChevronsUp className="mr-2 h-4 w-4" /> Bring Forward
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => moveLayer(selectedElementIds[0], 'backward')}>
+                            <ChevronsDown className="mr-2 h-4 w-4" /> Send Backward
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => moveLayer(selectedElementIds[0], 'back')}>
+                            <SendToBack className="mr-2 h-4 w-4" /> Send to Back
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button disabled={selectedElements.length === 0} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
+                            <AlignCenter className={iconClass} />
+                            <span className={labelClass}>Align</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center">
+                        <DropdownMenuItem onSelect={() => handleAlign('left')}>
+                            <AlignLeft className="mr-2 h-4 w-4" /> Align Left
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleAlign('center')}>
+                            <AlignCenter className="mr-2 h-4 w-4" /> Align Center
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleAlign('right')}>
+                            <AlignRight className="mr-2 h-4 w-4" /> Align Right
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={() => handleAlign('top')}>
+                            <AlignStartVertical className="mr-2 h-4 w-4" /> Align Top
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleAlign('middle')}>
+                            <AlignCenterVertical className="mr-2 h-4 w-4" /> Align Middle
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleAlign('bottom')}>
+                            <AlignEndVertical className="mr-2 h-4 w-4" /> Align Bottom
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <div className="w-2 shrink-0" />
+
+                <Button 
+                    onClick={() => {
+                        if (selectedElements.length > 0) {
+                            selectedElements.forEach((el: any) => {
+                                updateElement(el.id, { flipX: !el.flipX });
+                            });
+                        }
+                    }} 
+                    disabled={selectedElements.length === 0} 
+                    variant="ghost" 
+                    className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0"
+                >
+                    <FlipHorizontal className={iconClass} />
+                    <span className={labelClass}>Flip H</span>
+                </Button>
+
+                <Button 
+                    onClick={() => {
+                        if (selectedElements.length > 0) {
+                            selectedElements.forEach((el: any) => {
+                                updateElement(el.id, { flipY: !el.flipY });
+                            });
+                        }
+                    }} 
+                    disabled={selectedElements.length === 0} 
+                    variant="ghost" 
+                    className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0"
+                >
+                    <FlipVertical className={iconClass} />
+                    <span className={labelClass}>Flip V</span>
+                </Button>
+
+                <div className="w-2 shrink-0" />
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
+                            <Blend className={iconClass} />
+                            <span className={labelClass}>View</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center">
+                        <DropdownMenuCheckboxItem checked={showRulers} onCheckedChange={setShowRulers}>
+                            Show Rulers
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem checked={showGrid} onCheckedChange={setShowGrid}>
+                            Show Grid
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem checked={snapToGrid} onCheckedChange={setSnapToGrid}>
+                            Snap to Grid
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuCheckboxItem checked={showPrintGuidelines} onCheckedChange={setShowPrintGuidelines}>
+                            Print Guidelines (Bleed/Safety)
+                        </DropdownMenuCheckboxItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <div className="w-2 shrink-0" />
 
                 <Button onClick={handleGroup} disabled={selectedElements.length < 2} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
                     <Group className={iconClass} />
                     <span className={labelClass}>Group</span>
                 </Button>
 
-                <Button onClick={handleUngroup} disabled={!(isSingleElementSelected && selectedElement?.type === 'group')} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group shrink-0">
-                    <Ungroup className={iconClass} />
-                    <span className={labelClass}>Ungroup</span>
-                </Button>
-
                 <div className="w-2 shrink-0" />
 
-                <Button onClick={onRotateCanvas} variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50/50 shrink-0">
-                    {product.width > product.height ? <RectangleVertical className={iconClass} /> : <RectangleHorizontal className={iconClass} />}
-                    <span className={labelClass}>{product.width > product.height ? 'Portrait' : 'Landscape'}</span>
-                </Button>
-
-                <div className="w-2 shrink-0" />
-
-                <Button variant="ghost" className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group text-red-500 hover:text-red-600 hover:bg-red-50/50 shrink-0">
+                <Button 
+                    onClick={handleOpenTutorial} 
+                    variant="ghost" 
+                    title="Watch YouTube Design Tutorial" 
+                    className="h-11 w-12 flex flex-col items-center justify-center gap-0.5 group text-red-500 hover:text-red-600 hover:bg-red-50/50 shrink-0"
+                >
                     <PlayCircle className={iconClass} />
-                    <span className={labelClass}>Simulation</span>
+                    <span className={labelClass}>Tutorial</span>
                 </Button>
                 </div>
             </div>
@@ -402,6 +515,10 @@ export function EditorHeader(props: any) {
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem onSelect={handleSave} disabled={props.isReadonly}>Save</DropdownMenuItem>
                             <DropdownMenuItem onSelect={handlePreview}>Preview</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={handleOpenTutorial} className="text-red-500 flex items-center gap-2">
+                                <PlayCircle className="w-4 h-4 text-red-500" />
+                                <span>Tutorial</span>
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
