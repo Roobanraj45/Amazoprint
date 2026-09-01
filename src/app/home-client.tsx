@@ -117,71 +117,141 @@ const ECOSYSTEM_TABS = [
   {
     id: 'studio',
     label: 'Design Studio',
-    heading: 'Pro-level design tool in your browser',
-    description: 'Create, customize, and preview your artwork in real-time. No design experience or expensive software installation required.',
-    ctaText: 'Open Design Studio',
-    ctaHref: '/design',
+    subtitle: 'Browser Vector Canvas',
+    pill: 'Interactive WebGL Canvas',
+    badge: '300 DPI Export',
+    stat: '10K+ Layouts',
+    theme: {
+      accent: 'indigo',
+      glow: 'from-indigo-500/20 via-purple-500/10 to-transparent',
+      border: 'hover:border-indigo-500/40',
+      activeBg: 'from-indigo-600/30 to-purple-600/30',
+      activeBorder: 'border-indigo-500/80 shadow-indigo-500/25',
+      tagBg: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+      iconColor: 'text-indigo-400',
+    },
+    heading: 'Professional In-Browser Design Studio',
+    highlight: 'No Software Required',
+    description: 'Create, customize, and preview your artwork in real-time with our drag-and-drop studio. Built with live bleed safety margins, high-res SVG & PDF renderers, and typography tools.',
+    ctaText: 'Launch Design Studio',
+    ctaHref: '/products',
     subFeatures: [
-      { title: 'Interactive Canvas', desc: 'Drag-and-drop text, images, shapes, and layer them dynamically.' },
-      { title: 'Thousands of Templates', desc: 'Start with high-quality designs crafted by design professionals.' },
-      { title: '300 DPI High-Res Export', desc: 'Generate print-ready vector PDF formats for pixel-perfect clarity.' },
-      { title: 'Bleed Safety Margin', desc: 'Real-time safety guides ensure your content is never clipped.' },
+      { title: 'Interactive Web Canvas', desc: 'Drag-and-drop text, logos, shapes with multi-layer blend controls.' },
+      { title: 'Thousands of Templates', desc: 'Jumpstart with curated designs crafted by award-winning typography masters.' },
+      { title: '300 DPI Vector PDF Export', desc: 'Automated CMYK vector rendering for flawless edge-to-edge printing.' },
+      { title: 'Real-Time Bleed Margins', desc: 'Live visual safety guides ensure critical content is never trimmed.' },
     ],
   },
   {
     id: 'verification',
     label: 'Print Verification',
-    heading: '100% Print-ready check, guaranteed',
-    description: 'Ensure perfect print results before you pay. Our automated validation engine and expert designers review every layout file.',
-    ctaText: 'Explore Templates',
-    ctaHref: '/templates',
+    subtitle: 'Pre-flight AI & Expert Audit',
+    pill: 'Zero Errors Guarantee',
+    badge: 'CMYK & DPI Audit',
+    stat: '100% Guaranteed',
+    theme: {
+      accent: 'emerald',
+      glow: 'from-emerald-500/20 via-teal-500/10 to-transparent',
+      border: 'hover:border-emerald-500/40',
+      activeBg: 'from-emerald-600/30 to-teal-600/30',
+      activeBorder: 'border-emerald-500/80 shadow-emerald-500/25',
+      tagBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+      iconColor: 'text-emerald-400',
+    },
+    heading: 'Automated Pre-Flight & Print Verification',
+    highlight: 'Zero Print Mistakes',
+    description: 'Ensure 100% print-ready perfection before you spend a single rupee. Our automated validation engine and certified pre-press technicians inspect every layout file.',
+    ctaText: 'Verify Your Design File',
+    ctaHref: '/products',
     subFeatures: [
-      { title: 'Automated Pre-flight', desc: 'Checks image resolution, vector line thickness, and font outlines.' },
-      { title: 'CMYK Color Space Audit', desc: 'Prevents color mismatches by checking ink values before press.' },
-      { title: 'Bleed & Margin Safety', desc: 'Validates that safety zones and margins are properly formatted.' },
-      { title: 'Expert Peer-Review', desc: 'Connect with a certified designer to manually verify your file.' },
+      { title: 'Instant Pre-Flight Diagnostic', desc: 'Scans raster DPI, font curves, hairline rules, and transparency bounds.' },
+      { title: 'CMYK Color Separation Audit', desc: 'Detects out-of-gamut RGB values and adjusts ink density for accurate reproduction.' },
+      { title: 'Bleed, Safe Zone & Trim Validation', desc: 'Automatic 3mm bleed check guarantees zero edge cut-off.' },
+      { title: 'Expert Designer Peer-Review', desc: 'Optional human verification by senior prepress technicians.' },
     ],
   },
   {
     id: 'contests',
     label: 'Design Contests',
-    heading: 'Crowdsource unique artwork concepts',
-    description: 'Get custom layouts from our design community. Set a prize pool, receive entries, and select the ultimate winner.',
-    ctaText: 'Browse Design Contests',
+    subtitle: 'Crowdsourced Creative Quests',
+    pill: '500+ Freelancers',
+    badge: '100% Money-Back',
+    stat: '40+ Entries / Quest',
+    theme: {
+      accent: 'amber',
+      glow: 'from-amber-500/20 via-orange-500/10 to-transparent',
+      border: 'hover:border-amber-500/40',
+      activeBg: 'from-amber-600/30 to-orange-600/30',
+      activeBorder: 'border-amber-500/80 shadow-amber-500/25',
+      tagBg: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+      iconColor: 'text-amber-400',
+    },
+    heading: 'Crowdsource High-Impact Design Concepts',
+    highlight: 'Dozens of Creative Pitches',
+    description: "Get custom brand artwork and layouts from India's top graphic designers. Set your prize pool, review creative pitches, collaborate in real-time, and print the winning concept.",
+    ctaText: 'Explore Design Contests',
     ctaHref: '/contests',
     subFeatures: [
-      { title: 'Launch in Minutes', desc: 'Publish your brief, upload brand assets, and choose your prize pool.' },
-      { title: 'Dozens of Submissions', desc: 'Talented designers pitch unique mockups tailor-made for you.' },
-      { title: 'Direct Collaboration', desc: 'Rate designs, leave critiques, and request adjustments.' },
-      { title: 'Source File Delivery', desc: 'Download original vectors and trigger print queue on approval.' },
+      { title: 'Launch in Under 2 Minutes', desc: 'Post your project brief, brand style guide, and set your contest prize pool.' },
+      { title: 'Dozens of Tailor-Made Submissions', desc: 'Receive dozens of creative concepts within 48 to 72 hours.' },
+      { title: 'Interactive Feedback Loop', desc: 'Rate designs with stars, chat with designers, and request real-time revisions.' },
+      { title: '1-Click Direct-to-Press Handoff', desc: 'Award the winner, claim full copyright vectors, and send straight to print.' },
     ],
   },
   {
     id: 'printing',
     label: 'Print Fulfillment',
-    heading: 'Direct-to-press print fulfillment engine',
-    description: 'Our automated network routes jobs to top offset and digital print shops. Real-time production tracking right to your door.',
+    subtitle: 'Distributed Press Engine',
+    pill: 'Offset & Digital Grid',
+    badge: 'Pan-India 24-48h',
+    stat: '500+ Press Hubs',
+    theme: {
+      accent: 'rose',
+      glow: 'from-rose-500/20 via-pink-500/10 to-transparent',
+      border: 'hover:border-rose-500/40',
+      activeBg: 'from-rose-600/30 to-pink-600/30',
+      activeBorder: 'border-rose-500/80 shadow-rose-500/25',
+      tagBg: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+      iconColor: 'text-rose-400',
+    },
+    heading: 'Smart Direct-to-Press Fulfillment Engine',
+    highlight: 'Industrial Grade Quality',
+    description: 'Our automated dispatch engine matches every job with vetted commercial print presses. Enjoy spot UV, gold/silver foiling, die cuts, and real-time live telemetry straight to your doorstep.',
     ctaText: 'Become a Print Partner',
     ctaHref: '/printer-registration',
     subFeatures: [
-      { title: 'Verified Press Network', desc: 'Only vetted commercial printers with high-capacity presses.' },
-      { title: 'Industrial Finish Coatings', desc: 'Matte, gloss, spot UV, embossing, and custom die cuts.' },
-      { title: 'Automated Order Routing', desc: 'Intelligent georouting matches orders for fast regional delivery.' },
-      { title: 'Live Tracker Updates', desc: 'Follow progress through offset plates, print, cutting, and shipping.' },
+      { title: 'Commercial Offset & Digital Fleet', desc: 'High-speed industrial Heidelberg and HP Indigo presses delivering 2400 DPI fidelity.' },
+      { title: 'Luxury Finishes & Die-Cuts', desc: 'Velvet soft-touch lamination, raised spot UV, metallic foils, and custom contour cutting.' },
+      { title: 'Smart Intelligent Geo-Routing', desc: 'Dispatches production to the nearest regional print hub for faster transit.' },
+      { title: 'Live Production Telemetry', desc: 'Track every stage from plate making, ink curing, cutting, to door delivery.' },
     ],
   },
   {
     id: 'templates',
     label: 'Templates & Products',
-    heading: 'Thousands of free templates & custom products',
-    description: 'Start your print project instantly with our library of beautifully crafted, print-ready templates and customizable products across every category.',
-    ctaText: 'Browse Templates & Products',
+    subtitle: '10,000+ Starter Kits',
+    pill: 'Ready-to-Print Library',
+    badge: '100% Free Customization',
+    stat: '500+ Print SKUs',
+    theme: {
+      accent: 'sky',
+      glow: 'from-sky-500/20 via-cyan-500/10 to-transparent',
+      border: 'hover:border-sky-500/40',
+      activeBg: 'from-sky-600/30 to-cyan-600/30',
+      activeBorder: 'border-sky-500/80 shadow-sky-500/25',
+      tagBg: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+      iconColor: 'text-sky-400',
+    },
+    heading: 'Vast Library of Free Templates & Products',
+    highlight: 'Instant Customization',
+    description: 'Kickstart any commercial print project with thousands of professionally crafted, print-ready templates tailored for business cards, brochures, flyers, banners, and merchandise.',
+    ctaText: 'Explore Template Matrix',
     ctaHref: '/templates',
     subFeatures: [
-      { title: '10,000+ Free Templates', desc: 'Professionally designed for every industry and occasion.' },
-      { title: 'Customizable Products', desc: 'Personalize designs directly on real commercial print products.' },
-      { title: 'Print-Ready Formats', desc: 'Every template exports at 300 DPI with proper bleed margins.' },
-      { title: 'New Designs Weekly', desc: 'Our design team adds fresh templates and products every week.' },
+      { title: '10,000+ Free Starter Templates', desc: 'Organized by industry: Corporate, Retail, Food & Beverage, Events, & Real Estate.' },
+      { title: 'Fully Editable Vector Assets', desc: 'Swap fonts, colors, imagery, and layouts with zero quality loss.' },
+      { title: 'Direct Product Alignment', desc: 'Pre-configured with precise dimensions, bleed margins, and paper textures.' },
+      { title: 'Fresh Releases Every Week', desc: 'Curated by top visual designers to keep your branding modern and competitive.' },
     ],
   },
 ];
@@ -192,55 +262,102 @@ const PRODUCT_LINKS = [
   'Pocket Cards', 'ID Cards', 'Brochure', 'Printed Books',
 ];
 
-// ─── Studio Mockup ───────────────────────────────────────────────────────────
+// ─── Studio Mockup (High Fidelity Canvas) ──────────────────────────────────
 function StudioMockup() {
   return (
-    <div className="w-full max-w-[460px] bg-slate-950/95 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-      <div className="bg-slate-900 border-b border-white/5 px-4 py-2.5 flex items-center justify-between">
-        <div className="flex gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+    <div className="w-full max-w-[490px] bg-[#0c101c] rounded-3xl border border-indigo-500/20 shadow-2xl shadow-indigo-950/60 overflow-hidden ring-1 ring-white/10">
+      {/* Top Window Bar */}
+      <div className="bg-[#121829] border-b border-white/10 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+          </div>
+          <span className="text-[11px] text-slate-300 font-bold ml-2 font-mono">Amazo Studio v3.0</span>
         </div>
-        <span className="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Canvas Editor</span>
-        <div className="w-8 h-2 bg-white/5 rounded-full" />
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] font-black bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">
+            300 DPI • CMYK
+          </span>
+          <span className="text-[9px] font-bold text-slate-400 font-mono">3.5 × 2.0 in</span>
+        </div>
       </div>
-      <div className="p-3 grid grid-cols-12 gap-2 min-h-[220px] bg-slate-950">
-        <div className="col-span-3 space-y-1 border-r border-white/5 pr-2">
-          {['Layouts', 'Text', 'Shapes', 'Uploads'].map((t, i) => (
-            <div key={t} className={cn('text-[8px] font-black p-1.5 rounded cursor-pointer', i === 0 ? 'bg-[#464674] text-white' : 'text-gray-400 hover:text-white')}>
-              {t}
+
+      {/* Main Canvas Workspace */}
+      <div className="p-4 grid grid-cols-12 gap-3 min-h-[260px] bg-[#080b14] relative">
+        {/* Left Toolbar */}
+        <div className="col-span-3 space-y-1.5 border-r border-white/5 pr-2.5">
+          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Tools</span>
+          {[
+            { label: 'Select', active: false },
+            { label: 'Typography', active: true },
+            { label: 'Shapes & SVGs', active: false },
+            { label: 'Brand Assets', active: false },
+          ].map((t) => (
+            <div
+              key={t.label}
+              className={cn(
+                'text-[9px] font-bold p-1.5 rounded-xl transition-all cursor-pointer flex items-center justify-between',
+                t.active
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              )}
+            >
+              <span>{t.label}</span>
+              {t.active && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
             </div>
           ))}
-          <div className="pt-3 space-y-1">
-            <span className="text-[7px] font-bold text-gray-500 uppercase tracking-widest block">Layers</span>
-            <div className="h-1 w-full bg-white/10 rounded-full" />
-            <div className="h-1 w-3/4 bg-white/10 rounded-full" />
+
+          <div className="pt-2 space-y-1">
+            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest block">Layers (3)</span>
+            <div className="h-1.5 w-full bg-indigo-500/40 rounded-full" />
+            <div className="h-1.5 w-3/4 bg-purple-500/30 rounded-full" />
+            <div className="h-1.5 w-1/2 bg-white/10 rounded-full" />
           </div>
         </div>
-        <div className="col-span-9 flex items-center justify-center p-1.5 relative bg-slate-900 rounded-lg border border-white/5 overflow-hidden">
-          <div className="w-full aspect-[1.75/1] bg-gradient-to-br from-[#464674] via-[#5c5c96] to-[#2f2f54] rounded-lg shadow-lg relative overflow-hidden p-3 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
+
+        {/* Center Live Interactive Canvas */}
+        <div className="col-span-9 flex items-center justify-center p-3 relative bg-gradient-to-br from-[#10162a] to-[#0c1020] rounded-2xl border border-white/5 overflow-hidden group">
+          {/* Card Mockup */}
+          <div className="w-full aspect-[1.75/1] bg-gradient-to-br from-[#1b1e36] via-[#242647] to-[#16172e] rounded-xl shadow-2xl relative overflow-hidden p-4 flex flex-col justify-between border border-amber-400/20 group-hover:scale-[1.02] transition-transform duration-500">
+            {/* Ambient Shine */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/10 to-transparent rounded-full blur-xl pointer-events-none" />
+            
+            {/* Header of Business Card */}
+            <div className="flex justify-between items-start relative z-10">
               <div>
-                <p className="text-[8px] font-black text-white tracking-wide">AMAZOPRINT</p>
-                <p className="text-[5px] text-white/60 font-semibold uppercase tracking-widest">Premium Card</p>
+                <p className="text-[9px] font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 tracking-wider font-display">
+                  AMAZOPRINT STUDIO
+                </p>
+                <p className="text-[6px] text-slate-400 font-bold uppercase tracking-widest">
+                  Velvet Matte • Gold Foil
+                </p>
               </div>
-              <div className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center">
-                <Sparkles size={7} className="text-white" />
+              <div className="w-5 h-5 rounded-lg bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-300">
+                <Sparkles size={9} />
               </div>
             </div>
-            <div>
-              <p className="text-[7px] font-black text-white">Alexander Thorne</p>
-              <p className="text-[5px] text-white/70">Co-Founder & CEO</p>
+
+            {/* Content of Business Card */}
+            <div className="relative z-10 space-y-0.5">
+              <p className="text-[8px] font-black text-white tracking-tight">Alexander Vance</p>
+              <p className="text-[6px] text-slate-400 font-medium">Chief Executive Officer</p>
             </div>
-            <div className="absolute inset-1.5 border border-dashed border-white/20 rounded pointer-events-none" />
-            <span className="absolute bottom-1 right-2 text-[5px] text-white/30 tracking-widest font-mono">3.5 × 2.0 in</span>
+
+            {/* Bleed Safety Margin Overlay */}
+            <div className="absolute inset-1.5 border border-dashed border-indigo-400/40 rounded-lg pointer-events-none flex items-start justify-end p-1">
+              <span className="text-[5px] text-indigo-300/80 font-mono bg-indigo-950/80 px-1 rounded">
+                Safety Safe Zone (3mm)
+              </span>
+            </div>
           </div>
-          <div className="absolute bottom-1.5 right-1.5 bg-slate-950/90 border border-white/10 rounded-md p-1 text-[6px] space-y-0.5">
-            <p className="font-bold text-gray-400">Typography</p>
-            <div className="flex gap-1">
-              <span className="bg-[#464674] px-1 rounded text-white font-mono">Outfit Bold</span>
-              <span className="bg-white/10 px-1 rounded text-gray-300">12px</span>
+
+          {/* Floating Live Inspector Chip */}
+          <div className="absolute bottom-2 right-2 bg-slate-900/95 backdrop-blur-md border border-white/15 rounded-xl px-2 py-1 text-[7px] space-y-0.5 shadow-xl">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span className="font-bold text-slate-200">Typography: Outfit Bold 14pt</span>
             </div>
           </div>
         </div>
@@ -249,36 +366,65 @@ function StudioMockup() {
   );
 }
 
+// ─── Verification Mockup (Pre-Flight Diagnostic) ──────────────────────────
 function VerificationMockup() {
   return (
-    <div className="w-full max-w-[460px] bg-slate-950/95 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-      <div className="bg-slate-900 border-b border-white/5 px-4 py-2.5 flex items-center justify-between">
-        <div className="flex gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
-        </div>
-        <span className="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Pre-flight Checklist</span>
-        <span className="text-[8px] font-black bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded">CMYK</span>
-      </div>
-      <div className="p-4 space-y-3 bg-slate-950 min-h-[220px] flex flex-col justify-center">
-        <div className="bg-slate-900 rounded-xl p-3 border border-white/5 space-y-2.5">
-          <div className="flex items-center justify-between border-b border-white/5 pb-2">
-            <p className="text-[9px] font-black text-white">File: business_card.pdf</p>
-            <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">✓ Print Ready</span>
+    <div className="w-full max-w-[490px] bg-[#0c101c] rounded-3xl border border-emerald-500/20 shadow-2xl shadow-emerald-950/40 overflow-hidden ring-1 ring-white/10">
+      {/* Window Header */}
+      <div className="bg-[#121829] border-b border-white/10 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
           </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {[
-              { label: 'Bleed Margin', status: 'Passed' },
-              { label: 'Color Format', status: 'CMYK ✓' },
-              { label: 'Resolution', status: '340 DPI ✓' },
-              { label: 'Fonts', status: 'Embedded ✓' },
-            ].map((item, i) => (
-              <div key={i} className="bg-slate-950 p-1.5 rounded-md border border-white/5">
-                <span className="text-[7px] text-gray-400 block">{item.label}</span>
-                <span className="text-[8px] font-black text-emerald-400">{item.status}</span>
+          <span className="text-[11px] text-slate-300 font-bold ml-2 font-mono">Pre-Flight Diagnostic AI</span>
+        </div>
+        <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+          <CheckCircle2 size={10} /> 100% Print-Ready
+        </span>
+      </div>
+
+      {/* Main Diagnostic Panel */}
+      <div className="p-4 space-y-3 bg-[#080b14] min-h-[260px] flex flex-col justify-between">
+        {/* Main File Header */}
+        <div className="bg-[#10162a] rounded-2xl p-3.5 border border-white/5 flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[10px] font-black text-white font-mono">catalog_brochure_v4.pdf</p>
+            <p className="text-[8px] text-slate-400">Target Press: Heidelberg Offset 4-Color</p>
+          </div>
+          <div className="text-right">
+            <span className="text-sm font-black text-emerald-400">100 / 100</span>
+            <span className="text-[8px] text-slate-400 block font-medium">Quality Score</span>
+          </div>
+        </div>
+
+        {/* 4 Diagnostic Checkpoints */}
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: 'CMYK Gamut', status: 'Passed (0 Out of Gamut)', icon: '🎨', col: 'text-emerald-400' },
+            { label: 'Bleed Safety', status: 'Passed (+3.0mm Safe)', icon: '📐', col: 'text-emerald-400' },
+            { label: 'Image Resolution', status: 'Passed (340 DPI High)', icon: '🔍', col: 'text-emerald-400' },
+            { label: 'Font Outlines', status: 'Passed (All Vectorized)', icon: '🔤', col: 'text-emerald-400' },
+          ].map((item, i) => (
+            <div key={i} className="bg-[#10162a] p-2.5 rounded-xl border border-white/5 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[8px] text-slate-400 font-bold">{item.label}</span>
+                <span className="text-[9px]">{item.icon}</span>
               </div>
-            ))}
+              <p className={cn('text-[9px] font-black', item.col)}>{item.status}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Ink Density Spectrum */}
+        <div className="bg-[#10162a] p-2.5 rounded-xl border border-white/5 flex items-center justify-between text-[8px] text-slate-300 font-mono">
+          <span className="font-bold">Total Ink Coverage (TIC):</span>
+          <div className="flex gap-2">
+            <span className="text-cyan-400">C: 15%</span>
+            <span className="text-pink-400">M: 65%</span>
+            <span className="text-yellow-400">Y: 90%</span>
+            <span className="text-slate-300">K: 0%</span>
           </div>
         </div>
       </div>
@@ -286,185 +432,247 @@ function VerificationMockup() {
   );
 }
 
+// ─── Contests Mockup (Design Quests Hub) ───────────────────────────────────
 function ContestsMockup() {
   return (
-    <div className="w-full max-w-[460px] bg-slate-950/95 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-      <div className="bg-slate-900 border-b border-white/5 px-4 py-2.5 flex items-center justify-between">
-        <div className="flex gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+    <div className="w-full max-w-[490px] bg-[#0c101c] rounded-3xl border border-amber-500/20 shadow-2xl shadow-amber-950/40 overflow-hidden ring-1 ring-white/10">
+      {/* Window Header */}
+      <div className="bg-[#121829] border-b border-white/10 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+          </div>
+          <span className="text-[11px] text-slate-300 font-bold ml-2 font-mono">Active Design Quest #729</span>
         </div>
-        <span className="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Active Design Quest</span>
-        <span className="text-[8px] bg-yellow-500/20 text-yellow-400 font-black px-2 py-0.5 rounded-full">₹5,000</span>
+        <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-2.5 py-0.5 rounded-full border border-amber-500/30">
+          ₹5,000 Prize Pool
+        </span>
       </div>
-      <div className="p-4 space-y-3 bg-slate-950 min-h-[220px] flex flex-col justify-between">
-        <div>
-          <h4 className="text-[10px] font-black text-white">"Elite Brews Coffee Brand Logo"</h4>
-          <p className="text-[7px] text-gray-400">14 Designers • 42 Entries • 3 Days Left</p>
+
+      {/* Quest Feed */}
+      <div className="p-4 space-y-3 bg-[#080b14] min-h-[260px] flex flex-col justify-between">
+        <div className="bg-[#10162a] p-3 rounded-2xl border border-white/5 flex items-center justify-between">
+          <div>
+            <h4 className="text-[10px] font-black text-white">&quot;Artisan Specialty Coffee Packaging&quot;</h4>
+            <p className="text-[8px] text-slate-400 font-medium mt-0.5">14 Designers • 42 Submissions • 2 Days Left</p>
+          </div>
+          <span className="text-[8px] bg-indigo-500/20 text-indigo-300 font-black px-2 py-0.5 rounded-full">
+            In Review
+          </span>
         </div>
+
+        {/* 3 Creative Entries */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { designer: 'Aravind K.', bg: 'from-amber-700 to-amber-950', sel: true },
-            { designer: 'Shalini S.', bg: 'from-zinc-800 to-zinc-950', sel: false },
-            { designer: 'Neil D.',    bg: 'from-stone-800 to-stone-950', sel: false },
+            { designer: 'Aravind K.', rating: '★ 5.0', tag: '🏆 Leading', bg: 'from-amber-600 to-amber-950', sel: true },
+            { designer: 'Shalini S.', rating: '★ 4.9', tag: 'Entry #18', bg: 'from-purple-800 to-slate-950', sel: false },
+            { designer: 'Neil D.',    rating: '★ 4.8', tag: 'Entry #12', bg: 'from-emerald-800 to-slate-950', sel: false },
           ].map((e, i) => (
-            <div key={i} className={cn('rounded-lg border overflow-hidden bg-slate-900', e.sel ? 'border-[#464674]' : 'border-white/5')}>
-              <div className={cn('aspect-square bg-gradient-to-br flex items-center justify-center relative', e.bg)}>
-                <p className="text-[8px] font-black text-white">EB</p>
-                {e.sel && <span className="absolute top-1 right-1 text-[5px] bg-[#464674] text-white px-1 rounded font-black">✓</span>}
+            <div
+              key={i}
+              className={cn(
+                'rounded-xl border overflow-hidden bg-[#10162a] transition-all relative group cursor-pointer',
+                e.sel ? 'border-amber-500/80 shadow-lg shadow-amber-500/20' : 'border-white/5 hover:border-white/20'
+              )}
+            >
+              <div className={cn('aspect-square bg-gradient-to-br flex flex-col items-center justify-center relative p-2', e.bg)}>
+                <span className="text-sm font-black text-white">EB</span>
+                <span className="text-[6px] text-white/80 font-bold uppercase tracking-widest mt-0.5">ROASTERY</span>
+                <span className="absolute top-1 right-1 text-[6px] bg-black/60 backdrop-blur-sm text-white px-1 py-0.2 rounded font-bold">
+                  {e.tag}
+                </span>
               </div>
-              <div className="px-1.5 py-1 flex justify-between text-[7px]">
-                <span className="text-gray-400 truncate">{e.designer}</span>
-                <span className="text-yellow-400">★5</span>
+              <div className="p-1.5 flex items-center justify-between text-[7px]">
+                <span className="text-slate-300 font-bold truncate max-w-[55px]">{e.designer}</span>
+                <span className="text-amber-400 font-black">{e.rating}</span>
               </div>
             </div>
           ))}
         </div>
-        <button className="w-full text-[9px] font-black text-white bg-[#464674] hover:bg-[#5c5c96] py-1.5 rounded-lg transition-colors">Choose Winner & Print</button>
+
+        {/* Action Button */}
+        <button className="w-full text-[10px] font-black text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 py-2 rounded-xl shadow-lg shadow-amber-600/20 transition-all">
+          Award Winner & Send to Commercial Press →
+        </button>
       </div>
     </div>
   );
 }
 
+// ─── Printing Mockup (Fulfillment Telemetry) ──────────────────────────────
 function PrintingMockup() {
   return (
-    <div className="w-full max-w-[460px] bg-slate-950/95 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-      <div className="bg-slate-900 border-b border-white/5 px-4 py-2.5 flex items-center justify-between">
-        <div className="flex gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+    <div className="w-full max-w-[490px] bg-[#0c101c] rounded-3xl border border-rose-500/20 shadow-2xl shadow-rose-950/40 overflow-hidden ring-1 ring-white/10">
+      {/* Window Header */}
+      <div className="bg-[#121829] border-b border-white/10 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+          </div>
+          <span className="text-[11px] text-slate-300 font-bold ml-2 font-mono">Press Telemetry Engine</span>
         </div>
-        <span className="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Fulfillment Engine</span>
-        <span className="text-[8px] bg-emerald-500/20 text-emerald-400 font-black px-2 py-0.5 rounded-full">Live Routing</span>
+        <span className="text-[9px] bg-rose-500/20 text-rose-300 font-black px-2.5 py-0.5 rounded-full border border-rose-500/30 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" /> Live Pressing
+        </span>
       </div>
-      <div className="p-4 space-y-3 bg-slate-950 min-h-[220px] flex flex-col justify-center">
-        <div className="bg-slate-900 border border-white/5 rounded-xl p-3 space-y-2.5">
-          <div className="flex justify-between text-[9px] font-black">
-            <span className="text-white">Order: #ORD-7392</span>
-            <span className="text-emerald-400">● Printing Live</span>
+
+      {/* Production Details */}
+      <div className="p-4 space-y-3 bg-[#080b14] min-h-[260px] flex flex-col justify-between">
+        <div className="bg-[#10162a] p-3 rounded-2xl border border-white/5 flex items-center justify-between">
+          <div className="space-y-0.5">
+            <p className="text-[10px] font-black text-white">Order #ORD-84920 • 1,000 Luxury Cards</p>
+            <p className="text-[8px] text-slate-400">Heidelberg Speedmaster XL 106 • Chennai Hub 04</p>
           </div>
-          <div className="space-y-2">
-            {[
-              { step: 'Order Placed', done: true },
-              { step: 'Routed to Press', done: true },
-              { step: 'Production', done: false, cur: true },
-              { step: 'Delivery Dispatch', done: false },
-            ].map((s, i) => (
-              <div key={i} className="flex gap-2 text-[8px] items-center">
-                <div className={cn('w-3 h-3 rounded-full flex items-center justify-center font-bold text-[6px] flex-shrink-0', s.done ? 'bg-emerald-500 text-white' : s.cur ? 'bg-[#464674] text-white animate-pulse' : 'bg-white/10 text-gray-400')}>
-                  {s.done ? '✓' : i + 1}
+          <span className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-500/30">
+            Speed: 18,000 SPH
+          </span>
+        </div>
+
+        {/* Step-by-Step Progress Pipeline */}
+        <div className="bg-[#10162a] p-3 rounded-2xl border border-white/5 space-y-2">
+          {[
+            { step: '01. Plate CTP Calibration', status: 'Completed (100% CTP)', done: true },
+            { step: '02. 4-Color Offset Impression', status: 'Live Impression Running...', done: false, active: true },
+            { step: '03. Velvet Lamination & Spot UV', status: 'In Production Queue', done: false },
+            { step: '04. Die Cutting & Door Dispatch', status: 'Pending Finishing', done: false },
+          ].map((st, i) => (
+            <div key={i} className="flex items-center justify-between text-[8px]">
+              <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    'w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold text-[6px]',
+                    st.done
+                      ? 'bg-emerald-500 text-white'
+                      : st.active
+                      ? 'bg-rose-500 text-white animate-pulse'
+                      : 'bg-white/10 text-slate-400'
+                  )}
+                >
+                  {st.done ? '✓' : i + 1}
                 </div>
-                <span className={cn('font-bold', s.done || s.cur ? 'text-white' : 'text-gray-500')}>{s.step}</span>
+                <span className={cn('font-bold', st.done || st.active ? 'text-white' : 'text-slate-500')}>
+                  {st.step}
+                </span>
               </div>
-            ))}
-          </div>
+              <span className={cn('font-mono text-[7px]', st.active ? 'text-rose-400 font-bold' : 'text-slate-500')}>
+                {st.status}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer Metrics */}
+        <div className="flex items-center justify-between text-[8px] text-slate-400 px-1 font-medium">
+          <span>Paper: 350 GSM Velvet Art Card</span>
+          <span className="text-emerald-400 font-bold">Est. Dispatch: Tomorrow 2:00 PM</span>
         </div>
       </div>
     </div>
   );
 }
 
+// ─── Templates Mockup (Template Matrix) ────────────────────────────────────
 function TemplatesMockup({ subProducts = [] }: { subProducts?: any[] }) {
   const [viewMode, setViewMode] = React.useState<'products' | 'templates'>('products');
 
   const existingTemplates = [
-    { name: 'Business Card', bg: 'from-[#464674] to-[#5c5c96]', label: 'Classic', category: 'Corporate' },
-    { name: 'Flyer Design', bg: 'from-orange-500 to-red-500', label: 'Bold', category: 'Marketing' },
-    { name: 'Event Poster', bg: 'from-emerald-500 to-teal-600', label: 'Modern', category: 'Events' },
-    { name: 'Letterhead', bg: 'from-violet-500 to-purple-600', label: 'Pro', category: 'Stationery' },
+    { name: 'Executive Card', bg: 'from-indigo-600 to-slate-900', label: 'Classic', category: 'Corporate' },
+    { name: 'Launch Flyer', bg: 'from-orange-500 to-red-600', label: 'Bold', category: 'Marketing' },
+    { name: 'Concert Poster', bg: 'from-emerald-500 to-teal-700', label: 'Modern', category: 'Events' },
+    { name: 'Corporate Letterhead', bg: 'from-purple-600 to-indigo-950', label: 'Pro', category: 'Stationery' },
   ];
 
   const displayProducts = subProducts && subProducts.length > 0 ? subProducts.slice(0, 4) : [];
   const showProducts = viewMode === 'products' && displayProducts.length > 0;
 
   return (
-    <div className="w-full max-w-[460px] bg-slate-950/95 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-      {/* Mockup Header */}
-      <div className="bg-slate-900 border-b border-white/5 px-4 py-2.5 flex items-center justify-between">
-        <div className="flex gap-1.5 items-center">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
-          <span className="text-[10px] text-gray-400 font-bold tracking-widest uppercase ml-2 hidden sm:inline">
-            {showProducts ? 'Product Templates' : 'Template Library'}
+    <div className="w-full max-w-[490px] bg-[#0c101c] rounded-3xl border border-sky-500/20 shadow-2xl shadow-sky-950/40 overflow-hidden ring-1 ring-white/10">
+      {/* Window Header */}
+      <div className="bg-[#121829] border-b border-white/10 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+          </div>
+          <span className="text-[11px] text-slate-300 font-bold ml-2 font-mono">
+            {showProducts ? 'Catalog Products' : 'Template Matrix (10,000+)'}
           </span>
         </div>
 
         {/* View mode toggle */}
-        <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-white/5">
+        <div className="flex items-center gap-1 bg-[#080b14] p-0.5 rounded-xl border border-white/10">
           <button
             type="button"
             onClick={() => setViewMode('products')}
             className={cn(
-              'text-[8px] font-black px-2 py-0.5 rounded transition-all',
-              viewMode === 'products'
-                ? 'bg-[#464674] text-white shadow'
-                : 'text-gray-400 hover:text-white'
+              'text-[8px] font-black px-2.5 py-1 rounded-lg transition-all',
+              viewMode === 'products' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white'
             )}
           >
-            Products ({displayProducts.length > 0 ? displayProducts.length : 'All'})
+            Products
           </button>
           <button
             type="button"
             onClick={() => setViewMode('templates')}
             className={cn(
-              'text-[8px] font-black px-2 py-0.5 rounded transition-all',
-              viewMode === 'templates'
-                ? 'bg-[#464674] text-white shadow'
-                : 'text-gray-400 hover:text-white'
+              'text-[8px] font-black px-2.5 py-1 rounded-lg transition-all',
+              viewMode === 'templates' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white'
             )}
           >
-            Templates (10K+)
+            Templates
           </button>
         </div>
       </div>
 
-      {/* Mockup Content Grid */}
-      <div className="p-3.5 bg-slate-950 min-h-[220px]">
+      {/* Grid Content */}
+      <div className="p-3.5 bg-[#080b14] min-h-[260px]">
         {showProducts ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             {displayProducts.map((sp: any) => {
               const imgUrl = resolveImagePath(sp.imageUrl || sp.parentProductImageUrl);
               return (
                 <Link
                   key={sp.id || sp.productSlug}
                   href={sp.id ? `/design/${sp.productSlug}/start?subProductId=${sp.id}` : `/design/${sp.productSlug}/start`}
-                  className="rounded-xl overflow-hidden border border-white/10 group cursor-pointer hover:border-[#464674] hover:shadow-lg transition-all bg-slate-900 flex flex-col"
+                  className="rounded-2xl overflow-hidden border border-white/10 group cursor-pointer hover:border-sky-400 hover:shadow-lg transition-all bg-[#10162a] flex flex-col"
                 >
-                  <div className="aspect-[4/3] bg-slate-800 overflow-hidden relative flex-shrink-0">
+                  <div className="aspect-[4/3] bg-slate-900 overflow-hidden relative flex-shrink-0">
                     {imgUrl ? (
                       <Image
                         src={imgUrl}
                         alt={sp.name}
                         fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#464674]/40 to-slate-900">
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-sky-950 to-slate-900">
                         <Package className="w-6 h-6 text-white/40" />
                       </div>
                     )}
-                    <span className="absolute top-1.5 right-1.5 text-[7px] bg-[#464674]/90 text-white font-black px-1.5 py-0.5 rounded backdrop-blur-sm shadow">
+                    <span className="absolute top-1.5 right-1.5 text-[7px] bg-slate-900/90 text-white font-black px-1.5 py-0.5 rounded backdrop-blur-sm shadow border border-white/10">
                       {sp.width && sp.height ? `${sp.width}×${sp.height}${sp.unitType || 'mm'}` : 'Custom'}
                     </span>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
-                      <span className="text-[7px] font-black text-white bg-[#464674] px-1.5 py-0.5 rounded w-full text-center">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                      <span className="text-[8px] font-black text-white bg-sky-600 px-2 py-0.5 rounded-lg w-full text-center shadow">
                         Customize Design →
                       </span>
                     </div>
                   </div>
-                  <div className="p-2 flex items-center justify-between gap-1 flex-1">
+                  <div className="p-2.5 flex items-center justify-between gap-1 flex-1">
                     <div className="min-w-0">
-                      <p className="text-[8px] font-bold text-gray-200 truncate group-hover:text-white transition-colors">
+                      <p className="text-[9px] font-bold text-slate-200 truncate group-hover:text-white transition-colors">
                         {sp.name}
                       </p>
-                      <p className="text-[7px] text-gray-400 truncate">
-                        {sp.productName || 'Print Product'}
+                      <p className="text-[7px] text-slate-400 truncate">
+                        {sp.productName || 'Commercial Print'}
                       </p>
                     </div>
-                    <span className="text-[7px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded font-black flex-shrink-0">
+                    <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-lg font-black flex-shrink-0 border border-emerald-500/20">
                       {sp.price ? `₹${Number(sp.price).toFixed(0)}` : 'FREE'}
                     </span>
                   </div>
@@ -473,27 +681,29 @@ function TemplatesMockup({ subProducts = [] }: { subProducts?: any[] }) {
             })}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             {existingTemplates.map((t, i) => (
               <Link
                 key={i}
                 href="/templates"
-                className="rounded-xl overflow-hidden border border-white/5 group cursor-pointer hover:border-[#464674]/60 transition-all block bg-slate-900"
+                className="rounded-2xl overflow-hidden border border-white/10 group cursor-pointer hover:border-sky-400/80 transition-all block bg-[#10162a]"
               >
-                <div className={cn('aspect-[4/3] bg-gradient-to-br flex items-center justify-center relative', t.bg)}>
-                  <div className="text-center p-1">
-                    <p className="text-[9px] font-black text-white">{t.name}</p>
-                    <p className="text-[6px] text-white/70">{t.label} • {t.category}</p>
+                <div className={cn('aspect-[4/3] bg-gradient-to-br flex items-center justify-center relative p-2', t.bg)}>
+                  <div className="text-center">
+                    <p className="text-[10px] font-black text-white">{t.name}</p>
+                    <p className="text-[7px] text-white/70">{t.label} • {t.category}</p>
                   </div>
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="text-[7px] font-black text-white bg-white/20 px-2 py-0.5 rounded backdrop-blur-sm">
-                      Use Template
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-[8px] font-black text-white bg-white/20 px-2.5 py-1 rounded-lg backdrop-blur-md">
+                      Use Template →
                     </span>
                   </div>
                 </div>
-                <div className="bg-slate-900 px-2 py-1.5 flex items-center justify-between">
-                  <span className="text-[8px] text-gray-300 font-bold">{t.name}</span>
-                  <span className="text-[7px] bg-emerald-500/20 text-emerald-400 px-1.5 rounded font-black">FREE</span>
+                <div className="bg-[#10162a] px-2.5 py-2 flex items-center justify-between border-t border-white/5">
+                  <span className="text-[8px] text-slate-300 font-bold truncate">{t.name}</span>
+                  <span className="text-[7px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-black">
+                    FREE
+                  </span>
                 </div>
               </Link>
             ))}
@@ -1123,91 +1333,222 @@ export function HomeClient({
         </section>
 
         {/* ═══════════════════════════════════════════════════════════
-            SECTION: COMPLETE ECOSYSTEM (TABBED)
+            SECTION: COMPLETE ECOSYSTEM (REDESIGNED ULTRA-PREMIUM BENTO HUB)
         ═══════════════════════════════════════════════════════════ */}
-        <section className="py-16 bg-[#f7f7fc] border-t border-[#464674]/8">
-          <div className="w-full px-3 sm:px-4 lg:px-6">
-            <motion.div {...FU()} className="text-center mb-10">
-              <span className="inline-flex items-center gap-1.5 bg-[#464674]/10 text-[#464674] border border-[#464674]/20 text-[11px] font-bold tracking-wide px-3 py-1 rounded-full mb-3 font-display">
-                <Globe size={12} /> One Platform — Five Pillars
-              </span>
-              <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mb-2 font-headline">
-                A Complete Printing Ecosystem
+        <section className="py-20 lg:py-28 bg-[#090D1A] text-white relative overflow-hidden">
+          {/* Ambient Cosmic Background Lighting */}
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[140px] pointer-events-none" />
+          <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[140px] pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-60" />
+
+          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-10 sm:space-y-12">
+            
+            {/* Section Header */}
+            <motion.div {...FU()} className="text-center max-w-3xl mx-auto space-y-4">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold tracking-wide backdrop-blur-md shadow-lg shadow-indigo-500/5">
+                <Sparkles size={13} className="text-indigo-400 animate-pulse" />
+                <span>One Seamless Creative &amp; Manufacturing Engine</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white font-headline leading-[1.15]">
+                A Complete Printing{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+                  Ecosystem
+                </span>
               </h2>
-              <p className="text-gray-500 font-medium text-sm max-w-lg mx-auto leading-relaxed font-body">
-                Empowering customers, designers, and print partners with a high-fidelity workspace.
+              <p className="text-slate-400 font-medium text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
+                Bridging modern in-browser vector design, automated pre-flight verification, crowdsourced design quests, and high-precision commercial press production in one unified platform.
               </p>
             </motion.div>
 
-            {/* Tabs */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
-              {ECOSYSTEM_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-black transition-all duration-300 border uppercase tracking-wide',
-                    activeTab === tab.id
-                      ? 'bg-[#464674] border-[#464674] text-white shadow-lg shadow-[#464674]/25'
-                      : 'bg-white border-gray-200 text-gray-500 hover:border-[#464674]/40 hover:text-[#464674]'
-                  )}
-                >
-                  {tabIconMap[tab.id]}
-                  {tab.label}
-                </button>
-              ))}
+            {/* 5-Pillar Interactive Bento Selector Tabs */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
+              {ECOSYSTEM_TABS.map((tab, idx) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      'group relative text-left p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 flex flex-col justify-between overflow-hidden',
+                      isActive
+                        ? 'bg-slate-900/90 border-indigo-500/80 shadow-xl shadow-indigo-500/20 ring-1 ring-indigo-500/40'
+                        : 'bg-slate-900/40 border-white/5 hover:border-white/20 hover:bg-slate-900/60'
+                    )}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activePillarGlow"
+                        className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent pointer-events-none"
+                        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    
+                    <div className="flex items-center justify-between mb-3 relative z-10">
+                      <div className={cn(
+                        'w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-md',
+                        isActive
+                          ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white'
+                          : 'bg-white/5 text-slate-400 border border-white/5 group-hover:text-white'
+                      )}>
+                        {tabIconMap[tab.id]}
+                      </div>
+                      <span className={cn(
+                        'text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md font-mono',
+                        isActive ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-500'
+                      )}>
+                        0{idx + 1}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 relative z-10">
+                      <h4 className={cn('text-xs sm:text-sm font-bold tracking-tight transition-colors', isActive ? 'text-white' : 'text-slate-300 group-hover:text-white')}>
+                        {tab.label}
+                      </h4>
+                      <p className="text-[11px] text-slate-400 font-medium line-clamp-1">
+                        {tab.subtitle}
+                      </p>
+                    </div>
+
+                    <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-semibold text-slate-400 relative z-10">
+                      <span>{tab.stat}</span>
+                      <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded', tab.theme.tagBg)}>
+                        {tab.badge}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Main card */}
+            {/* Central Showcase Card with Dynamic Stage */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.35 }}
-                className="bg-gradient-to-br from-[#16163c] via-[#1a1a4e] to-[#282860] rounded-3xl border border-[#464674]/30 shadow-2xl p-6 lg:p-10 relative overflow-hidden min-h-[420px] flex flex-col justify-center"
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.4 }}
+                className="bg-slate-900/80 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-2xl p-6 sm:p-8 lg:p-12 relative overflow-hidden"
               >
-                <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-[#464674]/10 rounded-full blur-[100px] pointer-events-none" />
-                <div className="absolute -bottom-20 -left-20 w-[300px] h-[300px] bg-white/3 rounded-full blur-[80px] pointer-events-none" />
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-                  {/* Left text */}
-                  <div className="lg:col-span-6 space-y-5">
+                {/* Background Ambient Aura */}
+                <div className="absolute -top-40 -right-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
+                  {/* Left Column: Details & Features */}
+                  <div className="lg:col-span-6 space-y-6">
                     <div className="space-y-3">
-                      <h3 className="text-2xl lg:text-3xl font-black text-white leading-tight font-headline">{activeData.heading}</h3>
-                      <p className="text-slate-300 text-sm font-medium leading-relaxed font-body">{activeData.description}</p>
+                      <div className="flex items-center gap-2">
+                        <span className={cn('text-[11px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border', activeData.theme.tagBg)}>
+                          ● Pillar 0{ECOSYSTEM_TABS.findIndex(t => t.id === activeTab) + 1} / 05
+                        </span>
+                        <span className="text-xs font-semibold text-slate-400">
+                          {activeData.pill}
+                        </span>
+                      </div>
+
+                      <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight font-headline">
+                        {activeData.heading}
+                      </h3>
+                      <p className="text-slate-300 text-sm sm:text-base font-normal leading-relaxed">
+                        {activeData.description}
+                      </p>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                    {/* 4 Feature Cards Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                       {activeData.subFeatures.map((sf, idx) => (
-                        <div key={idx} className="flex gap-2.5 bg-white/5 rounded-xl p-3 border border-white/8 hover:border-white/15 transition-colors">
-                          <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <CheckCircle2 size={11} className="text-emerald-400" />
+                        <div
+                          key={idx}
+                          className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:border-indigo-500/30 hover:bg-white/[0.06] transition-all space-y-1.5 group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                              <CheckCircle2 size={12} />
+                            </div>
+                            <h5 className="text-xs font-bold text-white group-hover:text-indigo-200 transition-colors">
+                              {sf.title}
+                            </h5>
                           </div>
-                          <div>
-                            <h4 className="text-xs font-black text-white leading-tight">{sf.title}</h4>
-                            <p className="text-slate-400 text-[10px] mt-0.5 leading-relaxed">{sf.desc}</p>
-                          </div>
+                          <p className="text-slate-400 text-[11px] leading-relaxed pl-7">
+                            {sf.desc}
+                          </p>
                         </div>
                       ))}
                     </div>
-                    <Button asChild size="lg" className="h-10 px-6 rounded-xl text-xs font-black bg-white hover:bg-slate-50 text-[#464674] border-none shadow-xl shadow-white/10 group">
-                      <Link href={activeData.ctaHref} className="flex items-center gap-1.5">
-                        {activeData.ctaText}
-                        <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
-                      </Link>
-                    </Button>
+
+                    {/* CTA and Highlights */}
+                    <div className="flex flex-wrap items-center gap-4 pt-2">
+                      <Button
+                        asChild
+                        size="lg"
+                        className="h-12 px-7 rounded-2xl text-xs sm:text-sm font-black bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-xl shadow-indigo-500/25 group border-0"
+                      >
+                        <Link href={activeData.ctaHref} className="flex items-center gap-2">
+                          <span>{activeData.ctaText}</span>
+                          <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                      </Button>
+
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+                        <ShieldCheck size={16} className="text-emerald-400" />
+                        <span>Production Guaranteed</span>
+                      </div>
+                    </div>
                   </div>
-                  {/* Right mockup */}
+
+                  {/* Right Column: High-Fidelity Interactive Mockup */}
                   <div className="lg:col-span-6 flex justify-center lg:justify-end">
-                    {activeTab === 'studio'       && <StudioMockup />}
-                    {activeTab === 'verification' && <VerificationMockup />}
-                    {activeTab === 'contests'     && <ContestsMockup />}
-                    {activeTab === 'printing'     && <PrintingMockup />}
-                    {activeTab === 'templates'    && <TemplatesMockup subProducts={subProducts} />}
+                    <div className="w-full max-w-[500px]">
+                      {activeTab === 'studio'       && <StudioMockup />}
+                      {activeTab === 'verification' && <VerificationMockup />}
+                      {activeTab === 'contests'     && <ContestsMockup />}
+                      {activeTab === 'printing'     && <PrintingMockup />}
+                      {activeTab === 'templates'    && <TemplatesMockup subProducts={subProducts} />}
+                    </div>
                   </div>
                 </div>
               </motion.div>
             </AnimatePresence>
+
+            {/* Bottom Pipeline: The 5-Step Unified Lifecycle */}
+            <div className="pt-4">
+              <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/40 border border-white/5 backdrop-blur-xl">
+                <div className="text-center mb-6 space-y-1">
+                  <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest font-mono">End-to-End Synergy</p>
+                  <h4 className="text-base sm:text-lg font-bold text-white">How the AmazoPrint Ecosystem Works Together</h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 relative">
+                  {[
+                    { step: '01', title: 'Pick & Personalize', desc: 'Browse 10k+ templates or start with custom product blank.' },
+                    { step: '02', title: 'Studio or Contest', desc: 'Design in vector canvas or crowdsource unique artist concepts.' },
+                    { step: '03', title: 'Pre-flight Check', desc: 'Automated CMYK audit, DPI scan, and bleed safe zone inspection.' },
+                    { step: '04', title: 'Commercial Press', desc: 'Smart geo-routed to nearest certified industrial offset/digital press.' },
+                    { step: '05', title: 'Doorstep Delivery', desc: 'Real-time live courier tracking across 28,000+ PIN codes in India.' },
+                  ].map((node, i) => (
+                    <div
+                      key={node.step}
+                      className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-indigo-500/30 transition-colors flex flex-col justify-between space-y-2 relative"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded">
+                          STEP {node.step}
+                        </span>
+                        {i < 4 && (
+                          <ChevronRight size={14} className="text-slate-600 hidden lg:block" />
+                        )}
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-white">{node.title}</h5>
+                        <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{node.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
           </div>
         </section>
 
