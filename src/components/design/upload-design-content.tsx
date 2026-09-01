@@ -273,13 +273,55 @@ export function UploadDesignContent() {
     const deliveryFee = Number(searchParams.get('deliveryFee') || subProduct?.deliveryAmount || 0);
     const deliveryName = searchParams.get('deliveryName') || (deliveryTier === 'standard' ? 'Standard Delivery' : 'Expedited Delivery');
 
+    const subtotal = (finalPrice + addonTotalPerUnit) * qty;
+    const originalSubtotal = (basePrice + addonTotalPerUnit) * qty;
+
+    // Tax Slabs Calculation
+    const taxSlabs = (subProduct as any)?.taxSlabs || [];
+    const activeTaxes = Array.isArray(taxSlabs) ? taxSlabs.filter((t: any) => t.isActive && Number(t.rate) > 0) : [];
+    
+    let totalExclusiveTax = 0;
+    let totalInclusiveTax = 0;
+    const taxesBreakdown: { id: string; name: string; rate: number; amount: number; isInclusive: boolean }[] = [];
+
+    activeTaxes.forEach((t: any) => {
+        const rate = Number(t.rate || 0);
+        if (t.isInclusive) {
+            const taxAmt = subtotal - (subtotal / (1 + (rate / 100)));
+            totalInclusiveTax += taxAmt;
+            taxesBreakdown.push({
+                id: t.id,
+                name: t.name || `Tax (${rate}%)`,
+                rate,
+                amount: taxAmt,
+                isInclusive: true,
+            });
+        } else {
+            const taxAmt = subtotal * (rate / 100);
+            totalExclusiveTax += taxAmt;
+            taxesBreakdown.push({
+                id: t.id,
+                name: t.name || `GST / Tax (${rate}%)`,
+                rate,
+                amount: taxAmt,
+                isInclusive: false,
+            });
+        }
+    });
+
+    const finalAmount = subtotal + totalExclusiveTax + deliveryFee;
+    const originalAmount = originalSubtotal + (originalSubtotal * (activeTaxes.filter((t: any) => !t.isInclusive).reduce((acc: number, t: any) => acc + Number(t.rate || 0), 0) / 100)) + deliveryFee;
+
     const calculatedPrice = subProduct ? {
         basePriceTotal: basePrice * qty,
-        original: (basePrice + addonTotalPerUnit) * qty + deliveryFee,
-        final: (finalPrice + addonTotalPerUnit) * qty + deliveryFee,
+        subtotal,
+        original: originalAmount,
+        final: finalAmount,
         discount: discount * qty,
         description: discountDescription,
         addons: addonBreakdown,
+        taxes: taxesBreakdown,
+        totalTax: totalExclusiveTax + totalInclusiveTax,
         delivery: {
             id: deliveryTier,
             name: deliveryName,
@@ -722,6 +764,22 @@ export function UploadDesignContent() {
                                                     </span>
                                                 </div>
                                             ))}
+                                            {/* Taxes (GST / Tax Slabs) */}
+                                            {calculatedPrice.taxes && calculatedPrice.taxes.map((tax, idx) => (
+                                                <div key={idx} className="flex justify-between items-center py-1 border-t border-slate-100 dark:border-slate-800/60 text-emerald-600 dark:text-emerald-400">
+                                                    <span>{tax.name} {tax.isInclusive ? '(Included)' : `(${tax.rate}%)`}</span>
+                                                    <span className="font-bold">
+                                                        {tax.isInclusive ? `(₹${tax.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} incl.)` : `+₹${tax.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                            {/* Delivery Option Line */}
+                                            <div className="flex justify-between items-center py-1 border-t border-slate-100 dark:border-slate-800/60 text-indigo-600 dark:text-indigo-400 font-semibold">
+                                                <span>{calculatedPrice.delivery?.name || 'Delivery'} ({calculatedPrice.delivery?.days || '3-5 Days'})</span>
+                                                <span className="font-bold">
+                                                    {calculatedPrice.delivery?.fee > 0 ? `+₹${calculatedPrice.delivery.fee.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : 'Free'}
+                                                </span>
+                                            </div>
                                             <div className="flex justify-between items-center py-2 border-t border-slate-200 dark:border-slate-800 font-bold text-sm text-slate-900 dark:text-white">
                                                 <span>Total Estimated Price</span>
                                                 <span>₹{calculatedPrice.final.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>

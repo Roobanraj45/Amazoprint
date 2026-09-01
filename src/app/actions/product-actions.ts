@@ -36,6 +36,15 @@ const sampleFileSchema = z.object({
   fileSize: z.string().optional().default(''),
 });
 
+const taxSlabSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Tax name is required'),
+  rate: z.coerce.number().min(0, 'Tax rate must be non-negative'),
+  type: z.enum(['percentage', 'fixed']).optional().default('percentage'),
+  isInclusive: z.boolean().optional().default(false),
+  isActive: z.boolean().default(true),
+});
+
 const subProductSchema = z.object({
   productId: z.number(),
   name: z.string().min(1, 'Name is required'),
@@ -67,6 +76,7 @@ const subProductSchema = z.object({
   youtubeUrl: z.string().optional().nullable(),
   sampleFiles: z.array(sampleFileSchema).optional().default([]),
   deliveryTiers: z.array(deliveryTierSchema).optional().default([]),
+  taxSlabs: z.array(taxSlabSchema).optional().default([]),
 });
 
 export async function getProducts() {
@@ -156,6 +166,7 @@ export async function createSubProduct(data: z.infer<typeof subProductSchema>) {
     deliveryAmount: (validated.deliveryAmount ?? 0).toString(),
     deliveryTiers: validated.deliveryTiers || [],
     sampleFiles: validated.sampleFiles || [],
+    taxSlabs: validated.taxSlabs || [],
     dieCutPrices: validated.dieCutPrices || {},
     cardTexturePrices: validated.cardTexturePrices || {},
   }).returning();
@@ -173,6 +184,7 @@ export async function updateSubProduct(id: number, data: Omit<z.infer<typeof sub
             deliveryAmount: (validated.deliveryAmount ?? 0).toString(),
             deliveryTiers: validated.deliveryTiers || [],
             sampleFiles: validated.sampleFiles || [],
+            taxSlabs: validated.taxSlabs || [],
             dieCutPrices: validated.dieCutPrices || {},
             cardTexturePrices: validated.cardTexturePrices || {},
             updatedAt: new Date() 

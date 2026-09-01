@@ -29,7 +29,7 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { MediaLibraryDialog } from '@/components/admin/media-library-dialog';
 import { MultiSelect } from '@/components/admin/multi-select';
 import { useToast } from '@/hooks/use-toast';
-import { resolveImagePath } from '@/lib/utils';
+import { resolveImagePath, cn } from '@/lib/utils';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -52,6 +52,9 @@ import {
   Trophy,
   Video,
   FileDown,
+  Percent,
+  Receipt,
+  Coins,
 } from 'lucide-react';
 
 const deliveryTierSchema = z.object({
@@ -70,6 +73,15 @@ const sampleFileSchema = z.object({
   fileUrl: z.string().min(1, 'File is required'),
   fileType: z.string().optional().default('PDF'),
   fileSize: z.string().optional().default(''),
+});
+
+const taxSlabSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Tax name is required'),
+  rate: z.coerce.number().min(0, 'Tax rate must be non-negative'),
+  type: z.enum(['percentage', 'fixed']).optional().default('percentage'),
+  isInclusive: z.boolean().optional().default(false),
+  isActive: z.boolean().default(true),
 });
 
 const subProductSchema = z.object({
@@ -102,6 +114,7 @@ const subProductSchema = z.object({
   youtubeUrl: z.string().optional().or(z.literal('')),
   sampleFiles: z.array(sampleFileSchema).optional().default([]),
   deliveryTiers: z.array(deliveryTierSchema).optional().default([]),
+  taxSlabs: z.array(taxSlabSchema).optional().default([]),
 });
 
 type SubProductFormData = z.infer<typeof subProductSchema>;
@@ -151,6 +164,7 @@ export default function EditVariantPage() {
       allowFileUpload: true,
       youtubeUrl: '',
       sampleFiles: [],
+      taxSlabs: [],
       maxPages: 1,
       allowedFoils: [],
       allowedDieCuts: [],
@@ -172,6 +186,7 @@ export default function EditVariantPage() {
   const spotUvAllowed = watch('spotUvAllowed');
   const deliveryTiers = watch('deliveryTiers') || [];
   const sampleFiles = watch('sampleFiles') || [];
+  const taxSlabs = watch('taxSlabs') || [];
 
   const handleSampleFileUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -270,6 +285,7 @@ export default function EditVariantPage() {
         deliveryDays: (variant as any).deliveryDays || '3-5 Business Days',
         deliveryAmount: Number((variant as any).deliveryAmount || 0),
         deliveryTiers: (variant as any).deliveryTiers || [],
+        taxSlabs: (variant as any).taxSlabs || [],
       });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error Loading Variant', description: error.message });
@@ -1151,6 +1167,210 @@ export default function EditVariantPage() {
                             {fileItem.fileSize && <span className="font-semibold text-slate-700 dark:text-slate-300">Size: {fileItem.fileSize}</span>}
                           </div>
                         )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 6. Tax & GST Settings Card */}
+            <Card className="border border-slate-200/80 dark:border-slate-800/80 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4 bg-slate-50/50 dark:bg-slate-950/50 flex flex-row items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Percent className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <CardTitle className="text-base font-bold text-slate-900 dark:text-white">
+                      Tax & GST Settings ({taxSlabs.filter((t: any) => t.isActive).length} Active)
+                    </CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Configure tax rates (e.g. GST 18%, Cess, VAT) for this variant. These will be applied in calculations and passed to checkout & payments.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setValue('taxSlabs', [
+                        ...taxSlabs,
+                        { id: `tax-${Date.now()}`, name: 'GST', rate: 18, isInclusive: false, isActive: true }
+                      ], { shouldDirty: true });
+                    }}
+                    className="h-8 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-800 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/50"
+                  >
+                    <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Tax Slab
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                {/* Presets Bar */}
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Receipt className="w-3.5 h-3.5 text-indigo-500" /> Quick Add Tax Presets:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {[
+                      { name: 'GST 18%', rate: 18 },
+                      { name: 'GST 12%', rate: 12 },
+                      { name: 'GST 5%', rate: 5 },
+                      { name: 'GST 28%', rate: 28 },
+                      { name: 'Exempt 0%', rate: 0 },
+                    ].map((preset) => (
+                      <Button
+                        key={preset.name}
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const exists = taxSlabs.some((t: any) => t.rate === preset.rate && t.name === preset.name);
+                          if (!exists) {
+                            setValue('taxSlabs', [
+                              ...taxSlabs,
+                              { id: `tax-${Date.now()}-${preset.rate}`, name: preset.name, rate: preset.rate, isInclusive: false, isActive: true }
+                            ], { shouldDirty: true });
+                          }
+                        }}
+                        className="h-7 px-2.5 text-[11px] font-bold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 hover:text-emerald-600"
+                      >
+                        +{preset.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {taxSlabs.length === 0 ? (
+                  <div className="py-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-950/50 gap-2">
+                    <Percent className="w-8 h-8 text-slate-300 dark:text-slate-700" />
+                    <p className="text-xs font-semibold text-slate-500">No tax slabs configured</p>
+                    <p className="text-[11px] text-muted-foreground max-w-sm">
+                      Click &quot;Add Tax Slab&quot; or select a preset above (e.g. GST 18%) to calculate and collect taxes at checkout.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {taxSlabs.map((taxItem: any, idx: number) => (
+                      <div
+                        key={taxItem.id || idx}
+                        className={cn(
+                          "p-4 rounded-2xl border transition-all space-y-3",
+                          taxItem.isActive 
+                            ? "bg-slate-50 dark:bg-slate-950 border-slate-200/80 dark:border-slate-800/80" 
+                            : "bg-slate-100/50 dark:bg-slate-900/40 border-slate-200/40 dark:border-slate-800/40 opacity-70"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 text-[10px] flex items-center justify-center font-black">
+                              {idx + 1}
+                            </span>
+                            Tax Slab #{idx + 1}
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <Label className="text-[11px] font-bold text-slate-500">Active</Label>
+                              <Switch
+                                checked={taxItem.isActive ?? true}
+                                onCheckedChange={(val) => {
+                                  const updated = [...taxSlabs];
+                                  updated[idx].isActive = val;
+                                  setValue('taxSlabs', updated, { shouldDirty: true });
+                                }}
+                                className="data-[state=checked]:bg-emerald-600"
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setValue('taxSlabs', taxSlabs.filter((_, i) => i !== idx), { shouldDirty: true });
+                              }}
+                              className="h-7 px-2 text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-1" /> Remove
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                          {/* Tax Name */}
+                          <div className="sm:col-span-5 space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              Tax Name / Label <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              placeholder="e.g. GST (Goods & Services Tax)"
+                              value={taxItem.name}
+                              onChange={(e) => {
+                                const updated = [...taxSlabs];
+                                updated[idx].name = e.target.value;
+                                setValue('taxSlabs', updated, { shouldDirty: true });
+                              }}
+                              className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                            />
+                          </div>
+
+                          {/* Rate (%) */}
+                          <div className="sm:col-span-3 space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              Tax Rate (%) <span className="text-red-500">*</span>
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="18"
+                                value={taxItem.rate}
+                                onChange={(e) => {
+                                  const updated = [...taxSlabs];
+                                  updated[idx].rate = parseFloat(e.target.value) || 0;
+                                  setValue('taxSlabs', updated, { shouldDirty: true });
+                                }}
+                                className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-bold pr-8"
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">%</span>
+                            </div>
+                          </div>
+
+                          {/* Inclusive / Exclusive Mode */}
+                          <div className="sm:col-span-4 space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              Tax Application Mode
+                            </Label>
+                            <Select
+                              value={taxItem.isInclusive ? 'inclusive' : 'exclusive'}
+                              onValueChange={(val) => {
+                                const updated = [...taxSlabs];
+                                updated[idx].isInclusive = val === 'inclusive';
+                                setValue('taxSlabs', updated, { shouldDirty: true });
+                              }}
+                            >
+                              <SelectTrigger className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-semibold">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="exclusive">Exclusive (+ Added on top of subtotal)</SelectItem>
+                                <SelectItem value="inclusive">Inclusive (Included in product price)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
+                          <span>
+                            {taxItem.isInclusive
+                              ? `Calculates ${taxItem.rate}% tax from inside the subtotal.`
+                              : `Adds +${taxItem.rate}% (${taxItem.name || 'Tax'}) to customer total at checkout.`
+                            }
+                          </span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            Example on ₹1,000: {taxItem.isInclusive ? `₹${(1000 - (1000 / (1 + (taxItem.rate || 0)/100))).toFixed(2)} tax inside` : `+₹${((1000 * (taxItem.rate || 0))/100).toFixed(2)} tax added`}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>

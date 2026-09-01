@@ -430,13 +430,55 @@ function DesignEditorInternal({
     const deliveryName = deliveryOption?.name || 'Standard Delivery';
     const deliveryDays = deliveryOption?.days || (subProduct as any)?.deliveryDays || '3-5 Business Days';
 
+    const subtotal = (finalPrice + addonTotalPerUnit) * qty;
+    const originalSubtotal = (basePrice + addonTotalPerUnit) * qty;
+
+    // Tax Slabs Calculation
+    const taxSlabs = (subProduct as any)?.taxSlabs || [];
+    const activeTaxes = Array.isArray(taxSlabs) ? taxSlabs.filter((t: any) => t.isActive && Number(t.rate) > 0) : [];
+    
+    let totalExclusiveTax = 0;
+    let totalInclusiveTax = 0;
+    const taxesBreakdown: { id: string; name: string; rate: number; amount: number; isInclusive: boolean }[] = [];
+
+    activeTaxes.forEach((t: any) => {
+        const rate = Number(t.rate || 0);
+        if (t.isInclusive) {
+            const taxAmt = subtotal - (subtotal / (1 + (rate / 100)));
+            totalInclusiveTax += taxAmt;
+            taxesBreakdown.push({
+                id: t.id,
+                name: t.name || `Tax (${rate}%)`,
+                rate,
+                amount: taxAmt,
+                isInclusive: true,
+            });
+        } else {
+            const taxAmt = subtotal * (rate / 100);
+            totalExclusiveTax += taxAmt;
+            taxesBreakdown.push({
+                id: t.id,
+                name: t.name || `GST / Tax (${rate}%)`,
+                rate,
+                amount: taxAmt,
+                isInclusive: false,
+            });
+        }
+    });
+
+    const finalAmount = subtotal + totalExclusiveTax + deliveryFee;
+    const originalAmount = originalSubtotal + (originalSubtotal * (activeTaxes.filter((t: any) => !t.isInclusive).reduce((acc: number, t: any) => acc + Number(t.rate || 0), 0) / 100)) + deliveryFee;
+
     setCalculatedPrice({
         basePriceTotal: basePrice * qty,
-        original: (basePrice + addonTotalPerUnit) * qty + deliveryFee,
-        final: (finalPrice + addonTotalPerUnit) * qty + deliveryFee,
+        subtotal,
+        original: originalAmount,
+        final: finalAmount,
         discount: discount * qty,
         description: discountDescription,
         addons: addonBreakdown,
+        taxes: taxesBreakdown,
+        totalTax: totalExclusiveTax + totalInclusiveTax,
         delivery: {
             id: deliveryOption?.id || 'standard',
             name: deliveryName,

@@ -55,11 +55,15 @@ export function StartDesignContent() {
   const [loadingPricing, setLoadingPricing] = useState(false);
   const [calculatedPrice, setCalculatedPrice] = useState<{ 
     basePriceTotal: number;
+    subtotal: number;
     original: number; 
     final: number; 
     discount: number; 
     description: string | null;
     addons: { name: string; totalAmount: number }[];
+    taxes: { id: string; name: string; rate: number; amount: number; isInclusive: boolean }[];
+    totalTax: number;
+    delivery: { id: string; name: string; days: string; fee: number };
   } | null>(null);
 
   const [quantity, setQuantity] = useState('500');
@@ -281,13 +285,57 @@ export function StartDesignContent() {
     const deliveryName = selectedTierObj ? selectedTierObj.name : 'Standard Delivery';
     const deliveryDays = selectedTierObj ? selectedTierObj.estimatedTime : (subProduct.deliveryDays || '3-5 Business Days');
 
+    const subtotal = (finalPrice + addonTotalPerUnit) * qty;
+    const originalSubtotal = (basePrice + addonTotalPerUnit) * qty;
+
+    // Tax Slabs Calculation
+    const taxSlabs = (subProduct as any).taxSlabs || [];
+    const activeTaxes = Array.isArray(taxSlabs) ? taxSlabs.filter((t: any) => t.isActive && Number(t.rate) > 0) : [];
+    
+    let totalExclusiveTax = 0;
+    let totalInclusiveTax = 0;
+    const taxesBreakdown: { id: string; name: string; rate: number; amount: number; isInclusive: boolean }[] = [];
+
+    activeTaxes.forEach((t: any) => {
+        const rate = Number(t.rate || 0);
+        if (t.isInclusive) {
+            // Included in price: Tax = Subtotal - (Subtotal / (1 + rate/100))
+            const taxAmt = subtotal - (subtotal / (1 + (rate / 100)));
+            totalInclusiveTax += taxAmt;
+            taxesBreakdown.push({
+                id: t.id,
+                name: t.name || `Tax (${rate}%)`,
+                rate,
+                amount: taxAmt,
+                isInclusive: true,
+            });
+        } else {
+            // Exclusive: Added on top: Tax = Subtotal * (rate/100)
+            const taxAmt = subtotal * (rate / 100);
+            totalExclusiveTax += taxAmt;
+            taxesBreakdown.push({
+                id: t.id,
+                name: t.name || `GST / Tax (${rate}%)`,
+                rate,
+                amount: taxAmt,
+                isInclusive: false,
+            });
+        }
+    });
+
+    const finalAmount = subtotal + totalExclusiveTax + deliveryFee;
+    const originalAmount = originalSubtotal + (originalSubtotal * (activeTaxes.filter((t: any) => !t.isInclusive).reduce((acc: number, t: any) => acc + Number(t.rate || 0), 0) / 100)) + deliveryFee;
+
     setCalculatedPrice({
         basePriceTotal: basePrice * qty,
-        original: (basePrice + addonTotalPerUnit) * qty + deliveryFee,
-        final: (finalPrice + addonTotalPerUnit) * qty + deliveryFee,
+        subtotal,
+        original: originalAmount,
+        final: finalAmount,
         discount: discount * qty,
         description: discountDescription,
         addons: addonBreakdown,
+        taxes: taxesBreakdown,
+        totalTax: totalExclusiveTax + totalInclusiveTax,
         delivery: {
             id: selectedDeliveryTier,
             name: deliveryName,
@@ -1127,6 +1175,15 @@ export function StartDesignContent() {
                                           <span>{addon.name}</span>
                                           <span className="font-bold text-slate-900 dark:text-white">
                                               {addon.totalAmount > 0 ? `₹${addon.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : 'Free'}
+                                          </span>
+                                      </div>
+                                  ))}
+                                  {/* Taxes (GST / Tax Slabs) */}
+                                  {calculatedPrice.taxes && calculatedPrice.taxes.map((tax, idx) => (
+                                      <div key={idx} className="flex justify-between items-center py-1 border-t border-slate-100 dark:border-slate-800/60 text-emerald-600 dark:text-emerald-400">
+                                          <span>{tax.name} {tax.isInclusive ? '(Included)' : `(${tax.rate}%)`}</span>
+                                          <span className="font-bold">
+                                              {tax.isInclusive ? `(₹${tax.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} incl.)` : `+₹${tax.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
                                           </span>
                                       </div>
                                   ))}

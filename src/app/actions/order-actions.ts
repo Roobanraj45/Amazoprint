@@ -128,18 +128,61 @@ export async function createOrder(data: CreateOrderData) {
             baseUnitPrice = breakup.basePriceTotal / quantity;
             finalUnitPrice = (breakup.basePriceTotal - totalDiscount) / quantity;
         }
+    }
+
+    const subtotal = (finalUnitPrice * quantity) + addonsTotal;
+    const originalSubtotal = (baseUnitPrice * quantity) + addonsTotal;
+
+    // Tax calculation
+    const taxSlabs = (subProductInfo as any).taxSlabs || [];
+    const activeTaxes = Array.isArray(taxSlabs) ? taxSlabs.filter((t: any) => t.isActive && Number(t.rate) > 0) : [];
+    
+    let totalExclusiveTax = 0;
+    let totalInclusiveTax = 0;
+    const taxesBreakdown: { id: string; name: string; rate: number; amount: number; isInclusive: boolean }[] = [];
+
+    activeTaxes.forEach((t: any) => {
+        const rate = Number(t.rate || 0);
+        if (t.isInclusive) {
+            const taxAmt = subtotal - (subtotal / (1 + (rate / 100)));
+            totalInclusiveTax += taxAmt;
+            taxesBreakdown.push({
+                id: t.id,
+                name: t.name || `Tax (${rate}%)`,
+                rate,
+                amount: taxAmt,
+                isInclusive: true,
+            });
+        } else {
+            const taxAmt = subtotal * (rate / 100);
+            totalExclusiveTax += taxAmt;
+            taxesBreakdown.push({
+                id: t.id,
+                name: t.name || `GST / Tax (${rate}%)`,
+                rate,
+                amount: taxAmt,
+                isInclusive: false,
+            });
+        }
+    });
+
+    totalAmount = subtotal + totalExclusiveTax + deliveryFee;
+    const originalTotal = originalSubtotal + (originalSubtotal * (activeTaxes.filter((t: any) => !t.isInclusive).reduce((acc: number, t: any) => acc + Number(t.rate || 0), 0) / 100)) + deliveryFee;
+    unitPrice = finalUnitPrice;
+
+    if (breakup) {
         customisation.priceBreakup = {
             ...breakup,
             basePriceTotal: baseUnitPrice * quantity,
+            subtotal,
             delivery: deliveryOption,
-            original: (baseUnitPrice * quantity) + addonsTotal + deliveryFee,
-            final: (finalUnitPrice * quantity) + addonsTotal + deliveryFee,
+            taxes: taxesBreakdown,
+            totalTax: totalExclusiveTax + totalInclusiveTax,
+            original: originalTotal,
+            final: totalAmount,
             discount: totalDiscount,
         };
     }
-
-    totalAmount = (finalUnitPrice * quantity) + addonsTotal + deliveryFee;
-    unitPrice = finalUnitPrice;
 
     let estDate = new Date();
     const deliveryDaysStr = customisation.deliveryOption?.days || subProductInfo.deliveryDays || '3-5 Business Days';
@@ -320,20 +363,61 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
             baseUnitPrice = breakup.basePriceTotal / quantity;
             finalUnitPrice = (breakup.basePriceTotal - totalDiscount) / quantity;
         }
+    }
 
+    const subtotal = (finalUnitPrice * quantity) + addonsTotal;
+    const originalSubtotal = (baseUnitPrice * quantity) + addonsTotal;
+
+    // Tax calculation
+    const taxSlabs = (details.subProduct as any).taxSlabs || [];
+    const activeTaxes = Array.isArray(taxSlabs) ? taxSlabs.filter((t: any) => t.isActive && Number(t.rate) > 0) : [];
+    
+    let totalExclusiveTax = 0;
+    let totalInclusiveTax = 0;
+    const taxesBreakdown: { id: string; name: string; rate: number; amount: number; isInclusive: boolean }[] = [];
+
+    activeTaxes.forEach((t: any) => {
+        const rate = Number(t.rate || 0);
+        if (t.isInclusive) {
+            const taxAmt = subtotal - (subtotal / (1 + (rate / 100)));
+            totalInclusiveTax += taxAmt;
+            taxesBreakdown.push({
+                id: t.id,
+                name: t.name || `Tax (${rate}%)`,
+                rate,
+                amount: taxAmt,
+                isInclusive: true,
+            });
+        } else {
+            const taxAmt = subtotal * (rate / 100);
+            totalExclusiveTax += taxAmt;
+            taxesBreakdown.push({
+                id: t.id,
+                name: t.name || `GST / Tax (${rate}%)`,
+                rate,
+                amount: taxAmt,
+                isInclusive: false,
+            });
+        }
+    });
+
+    const total = subtotal + totalExclusiveTax + deliveryFee;
+    const originalTotal = originalSubtotal + (originalSubtotal * (activeTaxes.filter((t: any) => !t.isInclusive).reduce((acc: number, t: any) => acc + Number(t.rate || 0), 0) / 100)) + deliveryFee;
+
+    if (breakup) {
         customisation.priceBreakup = {
             ...breakup,
             basePriceTotal: baseUnitPrice * quantity,
+            subtotal,
             delivery: deliveryOption,
-            original: (baseUnitPrice * quantity) + addonsTotal + deliveryFee,
-            final: (finalUnitPrice * quantity) + addonsTotal + deliveryFee,
+            taxes: taxesBreakdown,
+            totalTax: totalExclusiveTax + totalInclusiveTax,
+            original: originalTotal,
+            final: total,
             discount: totalDiscount,
             description: discountDescription,
         };
     }
-
-    const originalTotal = (baseUnitPrice * quantity) + addonsTotal + deliveryFee;
-    const total = (finalUnitPrice * quantity) + addonsTotal + deliveryFee;
 
     return { 
         ...details, 
@@ -343,7 +427,9 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
         discountDescription, 
         totalDiscount, 
         customisation,
-        deliveryOption 
+        deliveryOption,
+        taxes: taxesBreakdown,
+        totalTax: totalExclusiveTax + totalInclusiveTax,
     };
 }
 

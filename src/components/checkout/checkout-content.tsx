@@ -776,10 +776,26 @@ export function CheckoutContent() {
                                     )}
                                 </div>
 
-                                <div className="flex justify-between items-center text-slate-300 font-medium">
-                                    <span>Taxes & GST (18%)</span>
-                                    <span className="text-slate-400 italic text-[11px] font-bold">Inclusive</span>
-                                </div>
+                                {(() => {
+                                    const breakup = (details as any).customisation?.priceBreakup;
+                                    const taxes = (details as any).taxes || breakup?.taxes || [];
+                                    if (taxes.length > 0) {
+                                        return taxes.map((tax: any, idx: number) => (
+                                            <div key={idx} className="flex justify-between items-center text-slate-300 font-medium">
+                                                <span>{tax.name} {tax.isInclusive ? '(Included)' : `(${tax.rate}%)`}</span>
+                                                <span className="text-emerald-400 font-bold text-[11px]">
+                                                    {tax.isInclusive ? `(₹${Number(tax.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} incl.)` : `+ ₹${Number(tax.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                                                </span>
+                                            </div>
+                                        ));
+                                    }
+                                    return (
+                                        <div className="flex justify-between items-center text-slate-300 font-medium">
+                                            <span>Taxes & GST</span>
+                                            <span className="text-slate-400 italic text-[11px] font-bold">Standard</span>
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             <Separator className="bg-white/10 relative z-10" />

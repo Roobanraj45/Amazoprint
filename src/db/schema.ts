@@ -239,6 +239,14 @@ export const subProducts = pgTable('sub_products', {
     maxCount: number;
     isActive: boolean;
   }>>().default([]),
+  taxSlabs: jsonb('tax_slabs').$type<Array<{
+    id: string;
+    name: string;
+    rate: number;
+    type?: 'percentage' | 'fixed';
+    isInclusive?: boolean;
+    isActive: boolean;
+  }>>().default([]),
 }, (table) => {
   return {
     productIdx: index('idx_sub_products_product').on(table.productId),
