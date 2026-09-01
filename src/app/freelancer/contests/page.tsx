@@ -2,7 +2,7 @@ import { getJoinedContests } from "@/app/actions/contest-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, MessageSquare, Users, Trophy, Calendar, IndianRupee, Search, Filter } from "lucide-react";
+import { ArrowRight, MessageSquare, Users, Trophy, Calendar, IndianRupee, Search, Filter, CheckCircle2, Clock, Receipt } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNowStrict } from "date-fns";
 import { getSession } from "@/lib/auth";
@@ -32,7 +32,7 @@ export default async function MyContestsPage() {
         <div className="space-y-1">
           <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 mb-2 uppercase text-[10px] tracking-widest font-bold">Quest Manager</Badge>
           <h1 className="text-3xl md:text-4xl font-black tracking-tight font-headline">My Contests</h1>
-          <p className="text-muted-foreground font-medium">Manage your active participations and communications.</p>
+          <p className="text-muted-foreground font-medium">Manage your active participations, winning prizes, and payout settlements.</p>
         </div>
         {joinedContests.length > 0 && (
           <div className="flex gap-3 w-full md:w-auto">
@@ -67,7 +67,7 @@ export default async function MyContestsPage() {
         </Card>
       ) : (
         <div className="flex flex-col gap-4">
-          {joinedContests.map(({ contest, product, subProduct, user: client, participantsCount, winnerRank, designIds, templateIds }) => {
+          {joinedContests.map(({ contest, product, subProduct, user: client, participantsCount, winnerRank, designIds, templateIds, winnerPrizeAmount, winnerPayoutStatus, winnerReferenceNumber }) => {
             const progressValue = (participantsCount / contest.maxFreelancers) * 100;
             const clientForSheet = {
               id: client.id,
@@ -85,9 +85,21 @@ export default async function MyContestsPage() {
                         {contest.status}
                      </Badge>
                      {winnerRank > 0 && (
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest">
-                          <Trophy className="h-3 w-3" />
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest">
+                          <Trophy className="h-3.5 w-3.5" />
                           <span>Placed {winnerRank === 1 ? '1st' : winnerRank === 2 ? '2nd' : '3rd'}</span>
+                        </div>
+                     )}
+                     {winnerRank > 0 && winnerPayoutStatus === 'paid' && (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span>Prize Disbursed {winnerReferenceNumber ? `• Ref: ${winnerReferenceNumber}` : ''}</span>
+                        </div>
+                     )}
+                     {winnerRank > 0 && winnerPayoutStatus !== 'paid' && (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-wider">
+                          <Clock className="h-3.5 w-3.5" />
+                          <span>Prize Processing</span>
                         </div>
                      )}
                    </div>

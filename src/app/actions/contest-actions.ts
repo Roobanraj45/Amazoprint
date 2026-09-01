@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { db } from '@/db';
-import { contests, contestParticipants, products, subProducts, users, designs, designUploads, contestWinners, orders, orderLogs } from '@/db/schema';
+import { contests, contestParticipants, products, subProducts, users, designs, designUploads, contestWinners, orders, orderLogs, freelancerPayouts, usersMessaging, bankDetails } from '@/db/schema';
 import { and, or, eq, sql, desc, count, gt, ilike } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
@@ -277,6 +277,11 @@ export async function getJoinedContests() {
             designIds: freelancerParticipations.designIds,
             templateIds: freelancerParticipations.templateIds,
             winnerRank: sql<number>`(SELECT rank FROM ${contestWinners} WHERE ${contestWinners.contestId} = ${contests.id} AND ${contestWinners.freelancerId} = ${freelancerId} LIMIT 1)`.mapWith(Number),
+            winnerPrizeAmount: sql<string>`(SELECT prize_amount FROM ${contestWinners} WHERE ${contestWinners.contestId} = ${contests.id} AND ${contestWinners.freelancerId} = ${freelancerId} LIMIT 1)`.mapWith(String),
+            winnerPayoutStatus: sql<string>`COALESCE((SELECT payout_status FROM ${contestWinners} WHERE ${contestWinners.contestId} = ${contests.id} AND ${contestWinners.freelancerId} = ${freelancerId} LIMIT 1), 'pending')`.mapWith(String),
+            winnerReferenceNumber: sql<string | null>`(SELECT reference_number FROM ${contestWinners} WHERE ${contestWinners.contestId} = ${contests.id} AND ${contestWinners.freelancerId} = ${freelancerId} LIMIT 1)`.mapWith(String),
+            winnerPaymentMethod: sql<string | null>`(SELECT payment_method FROM ${contestWinners} WHERE ${contestWinners.contestId} = ${contests.id} AND ${contestWinners.freelancerId} = ${freelancerId} LIMIT 1)`.mapWith(String),
+            winnerDisbursedAt: sql<Date | null>`(SELECT disbursed_at FROM ${contestWinners} WHERE ${contestWinners.contestId} = ${contests.id} AND ${contestWinners.freelancerId} = ${freelancerId} LIMIT 1)`,
         })
         .from(contests)
         .innerJoin(freelancerParticipations, eq(contests.id, freelancerParticipations.contestId))
@@ -883,7 +888,11 @@ export async function getCompletedContestsWithWinners() {
                             id: true,
                             name: true,
                             email: true,
+                            phone: true,
                             profileImage: true,
+                        },
+                        with: {
+                            bankDetails: true,
                         }
                     }
                 },
@@ -893,6 +902,120 @@ export async function getCompletedContestsWithWinners() {
     });
 
     return data;
+}
+
+const disbursePayoutSchema = z.object({
+  contestId: z.number().min(1),
+  winnerId: z.number().optional(),
+  freelancerId: z.string().uuid(),
+  amount: z.coerce.number().min(1, 'Amount must be greater than 0'),
+  paymentMethod: z.enum(['bank_transfer', 'upi', 'neft', 'imps', 'cheque', 'other']).default('bank_transfer'),
+  referenceNumber: z.string().min(1, 'Reference / UTR number is required'),
+  notes: z.string().optional().nullable(),
+  sendNotification: z.boolean().default(true),
+});
+
+export type DisbursePayoutInput = z.infer<typeof disbursePayoutSchema>;
+
+export async function disburseFreelancerPayout(input: z.infer<typeof disbursePayoutSchema>) {
+    const session = await getSession();
+    const allowedRoles = ['super_admin', 'company_admin', 'accounts', 'admin'];
+    if (!session?.sub || !allowedRoles.includes(session.role || '')) {
+        throw new Error('You are not authorized to disburse payouts.');
+    }
+
+    const { contestId, winnerId, freelancerId, amount, paymentMethod, referenceNumber, notes, sendNotification } = disbursePayoutSchema.parse(input);
+
+    const ref = referenceNumber.trim();
+    if (!ref) {
+        throw new Error('Reference / UTR number is required.');
+    }
+
+    // Verify contest & winner
+    const contest = await db.query.contests.findFirst({
+        where: eq(contests.id, contestId),
+        with: {
+            winners: {
+                where: eq(contestWinners.freelancerId, freelancerId),
+            }
+        }
+    });
+
+    if (!contest) {
+        throw new Error('Contest not found.');
+    }
+
+    const winner = contest.winners.find(w => winnerId ? w.id === winnerId : w.freelancerId === freelancerId) || contest.winners[0];
+    const targetWinnerId = winner ? winner.id : winnerId;
+
+    // 1. Update contest_winners record
+    if (targetWinnerId) {
+        await db.update(contestWinners)
+            .set({
+                payoutStatus: 'paid',
+                referenceNumber: ref,
+                paymentMethod,
+                payoutNotes: notes?.trim() || null,
+                disbursedAt: new Date(),
+                disbursedBy: session.sub,
+            })
+            .where(eq(contestWinners.id, targetWinnerId));
+    } else {
+        await db.update(contestWinners)
+            .set({
+                payoutStatus: 'paid',
+                referenceNumber: ref,
+                paymentMethod,
+                payoutNotes: notes?.trim() || null,
+                disbursedAt: new Date(),
+                disbursedBy: session.sub,
+            })
+            .where(and(eq(contestWinners.contestId, contestId), eq(contestWinners.freelancerId, freelancerId)));
+    }
+
+    // 2. Insert into freelancer_payouts ledger table
+    const [payoutRecord] = await db.insert(freelancerPayouts).values({
+        contestId,
+        winnerId: targetWinnerId || null,
+        freelancerId,
+        amount: amount.toString(),
+        payoutDate: new Date(),
+        paymentMethod,
+        referenceNumber: ref,
+        notes: notes?.trim() || null,
+        status: 'paid',
+        disbursedBy: session.sub,
+    }).returning();
+
+    // 3. Send notification message to the freelancer via usersMessaging
+    if (sendNotification) {
+        const formattedAmount = Number(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        const rankText = winner?.rank ? ` (Rank #${winner.rank})` : '';
+        const paymentMethodLabel = paymentMethod === 'bank_transfer' ? 'Bank Transfer (NEFT/RTGS)' 
+            : paymentMethod === 'upi' ? 'UPI Transfer' 
+            : paymentMethod === 'imps' ? 'IMPS Instant Transfer'
+            : paymentMethod === 'neft' ? 'NEFT Transfer'
+            : paymentMethod.toUpperCase();
+
+        const messageContent = `💸 Payout Disbursed: ₹${formattedAmount}\n\nCongratulations! Your prize payout for contest "${contest.title}"${rankText} has been processed and disbursed.\n\n• Amount: ₹${formattedAmount}\n• Payment Mode: ${paymentMethodLabel}\n• Reference / UTR Number: ${ref}\n• Disbursed On: ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}${notes?.trim() ? `\n• Notes: ${notes.trim()}` : ''}\n\nPlease check your registered bank account / UPI for the credit confirmation.`;
+
+        await db.insert(usersMessaging).values({
+            senderId: session.sub,
+            senderType: 'admin',
+            receiverId: freelancerId,
+            receiverType: 'user',
+            message: messageContent,
+            attachmentUrl: null,
+            isRead: false,
+        });
+    }
+
+    revalidatePath('/admin/payouts');
+    revalidatePath('/freelancer/contests');
+    revalidatePath('/freelancer/messages');
+    revalidatePath('/freelancer/dashboard');
+
+    return { success: true, payout: payoutRecord };
 }
 
 

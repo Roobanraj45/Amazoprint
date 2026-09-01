@@ -388,13 +388,43 @@ export const contestWinners = pgTable('contest_winners', {
     prizeAmount: numeric('prize_amount', { precision: 12, scale: 2 }).notNull(),
     rank: integer('rank').default(1),
     templateUploadId: integer('template_upload_id').references(() => designs.id),
+    payoutStatus: varchar('payout_status', { length: 50, enum: ['pending', 'processing', 'paid', 'failed'] }).default('pending').notNull(),
+    referenceNumber: varchar('reference_number', { length: 100 }),
+    paymentMethod: varchar('payment_method', { length: 50 }).default('bank_transfer'),
+    payoutNotes: text('payout_notes'),
+    disbursedAt: timestamp('disbursed_at', { withTimezone: true }),
+    disbursedBy: uuid('disbursed_by').references(() => admins.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at').defaultNow(),
 }, (table) => {
     return {
         contestIdx: index('idx_winners_contest').on(table.contestId),
         freelancerIdx: index('idx_winners_freelancer').on(table.freelancerId),
+        payoutStatusIdx: index('idx_winners_payout_status').on(table.payoutStatus),
+        referenceNumberIdx: index('idx_winners_ref_num').on(table.referenceNumber),
     };
 });
+
+export const freelancerPayouts = pgTable('freelancer_payouts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  contestId: integer('contest_id').notNull().references(() => contests.id, { onDelete: 'cascade' }),
+  winnerId: integer('winner_id').references(() => contestWinners.id, { onDelete: 'cascade' }),
+  freelancerId: uuid('freelancer_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+  payoutDate: timestamp('payout_date', { withTimezone: true }).defaultNow().notNull(),
+  paymentMethod: varchar('payment_method', { length: 50 }).default('bank_transfer').notNull(),
+  referenceNumber: varchar('reference_number', { length: 100 }).notNull(),
+  notes: text('notes'),
+  status: varchar('status', { length: 50, enum: ['pending', 'processing', 'paid', 'failed'] }).default('paid').notNull(),
+  disbursedBy: uuid('disbursed_by').references(() => admins.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  contestIdIdx: index('idx_fp_contest_id').on(table.contestId),
+  freelancerIdIdx: index('idx_fp_freelancer_id').on(table.freelancerId),
+  winnerIdIdx: index('idx_fp_winner_id').on(table.winnerId),
+  referenceNumberIdx: index('idx_fp_reference_number').on(table.referenceNumber),
+  payoutDateIdx: index('idx_fp_payout_date').on(table.payoutDate),
+}));
 
 export const foilTypes = pgTable('foil_types', {
   id: serial('id').primaryKey(),
@@ -622,6 +652,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   messagesSent: many(contestMessages, { relationName: 'sender' }),
   messagesReceived: many(contestMessages, { relationName: 'receiver' }),
   contestWins: many(contestWinners),
+  freelancerPayouts: many(freelancerPayouts),
   verificationRequests: many(designVerifications, { relationName: 'client' }),
   assignedVerifications: many(designVerifications, { relationName: 'freelancer' }),
   orders: many(orders),
@@ -663,6 +694,7 @@ export const contestsRelations = relations(contests, ({ one, many }) => ({
   participants: many(contestParticipants),
   messages: many(contestMessages),
   winners: many(contestWinners),
+  payouts: many(freelancerPayouts),
   payments: many(payments),
   orders: many(orders),
 }));
@@ -718,7 +750,7 @@ export const contestMessagesRelations = relations(contestMessages, ({ one }) => 
   }),
 }));
 
-export const contestWinnersRelations = relations(contestWinners, ({ one }) => ({
+export const contestWinnersRelations = relations(contestWinners, ({ one, many }) => ({
   contest: one(contests, {
     fields: [contestWinners.contestId],
     references: [contests.id],
@@ -730,7 +762,31 @@ export const contestWinnersRelations = relations(contestWinners, ({ one }) => ({
   submission: one(designs, {
     fields: [contestWinners.templateUploadId],
     references: [designs.id]
-  })
+  }),
+  disbursedByAdmin: one(admins, {
+    fields: [contestWinners.disbursedBy],
+    references: [admins.id]
+  }),
+  payouts: many(freelancerPayouts),
+}));
+
+export const freelancerPayoutsRelations = relations(freelancerPayouts, ({ one }) => ({
+  contest: one(contests, {
+    fields: [freelancerPayouts.contestId],
+    references: [contests.id],
+  }),
+  winner: one(contestWinners, {
+    fields: [freelancerPayouts.winnerId],
+    references: [contestWinners.id],
+  }),
+  freelancer: one(users, {
+    fields: [freelancerPayouts.freelancerId],
+    references: [users.id],
+  }),
+  disbursedByAdmin: one(admins, {
+    fields: [freelancerPayouts.disbursedBy],
+    references: [admins.id],
+  }),
 }));
 
 export const designUploadsRelations = relations(designUploads, ({ one }) => ({
