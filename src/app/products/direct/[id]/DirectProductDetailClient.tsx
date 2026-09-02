@@ -14,6 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ProductImageZoom } from '@/components/ui/product-image-zoom';
 import { resolveImagePath, cn } from '@/lib/utils';
 
 interface DirectProductDetailClientProps {
@@ -192,44 +193,46 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                     
                     {/* ── LEFT COLUMN: PRODUCT GALLERY & DESCRIPTION ── */}
                     <div className="lg:col-span-6 space-y-6">
-                        {/* Main Media Preview Card */}
-                        <div className="relative aspect-square w-full rounded-3xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-center group">
-                            <Image
+                        {/* Main Media Preview Card with Flipkart-Style Loupe & Side Zoom Popup */}
+                        <div className="relative aspect-square w-full">
+                            <ProductImageZoom
                                 src={resolveImagePath(images[activeImageIndex] || '/uploads/hero.png')}
                                 alt={product.name}
-                                fill
+                                zoomScale={2.8}
                                 priority
-                                className="object-cover transition-transform duration-700 group-hover:scale-105"
-                                sizes="(max-width: 768px) 100vw, 50vw"
-                            />
+                                className="border border-slate-200/80 dark:border-slate-800 shadow-sm"
+                                badgeOverlay={(
+                                    <>
+                                        {/* Floating Badges */}
+                                        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                                            <Badge className="bg-amber-500 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 backdrop-blur-md">
+                                                <Zap size={12} className="fill-current" /> Direct Selling
+                                            </Badge>
+                                            {stock <= 0 ? (
+                                                <Badge variant="destructive" className="bg-rose-600 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                                                    Out of Stock
+                                                </Badge>
+                                            ) : stock <= minStock ? (
+                                                <Badge className="bg-gradient-to-r from-orange-500 to-rose-500 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
+                                                    <Flame size={12} className="fill-current" /> Only {stock} Left
+                                                </Badge>
+                                            ) : (
+                                                <Badge className="bg-emerald-600/90 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                                                    {stock} in Stock
+                                                </Badge>
+                                            )}
+                                        </div>
 
-                            {/* Floating Badges */}
-                            <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-                                <Badge className="bg-amber-500 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 backdrop-blur-md">
-                                    <Zap size={12} className="fill-current" /> Direct Selling
-                                </Badge>
-                                {stock <= 0 ? (
-                                    <Badge variant="destructive" className="bg-rose-600 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                                        Out of Stock
-                                    </Badge>
-                                ) : stock <= minStock ? (
-                                    <Badge className="bg-gradient-to-r from-orange-500 to-rose-500 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
-                                        <Flame size={12} className="fill-current" /> Only {stock} Left
-                                    </Badge>
-                                ) : (
-                                    <Badge className="bg-emerald-600/90 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                                        {stock} in Stock
-                                    </Badge>
+                                        {hasDiscount && (
+                                            <div className="absolute top-4 right-4 z-10">
+                                                <Badge variant="destructive" className="bg-rose-500 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                                                    {discountPercent}% OFF
+                                                </Badge>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
-                            </div>
-
-                            {hasDiscount && (
-                                <div className="absolute top-4 right-4 z-10">
-                                    <Badge variant="destructive" className="bg-rose-500 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                                        {discountPercent}% OFF
-                                    </Badge>
-                                </div>
-                            )}
+                            />
                         </div>
 
                         {/* Thumbnail Carousel */}

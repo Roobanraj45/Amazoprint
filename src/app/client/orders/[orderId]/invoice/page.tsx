@@ -23,7 +23,7 @@ export default async function InvoicePage({ params }: { params: { orderId: strin
     const isDirectSale = !!order.directSellingProduct;
     const productName = isDirectSale ? order.directSellingProduct.name : (order.product?.name || 'Custom Print Production');
     const subProductName = isDirectSale ? order.directSellingProduct.category : (order.subProduct?.name || 'Custom Specifications');
-    
+
     const shippingAddress = (order.shippingAddress as any) || {};
     const billingAddress = (order.billingAddress as any) || shippingAddress;
 
@@ -37,17 +37,17 @@ export default async function InvoicePage({ params }: { params: { orderId: strin
         totalAmount = parseFloat(order.payment.amount);
     }
     const unitPrice = parseFloat(order.unitPrice) || (totalAmount / order.quantity);
-    
+
     let parsedCustomisation: any = null;
     try {
         const rawCustomisation = order.design?.customisation || (order as any).customisation;
         parsedCustomisation = typeof rawCustomisation === 'string' ? JSON.parse(rawCustomisation) : rawCustomisation;
-    } catch (e) {}
+    } catch (e) { }
 
     const breakup = parsedCustomisation?.priceBreakup || parsedCustomisation?.pricing;
     const addonsTotal = breakup?.addons?.reduce((acc: number, addon: any) => acc + parseFloat(addon.totalAmount || addon.amount || 0), 0) || 0;
     const discount = parseFloat(breakup?.discount || 0);
-    
+
     const delivery = parsedCustomisation?.deliveryOption || breakup?.delivery || {
         name: 'Standard Delivery',
         fee: Number(order.subProduct?.deliveryAmount || 0)
@@ -70,7 +70,7 @@ export default async function InvoicePage({ params }: { params: { orderId: strin
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-950 py-5 px-3 sm:px-6 font-sans text-slate-900 dark:text-slate-100 selection:bg-indigo-500 selection:text-white">
             <div className="max-w-3xl mx-auto space-y-4">
-                
+
                 {/* Floating Non-Printable Action Bar (Compact) */}
                 <div className="print:hidden flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900 dark:bg-slate-900/80 backdrop-blur-xl text-white p-3.5 rounded-2xl shadow-lg border border-slate-800">
                     <div className="flex items-center gap-3">
@@ -85,13 +85,13 @@ export default async function InvoicePage({ params }: { params: { orderId: strin
                             <p className="text-[10px] text-slate-400 font-medium">Ready for PDF download & print</p>
                         </div>
                     </div>
-                    
+
                     <InvoiceActions />
                 </div>
 
                 {/* Printable Invoice Sheet (20% Reduced Footprint for Crisp Single-Page Print) */}
                 <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl shadow-lg border border-slate-200/80 dark:border-slate-800/80 print:p-0 print:shadow-none print:border-none print:bg-white print:text-black">
-                    
+
                     {/* Header: Logo & Company Info vs Invoice Title */}
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 print:border-slate-300">
                         <div className="space-y-2">
@@ -180,7 +180,7 @@ export default async function InvoicePage({ params }: { params: { orderId: strin
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 print:text-slate-500">
                             Production Breakdown & Particulars
                         </h3>
-                        
+
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>

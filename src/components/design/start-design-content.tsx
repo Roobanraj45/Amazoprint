@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2, Truck, Lock, Check, ChevronLeft, ChevronRight, Search, FileText, MessageSquare, Upload, Copy, Play, Video, ExternalLink, FileDown, Download, Ruler } from 'lucide-react';
+import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2, Truck, Lock, Check, ChevronLeft, ChevronRight, Search, FileText, MessageSquare, Upload, Copy, Play, Video, ExternalLink, FileDown, Download, Ruler, AlertCircle } from 'lucide-react';
 import { getFoilTypes } from '@/app/actions/foil-actions';
 import { getDieCuts } from '@/app/actions/die-cut-actions';
 import { getCardTextures } from '@/app/actions/card-texture-actions';
@@ -20,6 +20,8 @@ import { resolveImagePath, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { ProductImageZoom } from '@/components/ui/product-image-zoom';
+import { useToast } from '@/hooks/use-toast';
 
 function getYouTubeEmbedUrl(url?: string | null): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -45,6 +47,7 @@ export function StartDesignContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
 
   const [product, setProduct] = useState<ProductWithSubProducts | null>(null);
   const [subProduct, setSubProduct] = useState<SubProductData | null>(null);
@@ -105,6 +108,34 @@ export function StartDesignContent() {
     return def || availableSizes[0];
   }, [availableSizes, selectedSizeId]);
 
+  const minOrderQty = useMemo(() => {
+    return (subProduct as any)?.minOrderQuantity ? Number((subProduct as any).minOrderQuantity) : 100;
+  }, [subProduct]);
+
+  const maxOrderQty = useMemo(() => {
+    return (subProduct as any)?.maxOrderQuantity ? Number((subProduct as any).maxOrderQuantity) : 10000;
+  }, [subProduct]);
+
+  const parsedQty = parseInt(quantity, 10);
+  const isQtyEmptyOrInvalid = !quantity || isNaN(parsedQty) || parsedQty <= 0;
+  const isQtyBelowMin = !isQtyEmptyOrInvalid && parsedQty < minOrderQty;
+  const isQtyAboveMax = !isQtyEmptyOrInvalid && parsedQty > maxOrderQty;
+  const qtyError = isQtyEmptyOrInvalid
+    ? 'Please enter a valid quantity.'
+    : isQtyBelowMin
+    ? `Minimum order quantity is ${minOrderQty.toLocaleString()} pieces.`
+    : isQtyAboveMax
+    ? `Maximum order quantity is ${maxOrderQty.toLocaleString()} pieces.`
+    : null;
+
+  const quantityPresets = useMemo(() => {
+    const list = [minOrderQty, 250, 500, 1000, 2500, 5000, maxOrderQty];
+    const valid = Array.from(new Set(
+      list.filter(q => q >= minOrderQty && q <= maxOrderQty)
+    )).sort((a, b) => a - b);
+    return valid.slice(0, 6);
+  }, [minOrderQty, maxOrderQty]);
+
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -136,6 +167,12 @@ export function StartDesignContent() {
             }
             if (sp.maxPages <= 1) {
                 setPages('1');
+            }
+            const paramQty = searchParams.get('quantity');
+            if (paramQty && !isNaN(parseInt(paramQty, 10))) {
+                setQuantity(paramQty);
+            } else if ((sp as any)?.minOrderQuantity) {
+                setQuantity(String((sp as any).minOrderQuantity));
             }
             const spSizes = ((sp as any).sizes as any[] || []).filter((s: any) => s.isActive);
             const paramSizeId = searchParams.get('sizeId');
@@ -171,6 +208,13 @@ export function StartDesignContent() {
     if (sp.maxPages <= 1) {
         setPages('1');
     }
+    if ((sp as any)?.minOrderQuantity) {
+        const curQ = parseInt(quantity, 10);
+        const minQ = Number((sp as any).minOrderQuantity);
+        if (isNaN(curQ) || curQ < minQ) {
+            setQuantity(String(minQ));
+        }
+    }
     const spSizes = ((sp as any).sizes as any[] || []).filter((s: any) => s.isActive);
     if (spSizes.length > 0) {
         const def = spSizes.find((s: any) => s.isDefault) || spSizes[0];
@@ -186,7 +230,7 @@ export function StartDesignContent() {
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.set('subProductId', String(sp.id));
     router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
-  }, [searchParams, pathname, router]);
+  }, [searchParams, pathname, router, quantity]);
 
   const handleSelectSize = useCallback((sz: any) => {
     setSelectedSizeId(sz.id);
@@ -541,23 +585,24 @@ export function StartDesignContent() {
               
               {/* LEFT COLUMN: Media Viewer & Design It Your Way */}
               <div className="lg:col-span-6 space-y-6">
-                  {/* Main Product Image Viewer */}
+                  {/* Main Product Image Viewer with Flipkart-Style Loupe & Side Zoom Popup */}
                   <div className="space-y-4">
-                      <div className="aspect-[4/3] relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-md group flex items-center justify-center">
+                      <div className="aspect-[4/3] relative w-full">
                           {currentDisplayImage ? (
-                              <Image 
-                                  src={currentDisplayImage} 
-                                  alt={product.name} 
-                                  fill 
-                                  className="object-contain p-8 transition-transform duration-700 group-hover:scale-105" 
-                                  priority 
+                              <ProductImageZoom
+                                  src={currentDisplayImage}
+                                  alt={product.name}
+                                  zoomScale={2.8}
+                                  priority
+                                  objectFit="contain"
+                                  imageClassName="p-8"
+                                  className="aspect-[4/3] border border-slate-200/80 dark:border-slate-800/80 shadow-md"
                               />
                           ) : (
-                              <LayoutTemplate className="h-20 w-20 text-slate-300 dark:text-slate-700" />
+                              <div className="aspect-[4/3] relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-md flex items-center justify-center">
+                                  <LayoutTemplate className="h-20 w-20 text-slate-300 dark:text-slate-700" />
+                              </div>
                           )}
-                          <div className="absolute top-4 right-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-white dark:hover:bg-slate-900 transition-all hover:scale-110">
-                              <Search className="w-5 h-5" />
-                          </div>
                       </div>
 
                       {/* Thumbnail Selector Carousel */}
@@ -1154,31 +1199,63 @@ export function StartDesignContent() {
 
                       {/* 6. Select Quantity */}
                       <div className="space-y-2.5">
-                          <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
-                              <span className="text-indigo-600 dark:text-indigo-400 font-bold">6.</span> Select Quantity
-                          </Label>
-                          {subProduct.width === 0 && subProduct.height === 0 ? (
+                          <div className="flex items-center justify-between">
+                              <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">6.</span> Order Quantity
+                              </Label>
+                              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                  Min: <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{minOrderQty.toLocaleString()}</span> • Max: <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{maxOrderQty.toLocaleString()}</span> pcs
+                              </span>
+                          </div>
+
+                          {/* Enterable Quantity Input */}
+                          <div className="relative">
                               <Input 
                                   type="number" 
-                                  min="1" 
+                                  min={minOrderQty} 
+                                  max={maxOrderQty} 
                                   value={quantity} 
                                   onChange={(e) => setQuantity(e.target.value)} 
-                                  className="h-11 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-semibold text-sm shadow-inner pl-4" 
+                                  placeholder={`Enter quantity (${minOrderQty} - ${maxOrderQty})`} 
+                                  className={cn(
+                                      "h-12 rounded-2xl bg-white dark:bg-slate-900 border font-bold text-base shadow-xs pl-4 pr-16 transition-all",
+                                      qtyError 
+                                          ? "border-rose-500 dark:border-rose-500 focus-visible:ring-rose-500 text-rose-600 dark:text-rose-400" 
+                                          : "border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 text-slate-900 dark:text-white"
+                                  )}
                               />
-                          ) : (
-                              <Select value={quantity} onValueChange={setQuantity}>
-                                  <SelectTrigger className="h-11 rounded-2xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-indigo-500 font-semibold text-sm shadow-inner px-4">
-                                      <SelectValue placeholder="Select Quantity" />
-                                  </SelectTrigger>
-                                  <SelectContent className="rounded-2xl border-slate-200 dark:border-slate-800 shadow-xl">
-                                      {[100, 250, 500, 1000, 2500, 5000].map((qty) => (
-                                          <SelectItem key={qty} value={String(qty)} className="rounded-xl font-semibold text-sm">
-                                              {qty} Cards
-                                          </SelectItem>
-                                      ))}
-                                  </SelectContent>
-                              </Select>
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                                  Cards
+                              </span>
+                          </div>
+
+                          {/* Validation Error Banner */}
+                          {qtyError && (
+                              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-xs font-bold animate-in fade-in slide-in-from-top-1">
+                                  <AlertCircle className="w-4 h-4 shrink-0" />
+                                  <span>{qtyError}</span>
+                              </div>
                           )}
+
+                          {/* Quick Selection Presets */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mr-1">Quick Select:</span>
+                              {quantityPresets.map((qty) => (
+                                  <button
+                                      key={qty}
+                                      type="button"
+                                      onClick={() => setQuantity(String(qty))}
+                                      className={cn(
+                                          "h-7 px-2.5 rounded-lg text-xs font-bold border transition-all shadow-xs",
+                                          parsedQty === qty
+                                              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                                              : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-400"
+                                      )}
+                                  >
+                                      {qty.toLocaleString()}
+                                  </button>
+                              ))}
+                          </div>
                       </div>
 
                       {/* 7. Choose Delivery & Shipping Speed */}
@@ -1355,8 +1432,26 @@ export function StartDesignContent() {
                                                 <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Personalize with our intuitive studio.</p>
                                             </div>
                                         </div>
-                                        <Button asChild className="w-full h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-bold shadow hover:shadow-md hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
-                                            <Link href={`/design/${product.slug}?${constructedQuery}`}>Start Designing</Link>
+                                        <Button 
+                                            asChild={!qtyError}
+                                            disabled={!!qtyError}
+                                            onClick={(e) => {
+                                                if (qtyError) {
+                                                    e.preventDefault();
+                                                    toast({
+                                                        variant: 'destructive',
+                                                        title: 'Invalid Order Quantity',
+                                                        description: qtyError,
+                                                    });
+                                                }
+                                            }}
+                                            className="w-full h-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-bold shadow hover:shadow-md hover:-translate-y-0.5 transition-all text-[11px] px-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {qtyError ? (
+                                                <span>Start Designing</span>
+                                            ) : (
+                                                <Link href={`/design/${product.slug}?${constructedQuery}`}>Start Designing</Link>
+                                            )}
                                         </Button>
                                     </div>
                                 )}
@@ -1373,8 +1468,27 @@ export function StartDesignContent() {
                                                 <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Upload print-ready PDF/image directly.</p>
                                             </div>
                                         </div>
-                                        <Button asChild variant="outline" className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
-                                            <Link href={isLoggedIn ? `/design/${product.slug}/upload?${constructedQuery}` : `/login?redirect_url=/design/${product.slug}/upload%3F${constructedQuery}`}>Upload Print File</Link>
+                                        <Button 
+                                            asChild={!qtyError}
+                                            disabled={!!qtyError}
+                                            variant="outline" 
+                                            onClick={(e) => {
+                                                if (qtyError) {
+                                                    e.preventDefault();
+                                                    toast({
+                                                        variant: 'destructive',
+                                                        title: 'Invalid Order Quantity',
+                                                        description: qtyError,
+                                                    });
+                                                }
+                                            }}
+                                            className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-[11px] px-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {qtyError ? (
+                                                <span>Upload Print File</span>
+                                            ) : (
+                                                <Link href={isLoggedIn ? `/design/${product.slug}/upload?${constructedQuery}` : `/login?redirect_url=/design/${product.slug}/upload%3F${constructedQuery}`}>Upload Print File</Link>
+                                            )}
                                         </Button>
                                     </div>
                                 )}
@@ -1394,8 +1508,27 @@ export function StartDesignContent() {
                                                 <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5 font-normal">Collaborate with designers.</p>
                                             </div>
                                         </div>
-                                        <Button asChild variant="outline" className="w-full h-9 rounded-xl border border-pink-600 text-pink-600 dark:border-pink-500 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/30 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-[11px] px-2.5">
-                                            <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct ? subProduct.id : ''}&${constructedQuery}`}>Hire a Designer</Link>
+                                        <Button 
+                                            asChild={!qtyError}
+                                            disabled={!!qtyError}
+                                            variant="outline" 
+                                            onClick={(e) => {
+                                                if (qtyError) {
+                                                    e.preventDefault();
+                                                    toast({
+                                                        variant: 'destructive',
+                                                        title: 'Invalid Order Quantity',
+                                                        description: qtyError,
+                                                    });
+                                                }
+                                            }}
+                                            className="w-full h-9 rounded-xl border border-pink-600 text-pink-600 dark:border-pink-500 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/30 font-bold shadow-sm hover:shadow hover:-translate-y-0.5 transition-all text-[11px] px-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {qtyError ? (
+                                                <span>Hire a Designer</span>
+                                            ) : (
+                                                <Link href={`/client/contests/create?productId=${product.id}&subProductId=${subProduct ? subProduct.id : ''}&${constructedQuery}`}>Hire a Designer</Link>
+                                            )}
                                         </Button>
                                     </div>
                                 )}

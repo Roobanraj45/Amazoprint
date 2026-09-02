@@ -1584,6 +1584,24 @@ function DesignEditorInternal({
     const heightInUnits = searchParams.get('height') || String(Math.round(product.height * PX_TO_MM));
     const unit = searchParams.get('unit') || canvasUnit || 'mm';
 
+    const resolvedDieCut = (() => {
+      if (!initialSelectedDie) return null;
+      if (typeof initialSelectedDie === 'object') return initialSelectedDie;
+      const matched = dieCuts.find((d: any) => String(d.id) === String(initialSelectedDie) || d.slug === String(initialSelectedDie));
+      return matched 
+        ? { id: matched.id, name: matched.name, slug: matched.slug, imageUrl: matched.imageUrl, description: matched.description } 
+        : { id: initialSelectedDie, name: `Die Cut #${initialSelectedDie}` };
+    })();
+
+    const resolvedTexture = (() => {
+      if (!initialSelectedTexture) return null;
+      if (typeof initialSelectedTexture === 'object') return initialSelectedTexture;
+      const matched = cardTextures.find((t: any) => String(t.id) === String(initialSelectedTexture) || t.slug === String(initialSelectedTexture));
+      return matched 
+        ? { id: matched.id, name: matched.name, slug: matched.slug, imageUrl: matched.imageUrl, description: matched.description } 
+        : { id: initialSelectedTexture, name: `Texture #${initialSelectedTexture}` };
+    })();
+
     return JSON.parse(JSON.stringify({
       selectedSize,
       size: selectedSize,
@@ -1594,8 +1612,8 @@ function DesignEditorInternal({
       unit,
       spotUv: initialSpotUv,
       addons: initialSelectedAddons,
-      dieCut: initialSelectedDie,
-      cardTexture: initialSelectedTexture,
+      dieCut: resolvedDieCut,
+      cardTexture: resolvedTexture,
       deliveryOption: deliveryOption || null,
       priceBreakup: calculatedPrice,
       pricing: calculatedPrice,

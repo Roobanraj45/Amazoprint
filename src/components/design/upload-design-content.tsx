@@ -367,8 +367,8 @@ export function UploadDesignContent() {
             customHeight,
             pages,
             spotUv,
-            dieCut: selectedDieCut ? { id: selectedDieCut.id, name: selectedDieCut.name } : null,
-            cardTexture: selectedTextureObj ? { id: selectedTextureObj.id, name: selectedTextureObj.name } : null,
+            dieCut: selectedDieCut ? { id: selectedDieCut.id, name: selectedDieCut.name, slug: selectedDieCut.slug, imageUrl: selectedDieCut.imageUrl, description: selectedDieCut.description } : null,
+            cardTexture: selectedTextureObj ? { id: selectedTextureObj.id, name: selectedTextureObj.name, slug: selectedTextureObj.slug, imageUrl: selectedTextureObj.imageUrl, description: selectedTextureObj.description } : null,
             addons: selectedAddonsList.map(a => ({ id: a.id, name: a.addonName, price: a.addonPriceAmount })),
             quantity: qty,
             deliveryOption: {

@@ -136,7 +136,7 @@ export async function createOrder(data: CreateOrderData) {
     // Tax calculation
     const taxSlabs = (subProductInfo as any).taxSlabs || [];
     const activeTaxes = Array.isArray(taxSlabs) ? taxSlabs.filter((t: any) => t.isActive && Number(t.rate) > 0) : [];
-    
+
     let totalExclusiveTax = 0;
     let totalInclusiveTax = 0;
     const taxesBreakdown: { id: string; name: string; rate: number; amount: number; isInclusive: boolean }[] = [];
@@ -215,8 +215,8 @@ export async function createOrder(data: CreateOrderData) {
     const checkWidth = (customisation as any)?.width || (sourceDetails as any)?.width;
     const checkHeight = (customisation as any)?.height || (sourceDetails as any)?.height;
     if (!finalSelectedSize && checkWidth && checkHeight && Array.isArray((subProductInfo as any)?.sizes)) {
-        const found = (subProductInfo as any).sizes.find((s: any) => 
-            Number(s.width) === Number(checkWidth) && 
+        const found = (subProductInfo as any).sizes.find((s: any) =>
+            Number(s.width) === Number(checkWidth) &&
             Number(s.height) === Number(checkHeight)
         );
         if (found) {
@@ -228,8 +228,8 @@ export async function createOrder(data: CreateOrderData) {
 
     // 3. Fallback to active default size or base subProduct dimensions
     if (!finalSelectedSize) {
-        const activeSizes = Array.isArray((subProductInfo as any)?.sizes) 
-            ? (subProductInfo as any).sizes.filter((s: any) => s.isActive) 
+        const activeSizes = Array.isArray((subProductInfo as any)?.sizes)
+            ? (subProductInfo as any).sizes.filter((s: any) => s.isActive)
             : [];
         if (activeSizes.length > 0) {
             const defSize = activeSizes.find((s: any) => s.isDefault) || activeSizes[0];
@@ -294,11 +294,11 @@ async function getProductForDesign(design: { productSlug?: string | null; produc
     return null;
 }
 
-async function getSubProductForDesign(design: { 
-    subProductId?: number | null; 
-    productId?: number | null; 
-    productSlug?: string | null; 
-    width?: number | null; 
+async function getSubProductForDesign(design: {
+    subProductId?: number | null;
+    productId?: number | null;
+    productSlug?: string | null;
+    width?: number | null;
     height?: number | null;
     customisation?: any;
 }) {
@@ -320,7 +320,7 @@ async function getSubProductForDesign(design: {
 
     // 4. Check if exact dimensions match base sub-product
     if (design.width && design.height) {
-        const byBaseDim = allSubProducts.find(s => 
+        const byBaseDim = allSubProducts.find(s =>
             Number(s.width) === Number(design.width) && Number(s.height) === Number(design.height)
         );
         if (byBaseDim) return byBaseDim;
@@ -329,7 +329,7 @@ async function getSubProductForDesign(design: {
     // 5. Check if size variants inside sub-products match dimensions or name
     let customisationObj: any = design.customisation;
     if (typeof customisationObj === 'string') {
-        try { customisationObj = JSON.parse(customisationObj); } catch {}
+        try { customisationObj = JSON.parse(customisationObj); } catch { }
     }
     const selectedSizeName = customisationObj?.selectedSize || customisationObj?.size;
     const selectedSizeId = customisationObj?.sizeId;
@@ -396,7 +396,7 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
     let finalUnitPrice = baseUnitPrice;
     let discountDescription: string | null = null;
     let totalDiscount = 0;
-    
+
     let rawCustomisation = (details as any).design?.customisation || (details as any).upload?.customisation || {};
     let customisation: any = {};
     if (typeof rawCustomisation === 'string') {
@@ -466,7 +466,7 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
     // Tax calculation
     const taxSlabs = (details.subProduct as any).taxSlabs || [];
     const activeTaxes = Array.isArray(taxSlabs) ? taxSlabs.filter((t: any) => t.isActive && Number(t.rate) > 0) : [];
-    
+
     let totalExclusiveTax = 0;
     let totalInclusiveTax = 0;
     const taxesBreakdown: { id: string; name: string; rate: number; amount: number; isInclusive: boolean }[] = [];
@@ -514,13 +514,13 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
         };
     }
 
-    return { 
-        ...details, 
-        unitPrice: finalUnitPrice, 
-        total, 
-        originalTotal, 
-        discountDescription, 
-        totalDiscount, 
+    return {
+        ...details,
+        unitPrice: finalUnitPrice,
+        total,
+        originalTotal,
+        discountDescription,
+        totalDiscount,
         customisation,
         deliveryOption,
         taxes: taxesBreakdown,

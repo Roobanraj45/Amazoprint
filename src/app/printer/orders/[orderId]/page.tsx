@@ -1,5 +1,6 @@
 import { getPrinterOrderDetails } from "@/app/actions/order-actions";
 import { getFoilTypes } from "@/app/actions/foil-actions";
+import { getDieCuts } from "@/app/actions/die-cut-actions";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,15 +30,13 @@ const getShapePath = (shapeType: string): string | null => {
         case 'triangle':
             return "M 50,0 L 100,100 L 0,100 Z";
         case 'star':
-            return "M 50,0 L 61,35 L 98,35 L 68,57 L 79,91 L 50,70 L 21,91 L 32,57 L 2,35 L 39,35 Z";
-        case 'hexagon':
-            return "M 87.5 66.6 V 33.3 A 8.3 8.3 0 0 0 83.3 26.1 L 54.1 9.4 A 8.3 8.3 0 0 0 45.8 9.4 L 16.6 26.1 A 8.3 8.3 0 0 0 12.5 33.3 V 66.6 A 8.3 8.3 0 0 0 16.6 73.8 L 45.8 90.5 A 8.3 8.3 0 0 0 54.1 90.5 L 83.3 73.8 A 8.3 8.3 0 0 0 87.5 66.6 Z";
-        case 'pentagon':
-            return "M 50 2 L 98 38 L 80 98 L 20 98 L 2 38 Z";
-        case 'octagon':
-            return "M 30 2 H 70 L 98 30 V 70 L 70 98 H 30 L 2 70 V 30 Z";
+            return "M 50 2 L 64 32 L 98 35 L 72 58 L 80 92 L 50 74 L 20 92 L 28 58 L 2 35 L 36 32 Z";
         case 'heart':
-            return "M 50 90 C 50 90 2 60 2 35 A 23 23 0 0 1 48 35 A 23 23 0 0 1 98 35 C 98 60 50 90 50 90 Z";
+            return "M 50,30 A 20,20 0 0,0 15,30 Q 15,60 50,85 Q 85,60 85,30 A 20,20 0 0,0 50,30 Z";
+        case 'hexagon':
+            return "M 50 2 L 93 25 L 93 75 L 50 98 L 7 75 L 7 25 Z";
+        case 'octagon':
+            return "M 30 2 L 70 2 L 98 30 L 98 70 L 70 98 L 30 98 L 2 70 L 2 30 Z";
         case 'diamond':
             return "M 50 2 L 98 50 L 50 98 L 2 50 Z";
         case 'arrow-right':
@@ -291,9 +290,18 @@ export default async function PrinterOrderDetailPage({ params }: { params: { ord
                                 const pagesStr = parsedCustomisation?.pages === 2 || parsedCustomisation?.pages === '2' ? 'Double Sided' : 'Single Sided';
                                 const dimensions = order.selectedSize || parsedCustomisation?.selectedSize || `${order.design?.width || order.designUpload?.width || 'Custom'} x ${order.design?.height || order.designUpload?.height || 'Custom'} mm`;
                                 const spotUv = parsedCustomisation?.spotUv ? 'Yes, Included' : 'No';
-                                const dieCut = parsedCustomisation?.dieCut ? `Custom Die Cut (#${parsedCustomisation.dieCut})` : 'Standard Rectangle';
                                 const lamination = parsedCustomisation?.lamination || 'None';
-                                const foil = parsedCustomisation?.foilName || parsedCustomisation?.foil || (parsedCustomisation?.foilId ? `Foil ID #${parsedCustomisation.foilId}` : 'None');
+
+                                const rawDieCut = parsedCustomisation?.dieCut || parsedCustomisation?.dieCutId || parsedCustomisation?.selectedDie;
+                                let selectedDieCut: { id?: any; name: string; slug?: string; imageUrl?: string } | null = null;
+                                if (rawDieCut) {
+                                    if (typeof rawDieCut === 'object' && rawDieCut.name) {
+                                        selectedDieCut = rawDieCut;
+                                    } else {
+                                        const found = allDieCuts.find((d: any) => String(d.id) === String(rawDieCut) || d.slug === String(rawDieCut));
+                                        selectedDieCut = found || { id: rawDieCut, name: `Custom Shape #${rawDieCut}` };
+                                    }
+                                }
 
                                 return (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -313,9 +321,16 @@ export default async function PrinterOrderDetailPage({ params }: { params: { ord
                                             <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Foils</span>
                                             <span className={cn("font-extrabold text-xs", selectedFoils.size > 0 ? "text-indigo-600" : "text-slate-500")}>{foilsDisplay}</span>
                                         </div>
-                                        <div className="flex flex-col gap-0.5 p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">
-                                            <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Die Cut / Shape</span>
-                                            <span className={cn("font-extrabold text-xs", parsedCustomisation?.dieCut ? "text-primary" : "text-slate-500")}>{dieCut}</span>
+                                        <div className={cn(
+                                            "flex flex-col gap-0.5 p-3 rounded-xl border",
+                                            selectedDieCut ? "bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800 shadow-xs" : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-100/50"
+                                        )}>
+                                            <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider flex items-center gap-1">
+                                                <Scissors size={10} className="text-indigo-500" /> Die Cut / Shape
+                                            </span>
+                                            <span className={cn("font-extrabold text-xs truncate", selectedDieCut ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500")}>
+                                                {selectedDieCut ? selectedDieCut.name : 'Standard Rectangle'}
+                                            </span>
                                         </div>
                                         <div className="flex flex-col gap-0.5 p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">
                                             <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Lamination</span>

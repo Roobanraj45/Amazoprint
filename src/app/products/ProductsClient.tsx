@@ -62,6 +62,45 @@ const CATEGORY_ASSETS: Record<string, { emoji: string, bg: string, label: string
     'Calendars': { emoji: '📅', bg: 'from-cyan-50 to-blue-100', label: 'Calendars' },
 };
 
+function ProductCardImage({ src, alt }: { src: string; alt: string }) {
+    const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+    const [isHovered, setIsHovered] = useState(false);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+        const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+        setMousePos({ x, y });
+    };
+
+    return (
+        <div
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => { setIsHovered(false); setMousePos({ x: 50, y: 50 }); }}
+            className="relative w-full h-full overflow-hidden"
+        >
+            <div
+                className="relative w-full h-full will-change-transform"
+                style={{
+                    transform: isHovered ? 'scale(1.45)' : 'scale(1)',
+                    transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
+                    transition: isHovered ? 'transform 0.08s ease-out' : 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform-origin 0.4s ease',
+                }}
+            >
+                <Image
+                    src={src}
+                    alt={alt}
+                    fill
+                    className="object-cover pointer-events-none"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                />
+            </div>
+        </div>
+    );
+}
+
 export function ProductsClient({ initialProducts, directSellingProducts = [] }: { initialProducts: any[]; directSellingProducts?: any[] }) {
     const searchParams = useSearchParams();
     const [searchQuery, setSearchQuery] = useState('');
@@ -492,22 +531,19 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                 <Link key={item.id} href={item.rawId ? `/design/${item.parentProductSlug}/start?subProductId=${item.rawId}` : `/design/${item.parentProductSlug}/start`} className="group relative block h-full outline-none">
                                                     <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-slate-150/60 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[#464674]/40 hover:-translate-y-1.5">
                                                         
-                                                        {/* Image Container */}
+                                                        {/* Image Container with Interactive Hover Zoom */}
                                                         <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
                                                             {imageUrl ? (
-                                                                <Image
+                                                                <ProductCardImage
                                                                     src={imageUrl}
                                                                     alt={item.name}
-                                                                    fill
-                                                                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                                                                 />
                                                             ) : (
                                                                 <div className="flex items-center justify-center h-full"><Palette className="h-16 w-16 text-muted-foreground/20 group-hover:scale-105 transition-transform duration-700" /></div>
                                                             )}
                                                             
                                                             {/* Floating Badges */}
-                                                            <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+                                                            <div className="absolute top-3 left-3 flex flex-col gap-2 z-10 pointer-events-none">
                                                                 {item.spotUvAllowed && (
                                                                     <Badge className="bg-violet-600 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                                                                         UV Coat
@@ -516,7 +552,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                             </div>
 
                                                             {item.discountText && (
-                                                                <div className="absolute top-3 right-3 z-10">
+                                                                <div className="absolute top-3 right-3 z-10 pointer-events-none">
                                                                     <Badge variant="destructive" className="bg-rose-500 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                                                                         {item.discountText}
                                                                     </Badge>
@@ -524,7 +560,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                             )}
 
                                                             {/* Quick Order CTA Overlay */}
-                                                            <div className="absolute inset-x-3 bottom-3 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10">
+                                                            <div className="absolute inset-x-3 bottom-3 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10 pointer-events-none">
                                                                 <span className="inline-flex items-center gap-1.5 bg-[#464674] text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl">
                                                                     Select & Customize
                                                                 </span>
@@ -581,15 +617,12 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                 >
                                                     <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-amber-200/70 dark:border-amber-900/40 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-amber-500/60 hover:-translate-y-1.5">
                                                         
-                                                        {/* Image Container */}
+                                                        {/* Image Container with Interactive Hover Zoom */}
                                                         <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
                                                             {imageUrl ? (
-                                                                <Image
+                                                                <ProductCardImage
                                                                     src={imageUrl}
                                                                     alt={item.name}
-                                                                    fill
-                                                                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                                                                 />
                                                             ) : (
                                                                 <div className="flex items-center justify-center h-full"><Package2 className="h-16 w-16 text-muted-foreground/20 group-hover:scale-105 transition-transform duration-700" /></div>

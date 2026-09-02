@@ -1,12 +1,13 @@
 import { getAdminOrderDetails, getApprovedPrinters } from "@/app/actions/order-actions";
 import { getActiveFreelancers } from "@/app/actions/verification-actions";
+import { getDieCuts } from "@/app/actions/die-cut-actions";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { 
-    IndianRupee, User, Package, Truck, CreditCard, Hash, FileText, 
-    Download, ShieldCheck, Clock, Tag, Receipt, Mail, Phone, MapPin, Factory, Trophy, Sparkles, Info 
+import {
+    IndianRupee, User, Package, Truck, CreditCard, Hash, FileText,
+    Download, ShieldCheck, Clock, Tag, Receipt, Mail, Phone, MapPin, Factory, Trophy, Sparkles, Info, Scissors
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Image from 'next/image';
@@ -49,11 +50,11 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
 
     const productName = isDirectSale ? order.directSellingProduct.name : (order.product?.name || 'Custom Product');
     const subProductName = isDirectSale ? order.directSellingProduct.category : (order.subProduct?.name || 'Custom Size');
-    
+
     const shippingAddress = order.shippingAddress as any;
     const billingAddress = order.billingAddress as any || shippingAddress;
 
-    let designPreviewNode: React.ReactNode = <FileText className="h-16 w-16 text-muted-foreground"/>;
+    let designPreviewNode: React.ReactNode = <FileText className="h-16 w-16 text-muted-foreground" />;
     if (isDesignOrder) {
         const design = order.design;
         const widthInPx = Math.round(design.width * MM_TO_PX);
@@ -84,18 +85,18 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
         )
     } else if (isUploadOrder) {
         const imageSrc = order.designUpload.thumbnailPath || (order.designUpload.mimeType?.startsWith('image/') ? order.designUpload.filePath : null);
-        designPreviewNode = imageSrc ? <Image src={resolveImagePath(imageSrc)} alt="upload preview" layout="fill" className="object-contain" /> : <FileText className="h-16 w-16 text-muted-foreground"/>;
+        designPreviewNode = imageSrc ? <Image src={resolveImagePath(imageSrc)} alt="upload preview" layout="fill" className="object-contain" /> : <FileText className="h-16 w-16 text-muted-foreground" />;
     } else if (isDirectSale) {
         const imageSrc = order.directSellingProduct.imageUrls?.[0];
-        designPreviewNode = imageSrc ? <Image src={resolveImagePath(imageSrc)} alt="product image" layout="fill" className="object-cover" /> : <FileText className="h-16 w-16 text-muted-foreground"/>;
+        designPreviewNode = imageSrc ? <Image src={resolveImagePath(imageSrc)} alt="product image" layout="fill" className="object-cover" /> : <FileText className="h-16 w-16 text-muted-foreground" />;
     }
 
     // Parse customisation
     let parsedCustomisation: any = null;
     try {
         const rawCustomisation = order.design?.customisation || (order as any).customisation;
-        parsedCustomisation = typeof rawCustomisation === 'string' 
-            ? JSON.parse(rawCustomisation) 
+        parsedCustomisation = typeof rawCustomisation === 'string'
+            ? JSON.parse(rawCustomisation)
             : rawCustomisation;
     } catch (e) {
         console.error("Failed to parse customisation data", e);
@@ -123,11 +124,23 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
     let discount = 0;
 
     const breakup = parsedCustomisation?.priceBreakup;
+    const taxesList: any[] = parsedCustomisation?.priceBreakup?.taxes || parsedCustomisation?.taxes || [];
+    const totalExclusiveTax = taxesList.filter((t: any) => !t.isInclusive).reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
+
+    const delivery = parsedCustomisation?.deliveryOption || breakup?.delivery || {
+        name: 'Standard Delivery',
+        days: order.subProduct?.deliveryDays || '3-5 Business Days',
+        fee: Number(order.subProduct?.deliveryAmount || 0)
+    };
+    const deliveryFee = Number(delivery.fee || 0);
+
     if (breakup) {
         addonsList = breakup.addons || [];
         discount = parseFloat(breakup.discount || 0);
         const addonsTotal = addonsList.reduce((acc: number, addon: any) => acc + parseFloat(addon.totalAmount || addon.amount || 0), 0);
-        baseSubtotal = (parseFloat(order.totalAmount) || 0) - addonsTotal + discount;
+        baseSubtotal = typeof breakup.basePriceTotal === 'number' 
+            ? breakup.basePriceTotal 
+            : Math.max(0, (parseFloat(order.totalAmount) || 0) - addonsTotal - totalExclusiveTax - deliveryFee + discount);
     } else if (parsedCustomisation?.specsBreakdown) {
         addonsList = parsedCustomisation.specsBreakdown || [];
         baseSubtotal = parseFloat(parsedCustomisation.printBaseCost) || 0;
@@ -143,6 +156,30 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
 
     if (baseSubtotal === 0 && order.contestId && order.payment?.amount) {
         baseSubtotal = parseFloat(order.payment.amount);
+    }
+
+    // Die Cut Resolution
+    const allDieCuts = await getDieCuts();
+    const rawDieCut = parsedCustomisation?.dieCut || parsedCustomisation?.dieCutId || parsedCustomisation?.selectedDie;
+    let selectedDieCut: { id?: any; name: string; slug?: string; imageUrl?: string; description?: string } | null = null;
+
+    if (rawDieCut) {
+        if (typeof rawDieCut === 'object' && rawDieCut.name) {
+            selectedDieCut = rawDieCut;
+        } else {
+            const found = allDieCuts.find((d: any) => String(d.id) === String(rawDieCut) || d.slug === String(rawDieCut));
+            if (found) {
+                selectedDieCut = found;
+            } else {
+                selectedDieCut = { id: rawDieCut, name: `Custom Shape Pattern #${rawDieCut}` };
+            }
+        }
+    } else {
+        const dieCutAddon = addonsList.find((a: any) => (a.name && a.name.toLowerCase().includes('die cut')) || a.type === 'die_cut');
+        if (dieCutAddon) {
+            const found = allDieCuts.find((d: any) => d.name.toLowerCase() === dieCutAddon.name.toLowerCase());
+            selectedDieCut = found || { name: dieCutAddon.name };
+        }
     }
 
     const targetState = shippingAddress?.state || billingAddress?.state || 'Tamil Nadu';
@@ -233,10 +270,10 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
 
             {/* Main Restructured Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
+
                 {/* Left Column (8/12 widths) */}
                 <div className="lg:col-span-8 space-y-6">
-                    
+
                     {/* Visual Blueprint & Specs */}
                     <Card className="border border-slate-200/60 dark:border-slate-800/80 shadow-md bg-gradient-to-b from-white to-slate-50/20 dark:from-slate-900 dark:to-slate-950/20 rounded-[2rem] overflow-hidden">
                         <CardHeader className="p-6 pb-2 border-b border-slate-100 dark:border-zinc-800">
@@ -277,7 +314,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                                     {parsedCustomisation?.pages === 2 || parsedCustomisation?.pages === '2' ? 'Double sided' : 'Single sided'}
                                                 </span>
                                             </div>
-                                            
+
                                             <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80">
                                                 <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Spot UV gloss</span>
                                                 <span className={cn("font-bold text-[11px]", parsedCustomisation?.spotUv ? "text-amber-600" : "text-slate-400")}>
@@ -288,29 +325,30 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                             <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80">
                                                 <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Product Size / Dimensions</span>
                                                 <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
-                                                     {order.selectedSize || parsedCustomisation?.selectedSize || parsedCustomisation?.sizeDisplay || (
-                                                         order.design?.width || order.designUpload?.width 
-                                                             ? `${order.design?.width || order.designUpload?.width} x ${order.design?.height || order.designUpload?.height} mm` 
-                                                             : 'Standard Size'
-                                                     )}
+                                                    {order.selectedSize || parsedCustomisation?.selectedSize || parsedCustomisation?.sizeDisplay || (
+                                                        order.design?.width || order.designUpload?.width
+                                                            ? `${order.design?.width || order.designUpload?.width} x ${order.design?.height || order.designUpload?.height} mm`
+                                                            : 'Standard Size'
+                                                    )}
                                                 </span>
                                             </div>
 
-                                            <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80">
-                                                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Custom shape</span>
-                                                <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate">
-                                                     {parsedCustomisation?.dieCut ? (
-                                                         typeof parsedCustomisation.dieCut === 'object'
-                                                             ? (parsedCustomisation.dieCut.name || parsedCustomisation.dieCut.Name || `Pattern #${parsedCustomisation.dieCut.id || ''}`)
-                                                             : `Pattern #${parsedCustomisation.dieCut}`
-                                                     ) : 'Standard'}
-                                                 </span>
+                                            <div className={cn(
+                                                "flex flex-col gap-0.5 p-2.5 rounded-xl border",
+                                                selectedDieCut ? "bg-indigo-50/90 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200 shadow-xs" : "bg-slate-50/80 dark:bg-slate-900/60 border-slate-200/60 dark:border-slate-800/80"
+                                            )}>
+                                                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider flex items-center gap-1">
+                                                    <Scissors size={10} className="text-indigo-500" /> Shape / Die Cut
+                                                </span>
+                                                <span className="font-bold text-[11px] truncate" title={selectedDieCut ? selectedDieCut.name : 'Standard Rectangle'}>
+                                                    {selectedDieCut ? selectedDieCut.name : 'Standard Rectangle'}
+                                                </span>
                                             </div>
 
                                             <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80">
                                                 <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Quantity</span>
                                                 <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
-                                                     {parsedCustomisation?.quantity || order.quantity || '1'} Units
+                                                    {parsedCustomisation?.quantity || order.quantity || '1'} Units
                                                 </span>
                                             </div>
 
@@ -324,7 +362,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                             {parsedCustomisation && Object.entries(parsedCustomisation).map(([key, val]) => {
                                                 if (['pages', 'spotUv', 'dieCut', 'lamination', 'priceBreakup', 'pricing', 'addons', 'specsBreakdown', 'specsCost', 'printBaseCost', 'sizeDisplay', 'quantity'].includes(key)) return null;
                                                 if (val === null || val === undefined || val === '') return null;
-                                                
+
                                                 const displayVal = formatSpecValue(val);
                                                 if (!displayVal) return null;
 
@@ -341,24 +379,55 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                                 );
                                             })}
                                         </div>
+
+                                        {/* Die Cut Tooling & Pattern Card in Admin Blueprint Specs */}
+                                        {selectedDieCut && (
+                                            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/5 border border-indigo-500/20 flex items-center justify-between gap-4 mt-3">
+                                                <div className="flex items-center gap-3">
+                                                    {selectedDieCut.imageUrl ? (
+                                                        <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 p-1 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center shrink-0 shadow-xs">
+                                                            <img src={resolveImagePath(selectedDieCut.imageUrl)} alt={selectedDieCut.name} className="w-full h-full object-contain" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-indigo-600/30">
+                                                            <Scissors size={18} />
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded-md">
+                                                                Laser Stamped Die-Cut
+                                                            </span>
+                                                            {selectedDieCut.slug && (
+                                                                <span className="text-[9px] font-mono text-slate-400">#{selectedDieCut.slug}</span>
+                                                            )}
+                                                        </div>
+                                                        <h4 className="text-xs font-black text-slate-900 dark:text-white mt-0.5">{selectedDieCut.name}</h4>
+                                                    </div>
+                                                </div>
+                                                <Badge className="bg-indigo-600 text-white font-bold text-[8px] uppercase px-2 py-0.5 rounded-lg shrink-0">
+                                                    Custom Tooling
+                                                </Badge>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
                                 {/* Download Layout Buttons */}
                                 <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100 dark:border-zinc-800">
-                                     <div className="flex-1 min-w-[200px]">
-                                         {isDesignOrder && <PrintPreviewButton order={order} />}
-                                         {isUploadOrder && (
-                                             <Button asChild variant="secondary" className="rounded-xl px-4 h-10 text-xs font-bold transition-all w-full">
-                                                 <a href={resolveImagePath(order.designUpload.filePath)} download>
-                                                     <Download className="mr-2 h-4 w-4"/> Download Original Design File
-                                                 </a>
-                                             </Button>
-                                         )}
-                                     </div>
-                                     <Button variant="outline" className="rounded-xl px-4 h-10 text-xs font-bold border-slate-200 transition-all">
-                                         <FileText className="mr-2 h-4 w-4" /> Export Job Sheet
-                                     </Button>
+                                    <div className="flex-1 min-w-[200px]">
+                                        {isDesignOrder && <PrintPreviewButton order={order} />}
+                                        {isUploadOrder && (
+                                            <Button asChild variant="secondary" className="rounded-xl px-4 h-10 text-xs font-bold transition-all w-full">
+                                                <a href={resolveImagePath(order.designUpload.filePath)} download>
+                                                    <Download className="mr-2 h-4 w-4" /> Download Original Design File
+                                                </a>
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <Button variant="outline" className="rounded-xl px-4 h-10 text-xs font-bold border-slate-200 transition-all">
+                                        <FileText className="mr-2 h-4 w-4" /> Export Job Sheet
+                                    </Button>
                                 </div>
                             </div>
                         </CardContent>
@@ -568,7 +637,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
 
                 {/* Right Column (4/12 widths) */}
                 <div className="lg:col-span-4 space-y-6">
-                    
+
                     {/* Print Quality Verification Panel */}
                     {order.verificationFileUrl && (
                         <PrintVerificationReview
@@ -593,7 +662,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                         <CardContent className="p-6 space-y-6">
                             {/* Dropdown status update */}
                             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
-                                <OrderStatusControl 
+                                <OrderStatusControl
                                     orderId={order.id}
                                     currentStatus={order.orderStatus}
                                     currentTrackingNumber={order.trackingNumber}
@@ -606,9 +675,9 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                             {(() => {
                                 const dvs = (order as any).designVerifications || [];
                                 const latest = dvs[0]; // designVerifications are ordered desc by createdAt
-                                
+
                                 if (dvs.length === 0) return null;
-                                
+
                                 return (
                                     <div className="p-4 rounded-2xl bg-indigo-50/20 dark:bg-indigo-950/5 border border-indigo-100/50 dark:border-indigo-950/20 flex flex-col gap-2">
                                         <div className="flex justify-between items-center text-xs">
@@ -721,11 +790,11 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                             </div>
                         </CardHeader>
                         <CardContent className="p-6">
-                            <PrinterAssignmentControl 
-                                orderId={order.id} 
-                                currentPrinterId={order.printerAssigned} 
+                            <PrinterAssignmentControl
+                                orderId={order.id}
+                                currentPrinterId={order.printerAssigned}
                                 currentPrintingAmount={order.printingAmount}
-                                printers={approvedPrinters as any} 
+                                printers={approvedPrinters as any}
                                 printerPayments={(order as any).printerPayments}
                                 directSellingProduct={order.directSellingProduct as any}
                                 quantity={order.quantity}
@@ -746,7 +815,7 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                             </div>
                         </CardHeader>
                         <CardContent className="p-6">
-                            <FreelancerVerificationControl 
+                            <FreelancerVerificationControl
                                 orderId={order.id}
                                 freelancers={activeFreelancers}
                                 existingVerifications={(order as any).designVerifications || []}
