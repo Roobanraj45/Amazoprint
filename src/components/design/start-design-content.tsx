@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2, Truck, Lock, Check, ChevronLeft, ChevronRight, Search, FileText, MessageSquare, Upload, Copy, Play, Video, ExternalLink, FileDown, Download } from 'lucide-react';
+import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2, Truck, Lock, Check, ChevronLeft, ChevronRight, Search, FileText, MessageSquare, Upload, Copy, Play, Video, ExternalLink, FileDown, Download, Ruler } from 'lucide-react';
 import { getFoilTypes } from '@/app/actions/foil-actions';
 import { getDieCuts } from '@/app/actions/die-cut-actions';
 import { getCardTextures } from '@/app/actions/card-texture-actions';
@@ -71,6 +71,7 @@ export function StartDesignContent() {
   const [spotUv, setSpotUv] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
   const [foilTypes, setFoilTypes] = useState<FoilType[]>([]);
+  const [selectedSizeId, setSelectedSizeId] = useState<string | null>(searchParams.get('sizeId') || null);
   const [customWidth, setCustomWidth] = useState(searchParams.get('width') || '');
   const [customHeight, setCustomHeight] = useState(searchParams.get('height') || '');
   const [selectedDie, setSelectedDie] = useState<number | null>(null);
@@ -88,6 +89,21 @@ export function StartDesignContent() {
     getDieCuts().then(setDieCuts);
     getCardTextures().then(setCardTextures);
   }, []);
+
+  const availableSizes = useMemo(() => {
+    if (!subProduct || !(subProduct as any).sizes || !(subProduct as any).sizes.length) return [];
+    return ((subProduct as any).sizes as any[]).filter((s: any) => s.isActive);
+  }, [subProduct]);
+
+  const activeSize = useMemo(() => {
+    if (availableSizes.length === 0) return null;
+    if (selectedSizeId) {
+      const match = availableSizes.find((s: any) => s.id === selectedSizeId);
+      if (match) return match;
+    }
+    const def = availableSizes.find((s: any) => s.isDefault);
+    return def || availableSizes[0];
+  }, [availableSizes, selectedSizeId]);
 
   useEffect(() => {
     async function fetchData() {
@@ -121,6 +137,14 @@ export function StartDesignContent() {
             if (sp.maxPages <= 1) {
                 setPages('1');
             }
+            const spSizes = ((sp as any).sizes as any[] || []).filter((s: any) => s.isActive);
+            const paramSizeId = searchParams.get('sizeId');
+            if (paramSizeId && spSizes.some((s: any) => s.id === paramSizeId)) {
+                setSelectedSizeId(paramSizeId);
+            } else if (spSizes.length > 0 && !selectedSizeId) {
+                const def = spSizes.find((s: any) => s.isDefault) || spSizes[0];
+                setSelectedSizeId(def.id);
+            }
             setLoadingPricing(true);
             getPricingRulesForSubProduct(sp.id).then(rules => {
                 setPricingRules(rules);
@@ -147,6 +171,13 @@ export function StartDesignContent() {
     if (sp.maxPages <= 1) {
         setPages('1');
     }
+    const spSizes = ((sp as any).sizes as any[] || []).filter((s: any) => s.isActive);
+    if (spSizes.length > 0) {
+        const def = spSizes.find((s: any) => s.isDefault) || spSizes[0];
+        setSelectedSizeId(def.id);
+    } else {
+        setSelectedSizeId(null);
+    }
     setLoadingPricing(true);
     getPricingRulesForSubProduct(sp.id).then(rules => {
         setPricingRules(rules);
@@ -156,6 +187,17 @@ export function StartDesignContent() {
     newParams.set('subProductId', String(sp.id));
     router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
   }, [searchParams, pathname, router]);
+
+  const handleSelectSize = useCallback((sz: any) => {
+    setSelectedSizeId(sz.id);
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set('sizeId', sz.id);
+    newParams.set('selectedSize', sz.name);
+    newParams.set('width', String(sz.width));
+    newParams.set('height', String(sz.height));
+    newParams.set('unit', sz.unit || subProduct?.unitType || 'mm');
+    router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
+  }, [searchParams, pathname, router, subProduct]);
 
   const availableDieCuts = useMemo(() => {
     if (!subProduct || !(subProduct as any).allowedDieCuts || !(subProduct as any).allowedDieCuts.length) return [];
@@ -276,6 +318,15 @@ export function StartDesignContent() {
         }
     }
 
+    if (activeSize && Number(activeSize.priceAdjustment || 0) !== 0) {
+        const sizeAdj = Number(activeSize.priceAdjustment);
+        addonTotalPerUnit += sizeAdj;
+        addonBreakdown.push({
+            name: `Size: ${activeSize.name}`,
+            totalAmount: sizeAdj * qty
+        });
+    }
+
     const availableTiers = (subProduct as any).deliveryTiers || [];
     const selectedTierObj = selectedDeliveryTier === 'standard'
       ? null
@@ -344,10 +395,13 @@ export function StartDesignContent() {
         },
     });
 
-  }, [quantity, subProduct, pricingRules, selectedAddons, pages, selectedDie, dieCuts, selectedTexture, cardTextures, selectedDeliveryTier]);
+  }, [quantity, subProduct, pricingRules, selectedAddons, pages, selectedDie, dieCuts, selectedTexture, cardTextures, selectedDeliveryTier, activeSize]);
 
   const constructedQuery = useMemo(() => {
     const newParams = new URLSearchParams(searchParams.toString());
+    if (subProduct?.id) {
+      newParams.set('subProductId', String(subProduct.id));
+    }
     newParams.set('quantity', quantity);
     newParams.set('pages', pages);
     if (spotUv && subProduct?.spotUvAllowed) {
@@ -387,13 +441,31 @@ export function StartDesignContent() {
       }
     }
     
-    if (subProduct?.width === 0 && subProduct?.height === 0) {
+    if (activeSize) {
+      newParams.set('selectedSize', activeSize.name);
+      newParams.set('sizeId', activeSize.id);
+      newParams.set('width', String(activeSize.width));
+      newParams.set('height', String(activeSize.height));
+      newParams.set('unit', activeSize.unit || subProduct?.unitType || 'mm');
+    } else if (subProduct?.width === 0 && subProduct?.height === 0) {
+      const w = customWidth || '85';
+      const h = customHeight || '55';
+      const u = subProduct?.unitType || 'mm';
+      newParams.set('selectedSize', `Custom Size (${w} × ${h} ${u})`);
       if (customWidth) newParams.set('width', customWidth);
       if (customHeight) newParams.set('height', customHeight);
+      newParams.set('unit', u);
+    } else if (subProduct) {
+      newParams.set('selectedSize', `Standard Size (${subProduct.width} × ${subProduct.height} ${subProduct.unitType || 'mm'})`);
+      newParams.set('width', String(subProduct.width));
+      newParams.set('height', String(subProduct.height));
+      newParams.set('unit', subProduct.unitType || 'mm');
+    } else {
+      newParams.set('selectedSize', 'Standard Size');
     }
 
     return newParams.toString();
-  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, customWidth, customHeight, selectedDie, selectedTexture, selectedDeliveryTier]);
+  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, customWidth, customHeight, selectedDie, selectedTexture, selectedDeliveryTier, activeSize]);
 
   const thumbnailImages = useMemo(() => {
     if (!subProduct && !product) return [];
@@ -685,57 +757,113 @@ export function StartDesignContent() {
                   {/* Option Groups Matrix */}
                   <div className="space-y-5">
                       {/* 1. Size Selection */}
-                      {/* 1. Size Selection */}
                       <div className="space-y-2.5">
-                          <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
-                              <span className="text-indigo-600 dark:text-indigo-400 font-bold">1.</span> Select Dimensions
+                          <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center justify-between uppercase">
+                              <span className="flex items-center gap-1.5">
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">1.</span> Select Product Size
+                              </span>
+                              {activeSize ? (
+                                  <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 normal-case flex items-center gap-1">
+                                      <Ruler className="w-3.5 h-3.5" />
+                                      {activeSize.width} × {activeSize.height} {activeSize.unit || subProduct.unitType || 'mm'}
+                                  </span>
+                              ) : (
+                                  <span className="text-[11px] font-bold text-slate-500 normal-case">
+                                      {subProduct.width === 0 && subProduct.height === 0 ? 'Custom Dimensions' : `${subProduct.width} × ${subProduct.height} ${subProduct.unitType || 'mm'}`}
+                                  </span>
+                              )}
                           </Label>
-                          <div className="relative group/carousel flex items-center">
-                              <Button 
-                                  variant="outline" 
-                                  size="icon" 
-                                  className="absolute left-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 -translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
-                                  onClick={() => {
-                                      const container = document.getElementById('dimensions-scroll-container');
-                                      if (container) container.scrollBy({ left: -200, behavior: 'smooth' });
-                                  }}
-                              >
-                                  <ChevronLeft className="h-4 w-4" />
-                              </Button>
 
-                              <div id="dimensions-scroll-container" className="flex items-center gap-2.5 overflow-x-auto scrollbar-none scroll-smooth py-1 px-1 w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                                  {product.subProducts.map(sp => (
-                                      <button
-                                          key={sp.id}
-                                          onClick={() => handleSubProductChange(sp)}
-                                          className={cn(
-                                              "flex-shrink-0 w-36 py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all text-center flex items-center justify-center shadow-sm",
-                                              subProduct.id === sp.id 
-                                                  ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" 
-                                                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
-                                          )}
-                                      >
-                                          {sp.width === 0 && sp.height === 0 ? 'Custom Size' : `${sp.width}" x ${sp.height}"`}
-                                      </button>
-                                  ))}
+                          {availableSizes.length > 0 ? (
+                              <div className="relative group/carousel flex items-center">
+                                  <Button 
+                                      variant="outline" 
+                                      size="icon" 
+                                      className="absolute left-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 -translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                                      onClick={() => {
+                                          const container = document.getElementById('dimensions-scroll-container');
+                                          if (container) container.scrollBy({ left: -200, behavior: 'smooth' });
+                                      }}
+                                  >
+                                      <ChevronLeft className="h-4 w-4" />
+                                  </Button>
+
+                                  <div id="dimensions-scroll-container" className="flex items-center gap-3 overflow-x-auto scrollbar-none scroll-smooth py-1 px-1 w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                      {availableSizes.map(sz => {
+                                          const isSelected = activeSize?.id === sz.id;
+                                          return (
+                                              <button
+                                                  key={sz.id}
+                                                  onClick={() => handleSelectSize(sz)}
+                                                  className={cn(
+                                                      "group relative flex-shrink-0 w-44 flex flex-col items-start justify-between p-3.5 rounded-2xl border transition-all text-left shadow-xs hover:shadow",
+                                                      isSelected 
+                                                          ? "border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/40 ring-2 ring-indigo-600/20 scale-[1.02]" 
+                                                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                                                  )}
+                                              >
+                                                  <div className="flex items-center justify-between w-full mb-1.5">
+                                                      <span className={cn("text-xs font-bold truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-900 dark:text-white")}>
+                                                          {sz.name}
+                                                      </span>
+                                                      {sz.isDefault && (
+                                                          <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 shrink-0">
+                                                              Default
+                                                          </span>
+                                                      )}
+                                                  </div>
+                                                  <div className="flex items-center justify-between w-full text-[11px] text-muted-foreground font-semibold">
+                                                      <span className="text-slate-700 dark:text-slate-300 font-bold">
+                                                          {sz.width} × {sz.height} {sz.unit || subProduct.unitType || 'mm'}
+                                                      </span>
+                                                      {Number(sz.priceAdjustment || 0) > 0 ? (
+                                                          <span className="text-indigo-600 dark:text-indigo-400 font-bold text-[10px]">
+                                                              +₹{sz.priceAdjustment}
+                                                          </span>
+                                                      ) : (
+                                                          <span className="text-slate-400 text-[10px]">
+                                                              Standard
+                                                          </span>
+                                                      )}
+                                                  </div>
+                                              </button>
+                                          );
+                                      })}
+                                  </div>
+
+                                  <Button 
+                                      variant="outline" 
+                                      size="icon" 
+                                      className="absolute right-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
+                                      onClick={() => {
+                                          const container = document.getElementById('dimensions-scroll-container');
+                                          if (container) container.scrollBy({ left: 200, behavior: 'smooth' });
+                                      }}
+                                  >
+                                      <ChevronRight className="h-4 w-4" />
+                                  </Button>
                               </div>
+                          ) : (
+                              <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-between">
+                                  <div className="flex items-center gap-2.5">
+                                      <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                                          <Ruler className="w-4 h-4" />
+                                      </div>
+                                      <div>
+                                          <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                              {subProduct.width === 0 && subProduct.height === 0 ? 'Custom Size' : `Standard Size (${subProduct.width} × ${subProduct.height} ${subProduct.unitType || 'mm'})`}
+                                          </p>
+                                          <p className="text-[10px] text-muted-foreground font-medium">Standard dimension option</p>
+                                      </div>
+                                  </div>
+                                  <Badge className="bg-indigo-600 text-white text-[10px] font-bold border-none">Selected</Badge>
+                              </div>
+                          )}
 
-                              <Button 
-                                  variant="outline" 
-                                  size="icon" 
-                                  className="absolute right-0 z-10 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm border-slate-200 dark:border-slate-800 translate-x-3 opacity-0 group-hover/carousel:opacity-100 transition-opacity"
-                                  onClick={() => {
-                                      const container = document.getElementById('dimensions-scroll-container');
-                                      if (container) container.scrollBy({ left: 200, behavior: 'smooth' });
-                                  }}
-                              >
-                                  <ChevronRight className="h-4 w-4" />
-                              </Button>
-                          </div>
                           {subProduct.width === 0 && subProduct.height === 0 && (
                               <div className="grid grid-cols-2 gap-4 pt-2 animate-in zoom-in-95 duration-300">
                                   <div className="space-y-1.5">
-                                      <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Custom Width</Label>
+                                      <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Custom Width ({subProduct.unitType || 'mm'})</Label>
                                       <Input 
                                           type="number" 
                                           value={customWidth} 
@@ -745,7 +873,7 @@ export function StartDesignContent() {
                                       />
                                   </div>
                                   <div className="space-y-1.5">
-                                      <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Custom Height</Label>
+                                      <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Custom Height ({subProduct.unitType || 'mm'})</Label>
                                       <Input 
                                           type="number" 
                                           value={customHeight} 

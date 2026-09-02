@@ -791,7 +791,11 @@ export async function orderContestSubmission(params: {
         orderStatus: 'confirmed',
         paymentStatus: 'paid',
         paymentMethod: 'Contest Prepaid',
-        customisation: customisationObj,
+        selectedSize: customisationObj.selectedSize || customisationObj.size || customisationObj.sizeDisplay || 'Standard Size',
+        customisation: {
+            ...customisationObj,
+            selectedSize: customisationObj.selectedSize || customisationObj.size || customisationObj.sizeDisplay || 'Standard Size',
+        },
         contestId: contestId
     }).returning();
 

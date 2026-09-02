@@ -247,6 +247,16 @@ export const subProducts = pgTable('sub_products', {
     isInclusive?: boolean;
     isActive: boolean;
   }>>().default([]),
+  sizes: jsonb('sizes').$type<Array<{
+    id: string;
+    name: string;
+    width: number;
+    height: number;
+    unit?: 'mm' | 'inch' | 'ft' | 'cm' | 'px';
+    priceAdjustment?: number;
+    isDefault?: boolean;
+    isActive: boolean;
+  }>>().default([]),
 }, (table) => {
   return {
     productIdx: index('idx_sub_products_product').on(table.productId),

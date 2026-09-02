@@ -84,6 +84,17 @@ const taxSlabSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+const sizeVariantSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Size name is required'),
+  width: z.coerce.number().min(0, 'Width must be non-negative'),
+  height: z.coerce.number().min(0, 'Height must be non-negative'),
+  unit: z.enum(['mm', 'inch', 'ft', 'cm', 'px']).optional().default('mm'),
+  priceAdjustment: z.coerce.number().optional().default(0),
+  isDefault: z.boolean().optional().default(false),
+  isActive: z.boolean().default(true),
+});
+
 const subProductSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().optional(),
@@ -115,6 +126,7 @@ const subProductSchema = z.object({
   sampleFiles: z.array(sampleFileSchema).optional().default([]),
   deliveryTiers: z.array(deliveryTierSchema).optional().default([]),
   taxSlabs: z.array(taxSlabSchema).optional().default([]),
+  sizes: z.array(sizeVariantSchema).optional().default([]),
 });
 
 type SubProductFormData = z.infer<typeof subProductSchema>;
@@ -178,6 +190,7 @@ export default function EditVariantPage() {
       deliveryDays: '3-5 Business Days',
       deliveryAmount: 0,
       deliveryTiers: [],
+      sizes: [],
     },
   });
 
@@ -187,6 +200,7 @@ export default function EditVariantPage() {
   const deliveryTiers = watch('deliveryTiers') || [];
   const sampleFiles = watch('sampleFiles') || [];
   const taxSlabs = watch('taxSlabs') || [];
+  const sizes = watch('sizes') || [];
 
   const handleSampleFileUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -286,6 +300,7 @@ export default function EditVariantPage() {
         deliveryAmount: Number((variant as any).deliveryAmount || 0),
         deliveryTiers: (variant as any).deliveryTiers || [],
         taxSlabs: (variant as any).taxSlabs || [],
+        sizes: (variant as any).sizes || [],
       });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error Loading Variant', description: error.message });
@@ -1033,7 +1048,293 @@ export default function EditVariantPage() {
               </CardContent>
             </Card>
 
-            {/* 5. Downloadable Sample & Guideline Files Card */}
+            {/* 5. Product Sizes & Dimension Variants Card */}
+            <Card className="border border-slate-200/80 dark:border-slate-800/80 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4 bg-slate-50/50 dark:bg-slate-950/50 flex flex-row items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Ruler className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <CardTitle className="text-base font-bold text-slate-900 dark:text-white">
+                      Product Sizes & Dimension Variants ({sizes.filter((s: any) => s.isActive).length} Active)
+                    </CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Configure multiple size variants (Length × Width) for this single sub-product. Customers can select their preferred size on the product page.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const currentSizes = watch('sizes') || [];
+                      const newSize = {
+                        id: `size-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                        name: `Size Option ${currentSizes.length + 1}`,
+                        width: Number(watch('width') || 85),
+                        height: Number(watch('height') || 55),
+                        unit: (watch('unitType') || 'mm') as any,
+                        priceAdjustment: 0,
+                        isDefault: currentSizes.length === 0,
+                        isActive: true,
+                      };
+                      setValue('sizes', [...currentSizes, newSize], { shouldDirty: true });
+                    }}
+                    className="h-8 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-800 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/50"
+                  >
+                    <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Custom Size
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                {/* Presets Bar */}
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Ruler className="w-3.5 h-3.5 text-indigo-500" /> Quick Add Size Presets:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {[
+                      { name: 'Standard (85 × 55 mm)', width: 85, height: 55, unit: 'mm' },
+                      { name: 'Square (65 × 65 mm)', width: 65, height: 65, unit: 'mm' },
+                      { name: 'Slim (90 × 45 mm)', width: 90, height: 45, unit: 'mm' },
+                      { name: 'A6 (105 × 148 mm)', width: 105, height: 148, unit: 'mm' },
+                      { name: 'A5 (148 × 210 mm)', width: 148, height: 210, unit: 'mm' },
+                      { name: 'A4 (210 × 297 mm)', width: 210, height: 297, unit: 'mm' },
+                      { name: 'A3 (297 × 420 mm)', width: 297, height: 420, unit: 'mm' },
+                      { name: 'Photo (4 × 6 in)', width: 4, height: 6, unit: 'inch' },
+                      { name: 'Poster (12 × 18 in)', width: 12, height: 18, unit: 'inch' },
+                    ].map((preset) => (
+                      <Button
+                        key={preset.name}
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const currentSizes = watch('sizes') || [];
+                          const exists = currentSizes.some((s: any) => s.width === preset.width && s.height === preset.height && s.unit === preset.unit);
+                          if (!exists) {
+                            setValue('sizes', [
+                              ...currentSizes,
+                              {
+                                id: `size-${Date.now()}-${preset.width}x${preset.height}`,
+                                name: preset.name,
+                                width: preset.width,
+                                height: preset.height,
+                                unit: preset.unit as any,
+                                priceAdjustment: 0,
+                                isDefault: currentSizes.length === 0,
+                                isActive: true,
+                              }
+                            ], { shouldDirty: true });
+                          }
+                        }}
+                        className="h-7 px-2.5 text-[11px] font-bold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:text-indigo-600"
+                      >
+                        +{preset.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {sizes.length === 0 ? (
+                  <div className="py-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-950/50 gap-2">
+                    <Ruler className="w-8 h-8 text-slate-300 dark:text-slate-700" />
+                    <p className="text-xs font-semibold text-slate-500">No additional size variants configured</p>
+                    <p className="text-[11px] text-muted-foreground max-w-sm">
+                      This sub-product currently uses the default dimensions ({watch('width')} × {watch('height')} {watch('unitType')}). Click &quot;Add Custom Size&quot; or select presets above to offer multiple size choices.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {sizes.map((sizeItem: any, idx: number) => (
+                      <div
+                        key={sizeItem.id || idx}
+                        className={cn(
+                          "p-4 rounded-2xl border transition-all space-y-3",
+                          sizeItem.isActive 
+                            ? "bg-slate-50 dark:bg-slate-950 border-slate-200/80 dark:border-slate-800/80" 
+                            : "bg-slate-100/50 dark:bg-slate-900/40 border-slate-200/40 dark:border-slate-800/40 opacity-70"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                              <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] flex items-center justify-center font-black">
+                                {idx + 1}
+                              </span>
+                              Size #{idx + 1}
+                            </span>
+                            {sizeItem.isDefault ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Default Size
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = sizes.map((s: any, i: number) => ({
+                                    ...s,
+                                    isDefault: i === idx,
+                                  }));
+                                  setValue('sizes', updated, { shouldDirty: true });
+                                }}
+                                className="text-[10px] font-bold text-slate-400 hover:text-indigo-600 transition-colors"
+                              >
+                                Set as Default
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <Label className="text-[11px] font-bold text-slate-500">Active</Label>
+                              <Switch
+                                checked={sizeItem.isActive ?? true}
+                                onCheckedChange={(val) => {
+                                  const updated = [...sizes];
+                                  updated[idx].isActive = val;
+                                  setValue('sizes', updated, { shouldDirty: true });
+                                }}
+                                className="data-[state=checked]:bg-indigo-600"
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setValue('sizes', sizes.filter((_, i) => i !== idx), { shouldDirty: true });
+                              }}
+                              className="h-7 px-2 text-xs font-semibold text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-1" /> Remove
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                          {/* Size Display Name */}
+                          <div className="sm:col-span-4 space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              Size Label / Name <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              placeholder="e.g. Standard Size (85 × 55 mm)"
+                              value={sizeItem.name}
+                              onChange={(e) => {
+                                const updated = [...sizes];
+                                updated[idx].name = e.target.value;
+                                setValue('sizes', updated, { shouldDirty: true });
+                              }}
+                              className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                            />
+                          </div>
+
+                          {/* Width */}
+                          <div className="sm:col-span-2 space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              Width <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              placeholder="85"
+                              value={sizeItem.width}
+                              onChange={(e) => {
+                                const updated = [...sizes];
+                                updated[idx].width = parseFloat(e.target.value) || 0;
+                                setValue('sizes', updated, { shouldDirty: true });
+                              }}
+                              className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-bold"
+                            />
+                          </div>
+
+                          {/* Height / Length */}
+                          <div className="sm:col-span-2 space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              Length / Height <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              placeholder="55"
+                              value={sizeItem.height}
+                              onChange={(e) => {
+                                const updated = [...sizes];
+                                updated[idx].height = parseFloat(e.target.value) || 0;
+                                setValue('sizes', updated, { shouldDirty: true });
+                              }}
+                              className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-bold"
+                            />
+                          </div>
+
+                          {/* Unit Type */}
+                          <div className="sm:col-span-2 space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              Unit
+                            </Label>
+                            <Select
+                              value={sizeItem.unit || 'mm'}
+                              onValueChange={(val) => {
+                                const updated = [...sizes];
+                                updated[idx].unit = val as any;
+                                setValue('sizes', updated, { shouldDirty: true });
+                              }}
+                            >
+                              <SelectTrigger className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-semibold">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="mm">mm</SelectItem>
+                                <SelectItem value="inch">inch</SelectItem>
+                                <SelectItem value="ft">ft</SelectItem>
+                                <SelectItem value="cm">cm</SelectItem>
+                                <SelectItem value="px">px</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Price Adjustment */}
+                          <div className="sm:col-span-2 space-y-1.5">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              Price Adj. (₹)
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0"
+                                value={sizeItem.priceAdjustment ?? 0}
+                                onChange={(e) => {
+                                  const updated = [...sizes];
+                                  updated[idx].priceAdjustment = parseFloat(e.target.value) || 0;
+                                  setValue('sizes', updated, { shouldDirty: true });
+                                }}
+                                className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-bold pl-7"
+                              />
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
+                          <span>
+                            Size: <span className="font-bold text-slate-700 dark:text-slate-300">{sizeItem.width} × {sizeItem.height} {sizeItem.unit || 'mm'}</span>
+                          </span>
+                          <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                            {Number(sizeItem.priceAdjustment || 0) > 0 ? `+₹${sizeItem.priceAdjustment} per unit` : Number(sizeItem.priceAdjustment || 0) < 0 ? `-₹${Math.abs(sizeItem.priceAdjustment)} per unit` : 'Standard Base Rate (No extra charge)'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 6. Downloadable Sample & Guideline Files Card */}
             <Card className="border border-slate-200/80 dark:border-slate-800/80 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4 bg-slate-50/50 dark:bg-slate-950/50 flex flex-row items-center justify-between">
                 <div className="space-y-1">

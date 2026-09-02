@@ -229,9 +229,9 @@ export default async function ClientOrderDetailsPage({ params }: { params: { ord
                                             </span>
                                         </div>
                                         <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                                            <span className="text-[9px] text-slate-400 font-bold uppercase block">Dimensions</span>
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase block">Product Size</span>
                                             <span className="text-xs font-black text-slate-900 dark:text-white">
-                                                {order.design?.width || order.designUpload?.width || order.subProduct?.width || 'Custom'} × {order.design?.height || order.designUpload?.height || order.subProduct?.height || 'Custom'} mm
+                                                {order.selectedSize || parsedCustomisation?.selectedSize || `${order.design?.width || order.designUpload?.width || order.subProduct?.width || 'Custom'} × ${order.design?.height || order.designUpload?.height || order.subProduct?.height || 'Custom'} mm`}
                                             </span>
                                         </div>
                                         {parsedCustomisation?.spotUv && (

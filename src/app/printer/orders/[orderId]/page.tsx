@@ -276,7 +276,9 @@ export default async function PrinterOrderDetailPage({ params }: { params: { ord
                             <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
                                 <div>
                                     <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight">{productName}</h3>
-                                    <p className="text-primary font-bold text-[10px] uppercase">{subProductName}</p>
+                                    <p className="text-primary font-bold text-[10px] uppercase">
+                                        {order.selectedSize ? `${subProductName} • Size: ${order.selectedSize}` : subProductName}
+                                    </p>
                                 </div>
                                 <div className="text-right">
                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Batch Quantity</span>
@@ -287,7 +289,7 @@ export default async function PrinterOrderDetailPage({ params }: { params: { ord
                             {/* Options Checklist */}
                             {(() => {
                                 const pagesStr = parsedCustomisation?.pages === 2 || parsedCustomisation?.pages === '2' ? 'Double Sided' : 'Single Sided';
-                                const dimensions = `${order.design?.width || order.designUpload?.width || 'Custom'} x ${order.design?.height || order.designUpload?.height || 'Custom'} mm`;
+                                const dimensions = order.selectedSize || parsedCustomisation?.selectedSize || `${order.design?.width || order.designUpload?.width || 'Custom'} x ${order.design?.height || order.designUpload?.height || 'Custom'} mm`;
                                 const spotUv = parsedCustomisation?.spotUv ? 'Yes, Included' : 'No';
                                 const dieCut = parsedCustomisation?.dieCut ? `Custom Die Cut (#${parsedCustomisation.dieCut})` : 'Standard Rectangle';
                                 const lamination = parsedCustomisation?.lamination || 'None';
@@ -300,7 +302,7 @@ export default async function PrinterOrderDetailPage({ params }: { params: { ord
                                             <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">{pagesStr}</span>
                                         </div>
                                         <div className="flex flex-col gap-0.5 p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">
-                                            <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Dimensions</span>
+                                            <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Product Size / Dimensions</span>
                                             <span className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">{dimensions}</span>
                                         </div>
                                         <div className="flex flex-col gap-0.5 p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50">

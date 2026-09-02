@@ -20,6 +20,9 @@ type DesignPageProps = {
     quantity?: string;
     width?: string;
     height?: string;
+    unit?: string;
+    sizeId?: string;
+    selectedSize?: string;
     templateId?: string;
     subProductId?: string;
     contestId?: string;
@@ -50,30 +53,62 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
   }
 
   let subProductForDims = null;
-  // If a specific sub-product is requested (e.g., from a contest), use it.
+  // If a specific sub-product is requested, use it.
   if (searchParams.subProductId) {
     subProductForDims = await db.query.subProducts.findFirst({
       where: eq(subProducts.id, Number(searchParams.subProductId))
     });
-  } else {
-    // Otherwise, use the first available sub-product for this product as a default.
+  }
+  if (!subProductForDims) {
+    // Otherwise, use the first active sub-product for this product as default.
     subProductForDims = await db.query.subProducts.findFirst({
+      where: and(eq(subProducts.productId, productData.id), eq(subProducts.isActive, true)),
+      orderBy: [asc(subProducts.id)],
+    }) || await db.query.subProducts.findFirst({
       where: eq(subProducts.productId, productData.id),
       orderBy: [asc(subProducts.id)],
     });
   }
 
+  // Resolve Size Variant (from sizes JSONB) if applicable
+  let sizeVariant: any = null;
+  if (subProductForDims && Array.isArray(subProductForDims.sizes)) {
+    if (searchParams.sizeId) {
+      sizeVariant = subProductForDims.sizes.find((s: any) => s.id === searchParams.sizeId);
+    }
+    if (!sizeVariant && searchParams.selectedSize) {
+      sizeVariant = subProductForDims.sizes.find((s: any) => s.name === searchParams.selectedSize);
+    }
+    if (!sizeVariant && searchParams.width && searchParams.height) {
+      sizeVariant = subProductForDims.sizes.find((s: any) => 
+        Number(s.width) === Number(searchParams.width) && Number(s.height) === Number(searchParams.height)
+      );
+    }
+  }
+
   // Determine unit conversion factor
-  const unitType = subProductForDims?.unitType || 'mm';
+  const unitType = searchParams.unit || sizeVariant?.unit || subProductForDims?.unitType || 'mm';
   let unitToPx = MM_TO_PX;
   if (unitType === 'inch') unitToPx = DPI;
   else if (unitType === 'ft') unitToPx = DPI * 12;
+  else if (unitType === 'cm') unitToPx = (DPI / 25.4) * 10;
+  else if (unitType === 'px') unitToPx = 1;
 
-  // Use explicit width/height from URL if provided, otherwise use sub-product dimensions, or fallback to a default.
-  let finalWidthUnits = searchParams.width ? Number(searchParams.width) : (subProductForDims ? Number(subProductForDims.width) : 85);
-  let finalHeightUnits = searchParams.height ? Number(searchParams.height) : (subProductForDims ? Number(subProductForDims.height) : 55);
+  // Prioritize sizeVariant dimensions, then explicit URL width/height, then subProduct defaults
+  let finalWidthUnits = 85;
+  let finalHeightUnits = 55;
 
-  // If sub-product is 0x0 (custom) and no URL params provided, use a default starting size
+  if (sizeVariant) {
+    finalWidthUnits = Number(sizeVariant.width);
+    finalHeightUnits = Number(sizeVariant.height);
+  } else if (searchParams.width && searchParams.height) {
+    finalWidthUnits = Number(searchParams.width);
+    finalHeightUnits = Number(searchParams.height);
+  } else if (subProductForDims && Number(subProductForDims.width) > 0 && Number(subProductForDims.height) > 0) {
+    finalWidthUnits = Number(subProductForDims.width);
+    finalHeightUnits = Number(subProductForDims.height);
+  }
+
   if (finalWidthUnits === 0) finalWidthUnits = 85;
   if (finalHeightUnits === 0) finalHeightUnits = 55;
 
@@ -83,7 +118,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
   // The DesignEditor component expects a `Product` type from `@/lib/types`.
   const productForEditor: Product & { price?: string } = {
     id: productData.slug,
-    name: productData.name,
+    name: searchParams.selectedSize ? `${productData.name} - ${searchParams.selectedSize}` : productData.name,
     description: productData.description || '',
     imageId: '',
     width: finalWidth,
@@ -91,6 +126,7 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
     type: productData.category || productData.name,
     productId: productData.id,
     subProductId: subProductForDims?.id,
+    subProductName: searchParams.selectedSize ? `${subProductForDims?.name || ''} (${searchParams.selectedSize})` : subProductForDims?.name,
     backSideCost: subProductForDims?.backSideCost,
     dieCutPrices: subProductForDims?.dieCutPrices,
     cardTexturePrices: subProductForDims?.cardTexturePrices,
@@ -179,8 +215,13 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
       totalPages = 1;
     }
 
-    productForEditor.width = Math.round(template.width * unitToPx);
-    productForEditor.height = Math.round(template.height * unitToPx);
+    if (!searchParams.width && !searchParams.height && template.width && template.height) {
+      productForEditor.width = template.width > 200 ? template.width : Math.round(template.width * unitToPx);
+      productForEditor.height = template.height > 200 ? template.height : Math.round(template.height * unitToPx);
+    } else {
+      productForEditor.width = finalWidth;
+      productForEditor.height = finalHeight;
+    }
 
     // Check if the current user is the assigned freelancer for this verification
     let isAssignedFreelancer = false;

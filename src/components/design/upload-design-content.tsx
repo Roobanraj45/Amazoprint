@@ -356,7 +356,13 @@ export function UploadDesignContent() {
         if (contestId && contestId !== 'null') formData.append('contestId', contestId);
 
         const customisation = {
-            sizeDisplay,
+            selectedSize: searchParams.get('selectedSize') || sizeDisplay,
+            size: searchParams.get('selectedSize') || sizeDisplay,
+            sizeDisplay: searchParams.get('selectedSize') || sizeDisplay,
+            sizeId: searchParams.get('sizeId') || null,
+            width: searchParams.get('width') || customWidth,
+            height: searchParams.get('height') || customHeight,
+            unit: searchParams.get('unit') || 'mm',
             customWidth,
             customHeight,
             pages,

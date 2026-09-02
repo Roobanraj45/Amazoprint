@@ -286,12 +286,12 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                             </div>
 
                                             <div className="flex flex-col gap-0.5 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/80">
-                                                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Dimensions</span>
-                                                <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] uppercase">
-                                                     {parsedCustomisation?.sizeDisplay || (
+                                                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Product Size / Dimensions</span>
+                                                <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
+                                                     {order.selectedSize || parsedCustomisation?.selectedSize || parsedCustomisation?.sizeDisplay || (
                                                          order.design?.width || order.designUpload?.width 
                                                              ? `${order.design?.width || order.designUpload?.width} x ${order.design?.height || order.designUpload?.height} mm` 
-                                                             : 'Standard'
+                                                             : 'Standard Size'
                                                      )}
                                                 </span>
                                             </div>

@@ -954,7 +954,11 @@ function OrderCard({
     } catch { }
 
     const pages = parsedCustomisation?.pages === 2 || parsedCustomisation?.pages === '2' ? 'Double Sided' : 'Single Sided';
-    const dimensions = `${order.design?.width || order.designUpload?.width || 'N/A'} × ${order.design?.height || order.designUpload?.height || 'N/A'} mm`;
+    const dimensions = order.selectedSize || parsedCustomisation?.selectedSize || (
+        order.design?.width || order.designUpload?.width 
+            ? `${order.design?.width || order.designUpload?.width} × ${order.design?.height || order.designUpload?.height} mm` 
+            : 'Standard Size'
+    );
     const spotUv = parsedCustomisation?.spotUv ? 'Yes' : 'No';
     const foil = parsedCustomisation?.foilName || parsedCustomisation?.foil || (parsedCustomisation?.foilId ? `Foil #${parsedCustomisation.foilId}` : 'None');
     const dieCut = parsedCustomisation?.dieCut ? `Shape #${parsedCustomisation.dieCut}` : 'Standard';
@@ -1043,6 +1047,11 @@ function OrderCard({
                             <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-black text-[10px] border border-indigo-500/10">
                                 <Layers className="h-3 w-3" /> {order.quantity} pcs
                             </span>
+                            {(order.selectedSize || parsedCustomisation?.selectedSize) && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-600 dark:text-violet-400 font-black text-[10px] border border-violet-500/10">
+                                    <Package className="h-3 w-3" /> {order.selectedSize || parsedCustomisation?.selectedSize}
+                                </span>
+                            )}
                             <span className="flex items-center gap-1">
                                 <CalendarDays className="h-3 w-3" />
                                 {format(new Date(order.createdAt), 'dd MMM yyyy, h:mm a')}

@@ -176,7 +176,7 @@ function DesignEditorInternal({
   const [showPrintGuidelines, setShowPrintGuidelines] = useState(true);
   const [bleed, setBleed] = useState(18);
   const [safetyMargin, setSafetyMargin] = useState(18);
-  const [canvasUnit, setCanvasUnit] = useState<'mm' | 'inch' | 'ft'>('mm');
+  const [canvasUnit, setCanvasUnit] = useState<'mm' | 'inch' | 'ft'>((searchParams.get('unit') as any) || 'mm');
 
   const mainCanvasRef = useRef<HTMLDivElement>(null);
 
@@ -642,7 +642,10 @@ function DesignEditorInternal({
   }, [editorCanvasWidth, editorCanvasHeight, showRulers]);
 
   useEffect(() => {
-    resetView();
+    const timer = setTimeout(() => {
+      resetView();
+    }, 100);
+    return () => clearTimeout(timer);
   }, [resetView, product.width, product.height]);
 
 
@@ -1574,16 +1577,35 @@ function DesignEditorInternal({
     }
   };
 
+  const getCustomisationPayload = () => {
+    const selectedSize = searchParams.get('selectedSize') || (initialDesign as any)?.customisation?.selectedSize || (initialDesign as any)?.customisation?.sizeDisplay || (product as any)?.subProductName || 'Standard Size';
+    const sizeId = searchParams.get('sizeId') || (initialDesign as any)?.customisation?.sizeId || null;
+    const widthInUnits = searchParams.get('width') || String(Math.round(product.width * PX_TO_MM));
+    const heightInUnits = searchParams.get('height') || String(Math.round(product.height * PX_TO_MM));
+    const unit = searchParams.get('unit') || canvasUnit || 'mm';
+
+    return JSON.parse(JSON.stringify({
+      selectedSize,
+      size: selectedSize,
+      sizeDisplay: selectedSize,
+      sizeId,
+      width: widthInUnits,
+      height: heightInUnits,
+      unit,
+      spotUv: initialSpotUv,
+      addons: initialSelectedAddons,
+      dieCut: initialSelectedDie,
+      cardTexture: initialSelectedTexture,
+      deliveryOption: deliveryOption || null,
+      priceBreakup: calculatedPrice,
+      pricing: calculatedPrice,
+      pages: totalPages
+    }));
+  };
+
   const executeSaveFlow = async (designName: string) => {
     setIsSaving(true);
-    const customisation = JSON.parse(JSON.stringify({
-        spotUv: initialSpotUv,
-        addons: initialSelectedAddons,
-        dieCut: initialSelectedDie,
-        deliveryOption: deliveryOption || null,
-        priceBreakup: calculatedPrice,
-        pages: totalPages
-    }));
+    const customisation = getCustomisationPayload();
 
     let thumbnailUrl: string | null = null;
     try {
@@ -1642,14 +1664,7 @@ function DesignEditorInternal({
     }
 
     try {
-      const customisation = JSON.parse(JSON.stringify({
-        spotUv: initialSpotUv,
-        addons: initialSelectedAddons,
-        dieCut: initialSelectedDie,
-        deliveryOption: deliveryOption || null,
-        priceBreakup: calculatedPrice,
-        pages: totalPages
-      }));
+      const customisation = getCustomisationPayload();
 
       const saveData = {
         name: designName,
@@ -1704,13 +1719,7 @@ function DesignEditorInternal({
 
     if (currentDesignId && currentDesignName) {
       setIsSaving(true);
-      const customisation = JSON.parse(JSON.stringify({
-          spotUv: initialSpotUv,
-          addons: initialSelectedAddons,
-          dieCut: initialSelectedDie,
-          priceBreakup: calculatedPrice,
-          pages: totalPages
-      }));
+      const customisation = getCustomisationPayload();
 
       let thumbnailUrl: string | null = null;
       try {
@@ -1796,13 +1805,7 @@ function DesignEditorInternal({
       }
 
       try {
-        const customisation = JSON.parse(JSON.stringify({
-            spotUv: initialSpotUv,
-            addons: initialSelectedAddons,
-            dieCut: initialSelectedDie,
-            priceBreakup: calculatedPrice,
-            pages: totalPages
-        }));
+        const customisation = getCustomisationPayload();
 
         const saveData = {
             productSlug: product.id,

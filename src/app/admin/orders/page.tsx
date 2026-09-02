@@ -508,6 +508,11 @@ export default function AdminOrdersPage() {
                                                 <p className="font-semibold text-xs text-slate-800 dark:text-zinc-200 truncate" title={order.directSellingProduct?.name || order.product?.name || undefined}>
                                                     {order.directSellingProduct?.name || order.product?.name || 'N/A'}
                                                 </p>
+                                                {order.selectedSize && (
+                                                    <span className="inline-block text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800 mt-0.5">
+                                                        Size: {order.selectedSize}
+                                                    </span>
+                                                )}
                                                 {(() => {
                                                     const dvs = (order as any).designVerifications || [];
                                                     const active = dvs.find((v: any) => v.status === 'assigned' || v.status === 'pending');

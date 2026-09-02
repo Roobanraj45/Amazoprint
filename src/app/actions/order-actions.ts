@@ -69,15 +69,15 @@ export async function createOrder(data: CreateOrderData) {
 
     if (!sourceDetails) throw new Error('The selected design or upload could not be found.');
 
-    const productId = designId ? (await getProductBySlug(sourceDetails.productSlug))?.id : sourceDetails.product?.id;
-    const subProductId = designId ? (await getSubProductFromDesign(sourceDetails)) : sourceDetails.subProduct?.id;
+    const product = designId ? (await getProductForDesign(sourceDetails)) : sourceDetails.product;
+    const subProductInfo = designId ? (await getSubProductForDesign(sourceDetails)) : sourceDetails.subProduct;
 
-    if (!productId || !subProductId) {
-        throw new Error('Could not determine product information for this order.');
+    if (!product || !subProductInfo || !subProductInfo.price) {
+        throw new Error('Could not determine product pricing and specifications for this order.');
     }
 
-    const subProductInfo = await db.query.subProducts.findFirst({ where: eq(subProducts.id, subProductId) });
-    if (!subProductInfo || !subProductInfo.price) throw new Error('Could not get pricing information.');
+    const productId = product.id;
+    const subProductId = subProductInfo.id;
 
     let totalAmount = 0;
     let unitPrice = 0;
@@ -200,6 +200,47 @@ export async function createOrder(data: CreateOrderData) {
     estDate.setDate(estDate.getDate() + daysToAdd);
     const estimatedDeliveryDate = estDate.toISOString().split('T')[0];
 
+    // Determine the selected size
+    let finalSelectedSize: string = (customisation as any)?.selectedSize || (customisation as any)?.size || (customisation as any)?.sizeDisplay || '';
+
+    // 1. If sizeId is provided in customisation, look it up in subProductInfo.sizes
+    if (!finalSelectedSize && (customisation as any)?.sizeId && Array.isArray((subProductInfo as any)?.sizes)) {
+        const found = (subProductInfo as any).sizes.find((s: any) => s.id === (customisation as any).sizeId);
+        if (found) {
+            finalSelectedSize = found.name || `${found.width} × ${found.height} ${found.unit || 'mm'}`;
+        }
+    }
+
+    // 2. If dimensions exist in customisation or design source, look up matching size variant
+    const checkWidth = (customisation as any)?.width || (sourceDetails as any)?.width;
+    const checkHeight = (customisation as any)?.height || (sourceDetails as any)?.height;
+    if (!finalSelectedSize && checkWidth && checkHeight && Array.isArray((subProductInfo as any)?.sizes)) {
+        const found = (subProductInfo as any).sizes.find((s: any) => 
+            Number(s.width) === Number(checkWidth) && 
+            Number(s.height) === Number(checkHeight)
+        );
+        if (found) {
+            finalSelectedSize = found.name || `${found.width} × ${found.height} ${found.unit || 'mm'}`;
+        } else {
+            finalSelectedSize = `${checkWidth} × ${checkHeight} ${subProductInfo.unitType || 'mm'}`;
+        }
+    }
+
+    // 3. Fallback to active default size or base subProduct dimensions
+    if (!finalSelectedSize) {
+        const activeSizes = Array.isArray((subProductInfo as any)?.sizes) 
+            ? (subProductInfo as any).sizes.filter((s: any) => s.isActive) 
+            : [];
+        if (activeSizes.length > 0) {
+            const defSize = activeSizes.find((s: any) => s.isDefault) || activeSizes[0];
+            finalSelectedSize = defSize.name || `Standard Size (${defSize.width} × ${defSize.height} ${defSize.unit || 'mm'})`;
+        } else if (subProductInfo?.width && subProductInfo?.height) {
+            finalSelectedSize = `Standard Size (${subProductInfo.width} × ${subProductInfo.height} ${subProductInfo.unitType || 'mm'})`;
+        } else {
+            finalSelectedSize = 'Standard Size';
+        }
+    }
+
     const result = await db.insert(orders).values({
         userId: session.sub,
         productId,
@@ -216,7 +257,11 @@ export async function createOrder(data: CreateOrderData) {
         orderStatus: 'confirmed',
         estimatedDeliveryDate: estimatedDeliveryDate as any,
         paymentId,
-        customisation,
+        selectedSize: finalSelectedSize,
+        customisation: {
+            ...customisation,
+            selectedSize: finalSelectedSize,
+        },
     }).returning();
 
     const newOrder = result[0];
@@ -237,22 +282,73 @@ export async function createOrder(data: CreateOrderData) {
     return newOrder;
 }
 
-async function getProductBySlug(slug: string) {
-    return await db.query.products.findFirst({ where: eq(products.slug, slug) });
+async function getProductForDesign(design: { productSlug?: string | null; productId?: number | null }) {
+    if (design.productId) {
+        const p = await db.query.products.findFirst({ where: eq(products.id, design.productId) });
+        if (p) return p;
+    }
+    if (design.productSlug) {
+        const p = await db.query.products.findFirst({ where: eq(products.slug, design.productSlug) });
+        if (p) return p;
+    }
+    return null;
 }
 
-async function getSubProductFromDesign(design: { width: number, height: number, productSlug: string }) {
-    const productInfo = await getProductBySlug(design.productSlug);
+async function getSubProductForDesign(design: { 
+    subProductId?: number | null; 
+    productId?: number | null; 
+    productSlug?: string | null; 
+    width?: number | null; 
+    height?: number | null;
+    customisation?: any;
+}) {
+    // 1. Direct subProductId link
+    if (design.subProductId) {
+        const sp = await db.query.subProducts.findFirst({ where: eq(subProducts.id, design.subProductId) });
+        if (sp) return sp;
+    }
+
+    // 2. Resolve parent product
+    const productInfo = await getProductForDesign(design);
     if (!productInfo) return null;
 
-    const matchingSubProduct = await db.query.subProducts.findFirst({
-        where: and(
-            eq(subProducts.productId, productInfo.id),
-            eq(subProducts.width, String(design.width)),
-            eq(subProducts.height, String(design.height))
-        )
+    // 3. Fetch all sub-products of this product
+    const allSubProducts = await db.query.subProducts.findMany({
+        where: eq(subProducts.productId, productInfo.id)
     });
-    return matchingSubProduct?.id;
+    if (allSubProducts.length === 0) return null;
+
+    // 4. Check if exact dimensions match base sub-product
+    if (design.width && design.height) {
+        const byBaseDim = allSubProducts.find(s => 
+            Number(s.width) === Number(design.width) && Number(s.height) === Number(design.height)
+        );
+        if (byBaseDim) return byBaseDim;
+    }
+
+    // 5. Check if size variants inside sub-products match dimensions or name
+    let customisationObj: any = design.customisation;
+    if (typeof customisationObj === 'string') {
+        try { customisationObj = JSON.parse(customisationObj); } catch {}
+    }
+    const selectedSizeName = customisationObj?.selectedSize || customisationObj?.size;
+    const selectedSizeId = customisationObj?.sizeId;
+
+    for (const sp of allSubProducts) {
+        if (Array.isArray(sp.sizes)) {
+            const match = sp.sizes.find((sz: any) => {
+                if (selectedSizeId && sz.id === selectedSizeId) return true;
+                if (selectedSizeName && sz.name === selectedSizeName) return true;
+                if (design.width && design.height && Number(sz.width) === Number(design.width) && Number(sz.height) === Number(design.height)) return true;
+                return false;
+            });
+            if (match) return sp;
+        }
+    }
+
+    // 6. Fallback: First active sub-product, or first sub-product
+    const activeSubProduct = allSubProducts.find(s => s.isActive) || allSubProducts[0];
+    return activeSubProduct || null;
 }
 
 export async function getCheckoutDetails(params: { designId?: string, uploadId?: string, quantity: string }) {
@@ -276,9 +372,8 @@ export async function getCheckoutDetails(params: { designId?: string, uploadId?:
         });
         if (!design) throw new Error('Design not found or you do not own it.');
 
-        const product = await getProductBySlug(design.productSlug);
-        const subProductId = await getSubProductFromDesign(design);
-        const subProduct = subProductId ? await db.query.subProducts.findFirst({ where: eq(subProducts.id, subProductId) }) : null;
+        const product = await getProductForDesign(design);
+        const subProduct = await getSubProductForDesign(design);
         if (!product || !subProduct) throw new Error("Could not find product details for this design.");
 
         details = { product, subProduct, design, quantity };
