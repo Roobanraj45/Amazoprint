@@ -63,40 +63,15 @@ const CATEGORY_ASSETS: Record<string, { emoji: string, bg: string, label: string
 };
 
 function ProductCardImage({ src, alt }: { src: string; alt: string }) {
-    const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
-    const [isHovered, setIsHovered] = useState(false);
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) return;
-        const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-        const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-        setMousePos({ x, y });
-    };
-
     return (
-        <div
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => { setIsHovered(false); setMousePos({ x: 50, y: 50 }); }}
-            className="relative w-full h-full overflow-hidden"
-        >
-            <div
-                className="relative w-full h-full will-change-transform"
-                style={{
-                    transform: isHovered ? 'scale(1.45)' : 'scale(1)',
-                    transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
-                    transition: isHovered ? 'transform 0.08s ease-out' : 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform-origin 0.4s ease',
-                }}
-            >
-                <Image
-                    src={src}
-                    alt={alt}
-                    fill
-                    className="object-cover pointer-events-none"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                />
-            </div>
+        <div className="relative w-full h-full overflow-hidden">
+            <Image
+                src={src}
+                alt={alt}
+                fill
+                className="object-cover pointer-events-none"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+            />
         </div>
     );
 }
@@ -375,7 +350,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                     src={resolvedImg} 
                                                     alt={category} 
                                                     fill 
-                                                    className="object-contain p-1.5 transition-transform duration-500 group-hover:scale-110"
+                                                    className="object-contain p-1.5"
                                                     sizes="(max-width: 768px) 80px, 96px"
                                                 />
                                             </div>
@@ -539,7 +514,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                     alt={item.name}
                                                                 />
                                                             ) : (
-                                                                <div className="flex items-center justify-center h-full"><Palette className="h-16 w-16 text-muted-foreground/20 group-hover:scale-105 transition-transform duration-700" /></div>
+                                                                <div className="flex items-center justify-center h-full"><Palette className="h-16 w-16 text-muted-foreground/20" /></div>
                                                             )}
                                                             
                                                             {/* Floating Badges */}
@@ -625,7 +600,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                     alt={item.name}
                                                                 />
                                                             ) : (
-                                                                <div className="flex items-center justify-center h-full"><Package2 className="h-16 w-16 text-muted-foreground/20 group-hover:scale-105 transition-transform duration-700" /></div>
+                                                                <div className="flex items-center justify-center h-full"><Package2 className="h-16 w-16 text-muted-foreground/20" /></div>
                                                             )}
                                                             
                                                             {/* Floating Badges */}

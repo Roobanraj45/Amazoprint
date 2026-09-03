@@ -22,15 +22,20 @@ async function run() {
     
     try {
         const sql = neon(databaseUrl);
-        log("Querying database tables...");
+        log("Adding price_slabs column to sub_products...");
+        await sql(`
+            ALTER TABLE sub_products 
+            ADD COLUMN IF NOT EXISTS price_slabs JSONB DEFAULT '[]'::jsonb;
+        `);
+        log("Checking column existence...");
         const result = await sql`
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public'
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'sub_products' AND column_name = 'price_slabs';
         `;
-        log("Tables in database: " + JSON.stringify(result.map(r => r.table_name)));
+        log("Column details: " + JSON.stringify(result));
     } catch (err) {
-        log("Error querying db: " + err.message + "\n" + err.stack);
+        log("Error: " + err.message + "\n" + err.stack);
     }
     
     fs.writeFileSync(path.join(__dirname, 'output.txt'), output);

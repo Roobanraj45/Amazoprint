@@ -257,6 +257,12 @@ export const subProducts = pgTable('sub_products', {
     isDefault?: boolean;
     isActive: boolean;
   }>>().default([]),
+  priceSlabs: jsonb('price_slabs').$type<Array<{
+    id: string;
+    quantity: number;
+    price: number;
+    isActive?: boolean;
+  }>>().default([]),
 }, (table) => {
   return {
     productIdx: index('idx_sub_products_product').on(table.productId),
@@ -615,6 +621,9 @@ export const directSellingProducts = pgTable('direct_selling_products', {
   supplierInfo: jsonb('supplier_info'),
   shippingInfo: jsonb('shipping_info'),
   sizes: jsonb('sizes'),
+  taxSlabs: jsonb('tax_slabs').$type<Array<{ id: string; name: string; rate: number; type?: 'percentage' | 'fixed'; isInclusive?: boolean; isActive?: boolean }>>().default([]),
+  priceSlabs: jsonb('price_slabs').$type<Array<{ id: string; quantity: number; price: number; isActive?: boolean }>>().default([]),
+  hsnCode: varchar('hsn_code', { length: 50 }),
   textAllowed: boolean('text_allowed').default(false),
   addedBy: varchar('added_by', { length: 20, enum: ['admin', 'printer'] }).default('admin'),
   printerId: uuid('printer_id').references(() => printPressUsers.id, { onDelete: 'set null' }),

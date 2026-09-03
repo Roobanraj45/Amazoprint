@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup } from '@/components/ui/radio-group';
-import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2, Truck, Lock, Check, ChevronLeft, ChevronRight, Search, FileText, MessageSquare, Upload, Copy, Play, Video, ExternalLink, FileDown, Download, Ruler, AlertCircle } from 'lucide-react';
+import { ArrowRight, ImagePlus, LayoutTemplate, PenSquare, Trophy, IndianRupee, Sparkles, ShieldCheck, Loader2, Layers, Square, CheckCircle2, PlusCircle, Zap, Briefcase, HelpCircle, Info, Sparkle, Circle, Hexagon, Triangle, Star, Scissors, Hash, Package2, Truck, Lock, Check, ChevronLeft, ChevronRight, Search, FileText, MessageSquare, Upload, Copy, Play, Video, ExternalLink, FileDown, Download, Ruler, AlertCircle, Coins } from 'lucide-react';
 import { getFoilTypes } from '@/app/actions/foil-actions';
 import { getDieCuts } from '@/app/actions/die-cut-actions';
 import { getCardTextures } from '@/app/actions/card-texture-actions';
@@ -108,13 +108,28 @@ export function StartDesignContent() {
     return def || availableSizes[0];
   }, [availableSizes, selectedSizeId]);
 
-  const minOrderQty = useMemo(() => {
-    return (subProduct as any)?.minOrderQuantity ? Number((subProduct as any).minOrderQuantity) : 100;
+  const activePriceSlabs = useMemo(() => {
+    if (!subProduct || !(subProduct as any).priceSlabs || !Array.isArray((subProduct as any).priceSlabs)) return [];
+    return ((subProduct as any).priceSlabs as any[])
+      .filter((s: any) => s.isActive !== false && Number(s.quantity) > 0 && Number(s.price) >= 0)
+      .sort((a: any, b: any) => Number(a.quantity) - Number(b.quantity));
   }, [subProduct]);
 
+  const minOrderQty = useMemo(() => {
+    const configuredMin = (subProduct as any)?.minOrderQuantity ? Number((subProduct as any).minOrderQuantity) : 100;
+    if (activePriceSlabs.length > 0) {
+      return Math.min(configuredMin, Number(activePriceSlabs[0].quantity));
+    }
+    return configuredMin;
+  }, [subProduct, activePriceSlabs]);
+
   const maxOrderQty = useMemo(() => {
-    return (subProduct as any)?.maxOrderQuantity ? Number((subProduct as any).maxOrderQuantity) : 10000;
-  }, [subProduct]);
+    const configuredMax = (subProduct as any)?.maxOrderQuantity ? Number((subProduct as any).maxOrderQuantity) : 10000;
+    if (activePriceSlabs.length > 0) {
+      return Math.max(configuredMax, Number(activePriceSlabs[activePriceSlabs.length - 1].quantity));
+    }
+    return configuredMax;
+  }, [subProduct, activePriceSlabs]);
 
   const parsedQty = parseInt(quantity, 10);
   const isQtyEmptyOrInvalid = !quantity || isNaN(parsedQty) || parsedQty <= 0;
@@ -129,12 +144,15 @@ export function StartDesignContent() {
     : null;
 
   const quantityPresets = useMemo(() => {
+    if (activePriceSlabs.length > 0) {
+      return activePriceSlabs.map((s: any) => Number(s.quantity));
+    }
     const list = [minOrderQty, 250, 500, 1000, 2500, 5000, maxOrderQty];
     const valid = Array.from(new Set(
       list.filter(q => q >= minOrderQty && q <= maxOrderQty)
     )).sort((a, b) => a - b);
     return valid.slice(0, 6);
-  }, [minOrderQty, maxOrderQty]);
+  }, [minOrderQty, maxOrderQty, activePriceSlabs]);
 
   useEffect(() => {
     async function fetchData() {
@@ -171,6 +189,13 @@ export function StartDesignContent() {
             const paramQty = searchParams.get('quantity');
             if (paramQty && !isNaN(parseInt(paramQty, 10))) {
                 setQuantity(paramQty);
+            } else if (Array.isArray((sp as any)?.priceSlabs) && (sp as any).priceSlabs.length > 0) {
+                const firstActive = (sp as any).priceSlabs.find((s: any) => s.isActive !== false);
+                if (firstActive) {
+                    setQuantity(String(firstActive.quantity));
+                } else if ((sp as any)?.minOrderQuantity) {
+                    setQuantity(String((sp as any).minOrderQuantity));
+                }
             } else if ((sp as any)?.minOrderQuantity) {
                 setQuantity(String((sp as any).minOrderQuantity));
             }
@@ -208,7 +233,12 @@ export function StartDesignContent() {
     if (sp.maxPages <= 1) {
         setPages('1');
     }
-    if ((sp as any)?.minOrderQuantity) {
+    if (Array.isArray((sp as any)?.priceSlabs) && (sp as any).priceSlabs.length > 0) {
+        const firstActive = (sp as any).priceSlabs.find((s: any) => s.isActive !== false);
+        if (firstActive) {
+            setQuantity(String(firstActive.quantity));
+        }
+    } else if ((sp as any)?.minOrderQuantity) {
         const curQ = parseInt(quantity, 10);
         const minQ = Number((sp as any).minOrderQuantity);
         if (isNaN(curQ) || curQ < minQ) {
@@ -283,22 +313,35 @@ export function StartDesignContent() {
     let discount = 0;
     let discountDescription: string | null = null;
 
-    const standardRule = pricingRules.find(r => !r.isDiscount && !r.isContest && !r.isVerification && qty >= (r.minQuantity || 1) && (!r.maxQuantity || qty <= r.maxQuantity));
-    if (standardRule && standardRule.unitPrice) {
-        basePrice = Number(standardRule.unitPrice);
-        finalPrice = basePrice;
-    }
+    // Check if an exact price slab matches this quantity
+    const matchingSlab = activePriceSlabs.find((s: any) => Number(s.quantity) === qty);
 
-    const discountRule = pricingRules.find(r => r.isDiscount && qty >= (r.minQuantity || 1) && (!r.maxQuantity || qty <= r.maxQuantity));
-    if (discountRule && discountRule.discountValue) {
-        if (discountRule.discountType === 'percentage') {
-            discount = basePrice * (Number(discountRule.discountValue) / 100);
-            discountDescription = `${discountRule.discountValue}% off`;
-        } else if (discountRule.discountType === 'fixed') {
-            discount = Number(discountRule.discountValue);
-            discountDescription = `₹${discountRule.discountValue} off`;
+    let baseProductTotal = 0;
+    if (matchingSlab) {
+        baseProductTotal = Number(matchingSlab.price);
+        basePrice = qty > 0 ? baseProductTotal / qty : 0;
+        finalPrice = basePrice;
+        discount = 0;
+        discountDescription = null;
+    } else {
+        const standardRule = pricingRules.find(r => !r.isDiscount && !r.isContest && !r.isVerification && qty >= (r.minQuantity || 1) && (!r.maxQuantity || qty <= r.maxQuantity));
+        if (standardRule && standardRule.unitPrice) {
+            basePrice = Number(standardRule.unitPrice);
+            finalPrice = basePrice;
         }
-        finalPrice = basePrice - discount;
+
+        const discountRule = pricingRules.find(r => r.isDiscount && qty >= (r.minQuantity || 1) && (!r.maxQuantity || qty <= r.maxQuantity));
+        if (discountRule && discountRule.discountValue) {
+            if (discountRule.discountType === 'percentage') {
+                discount = basePrice * (Number(discountRule.discountValue) / 100);
+                discountDescription = `${discountRule.discountValue}% off`;
+            } else if (discountRule.discountType === 'fixed') {
+                discount = Number(discountRule.discountValue);
+                discountDescription = `₹${discountRule.discountValue} off`;
+            }
+            finalPrice = basePrice - discount;
+        }
+        baseProductTotal = finalPrice * qty;
     }
 
     let addonTotalPerUnit = 0;
@@ -422,7 +465,7 @@ export function StartDesignContent() {
     const originalAmount = originalSubtotal + (originalSubtotal * (activeTaxes.filter((t: any) => !t.isInclusive).reduce((acc: number, t: any) => acc + Number(t.rate || 0), 0) / 100)) + deliveryFee;
 
     setCalculatedPrice({
-        basePriceTotal: basePrice * qty,
+        basePriceTotal: baseProductTotal,
         subtotal,
         original: originalAmount,
         final: finalAmount,
@@ -439,7 +482,7 @@ export function StartDesignContent() {
         },
     });
 
-  }, [quantity, subProduct, pricingRules, selectedAddons, pages, selectedDie, dieCuts, selectedTexture, cardTextures, selectedDeliveryTier, activeSize]);
+  }, [quantity, subProduct, pricingRules, selectedAddons, pages, selectedDie, dieCuts, selectedTexture, cardTextures, selectedDeliveryTier, activeSize, activePriceSlabs]);
 
   const constructedQuery = useMemo(() => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -1198,64 +1241,116 @@ export function StartDesignContent() {
                       )}
 
                       {/* 6. Select Quantity */}
-                      <div className="space-y-2.5">
+                      <div className="space-y-3">
                           <div className="flex items-center justify-between">
                               <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
                                   <span className="text-indigo-600 dark:text-indigo-400 font-bold">6.</span> Order Quantity
                               </Label>
                               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                                  Min: <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{minOrderQty.toLocaleString()}</span> • Max: <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{maxOrderQty.toLocaleString()}</span> pcs
-                              </span>
-                          </div>
-
-                          {/* Enterable Quantity Input */}
-                          <div className="relative">
-                              <Input 
-                                  type="number" 
-                                  min={minOrderQty} 
-                                  max={maxOrderQty} 
-                                  value={quantity} 
-                                  onChange={(e) => setQuantity(e.target.value)} 
-                                  placeholder={`Enter quantity (${minOrderQty} - ${maxOrderQty})`} 
-                                  className={cn(
-                                      "h-12 rounded-2xl bg-white dark:bg-slate-900 border font-bold text-base shadow-xs pl-4 pr-16 transition-all",
-                                      qtyError 
-                                          ? "border-rose-500 dark:border-rose-500 focus-visible:ring-rose-500 text-rose-600 dark:text-rose-400" 
-                                          : "border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 text-slate-900 dark:text-white"
+                                  {activePriceSlabs.length > 0 ? (
+                                      <span>Select Quantity</span>
+                                  ) : (
+                                      <span>
+                                          Min: <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{minOrderQty.toLocaleString()}</span> • Max: <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{maxOrderQty.toLocaleString()}</span> pcs
+                                      </span>
                                   )}
-                              />
-                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                                  Cards
                               </span>
                           </div>
 
-                          {/* Validation Error Banner */}
-                          {qtyError && (
-                              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-xs font-bold animate-in fade-in slide-in-from-top-1">
-                                  <AlertCircle className="w-4 h-4 shrink-0" />
-                                  <span>{qtyError}</span>
+                          {/* Price Slabs List - if defined, show exclusively without custom quantity field */}
+                          {activePriceSlabs.length > 0 ? (
+                              <div className="space-y-2.5">
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                      {activePriceSlabs.map((slab: any) => {
+                                          const isSelected = parsedQty === Number(slab.quantity);
+                                          const perCard = (Number(slab.price) / Number(slab.quantity)).toFixed(2);
+                                          return (
+                                              <button
+                                                  key={slab.id || slab.quantity}
+                                                  type="button"
+                                                  onClick={() => setQuantity(String(slab.quantity))}
+                                                  className={cn(
+                                                      "group relative flex flex-col justify-between p-3.5 rounded-2xl border transition-all text-left shadow-xs hover:shadow",
+                                                      isSelected
+                                                          ? "border-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/40 ring-2 ring-indigo-600/20 scale-[1.02]"
+                                                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                                                  )}
+                                              >
+                                                  <div className="flex items-center justify-between w-full mb-1">
+                                                      <span className={cn("text-xs font-black", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-900 dark:text-white")}>
+                                                          {Number(slab.quantity).toLocaleString()} Cards
+                                                      </span>
+                                                      {isSelected && (
+                                                          <Badge className="bg-indigo-600 text-white text-[9px] font-black px-1.5 py-0 h-4 border-none">
+                                                              Selected
+                                                          </Badge>
+                                                      )}
+                                                  </div>
+                                                  <div className="flex items-baseline justify-between w-full">
+                                                      <span className="text-sm font-black text-slate-900 dark:text-white">
+                                                          ₹{Number(slab.price).toLocaleString()}
+                                                      </span>
+                                                      <span className="text-[10px] text-muted-foreground font-semibold">
+                                                          ₹{perCard}/pc
+                                                      </span>
+                                                  </div>
+                                              </button>
+                                          );
+                                      })}
+                                  </div>
+                              </div>
+                          ) : (
+                              /* Fallback: Enterable Quantity Input when no price slabs exist */
+                              <div className="space-y-2">
+                                  <div className="relative">
+                                      <Input 
+                                          type="number" 
+                                          min={minOrderQty} 
+                                          max={maxOrderQty} 
+                                          value={quantity} 
+                                          onChange={(e) => setQuantity(e.target.value)} 
+                                          placeholder={`Enter quantity (${minOrderQty} - ${maxOrderQty})`} 
+                                          className={cn(
+                                              "h-12 rounded-2xl bg-white dark:bg-slate-900 border font-bold text-base shadow-xs pl-4 pr-16 transition-all",
+                                              qtyError 
+                                                  ? "border-rose-500 dark:border-rose-500 focus-visible:ring-rose-500 text-rose-600 dark:text-rose-400" 
+                                                  : "border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 text-slate-900 dark:text-white"
+                                          )}
+                                      />
+                                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                                          Cards
+                                      </span>
+                                  </div>
+
+                                  {/* Validation Error Banner */}
+                                  {qtyError && (
+                                      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-xs font-bold animate-in fade-in slide-in-from-top-1">
+                                          <AlertCircle className="w-4 h-4 shrink-0" />
+                                          <span>{qtyError}</span>
+                                      </div>
+                                  )}
+
+                                  {/* Quick Selection Presets */}
+                                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mr-1">Quick Select:</span>
+                                      {quantityPresets.map((qty) => (
+                                          <button
+                                              key={qty}
+                                              type="button"
+                                              onClick={() => setQuantity(String(qty))}
+                                              className={cn(
+                                                  "h-7 px-2.5 rounded-lg text-xs font-bold border transition-all shadow-xs",
+                                                  parsedQty === qty
+                                                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                                                      : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-400"
+                                              )}
+                                          >
+                                              {qty.toLocaleString()}
+                                          </button>
+                                      ))}
+                                  </div>
                               </div>
                           )}
-
-                          {/* Quick Selection Presets */}
-                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mr-1">Quick Select:</span>
-                              {quantityPresets.map((qty) => (
-                                  <button
-                                      key={qty}
-                                      type="button"
-                                      onClick={() => setQuantity(String(qty))}
-                                      className={cn(
-                                          "h-7 px-2.5 rounded-lg text-xs font-bold border transition-all shadow-xs",
-                                          parsedQty === qty
-                                              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                                              : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-400"
-                                      )}
-                                  >
-                                      {qty.toLocaleString()}
-                                  </button>
-                              ))}
-                          </div>
                       </div>
 
                       {/* 7. Choose Delivery & Shipping Speed */}
@@ -1364,7 +1459,9 @@ export function StartDesignContent() {
                               <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price Breakdown</p>
                               <div className="space-y-2 text-xs font-medium text-slate-600 dark:text-slate-400">
                                   <div className="flex justify-between items-center py-1">
-                                      <span>Base Product ({quantity} Cards)</span>
+                                      <span>
+                                          Base Product ({quantity} Cards)
+                                      </span>
                                       <span className="font-bold text-slate-900 dark:text-white">
                                           ₹{(calculatedPrice.basePriceTotal ?? calculatedPrice.original ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                       </span>

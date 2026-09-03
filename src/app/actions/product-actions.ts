@@ -56,6 +56,13 @@ const sizeVariantSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+const priceSlabSchema = z.object({
+  id: z.string().default(() => Math.random().toString(36).substring(2, 9)),
+  quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+  price: z.coerce.number().min(0, 'Price must be non-negative'),
+  isActive: z.boolean().default(true),
+});
+
 const subProductSchema = z.object({
   productId: z.number(),
   name: z.string().min(1, 'Name is required'),
@@ -89,6 +96,7 @@ const subProductSchema = z.object({
   deliveryTiers: z.array(deliveryTierSchema).optional().default([]),
   taxSlabs: z.array(taxSlabSchema).optional().default([]),
   sizes: z.array(sizeVariantSchema).optional().default([]),
+  priceSlabs: z.array(priceSlabSchema).optional().default([]),
 });
 
 export async function getProducts() {
@@ -180,6 +188,7 @@ export async function createSubProduct(data: z.infer<typeof subProductSchema>) {
     sampleFiles: validated.sampleFiles || [],
     taxSlabs: validated.taxSlabs || [],
     sizes: validated.sizes || [],
+    priceSlabs: validated.priceSlabs || [],
     dieCutPrices: validated.dieCutPrices || {},
     cardTexturePrices: validated.cardTexturePrices || {},
   }).returning();
@@ -199,6 +208,7 @@ export async function updateSubProduct(id: number, data: Omit<z.infer<typeof sub
             sampleFiles: validated.sampleFiles || [],
             taxSlabs: validated.taxSlabs || [],
             sizes: validated.sizes || [],
+            priceSlabs: validated.priceSlabs || [],
             dieCutPrices: validated.dieCutPrices || {},
             cardTexturePrices: validated.cardTexturePrices || {},
             updatedAt: new Date() 

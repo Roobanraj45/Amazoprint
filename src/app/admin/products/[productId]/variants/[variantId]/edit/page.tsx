@@ -101,6 +101,13 @@ const sizeVariantSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+const priceSlabSchema = z.object({
+  id: z.string(),
+  quantity: z.coerce.number().min(1, 'Quantity is required'),
+  price: z.coerce.number().min(0, 'Price must be non-negative'),
+  isActive: z.boolean().default(true),
+});
+
 const subProductSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   sku: z.string().optional(),
@@ -133,6 +140,7 @@ const subProductSchema = z.object({
   deliveryTiers: z.array(deliveryTierSchema).optional().default([]),
   taxSlabs: z.array(taxSlabSchema).optional().default([]),
   sizes: z.array(sizeVariantSchema).optional().default([]),
+  priceSlabs: z.array(priceSlabSchema).optional().default([]),
 });
 
 type SubProductFormData = z.infer<typeof subProductSchema>;
@@ -197,6 +205,7 @@ export default function EditVariantPage() {
       deliveryAmount: 0,
       deliveryTiers: [],
       sizes: [],
+      priceSlabs: [],
     },
   });
 
@@ -210,6 +219,7 @@ export default function EditVariantPage() {
   const sampleFiles = watch('sampleFiles') || [];
   const taxSlabs = watch('taxSlabs') || [];
   const sizes = watch('sizes') || [];
+  const priceSlabs = watch('priceSlabs') || [];
   const unitType = watch('unitType') || 'mm';
   const width = watch('width') || 0;
   const height = watch('height') || 0;
@@ -313,6 +323,7 @@ export default function EditVariantPage() {
         deliveryTiers: (variant as any).deliveryTiers || [],
         taxSlabs: (variant as any).taxSlabs || [],
         sizes: (variant as any).sizes || [],
+        priceSlabs: (variant as any).priceSlabs || [],
       });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error Loading Variant', description: error.message });
@@ -355,6 +366,7 @@ export default function EditVariantPage() {
         dieCutPrices: watch('dieCutPrices') || {},
         cardTexturePrices: watch('cardTexturePrices') || {},
         deliveryTiers: watch('deliveryTiers') || [],
+        priceSlabs: watch('priceSlabs') || [],
       });
       toast({
         title: 'Variant Updated',
@@ -448,7 +460,7 @@ export default function EditVariantPage() {
         </div>
 
         {/* Top Quick Status & KPI Highlight Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/80">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/80">
           <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 space-y-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Base Unit Price</span>
             <div className="flex items-baseline gap-1">
@@ -456,6 +468,18 @@ export default function EditVariantPage() {
                 ₹{watchPrice ? Number(watchPrice).toFixed(2) : '0.00'}
               </span>
               <span className="text-[10px] font-semibold text-slate-400">/ piece</span>
+            </div>
+          </div>
+
+          <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 space-y-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Price Slabs</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-lg font-black text-amber-600 dark:text-amber-400">
+                {priceSlabs.filter((s: any) => s.isActive).length} Active
+              </span>
+              <span className="text-[10px] font-bold text-slate-400">
+                Slabs
+              </span>
             </div>
           </div>
 
@@ -516,7 +540,7 @@ export default function EditVariantPage() {
         {/* ═══ SECTION 1: TOP PRIORITY — SIZES & CORE ECONOMICS ═══ */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* LEFT: Core Identity & Base Pricing (5 cols) */}
+          {/* LEFT: Core Identity, Base Pricing & Quantity Slabs (5 cols) */}
           <div className="lg:col-span-5 space-y-6">
             <Card className="border-2 border-indigo-500/30 dark:border-indigo-500/20 shadow-md rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4 bg-indigo-50/40 dark:bg-indigo-950/20">
@@ -622,6 +646,190 @@ export default function EditVariantPage() {
                     {...register('description')}
                   />
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Quantity Price Slabs Card */}
+            <Card className="border-2 border-amber-500/30 dark:border-amber-500/20 shadow-md rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4 bg-amber-50/40 dark:bg-amber-950/20 flex flex-row items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <CardTitle className="text-base font-black text-slate-900 dark:text-white">
+                      Quantity Price Slabs ({priceSlabs.filter((s: any) => s.isActive).length} Active)
+                    </CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Define fixed package prices for specific quantities (e.g. 1 card : 200 rs, 500 cards : 800 rs).
+                  </CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const currentSlabs = watch('priceSlabs') || [];
+                    const nextQty = currentSlabs.length === 0 ? 100 : (Number(currentSlabs[currentSlabs.length - 1].quantity) * 2);
+                    const nextPrice = currentSlabs.length === 0 ? 200 : (Number(currentSlabs[currentSlabs.length - 1].price) * 1.8);
+                    const newSlab = {
+                      id: `slab-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                      quantity: nextQty,
+                      price: Math.round(nextPrice),
+                      isActive: true,
+                    };
+                    setValue('priceSlabs', [...currentSlabs, newSlab], { shouldDirty: true });
+                  }}
+                  className="h-9 rounded-xl text-xs font-bold border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 hover:bg-amber-50 text-amber-600 dark:text-amber-400 shrink-0"
+                >
+                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Slab
+                </Button>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                {/* Quick Presets Bar */}
+                <div className="p-3.5 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-100 dark:border-amber-900/40 space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" /> Quick Add Quantity Slabs:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { qty: 100, price: 200 },
+                      { qty: 250, price: 450 },
+                      { qty: 500, price: 800 },
+                      { qty: 1000, price: 1400 },
+                      { qty: 2500, price: 3200 },
+                      { qty: 5000, price: 6000 },
+                    ].map((preset) => (
+                      <Button
+                        key={preset.qty}
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const currentSlabs = watch('priceSlabs') || [];
+                          const exists = currentSlabs.some((s: any) => Number(s.quantity) === preset.qty);
+                          if (!exists) {
+                            setValue('priceSlabs', [
+                              ...currentSlabs,
+                              {
+                                id: `slab-${Date.now()}-${preset.qty}`,
+                                quantity: preset.qty,
+                                price: preset.price,
+                                isActive: true,
+                              }
+                            ].sort((a: any, b: any) => Number(a.quantity) - Number(b.quantity)), { shouldDirty: true });
+                          }
+                        }}
+                        className="h-7 px-2.5 text-[11px] font-bold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 hover:text-amber-600"
+                      >
+                        +{preset.qty} Cards (₹{preset.price})
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Slabs List */}
+                {priceSlabs.length === 0 ? (
+                  <div className="py-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-950/50 gap-2">
+                    <Coins className="w-7 h-7 text-slate-300 dark:text-slate-700" />
+                    <p className="text-xs font-bold text-slate-500">No Quantity Price Slabs Configured</p>
+                    <p className="text-[11px] text-muted-foreground max-w-sm">
+                      Click &quot;Add Slab&quot; or choose from quick presets above to define special package rates for specific quantities.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                    {priceSlabs.map((slabItem: any, idx: number) => {
+                      const qtyVal = Number(slabItem.quantity) || 1;
+                      const priceVal = Number(slabItem.price) || 0;
+                      const unitRate = (priceVal / qtyVal).toFixed(2);
+
+                      return (
+                        <div
+                          key={slabItem.id || idx}
+                          className={cn(
+                            "p-3.5 rounded-2xl border transition-all space-y-2.5",
+                            slabItem.isActive
+                              ? "bg-slate-50 dark:bg-slate-950 border-slate-200/80 dark:border-slate-800/80"
+                              : "bg-slate-100/50 dark:bg-slate-900/40 border-slate-200/40 dark:border-slate-800/40 opacity-70"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                              Slab #{idx + 1}
+                              <Badge variant="outline" className="text-[10px] font-mono ml-1 font-bold">
+                                ≈ ₹{unitRate} / card
+                              </Badge>
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Label className="text-[10px] font-bold text-slate-500">Active</Label>
+                              <Switch
+                                checked={slabItem.isActive ?? true}
+                                onCheckedChange={(val) => {
+                                  const updated = [...priceSlabs];
+                                  updated[idx].isActive = val;
+                                  setValue('priceSlabs', updated, { shouldDirty: true });
+                                }}
+                                className="data-[state=checked]:bg-amber-600"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setValue('priceSlabs', priceSlabs.filter((_, i) => i !== idx), { shouldDirty: true });
+                                }}
+                                className="h-7 px-2 text-xs font-semibold text-rose-500 hover:text-rose-700"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 items-end">
+                            <div className="space-y-1">
+                              <Label className="text-[10px] font-extrabold uppercase text-slate-600 dark:text-slate-400">
+                                Quantity (Cards / Pcs)
+                              </Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                placeholder="e.g. 100"
+                                value={slabItem.quantity}
+                                onChange={(e) => {
+                                  const updated = [...priceSlabs];
+                                  updated[idx].quantity = parseInt(e.target.value, 10) || 0;
+                                  setValue('priceSlabs', updated, { shouldDirty: true });
+                                }}
+                                className="h-9 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-black"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <Label className="text-[10px] font-extrabold uppercase text-slate-600 dark:text-slate-400">
+                                Total Slab Price (₹)
+                              </Label>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="e.g. 200.00"
+                                  value={slabItem.price}
+                                  onChange={(e) => {
+                                    const updated = [...priceSlabs];
+                                    updated[idx].price = parseFloat(e.target.value) || 0;
+                                    setValue('priceSlabs', updated, { shouldDirty: true });
+                                  }}
+                                  className="h-9 rounded-xl pl-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-black text-amber-600 dark:text-amber-400"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

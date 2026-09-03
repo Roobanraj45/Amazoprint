@@ -53,6 +53,22 @@ const sizesField = z.preprocess((val) => {
     return val;
 }, z.any().optional());
 
+const taxSlabSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Tax name is required'),
+  rate: z.coerce.number().min(0, 'Tax rate must be non-negative'),
+  type: z.enum(['percentage', 'fixed']).optional().default('percentage'),
+  isInclusive: z.boolean().optional().default(false),
+  isActive: z.boolean().default(true),
+});
+
+const priceSlabSchema = z.object({
+  id: z.string(),
+  quantity: z.coerce.number().min(1, 'Quantity is required'),
+  price: z.coerce.number().min(0, 'Price must be non-negative'),
+  isActive: z.boolean().default(true),
+});
+
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   slug: z.string().min(1, 'Slug is required'),
@@ -61,11 +77,26 @@ const formSchema = z.object({
   costPrice: z.coerce.number().optional().default(0),
   sellingPrice: z.coerce.number().min(0, 'Selling price must be non-negative'),
   sku: z.string().optional(),
+  hsnCode: z.string().optional().nullable(),
   stockQuantity: z.coerce.number().int().optional().default(0),
   minStockLevel: z.coerce.number().int().optional().default(5),
   weight: z.coerce.number().optional(),
   dimensions: jsonFromString.optional(),
   sizes: sizesField,
+  taxSlabs: z.preprocess((val) => {
+    if (!val) return [];
+    if (typeof val === 'string') {
+      try { return JSON.parse(val); } catch { return []; }
+    }
+    return val;
+  }, z.array(taxSlabSchema).optional().default([])),
+  priceSlabs: z.preprocess((val) => {
+    if (!val) return [];
+    if (typeof val === 'string') {
+      try { return JSON.parse(val); } catch { return []; }
+    }
+    return val;
+  }, z.array(priceSlabSchema).optional().default([])),
   imageUrls: z.string().optional(),
   tags: z.string().optional(),
   isFeatured: z.boolean().default(false),
@@ -118,6 +149,9 @@ export async function createDirectSellingProduct(data: z.infer<typeof formSchema
     const result = await db.insert(directSellingProducts).values({
       ...validatedData,
       sizes: validatedData.sizes || [],
+      taxSlabs: validatedData.taxSlabs || [],
+      priceSlabs: validatedData.priceSlabs || [],
+      hsnCode: validatedData.hsnCode || null,
       addedBy: 'admin',
       approvalStatus: 'approved',
       approvedAt: new Date(),
@@ -139,6 +173,9 @@ export async function createPrinterDirectSellingProduct(data: z.infer<typeof for
     const result = await db.insert(directSellingProducts).values({
       ...validatedData,
       sizes: validatedData.sizes || [],
+      taxSlabs: validatedData.taxSlabs || [],
+      priceSlabs: validatedData.priceSlabs || [],
+      hsnCode: validatedData.hsnCode || null,
       addedBy: 'printer',
       printerId: session.sub,
       approvalStatus: 'pending',
@@ -160,6 +197,9 @@ export async function updateDirectSellingProduct(id: number, data: z.infer<typeo
         .set({ 
           ...validatedData, 
           sizes: validatedData.sizes || [],
+          taxSlabs: validatedData.taxSlabs || [],
+          priceSlabs: validatedData.priceSlabs || [],
+          hsnCode: validatedData.hsnCode || null,
           imageUrls: validatedData.imageUrls ? validatedData.imageUrls.split(',').map(s => s.trim()).filter(Boolean) : [],
           tags: validatedData.tags ? validatedData.tags.split(',').map(s => s.trim()).filter(Boolean) : [],
           updatedAt: new Date() 
@@ -195,6 +235,9 @@ export async function updatePrinterDirectSellingProduct(id: number, data: z.infe
         .set({ 
           ...validatedData, 
           sizes: validatedData.sizes || [],
+          taxSlabs: validatedData.taxSlabs || [],
+          priceSlabs: validatedData.priceSlabs || [],
+          hsnCode: validatedData.hsnCode || null,
           approvalStatus: 'pending',
           rejectionReason: null,
           imageUrls: validatedData.imageUrls ? validatedData.imageUrls.split(',').map(s => s.trim()).filter(Boolean) : [],
@@ -321,7 +364,8 @@ export async function placeDirectOrder(items: any[], shippingAddress: any, payme
         if (isNaN(sellingPrice)) {
             throw new Error(`Invalid selling price for product: ${item.name}`);
         }
-        const totalAmount = sellingPrice * item.quantity;
+        const calculatedTotal = item.totalAmount ? parseFloat(item.totalAmount) : (sellingPrice * item.quantity);
+        const totalAmount = isNaN(calculatedTotal) ? (sellingPrice * item.quantity) : calculatedTotal;
 
         return {
             userId: session.sub,
@@ -330,7 +374,7 @@ export async function placeDirectOrder(items: any[], shippingAddress: any, payme
             printerAssignedAt: null,
             quantity: item.quantity,
             unitPrice: String(sellingPrice),
-            totalAmount: String(totalAmount),
+            totalAmount: String(totalAmount.toFixed(2)),
             shippingAddress: shippingAddress,
             billingAddress: shippingAddress, // Using shipping for billing for simplicity
             paymentMethod: 'Card', // Placeholder

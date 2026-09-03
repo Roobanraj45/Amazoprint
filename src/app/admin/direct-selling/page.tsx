@@ -26,7 +26,7 @@ import {
   Loader2, PlusCircle, Edit, Trash2, IndianRupee, Image as ImageIcon, 
   Upload, X, Search, Filter, XCircle, Package, Sparkles, CheckCircle2, 
   DollarSign, SlidersHorizontal, Layers, Clock, Factory, ShieldCheck, 
-  Check, MessageSquare, AlertCircle, Store
+  Check, MessageSquare, AlertCircle, Store, Percent, Receipt, Coins, Plus
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -48,6 +48,22 @@ const jsonFromString = z.string().transform((val, ctx) => {
     }
 });
 
+const taxSlabSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Tax name is required'),
+  rate: z.coerce.number().min(0, 'Tax rate must be non-negative'),
+  type: z.enum(['percentage', 'fixed']).optional().default('percentage'),
+  isInclusive: z.boolean().optional().default(false),
+  isActive: z.boolean().default(true),
+});
+
+const priceSlabSchema = z.object({
+  id: z.string(),
+  quantity: z.coerce.number().min(1, 'Quantity is required'),
+  price: z.coerce.number().min(0, 'Price must be non-negative'),
+  isActive: z.boolean().default(true),
+});
+
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   slug: z.string().min(1, 'Slug is required'),
@@ -56,11 +72,14 @@ const formSchema = z.object({
   costPrice: z.coerce.number().optional().default(0),
   sellingPrice: z.coerce.number().min(0, 'Selling price must be non-negative'),
   sku: z.string().optional(),
+  hsnCode: z.string().optional().nullable(),
   stockQuantity: z.coerce.number().int().optional().default(0),
   minStockLevel: z.coerce.number().int().optional().default(5),
   weight: z.coerce.number().optional(),
   dimensions: jsonFromString.optional(),
   sizes: z.string().optional(),
+  taxSlabs: z.array(taxSlabSchema).optional().default([]),
+  priceSlabs: z.array(priceSlabSchema).optional().default([]),
   imageUrls: z.string().optional(),
   tags: z.string().optional(),
   isFeatured: z.boolean().default(false),
@@ -674,6 +693,22 @@ export default function DirectSellingPage() {
                           </div>
                         )}
 
+                        {/* GST and Price Slab Pills */}
+                        {(((product as any).taxSlabs && (product as any).taxSlabs.length > 0) || ((product as any).priceSlabs && (product as any).priceSlabs.length > 0)) && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {(product as any).taxSlabs?.filter((t: any) => t.isActive).map((t: any) => (
+                              <Badge key={t.id || t.name} variant="outline" className="text-[9px] font-black border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/30 px-1.5 py-0 h-4">
+                                {t.name} {t.rate}%
+                              </Badge>
+                            ))}
+                            {(product as any).priceSlabs?.filter((s: any) => s.isActive).length > 0 && (
+                              <Badge variant="outline" className="text-[9px] font-black border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 bg-amber-50/60 dark:bg-amber-950/30 px-1.5 py-0 h-4">
+                                {(product as any).priceSlabs.filter((s: any) => s.isActive).length} Slabs
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
                         <div className="flex justify-between items-baseline pt-2 border-t border-slate-100 dark:border-slate-800">
                             <span className="font-extrabold text-xl sm:text-2xl text-slate-900 dark:text-white flex items-center">
                                 <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5 mr-0.5 text-indigo-500" />
@@ -824,9 +859,17 @@ export default function DirectSellingPage() {
 
 // --- Product Form Component ---
 function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => void; product: Product | null; onClose: () => void; }) {
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, control } = useForm<z.infer<typeof formSchema>>({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, control, watch, setValue } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      taxSlabs: [],
+      priceSlabs: [],
+      hsnCode: '',
+    },
   });
+
+  const taxSlabs = watch('taxSlabs') || [];
+  const priceSlabs = watch('priceSlabs') || [];
 
   useEffect(() => {
     if (product) {
@@ -849,6 +892,9 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
             imageUrls: product.imageUrls?.join(', ') || '',
             tags: product.tags?.join(', ') || '',
             sizes: formattedSizes,
+            hsnCode: (product as any).hsnCode || '',
+            taxSlabs: (product as any).taxSlabs || [],
+            priceSlabs: (product as any).priceSlabs || [],
             dimensions: product.dimensions ? JSON.stringify(product.dimensions, null, 2) : '',
             supplierInfo: product.supplierInfo ? JSON.stringify(product.supplierInfo, null, 2) : '',
             shippingInfo: product.shippingInfo ? JSON.stringify(product.shippingInfo, null, 2) : '',
@@ -856,7 +902,7 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
             isActive: product.isActive ?? true,
         });
     } else {
-      reset({ name: '', slug: '', description: '', category: '', costPrice: 0, sellingPrice: 0, sku: '', stockQuantity: 0, minStockLevel: 5, weight: 0, dimensions: '', sizes: '', imageUrls: '', tags: '', isFeatured: false, isActive: true, supplierInfo: '', shippingInfo: '', textAllowed: false });
+      reset({ name: '', slug: '', description: '', category: '', costPrice: 0, sellingPrice: 0, sku: '', hsnCode: '', taxSlabs: [], priceSlabs: [], stockQuantity: 0, minStockLevel: 5, weight: 0, dimensions: '', sizes: '', imageUrls: '', tags: '', isFeatured: false, isActive: true, supplierInfo: '', shippingInfo: '', textAllowed: false });
     }
   }, [product, reset]);
 
@@ -969,6 +1015,307 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                                 <Label htmlFor="minStockLevel" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Minimum Stock Alert Threshold</Label>
                                 <Input id="minStockLevel" type="number" placeholder="5" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('minStockLevel')} />
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <div className="space-y-2">
+                                <Label htmlFor="sku" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">SKU Code</Label>
+                                <Input id="sku" placeholder="e.g. DIR-PROD-001" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-mono text-xs font-bold uppercase" {...register('sku')} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="hsnCode" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">HSN / SAC Code</Label>
+                                <Input id="hsnCode" placeholder="e.g. 49111090" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-mono text-xs font-bold" {...register('hsnCode')} />
+                            </div>
+                        </div>
+
+                        {/* Tax & GST Slabs */}
+                        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                                        <Percent className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                        Tax & GST Slabs ({taxSlabs.filter((t: any) => t.isActive).length} Active)
+                                    </Label>
+                                    <p className="text-[11px] text-muted-foreground">Configure GST rates applied automatically at checkout.</p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setValue('taxSlabs', [
+                                            ...taxSlabs,
+                                            { id: `tax-${Date.now()}`, name: 'GST', rate: 18, isInclusive: false, isActive: true }
+                                        ], { shouldDirty: true });
+                                    }}
+                                    className="h-8 rounded-xl text-xs font-bold border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 shrink-0"
+                                >
+                                    <Plus className="mr-1 h-3 w-3" /> Add Tax Slab
+                                </Button>
+                            </div>
+
+                            {/* Tax Presets */}
+                            <div className="p-3 bg-emerald-50/40 dark:bg-emerald-950/20 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 flex flex-wrap items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
+                                    <Receipt className="w-3.5 h-3.5 text-emerald-500" /> Quick Add Tax:
+                                </span>
+                                {[
+                                    { name: 'GST 18%', rate: 18 },
+                                    { name: 'GST 12%', rate: 12 },
+                                    { name: 'GST 5%', rate: 5 },
+                                    { name: 'GST 28%', rate: 28 },
+                                    { name: 'Exempt 0%', rate: 0 },
+                                ].map((preset) => (
+                                    <Button
+                                        key={preset.name}
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            const exists = taxSlabs.some((t: any) => t.rate === preset.rate && t.name === preset.name);
+                                            if (!exists) {
+                                                setValue('taxSlabs', [
+                                                    ...taxSlabs,
+                                                    { id: `tax-${Date.now()}-${preset.rate}`, name: preset.name, rate: preset.rate, isInclusive: false, isActive: true }
+                                                ], { shouldDirty: true });
+                                            }
+                                        }}
+                                        className="h-6 px-2 text-[10px] font-bold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 hover:text-emerald-600"
+                                    >
+                                        +{preset.name}
+                                    </Button>
+                                ))}
+                            </div>
+
+                            {/* Tax Slabs List */}
+                            {taxSlabs.length > 0 && (
+                                <div className="space-y-2.5">
+                                    {taxSlabs.map((taxItem: any, idx: number) => (
+                                        <div key={taxItem.id || idx} className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">Slab #{idx + 1}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <Label className="text-[10px] font-bold text-slate-500">Active</Label>
+                                                    <Switch
+                                                        checked={taxItem.isActive ?? true}
+                                                        onCheckedChange={(val) => {
+                                                            const updated = [...taxSlabs];
+                                                            updated[idx].isActive = val;
+                                                            setValue('taxSlabs', updated, { shouldDirty: true });
+                                                        }}
+                                                        className="data-[state=checked]:bg-emerald-600 scale-90"
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setValue('taxSlabs', taxSlabs.filter((_, i) => i !== idx), { shouldDirty: true });
+                                                        }}
+                                                        className="h-6 w-6 p-0 text-rose-500 hover:text-rose-700"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                                                <div className="sm:col-span-5">
+                                                    <Input
+                                                        placeholder="Tax Name (e.g. GST)"
+                                                        value={taxItem.name}
+                                                        onChange={(e) => {
+                                                            const updated = [...taxSlabs];
+                                                            updated[idx].name = e.target.value;
+                                                            setValue('taxSlabs', updated, { shouldDirty: true });
+                                                        }}
+                                                        className="h-8 rounded-lg text-xs font-bold"
+                                                    />
+                                                </div>
+                                                <div className="sm:col-span-3">
+                                                    <div className="relative">
+                                                        <Input
+                                                            type="number"
+                                                            step="0.1"
+                                                            placeholder="18"
+                                                            value={taxItem.rate}
+                                                            onChange={(e) => {
+                                                                const updated = [...taxSlabs];
+                                                                updated[idx].rate = parseFloat(e.target.value) || 0;
+                                                                setValue('taxSlabs', updated, { shouldDirty: true });
+                                                            }}
+                                                            className="h-8 rounded-lg text-xs font-bold pr-6"
+                                                        />
+                                                        <span className="absolute right-2 top-1.5 text-xs font-bold text-slate-400">%</span>
+                                                    </div>
+                                                </div>
+                                                <div className="sm:col-span-4 flex items-center justify-end gap-1.5">
+                                                    <Label className="text-[10px] font-bold text-slate-500">Price Inclusive</Label>
+                                                    <Switch
+                                                        checked={taxItem.isInclusive ?? false}
+                                                        onCheckedChange={(val) => {
+                                                            const updated = [...taxSlabs];
+                                                            updated[idx].isInclusive = val;
+                                                            setValue('taxSlabs', updated, { shouldDirty: true });
+                                                        }}
+                                                        className="data-[state=checked]:bg-emerald-600 scale-75"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Quantity Price Slabs */}
+                        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                                        <Coins className="w-4 h-4 text-amber-500" />
+                                        Quantity Price Slabs ({priceSlabs.filter((s: any) => s.isActive).length} Active)
+                                    </Label>
+                                    <p className="text-[11px] text-muted-foreground">Define package tiers (e.g. 10 pcs: ₹200). Customer selects directly from these tiers.</p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const unit = Number(watch('sellingPrice') || 10);
+                                        const qty = 50;
+                                        setValue('priceSlabs', [
+                                            ...priceSlabs,
+                                            { id: `slab-${Date.now()}`, quantity: qty, price: unit * qty, isActive: true }
+                                        ], { shouldDirty: true });
+                                    }}
+                                    className="h-8 rounded-xl text-xs font-bold border-amber-300 dark:border-amber-800 text-amber-600 dark:text-amber-400 hover:bg-amber-50 shrink-0"
+                                >
+                                    <Plus className="mr-1 h-3 w-3" /> Add Price Slab
+                                </Button>
+                            </div>
+
+                            {/* Slabs Quick Presets */}
+                            <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200/60 dark:border-amber-900/40 flex flex-wrap items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Quick Add Quantity Presets:
+                                </span>
+                                {[
+                                    { qty: 10, mult: 10 },
+                                    { qty: 25, mult: 23 },
+                                    { qty: 50, mult: 45 },
+                                    { qty: 100, mult: 85 },
+                                    { qty: 250, mult: 200 },
+                                    { qty: 500, mult: 380 },
+                                ].map((p) => (
+                                    <Button
+                                        key={p.qty}
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            const unit = Number(watch('sellingPrice') || 10);
+                                            const exists = priceSlabs.some((s: any) => Number(s.quantity) === p.qty);
+                                            if (!exists) {
+                                                const slabPrice = Math.round(unit * p.mult);
+                                                setValue('priceSlabs', [
+                                                    ...priceSlabs,
+                                                    { id: `slab-${Date.now()}-${p.qty}`, quantity: p.qty, price: slabPrice, isActive: true }
+                                                ], { shouldDirty: true });
+                                            }
+                                        }}
+                                        className="h-6 px-2 text-[10px] font-bold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 hover:text-amber-600"
+                                    >
+                                        +{p.qty} pcs
+                                    </Button>
+                                ))}
+                            </div>
+
+                            {/* Price Slabs List */}
+                            {priceSlabs.length === 0 ? (
+                                <div className="py-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-950/50 gap-1">
+                                    <Coins className="w-5 h-5 text-slate-300 dark:text-slate-700" />
+                                    <p className="text-xs font-bold text-slate-500">No Quantity Slabs Defined</p>
+                                    <p className="text-[10px] text-muted-foreground">Product will use single unit selling price. Click presets above to define bulk package tiers.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {priceSlabs.map((slabItem: any, idx: number) => {
+                                        const qty = Number(slabItem.quantity) || 1;
+                                        const prc = Number(slabItem.price) || 0;
+                                        const perUnit = (prc / qty).toFixed(2);
+                                        return (
+                                            <div key={slabItem.id || idx} className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-black text-amber-600 dark:text-amber-400">Tier #{idx + 1}</span>
+                                                        <Badge variant="outline" className="text-[10px] font-bold text-slate-500">≈ ₹{perUnit} / pc</Badge>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Label className="text-[10px] font-bold text-slate-500">Active</Label>
+                                                        <Switch
+                                                            checked={slabItem.isActive ?? true}
+                                                            onCheckedChange={(val) => {
+                                                                const updated = [...priceSlabs];
+                                                                updated[idx].isActive = val;
+                                                                setValue('priceSlabs', updated, { shouldDirty: true });
+                                                            }}
+                                                            className="data-[state=checked]:bg-amber-600 scale-90"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setValue('priceSlabs', priceSlabs.filter((_, i) => i !== idx), { shouldDirty: true });
+                                                            }}
+                                                            className="h-6 w-6 p-0 text-rose-500 hover:text-rose-700"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <Label className="text-[10px] font-bold uppercase text-slate-500">Order Quantity</Label>
+                                                        <Input
+                                                            type="number"
+                                                            min={1}
+                                                            placeholder="50"
+                                                            value={slabItem.quantity}
+                                                            onChange={(e) => {
+                                                                const updated = [...priceSlabs];
+                                                                updated[idx].quantity = parseInt(e.target.value) || 1;
+                                                                setValue('priceSlabs', updated, { shouldDirty: true });
+                                                            }}
+                                                            className="h-8 rounded-lg text-xs font-bold"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-[10px] font-bold uppercase text-slate-500">Package Price (₹)</Label>
+                                                        <div className="relative">
+                                                            <span className="absolute left-2.5 top-1.5 text-xs font-bold text-slate-400">₹</span>
+                                                            <Input
+                                                                type="number"
+                                                                step="0.01"
+                                                                min={0}
+                                                                placeholder="200"
+                                                                value={slabItem.price}
+                                                                onChange={(e) => {
+                                                                    const updated = [...priceSlabs];
+                                                                    updated[idx].price = parseFloat(e.target.value) || 0;
+                                                                    setValue('priceSlabs', updated, { shouldDirty: true });
+                                                                }}
+                                                                className="h-8 rounded-lg text-xs font-bold pl-6"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
