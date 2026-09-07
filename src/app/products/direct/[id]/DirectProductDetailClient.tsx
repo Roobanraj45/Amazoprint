@@ -4,7 +4,9 @@ import { useState, useMemo } from 'react';
 import {
     Sparkles, Package2, ArrowRight, ArrowLeft, CheckCircle2,
     IndianRupee, Star, Zap, Flame, AlertCircle, ShieldCheck,
-    Truck, Lock, Share2, Check, Coins, Percent, Receipt
+    Truck, Lock, Share2, Check, Coins, Percent, Receipt,
+    MapPin, Calendar, Clock, RotateCcw, FileText, Layers, Tag,
+    ChevronRight, Gift, Info
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -16,36 +18,64 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ProductImageZoom } from '@/components/ui/product-image-zoom';
 import { resolveImagePath, cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface DirectProductDetailClientProps {
     product: any;
+}
+
+export interface RichSizeOption {
+    id?: string;
+    name: string;
+    price?: number;
+    basePrice?: number;
+    stock?: number;
+    sku?: string;
+    isActive?: boolean;
 }
 
 export function DirectProductDetailClient({ product }: DirectProductDetailClientProps) {
     const router = useRouter();
     const { toast } = useToast();
 
-    // Helper to normalize sizes
-    const getProductSizes = (prod: any): { name: string; price?: number }[] => {
+    // Helper to normalize sizes to rich objects
+    const getProductSizes = (prod: any): RichSizeOption[] => {
         if (!prod || !prod.sizes) return [];
         const raw = prod.sizes;
         if (Array.isArray(raw)) {
-            return raw.map((s: any) => {
-                if (typeof s === 'string') return { name: s };
-                return { name: s.name || s.size || String(s), price: s.price ? Number(s.price) : undefined };
-            });
+            return raw.map((s: any, idx: number) => {
+                if (typeof s === 'string') return { id: `sz-${idx}`, name: s, isActive: true };
+                return {
+                    id: s.id || `sz-${idx}`,
+                    name: s.name || s.size || String(s),
+                    price: s.price !== undefined && s.price !== null && s.price !== '' ? Number(s.price) : undefined,
+                    basePrice: s.basePrice !== undefined && s.basePrice !== null && s.basePrice !== '' ? Number(s.basePrice) : undefined,
+                    stock: s.stock !== undefined && s.stock !== null && s.stock !== '' ? Number(s.stock) : undefined,
+                    sku: s.sku || '',
+                    isActive: s.isActive !== false,
+                };
+            }).filter(s => s.isActive !== false);
         }
         if (typeof raw === 'string') {
             try {
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed)) {
-                    return parsed.map((s: any) => {
-                        if (typeof s === 'string') return { name: s };
-                        return { name: s.name || s.size || String(s), price: s.price ? Number(s.price) : undefined };
-                    });
+                    return parsed.map((s: any, idx: number) => {
+                        if (typeof s === 'string') return { id: `sz-${idx}`, name: s, isActive: true };
+                        return {
+                            id: s.id || `sz-${idx}`,
+                            name: s.name || s.size || String(s),
+                            price: s.price !== undefined && s.price !== null && s.price !== '' ? Number(s.price) : undefined,
+                            basePrice: s.basePrice !== undefined && s.basePrice !== null && s.basePrice !== '' ? Number(s.basePrice) : undefined,
+                            stock: s.stock !== undefined && s.stock !== null && s.stock !== '' ? Number(s.stock) : undefined,
+                            sku: s.sku || '',
+                            isActive: s.isActive !== false,
+                        };
+                    }).filter(s => s.isActive !== false);
                 }
             } catch {
-                return raw.split(',').map(s => ({ name: s.trim() })).filter(s => s.name);
+                return raw.split(',').map((s, idx) => ({ id: `sz-${idx}`, name: s.trim(), isActive: true })).filter(s => s.name);
             }
         }
         return [];
@@ -70,6 +100,37 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         return [];
     }, [product]);
 
+    // Delivery Options / Shipping info
+    const shippingInfo = useMemo(() => {
+        if (!product.shippingInfo) return {};
+        if (typeof product.shippingInfo === 'string') {
+            try { return JSON.parse(product.shippingInfo); } catch { return {}; }
+        }
+        return product.shippingInfo;
+    }, [product.shippingInfo]);
+
+    // Promotional Offers & Badges
+    const offersList = useMemo(() => {
+        if (!product.offers) return [];
+        if (Array.isArray(product.offers)) return product.offers;
+        if (typeof product.offers === 'string') {
+            try {
+                const parsed = JSON.parse(product.offers);
+                if (Array.isArray(parsed)) return parsed;
+            } catch { return []; }
+        }
+        return [];
+    }, [product.offers]);
+
+    // Specifications & Operational Parameters
+    const specs = useMemo(() => {
+        if (!product.specifications) return {};
+        if (typeof product.specifications === 'string') {
+            try { return JSON.parse(product.specifications); } catch { return {}; }
+        }
+        return product.specifications;
+    }, [product.specifications]);
+
     const images: string[] = useMemo(() => {
         if (Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
             return product.imageUrls;
@@ -90,6 +151,11 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [copied, setCopied] = useState<boolean>(false);
 
+    // Shipping & Express Selection
+    const [isExpressSelected, setIsExpressSelected] = useState<boolean>(false);
+    const [pincodeInput, setPincodeInput] = useState<string>('');
+    const [pincodeStatus, setPincodeStatus] = useState<{ checked: boolean; valid: boolean; message: string; dateStr?: string } | null>(null);
+
     const [shippingAddress, setShippingAddress] = useState({
         name: '',
         phone: '',
@@ -100,19 +166,38 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         country: 'India',
     });
 
-    const stock = typeof product.stockQuantity === 'number'
-        ? product.stockQuantity
-        : (parseInt(product.stockQuantity as any) || 0);
-    const minStock = product.minStockLevel || 5;
+    // Selected size object
+    const selectedSizeObj = useMemo(() => {
+        return sizes.find(s => s.name === selectedSize);
+    }, [sizes, selectedSize]);
 
-    // Calculate active unit price based on selected size
+    // Active unit price based on selected size
     const activeUnitPrice = useMemo(() => {
-        const matchingSize = sizes.find(s => s.name === selectedSize);
-        if (matchingSize && matchingSize.price && matchingSize.price > 0) {
-            return matchingSize.price;
+        if (selectedSizeObj && selectedSizeObj.price !== undefined && selectedSizeObj.price > 0) {
+            return selectedSizeObj.price;
         }
         return Number(product.sellingPrice || 0);
-    }, [sizes, selectedSize, product]);
+    }, [selectedSizeObj, product]);
+
+    // Active base/MRP price
+    const activeBasePrice = useMemo(() => {
+        if (selectedSizeObj && selectedSizeObj.basePrice !== undefined && selectedSizeObj.basePrice > 0) {
+            return selectedSizeObj.basePrice;
+        }
+        return Number(product.basePrice || 0);
+    }, [selectedSizeObj, product]);
+
+    // Active stock based on selected size or parent product
+    const activeStock = useMemo(() => {
+        if (selectedSizeObj && selectedSizeObj.stock !== undefined) {
+            return selectedSizeObj.stock;
+        }
+        return typeof product.stockQuantity === 'number'
+            ? product.stockQuantity
+            : (parseInt(product.stockQuantity as any) || 0);
+    }, [selectedSizeObj, product]);
+
+    const minStock = product.minStockLevel || 5;
 
     // Match quantity with price slab if applicable
     const matchingSlab = useMemo(() => {
@@ -132,6 +217,23 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         }
         return activeUnitPrice;
     }, [productTotal, quantity, activeUnitPrice]);
+
+    // Shipping Fee calculation
+    const standardFee = shippingInfo.deliveryCharge !== undefined && shippingInfo.deliveryCharge !== ''
+        ? Number(shippingInfo.deliveryCharge)
+        : 0;
+    const freeThreshold = shippingInfo.freeDeliveryThreshold !== undefined && shippingInfo.freeDeliveryThreshold !== ''
+        ? Number(shippingInfo.freeDeliveryThreshold)
+        : 499;
+    const isFreeStandard = standardFee === 0 || productTotal >= freeThreshold;
+
+    const expressFee = shippingInfo.expressCharge !== undefined && shippingInfo.expressCharge !== ''
+        ? Number(shippingInfo.expressCharge)
+        : 99;
+
+    const finalShippingFee = isExpressSelected
+        ? expressFee
+        : (isFreeStandard ? 0 : standardFee);
 
     // GST / Tax Calculation
     const taxBreakdown = useMemo(() => {
@@ -166,10 +268,40 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         };
     }, [taxSlabs, productTotal]);
 
-    const basePrice = Number(product.basePrice || 0);
-    const hasDiscount = basePrice > activeUnitPrice;
-    const discountPercent = hasDiscount ? Math.round(((basePrice - activeUnitPrice) / basePrice) * 100) : 0;
-    const totalPayable = productTotal + taxBreakdown.extraTaxAmount;
+    const hasDiscount = activeBasePrice > activeUnitPrice;
+    const discountPercent = hasDiscount ? Math.round(((activeBasePrice - activeUnitPrice) / activeBasePrice) * 100) : 0;
+    const totalPayable = productTotal + taxBreakdown.extraTaxAmount + finalShippingFee;
+
+    // PIN code validation & estimated delivery calculation
+    const handleCheckPincode = () => {
+        const clean = pincodeInput.trim();
+        if (!/^\d{6}$/.test(clean)) {
+            setPincodeStatus({
+                checked: true,
+                valid: false,
+                message: 'Please enter a valid 6-digit Indian PIN code.'
+            });
+            return;
+        }
+
+        // Calculate delivery date based on estimated days
+        const daysToAdd = isExpressSelected ? 2 : 4;
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + daysToAdd);
+        const options: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
+        const dateStr = targetDate.toLocaleDateString('en-IN', options);
+
+        setPincodeStatus({
+            checked: true,
+            valid: true,
+            message: `Delivery available to ${clean}`,
+            dateStr,
+        });
+
+        if (!shippingAddress.zip) {
+            setShippingAddress(prev => ({ ...prev, zip: clean }));
+        }
+    };
 
     const handleShare = () => {
         if (navigator.share) {
@@ -189,8 +321,8 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
     const handleOrderSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (stock <= 0) {
-            toast({ variant: 'destructive', title: 'Out of Stock', description: 'This item is currently sold out.' });
+        if (activeStock <= 0) {
+            toast({ variant: 'destructive', title: 'Out of Stock', description: 'This item or size variation is currently sold out.' });
             return;
         }
 
@@ -219,10 +351,12 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                     sellingPrice: Number(effectiveUnitRate).toFixed(2),
                     totalAmount: totalPayable.toFixed(2),
                     quantity: quantity,
-                    sku: product.sku,
+                    sku: selectedSizeObj?.sku || product.sku,
                     hsnCode: product.hsnCode || undefined,
                     selectedSize: selectedSize || undefined,
                     customText: customText.trim() || undefined,
+                    shippingFee: finalShippingFee,
+                    deliveryMode: isExpressSelected ? 'express' : 'standard',
                 }],
                 shippingAddress: shippingAddress,
             },
@@ -269,7 +403,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                 {/* ── MAIN CONTENT GRID ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
 
-                    {/* ── LEFT COLUMN: PRODUCT GALLERY & DESCRIPTION ── */}
+                    {/* ── LEFT COLUMN: PRODUCT GALLERY, OFFERS & SPECIFICATIONS ── */}
                     <div className="lg:col-span-6 space-y-6">
                         {/* Main Media Preview Card with Flipkart-Style Loupe & Side Zoom Popup */}
                         <div className="relative aspect-square w-full">
@@ -278,25 +412,30 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                 alt={product.name}
                                 zoomScale={2.8}
                                 priority
-                                className="border border-slate-200/80 dark:border-slate-800 shadow-sm"
+                                className="border border-slate-200/80 dark:border-slate-800 shadow-sm rounded-3xl"
                                 badgeOverlay={(
                                     <>
                                         {/* Floating Badges */}
                                         <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                                            {product.offerBadge && (
+                                                <Badge className="bg-rose-600 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-md">
+                                                    {product.offerBadge}
+                                                </Badge>
+                                            )}
                                             <Badge className="bg-amber-500 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 backdrop-blur-md">
                                                 <Zap size={12} className="fill-current" /> Direct Selling
                                             </Badge>
-                                            {stock <= 0 ? (
+                                            {activeStock <= 0 ? (
                                                 <Badge variant="destructive" className="bg-rose-600 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
                                                     Out of Stock
                                                 </Badge>
-                                            ) : stock <= minStock ? (
+                                            ) : activeStock <= minStock ? (
                                                 <Badge className="bg-gradient-to-r from-orange-500 to-rose-500 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
-                                                    <Flame size={12} className="fill-current" /> Only {stock} Left
+                                                    <Flame size={12} className="fill-current" /> Only {activeStock} Left
                                                 </Badge>
                                             ) : (
                                                 <Badge className="bg-emerald-600/90 text-white border-none shadow-lg text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                                                    {stock} in Stock
+                                                    {activeStock} in Stock
                                                 </Badge>
                                             )}
                                         </div>
@@ -339,11 +478,69 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                             </div>
                         )}
 
-                        {/* Description & Specifications Card */}
+                        {/* ── PROMOTIONAL DEALS & OFFERS CARD (if present) ── */}
+                        {(product.offerBadge || offersList.length > 0) && (
+                            <Card className="rounded-3xl border-amber-200/80 dark:border-amber-900/40 bg-gradient-to-br from-amber-50/70 via-white to-amber-50/30 dark:from-amber-950/20 dark:via-slate-900 dark:to-slate-900 shadow-sm overflow-hidden">
+                                <CardContent className="p-5 sm:p-6 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                                                <Gift size={18} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                                                    Exclusive Deals & Offers
+                                                </h3>
+                                                <p className="text-[11px] text-muted-foreground">Available discounts on this product</p>
+                                            </div>
+                                        </div>
+                                        {product.offerBadge && (
+                                            <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-rose-500 text-white shadow-sm uppercase tracking-wide">
+                                                {product.offerBadge}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2.5 pt-1">
+                                        {offersList.map((o: any, idx: number) => (
+                                            <div
+                                                key={o.id || idx}
+                                                className="p-3 rounded-2xl bg-white/90 dark:bg-slate-950/70 border border-amber-200/60 dark:border-slate-800 flex items-start gap-3 shadow-2xs"
+                                            >
+                                                <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                                                    <Tag size={13} />
+                                                </div>
+                                                <div className="space-y-0.5 flex-1 min-w-0">
+                                                    <span className="text-xs font-extrabold text-slate-900 dark:text-white block">{o.title}</span>
+                                                    {o.description && (
+                                                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-snug">
+                                                            {o.description}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {isFreeStandard && (
+                                            <div className="p-3 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/50 flex items-center gap-3">
+                                                <div className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                                                    <Truck size={13} />
+                                                </div>
+                                                <div className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                                                    Free Standard Shipping Applied on this product!
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Description & Overview */}
                         <Card className="rounded-3xl border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
                             <CardContent className="p-6 sm:p-8 space-y-5">
                                 <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                                    <Sparkles size={16} className="text-amber-500" /> Product Overview & Details
+                                    <Sparkles size={16} className="text-amber-500" /> Product Overview
                                 </h3>
 
                                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line font-medium">
@@ -362,27 +559,119 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                             </CardContent>
                         </Card>
 
+                        {/* ── TECHNICAL SPECIFICATIONS & PARAMETERS TABLE ── */}
+                        <Card className="rounded-3xl border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+                            <CardContent className="p-6 sm:p-8 space-y-4">
+                                <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                                    <FileText size={16} className="text-indigo-500" /> Technical Specifications
+                                </h3>
+
+                                <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                                    {specs.material && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">Material / Paper GSM</span>
+                                            <span className="font-extrabold text-slate-900 dark:text-white text-right">{specs.material}</span>
+                                        </div>
+                                    )}
+                                    {specs.finish && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">Surface Finish</span>
+                                            <span className="font-extrabold text-slate-900 dark:text-white text-right">{specs.finish}</span>
+                                        </div>
+                                    )}
+                                    {specs.printType && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">Print Method</span>
+                                            <span className="font-extrabold text-slate-900 dark:text-white text-right">{specs.printType}</span>
+                                        </div>
+                                    )}
+                                    {(specs.dimensionsFormatted || product.dimensions) && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">Dimensions</span>
+                                            <span className="font-extrabold text-slate-900 dark:text-white text-right">
+                                                {specs.dimensionsFormatted || (typeof product.dimensions === 'object' ? JSON.stringify(product.dimensions) : product.dimensions)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {product.weight && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">Item Weight</span>
+                                            <span className="font-extrabold text-slate-900 dark:text-white text-right">{product.weight} kg</span>
+                                        </div>
+                                    )}
+                                    {specs.brand && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">Brand / Maker</span>
+                                            <span className="font-extrabold text-slate-900 dark:text-white text-right">{specs.brand}</span>
+                                        </div>
+                                    )}
+                                    {specs.originCountry && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">Country of Origin</span>
+                                            <span className="font-extrabold text-slate-900 dark:text-white text-right">{specs.originCountry}</span>
+                                        </div>
+                                    )}
+                                    {specs.minOrderQuantity && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">Minimum Order Qty</span>
+                                            <span className="font-extrabold text-slate-900 dark:text-white text-right">{specs.minOrderQuantity} pcs</span>
+                                        </div>
+                                    )}
+                                    {(specs.leadTime || shippingInfo.dispatchTime) && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">Dispatch Turnaround</span>
+                                            <span className="font-extrabold text-slate-900 dark:text-white text-right">{specs.leadTime || shippingInfo.dispatchTime}</span>
+                                        </div>
+                                    )}
+                                    {specs.warranty && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">Quality Warranty</span>
+                                            <span className="font-extrabold text-slate-900 dark:text-white text-right">{specs.warranty}</span>
+                                        </div>
+                                    )}
+                                    {specs.careInstructions && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">Care Instructions</span>
+                                            <span className="font-extrabold text-slate-900 dark:text-white text-right">{specs.careInstructions}</span>
+                                        </div>
+                                    )}
+                                    {product.hsnCode && (
+                                        <div className="py-2.5 flex justify-between items-center gap-4">
+                                            <span className="font-bold text-slate-500 dark:text-slate-400">HSN Code</span>
+                                            <span className="font-mono font-bold text-slate-900 dark:text-white text-right">{product.hsnCode}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         {/* Trust & Guarantee Grid */}
                         <div className="grid grid-cols-3 gap-3">
                             <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 text-center space-y-1">
                                 <ShieldCheck size={20} className="mx-auto text-emerald-500" />
                                 <span className="text-[11px] font-extrabold block text-slate-900 dark:text-white">Guaranteed Quality</span>
-                                <span className="text-[9px] text-slate-400 font-medium block">100% Quality Checked</span>
+                                <span className="text-[9px] text-slate-400 font-medium block">
+                                    {specs.warranty || '100% Quality Checked'}
+                                </span>
                             </div>
                             <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 text-center space-y-1">
                                 <Truck size={20} className="mx-auto text-indigo-500" />
-                                <span className="text-[11px] font-extrabold block text-slate-900 dark:text-white">Fast Dispatch</span>
-                                <span className="text-[9px] text-slate-400 font-medium block">Safe Nationwide Delivery</span>
+                                <span className="text-[11px] font-extrabold block text-slate-900 dark:text-white">Safe Delivery</span>
+                                <span className="text-[9px] text-slate-400 font-medium block">
+                                    {shippingInfo.estimatedDays || 'Fast Tracked Courier'}
+                                </span>
                             </div>
                             <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 text-center space-y-1">
-                                <Lock size={20} className="mx-auto text-amber-500" />
-                                <span className="text-[11px] font-extrabold block text-slate-900 dark:text-white">Secure Payment</span>
-                                <span className="text-[9px] text-slate-400 font-medium block">Encrypted Checkout</span>
+                                <RotateCcw size={20} className="mx-auto text-amber-500" />
+                                <span className="text-[11px] font-extrabold block text-slate-900 dark:text-white">Easy Returns</span>
+                                <span className="text-[9px] text-slate-400 font-medium block">
+                                    {shippingInfo.returnPolicy || '7 Days Replacement'}
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    {/* ── RIGHT COLUMN: CONFIGURATION & ORDER FORM ── */}
+                    {/* ── RIGHT COLUMN: CONFIGURATION, SIZES, DELIVERY & ORDER FORM ── */}
                     <div className="lg:col-span-6 space-y-6">
                         <form onSubmit={handleOrderSubmit} className="space-y-6">
 
@@ -394,9 +683,9 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                             <span className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
                                                 {product.category || 'Direct Selling Product'}
                                             </span>
-                                            {product.sku && (
+                                            {(selectedSizeObj?.sku || product.sku) && (
                                                 <span className="text-[11px] font-mono font-bold text-slate-400">
-                                                    SKU: {product.sku}
+                                                    SKU: {selectedSizeObj?.sku || product.sku}
                                                 </span>
                                             )}
                                         </div>
@@ -414,89 +703,114 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                         </div>
                                     </div>
 
-                                    {/* Price Display */}
+                                    {/* Price Display with Strikethrough & Savings */}
                                     <div className="p-4 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
                                         <div className="space-y-0.5">
-                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Unit Price</span>
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Unit Selling Price</span>
                                             <div className="flex items-baseline gap-2">
                                                 <span className="text-3xl font-black text-slate-900 dark:text-white flex items-center">
                                                     <IndianRupee size={24} className="mr-0.5" />{activeUnitPrice}
                                                 </span>
                                                 {hasDiscount && (
                                                     <span className="text-sm font-semibold text-slate-400 line-through">
-                                                        ₹{basePrice}
+                                                        ₹{activeBasePrice}
                                                     </span>
                                                 )}
                                             </div>
                                         </div>
                                         {hasDiscount && (
                                             <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-100/80 dark:bg-emerald-950/60 px-3 py-1.5 rounded-xl">
-                                                Save ₹{(basePrice - activeUnitPrice).toFixed(0)} per unit
+                                                Save ₹{(activeBasePrice - activeUnitPrice).toFixed(0)} ({discountPercent}% OFF)
                                             </span>
                                         )}
                                     </div>
 
-                                    {/* Stock Alert Banner */}
+                                    {/* Stock Alert Banner (Dynamic to Selected Size) */}
                                     <div className={cn(
                                         "p-3.5 rounded-2xl border flex items-center justify-between gap-3 text-xs font-bold transition-all",
-                                        stock <= 0
+                                        activeStock <= 0
                                             ? "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300"
-                                            : stock <= minStock
+                                            : activeStock <= minStock
                                                 ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60 text-amber-700 dark:text-amber-300"
                                                 : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300"
                                     )}>
                                         <div className="flex items-center gap-2">
-                                            {stock <= 0 ? (
+                                            {activeStock <= 0 ? (
                                                 <AlertCircle size={17} className="text-rose-600 dark:text-rose-400 shrink-0" />
-                                            ) : stock <= minStock ? (
+                                            ) : activeStock <= minStock ? (
                                                 <Flame size={17} className="text-amber-600 dark:text-amber-400 shrink-0 animate-bounce" />
                                             ) : (
                                                 <CheckCircle2 size={17} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                                             )}
                                             <span>
-                                                {stock <= 0
-                                                    ? "This product is currently out of stock."
-                                                    : stock <= minStock
-                                                        ? `Only ${stock} unit(s) left in stock! Order quickly.`
-                                                        : `${stock} units in stock and ready to ship.`}
+                                                {activeStock <= 0
+                                                    ? `Size "${selectedSize}" is currently out of stock.`
+                                                    : activeStock <= minStock
+                                                        ? `Only ${activeStock} unit(s) left in stock! Order quickly.`
+                                                        : `${activeStock} units available and ready for immediate dispatch.`}
                                             </span>
                                         </div>
                                         <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/70 dark:bg-black/40 border border-current/20 shrink-0">
-                                            {stock <= 0 ? 'Out of Stock' : `${stock} Left`}
+                                            {activeStock <= 0 ? 'Out of Stock' : `${activeStock} Left`}
                                         </span>
                                     </div>
 
-                                    {/* Size Selection */}
+                                    {/* ── SIZE-WISE SELECTION WITH LIVE PRICING & STOCK ── */}
                                     {sizes.length > 0 && (
                                         <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                                             <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
-                                                <span>Choose Size / Variation</span>
+                                                <span>Select Size / Dimensions</span>
                                                 <span className="text-muted-foreground font-semibold">{sizes.length} Options Available</span>
                                             </label>
                                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                                                 {sizes.map(sz => {
                                                     const isSelected = selectedSize === sz.name;
+                                                    const isOutOfStock = sz.stock !== undefined && sz.stock <= 0;
                                                     return (
                                                         <button
-                                                            key={sz.name}
+                                                            key={sz.id || sz.name}
                                                             type="button"
+                                                            disabled={isOutOfStock}
                                                             onClick={() => setSelectedSize(sz.name)}
                                                             className={cn(
-                                                                "p-3 rounded-2xl text-xs font-black transition-all flex flex-col items-center justify-center gap-1 border text-center",
-                                                                isSelected
-                                                                    ? "bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20 scale-[1.02]"
-                                                                    : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-400"
+                                                                "p-3 rounded-2xl text-xs font-black transition-all flex flex-col items-center justify-center gap-1 border text-center relative",
+                                                                isOutOfStock
+                                                                    ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 line-through"
+                                                                    : isSelected
+                                                                        ? "bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20 scale-[1.02]"
+                                                                        : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-400"
                                                             )}
                                                         >
                                                             <span>{sz.name}</span>
-                                                            {sz.price && sz.price > 0 && (
-                                                                <span className={cn(
-                                                                    "text-[10px] px-1.5 py-0.5 rounded-md font-bold",
-                                                                    isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
-                                                                )}>
-                                                                    ₹{sz.price}
-                                                                </span>
-                                                            )}
+                                                            <div className="flex items-center gap-1.5">
+                                                                {sz.price !== undefined && sz.price > 0 ? (
+                                                                    <span className={cn(
+                                                                        "text-[10px] px-1.5 py-0.5 rounded-md font-bold",
+                                                                        isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                                                                    )}>
+                                                                        ₹{sz.price}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className={cn(
+                                                                        "text-[10px] px-1.5 py-0.5 rounded-md font-bold",
+                                                                        isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                                                                    )}>
+                                                                        ₹{product.sellingPrice}
+                                                                    </span>
+                                                                )}
+                                                                {sz.stock !== undefined && (
+                                                                    <span className={cn(
+                                                                        "text-[9px] font-bold",
+                                                                        isOutOfStock
+                                                                            ? "text-rose-500"
+                                                                            : isSelected
+                                                                                ? "text-amber-100"
+                                                                                : "text-slate-400"
+                                                                    )}>
+                                                                        {isOutOfStock ? '0 stock' : `${sz.stock} left`}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </button>
                                                     );
                                                 })}
@@ -504,7 +818,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                         </div>
                                     )}
 
-                                    {/* Quantity Selection: Price Slabs OR Stepper */}
+                                    {/* ── QUANTITY SELECTION: PRICE SLABS OR STEPPER ── */}
                                     <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                                         <div className="flex items-center justify-between">
                                             <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -513,7 +827,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                             </label>
                                             {priceSlabs.length > 0 && (
                                                 <span className="text-[11px] font-bold text-slate-500">
-                                                    Select Package
+                                                    Select Volume Package
                                                 </span>
                                             )}
                                         </div>
@@ -566,7 +880,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                                             type="button"
                                                             variant="outline"
                                                             size="sm"
-                                                            disabled={quantity <= 1 || stock <= 0}
+                                                            disabled={quantity <= 1 || activeStock <= 0}
                                                             className="h-9 w-9 rounded-xl font-bold border-slate-300 dark:border-slate-700"
                                                             onClick={() => setQuantity(q => Math.max(1, q - 1))}
                                                         >
@@ -577,9 +891,9 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                                             type="button"
                                                             variant="outline"
                                                             size="sm"
-                                                            disabled={quantity >= stock && stock > 0}
+                                                            disabled={quantity >= activeStock && activeStock > 0}
                                                             className="h-9 w-9 rounded-xl font-bold border-slate-300 dark:border-slate-700"
-                                                            onClick={() => setQuantity(q => (stock > 0 ? Math.min(stock, q + 1) : q + 1))}
+                                                            onClick={() => setQuantity(q => (activeStock > 0 ? Math.min(activeStock, q + 1) : q + 1))}
                                                         >
                                                             +
                                                         </Button>
@@ -594,36 +908,159 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                                 </div>
                                             </div>
                                         )}
+                                    </div>
 
-                                        {/* Price & GST Breakdown Card */}
-                                        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 space-y-2">
-                                            <div className="flex justify-between items-center text-xs font-semibold text-slate-600 dark:text-slate-400">
-                                                <span>Base Product ({quantity} {quantity === 1 ? 'pc' : 'pcs'})</span>
-                                                <span className="font-bold text-slate-900 dark:text-white">
-                                                    ₹{productTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    {/* ── DELIVERY OPTIONS & PINCODE CHECKER ── */}
+                                    <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                <Truck className="w-3.5 h-3.5 text-indigo-500" /> Delivery Options & Speed
+                                            </span>
+                                            {shippingInfo.codAvailable !== false && (
+                                                <Badge variant="outline" className="text-[10px] font-bold border-emerald-300 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400">
+                                                    ✓ Cash on Delivery Available
+                                                </Badge>
+                                            )}
+                                        </div>
+
+                                        {/* Pincode Check input */}
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative flex-1">
+                                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                <Input
+                                                    placeholder="Enter 6-digit Delivery Pincode"
+                                                    value={pincodeInput}
+                                                    maxLength={6}
+                                                    onChange={e => setPincodeInput(e.target.value)}
+                                                    className="h-9 pl-9 text-xs rounded-xl bg-white dark:bg-slate-900 font-semibold"
+                                                />
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                onClick={handleCheckPincode}
+                                                className="h-9 px-4 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
+                                            >
+                                                Check
+                                            </Button>
+                                        </div>
+
+                                        {/* Pincode result message */}
+                                        {pincodeStatus?.checked && (
+                                            <div className={cn(
+                                                "p-2.5 rounded-xl text-xs font-bold flex items-center justify-between",
+                                                pincodeStatus.valid
+                                                    ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                                    : "bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+                                            )}>
+                                                <span>{pincodeStatus.message}</span>
+                                                {pincodeStatus.dateStr && (
+                                                    <span className="font-black text-slate-900 dark:text-white">
+                                                        Estimated by: {pincodeStatus.dateStr}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Standard vs Express Shipping Selector */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                                            {/* Standard Option */}
+                                            <div
+                                                onClick={() => setIsExpressSelected(false)}
+                                                className={cn(
+                                                    "p-3 rounded-xl border cursor-pointer transition-all flex items-start justify-between gap-2",
+                                                    !isExpressSelected
+                                                        ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-600/30"
+                                                        : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300"
+                                                )}
+                                            >
+                                                <div className="space-y-0.5">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs font-black text-slate-900 dark:text-white">Standard Delivery</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-muted-foreground block">
+                                                        {shippingInfo.estimatedDays || '2-4 Business Days'}
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                                                    {isFreeStandard ? 'FREE' : `₹${standardFee}`}
                                                 </span>
                                             </div>
 
-                                            {taxBreakdown.details.map((tax, i) => (
-                                                <div key={i} className="flex justify-between items-center text-xs text-emerald-700 dark:text-emerald-400 font-semibold pt-1 border-t border-slate-200/50 dark:border-slate-800/50">
-                                                    <span className="flex items-center gap-1">
-                                                        <Receipt className="w-3 h-3" />
-                                                        {tax.name} ({tax.rate}%) {tax.isInclusive ? '(Included in price)' : ''}
-                                                    </span>
-                                                    <span className="font-bold">
-                                                        {tax.isInclusive ? `(₹${tax.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })})` : `+₹${tax.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                                            {/* Express Option (if enabled) */}
+                                            {shippingInfo.expressDeliveryAvailable ? (
+                                                <div
+                                                    onClick={() => setIsExpressSelected(true)}
+                                                    className={cn(
+                                                        "p-3 rounded-xl border cursor-pointer transition-all flex items-start justify-between gap-2",
+                                                        isExpressSelected
+                                                            ? "border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 ring-1 ring-amber-500/30"
+                                                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300"
+                                                    )}
+                                                >
+                                                    <div className="space-y-0.5">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Zap size={12} className="text-amber-500 fill-current" />
+                                                            <span className="text-xs font-black text-slate-900 dark:text-white">Express Delivery</span>
+                                                        </div>
+                                                        <span className="text-[10px] text-muted-foreground block">
+                                                            {shippingInfo.expressDays || '1-2 Days / Priority'}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-xs font-black text-amber-600 dark:text-amber-400">
+                                                        +₹{expressFee}
                                                     </span>
                                                 </div>
-                                            ))}
+                                            ) : (
+                                                <div className="p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30 flex items-center justify-between opacity-70">
+                                                    <span className="text-xs font-semibold text-slate-400">Dispatch Turnaround</span>
+                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                        {shippingInfo.dispatchTime || 'Within 24 Hours'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
 
-                                            <div className="flex justify-between items-baseline pt-2 border-t border-slate-200 dark:border-slate-800">
-                                                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">
-                                                    Total Payable
+                                    {/* Price & GST Breakdown Card */}
+                                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                                        <div className="flex justify-between items-center text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                            <span>Base Product ({quantity} {quantity === 1 ? 'pc' : 'pcs'})</span>
+                                            <span className="font-bold text-slate-900 dark:text-white">
+                                                ₹{productTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+
+                                        {/* Shipping charge row */}
+                                        <div className="flex justify-between items-center text-xs font-semibold text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-200/50 dark:border-slate-800/50">
+                                            <span className="flex items-center gap-1">
+                                                <Truck size={12} className="text-indigo-500" />
+                                                Shipping ({isExpressSelected ? 'Express Courier' : 'Standard Delivery'})
+                                            </span>
+                                            <span className={cn("font-bold", finalShippingFee === 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-900 dark:text-white")}>
+                                                {finalShippingFee === 0 ? 'FREE' : `+₹${finalShippingFee.toFixed(2)}`}
+                                            </span>
+                                        </div>
+
+                                        {taxBreakdown.details.map((tax, i) => (
+                                            <div key={i} className="flex justify-between items-center text-xs text-emerald-700 dark:text-emerald-400 font-semibold pt-1 border-t border-slate-200/50 dark:border-slate-800/50">
+                                                <span className="flex items-center gap-1">
+                                                    <Receipt className="w-3 h-3" />
+                                                    {tax.name} ({tax.rate}%) {tax.isInclusive ? '(Included in price)' : ''}
                                                 </span>
-                                                <div className="text-2xl font-black text-amber-600 dark:text-amber-400 flex items-center">
-                                                    <IndianRupee size={20} className="mr-0.5" />
-                                                    {totalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                                </div>
+                                                <span className="font-bold">
+                                                    {tax.isInclusive ? `(₹${tax.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })})` : `+₹${tax.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                                                </span>
+                                            </div>
+                                        ))}
+
+                                        <div className="flex justify-between items-baseline pt-2 border-t border-slate-200 dark:border-slate-800">
+                                            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">
+                                                Total Payable
+                                            </span>
+                                            <div className="text-2xl font-black text-amber-600 dark:text-amber-400 flex items-center">
+                                                <IndianRupee size={20} className="mr-0.5" />
+                                                {totalPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                             </div>
                                         </div>
                                     </div>
@@ -715,7 +1152,13 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                                 required
                                                 placeholder="400001"
                                                 value={shippingAddress.zip}
-                                                onChange={e => setShippingAddress(s => ({ ...s, zip: e.target.value }))}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setShippingAddress(s => ({ ...s, zip: val }));
+                                                    if (!pincodeInput && val.length <= 6) {
+                                                        setPincodeInput(val);
+                                                    }
+                                                }}
                                                 className="h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-medium"
                                             />
                                         </div>
@@ -727,14 +1170,14 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                             <div className="space-y-3">
                                 <Button
                                     type="submit"
-                                    disabled={isSubmitting || stock <= 0}
+                                    disabled={isSubmitting || activeStock <= 0}
                                     className="w-full h-14 rounded-2xl font-black text-base bg-amber-500 hover:bg-amber-600 text-white shadow-xl shadow-amber-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
                                 >
-                                    {stock <= 0 ? (
-                                        'Currently Out of Stock'
+                                    {activeStock <= 0 ? (
+                                        'Size Selected is Out of Stock'
                                     ) : (
                                         <>
-                                            Proceed to Secure Payment ({quantity} {quantity === 1 ? 'item' : 'items'} • ₹{totalPayable})
+                                            Proceed to Secure Payment ({quantity} {quantity === 1 ? 'item' : 'items'} • ₹{totalPayable.toFixed(2)})
                                             <ArrowRight className="w-5 h-5 ml-2" />
                                         </>
                                     )}

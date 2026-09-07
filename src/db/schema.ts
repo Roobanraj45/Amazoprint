@@ -619,10 +619,52 @@ export const directSellingProducts = pgTable('direct_selling_products', {
   isFeatured: boolean('is_featured').default(false),
   isActive: boolean('is_active').default(true),
   supplierInfo: jsonb('supplier_info'),
-  shippingInfo: jsonb('shipping_info'),
-  sizes: jsonb('sizes'),
+  shippingInfo: jsonb('shipping_info').$type<{
+    estimatedDays?: string;
+    deliveryCharge?: number;
+    freeDeliveryThreshold?: number;
+    expressDeliveryAvailable?: boolean;
+    expressDays?: string;
+    expressCharge?: number;
+    codAvailable?: boolean;
+    dispatchTime?: string;
+    returnPolicy?: string;
+    carrier?: string;
+    [key: string]: any;
+  }>().default({}),
+  sizes: jsonb('sizes').$type<Array<{
+    id?: string;
+    name: string;
+    price?: number;
+    basePrice?: number;
+    stock?: number;
+    sku?: string;
+    isActive?: boolean;
+  } | string>>().default([]),
   taxSlabs: jsonb('tax_slabs').$type<Array<{ id: string; name: string; rate: number; type?: 'percentage' | 'fixed'; isInclusive?: boolean; isActive?: boolean }>>().default([]),
   priceSlabs: jsonb('price_slabs').$type<Array<{ id: string; quantity: number; price: number; isActive?: boolean }>>().default([]),
+  offers: jsonb('offers').$type<Array<{
+    id: string;
+    title: string;
+    description?: string;
+    code?: string;
+    discount?: number;
+  }>>().default([]),
+  offerBadge: varchar('offer_badge', { length: 100 }),
+  specifications: jsonb('specifications').$type<{
+    material?: string;
+    finish?: string;
+    printType?: string;
+    dimensionsFormatted?: string;
+    brand?: string;
+    originCountry?: string;
+    minOrderQuantity?: number;
+    maxOrderQuantity?: number;
+    leadTime?: string;
+    warranty?: string;
+    careInstructions?: string;
+    [key: string]: any;
+  }>().default({}),
   hsnCode: varchar('hsn_code', { length: 50 }),
   textAllowed: boolean('text_allowed').default(false),
   addedBy: varchar('added_by', { length: 20, enum: ['admin', 'printer'] }).default('admin'),

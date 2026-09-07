@@ -41,17 +41,18 @@ const jsonFromString = z.string().transform((val, ctx) => {
 });
 
 const sizesField = z.preprocess((val) => {
-    if (!val) return undefined;
+    if (!val) return [];
     if (typeof val === 'string') {
-        if (!val.trim()) return undefined;
+        if (!val.trim()) return [];
         try {
-            return JSON.parse(val);
+            const parsed = JSON.parse(val);
+            if (Array.isArray(parsed)) return parsed;
         } catch {
-            return val.split(',').map(s => s.trim()).filter(Boolean);
+            return val.split(',').map(s => ({ name: s.trim() })).filter(s => s.name);
         }
     }
     return val;
-}, z.any().optional());
+}, z.array(z.any()).optional().default([]));
 
 const taxSlabSchema = z.object({
   id: z.string(),
@@ -68,6 +69,27 @@ const priceSlabSchema = z.object({
   price: z.coerce.number().min(0, 'Price must be non-negative'),
   isActive: z.boolean().default(true),
 });
+
+const jsonObjectField = z.preprocess((val) => {
+  if (!val) return {};
+  if (typeof val === 'string') {
+    if (!val.trim()) return {};
+    try { return JSON.parse(val); } catch { return {}; }
+  }
+  return val;
+}, z.record(z.any()).optional().default({}));
+
+const offersField = z.preprocess((val) => {
+  if (!val) return [];
+  if (typeof val === 'string') {
+    if (!val.trim()) return [];
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed;
+    } catch { return []; }
+  }
+  return val;
+}, z.array(z.any()).optional().default([]));
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -97,12 +119,15 @@ const formSchema = z.object({
     }
     return val;
   }, z.array(priceSlabSchema).optional().default([])),
+  offers: offersField,
+  offerBadge: z.string().optional().nullable(),
+  specifications: jsonObjectField,
   imageUrls: z.string().optional(),
   tags: z.string().optional(),
   isFeatured: z.boolean().default(false),
   isActive: z.boolean().default(true),
   supplierInfo: jsonFromString.optional(),
-  shippingInfo: jsonFromString.optional(),
+  shippingInfo: jsonObjectField,
   textAllowed: z.boolean().default(false),
 });
 
@@ -151,6 +176,10 @@ export async function createDirectSellingProduct(data: z.infer<typeof formSchema
       sizes: validatedData.sizes || [],
       taxSlabs: validatedData.taxSlabs || [],
       priceSlabs: validatedData.priceSlabs || [],
+      offers: validatedData.offers || [],
+      offerBadge: validatedData.offerBadge || null,
+      specifications: validatedData.specifications || {},
+      shippingInfo: validatedData.shippingInfo || {},
       hsnCode: validatedData.hsnCode || null,
       addedBy: 'admin',
       approvalStatus: 'approved',
@@ -175,6 +204,10 @@ export async function createPrinterDirectSellingProduct(data: z.infer<typeof for
       sizes: validatedData.sizes || [],
       taxSlabs: validatedData.taxSlabs || [],
       priceSlabs: validatedData.priceSlabs || [],
+      offers: validatedData.offers || [],
+      offerBadge: validatedData.offerBadge || null,
+      specifications: validatedData.specifications || {},
+      shippingInfo: validatedData.shippingInfo || {},
       hsnCode: validatedData.hsnCode || null,
       addedBy: 'printer',
       printerId: session.sub,
@@ -199,6 +232,10 @@ export async function updateDirectSellingProduct(id: number, data: z.infer<typeo
           sizes: validatedData.sizes || [],
           taxSlabs: validatedData.taxSlabs || [],
           priceSlabs: validatedData.priceSlabs || [],
+          offers: validatedData.offers || [],
+          offerBadge: validatedData.offerBadge || null,
+          specifications: validatedData.specifications || {},
+          shippingInfo: validatedData.shippingInfo || {},
           hsnCode: validatedData.hsnCode || null,
           imageUrls: validatedData.imageUrls ? validatedData.imageUrls.split(',').map(s => s.trim()).filter(Boolean) : [],
           tags: validatedData.tags ? validatedData.tags.split(',').map(s => s.trim()).filter(Boolean) : [],
@@ -237,6 +274,10 @@ export async function updatePrinterDirectSellingProduct(id: number, data: z.infe
           sizes: validatedData.sizes || [],
           taxSlabs: validatedData.taxSlabs || [],
           priceSlabs: validatedData.priceSlabs || [],
+          offers: validatedData.offers || [],
+          offerBadge: validatedData.offerBadge || null,
+          specifications: validatedData.specifications || {},
+          shippingInfo: validatedData.shippingInfo || {},
           hsnCode: validatedData.hsnCode || null,
           approvalStatus: 'pending',
           rejectionReason: null,

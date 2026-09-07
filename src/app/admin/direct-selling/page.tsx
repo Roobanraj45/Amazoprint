@@ -26,7 +26,8 @@ import {
   Loader2, PlusCircle, Edit, Trash2, IndianRupee, Image as ImageIcon, 
   Upload, X, Search, Filter, XCircle, Package, Sparkles, CheckCircle2, 
   DollarSign, SlidersHorizontal, Layers, Clock, Factory, ShieldCheck, 
-  Check, MessageSquare, AlertCircle, Store, Percent, Receipt, Coins, Plus
+  Check, MessageSquare, AlertCircle, Store, Percent, Receipt, Coins, Plus,
+  Truck, Tag, Flame, Zap, HelpCircle, FileText, Gift
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -77,15 +78,18 @@ const formSchema = z.object({
   minStockLevel: z.coerce.number().int().optional().default(5),
   weight: z.coerce.number().optional(),
   dimensions: jsonFromString.optional(),
-  sizes: z.string().optional(),
+  sizes: z.any().optional(),
   taxSlabs: z.array(taxSlabSchema).optional().default([]),
   priceSlabs: z.array(priceSlabSchema).optional().default([]),
+  offers: z.array(z.any()).optional().default([]),
+  offerBadge: z.string().optional().nullable(),
+  specifications: z.any().optional().default({}),
   imageUrls: z.string().optional(),
   tags: z.string().optional(),
   isFeatured: z.boolean().default(false),
   isActive: z.boolean().default(true),
   supplierInfo: jsonFromString.optional(),
-  shippingInfo: jsonFromString.optional(),
+  shippingInfo: z.any().optional().default({}),
   textAllowed: z.boolean().default(false),
 });
 
@@ -169,122 +173,707 @@ function ImageManager({ value, onChange }: { value?: string; onChange: (value: s
     );
 }
 
-// --- Size Manager Component ---
-function SizeManager({ value, onChange }: { value?: string; onChange: (value: string) => void }) {
-    const [inputVal, setInputVal] = useState('');
-    const sizes = useMemo(() => {
+// --- Size & Pricing / Stock Manager ---
+export interface SizeOption {
+    id: string;
+    name: string;
+    price?: number;
+    basePrice?: number;
+    stock?: number;
+    sku?: string;
+    isActive?: boolean;
+}
+
+function SizePricingManager({ value, onChange, defaultPrice }: { value?: any; onChange: (val: SizeOption[]) => void; defaultPrice?: number }) {
+    const [inputName, setInputName] = useState('');
+    const [inputPrice, setInputPrice] = useState<string>('');
+    const [inputBasePrice, setInputBasePrice] = useState<string>('');
+    const [inputStock, setInputStock] = useState<string>('');
+
+    const sizes: SizeOption[] = useMemo(() => {
         if (!value) return [];
-        if (Array.isArray(value)) return value;
-        try {
-            const parsed = JSON.parse(value);
-            if (Array.isArray(parsed)) {
-                return parsed.map((s: any) => typeof s === 'string' ? s : s.name || JSON.stringify(s));
+        if (Array.isArray(value)) {
+            return value.map((s: any, idx: number) => {
+                if (typeof s === 'string') {
+                    return { id: `sz-${idx}-${Date.now()}`, name: s, isActive: true };
+                }
+                return {
+                    id: s.id || `sz-${idx}-${Date.now()}`,
+                    name: s.name || s.size || `Size ${idx + 1}`,
+                    price: s.price !== undefined && s.price !== null && s.price !== '' ? Number(s.price) : undefined,
+                    basePrice: s.basePrice !== undefined && s.basePrice !== null && s.basePrice !== '' ? Number(s.basePrice) : undefined,
+                    stock: s.stock !== undefined && s.stock !== null && s.stock !== '' ? Number(s.stock) : undefined,
+                    sku: s.sku || '',
+                    isActive: s.isActive !== false,
+                };
+            });
+        }
+        if (typeof value === 'string') {
+            try {
+                const parsed = JSON.parse(value);
+                if (Array.isArray(parsed)) {
+                    return parsed.map((s: any, idx: number) => typeof s === 'string' ? { id: `sz-${idx}`, name: s, isActive: true } : { ...s, id: s.id || `sz-${idx}` });
+                }
+            } catch {
+                return value.split(',').map((s, idx) => ({ id: `sz-${idx}`, name: s.trim(), isActive: true })).filter(s => s.name);
             }
-        } catch {}
-        return value.split(',').map(s => s.trim()).filter(Boolean);
+        }
+        return [];
     }, [value]);
 
-    const addSize = (sizeToAdd: string) => {
-        const trimmed = sizeToAdd.trim();
+    const addSize = (nameToAdd: string, p?: number, bp?: number, st?: number) => {
+        const trimmed = nameToAdd.trim();
         if (!trimmed) return;
-        if (!sizes.includes(trimmed)) {
-            const newSizes = [...sizes, trimmed];
-            onChange(newSizes.join(', '));
+        if (!sizes.some(s => s.name.toLowerCase() === trimmed.toLowerCase())) {
+            const newEntry: SizeOption = {
+                id: `sz-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                name: trimmed,
+                price: p !== undefined && !isNaN(p) ? p : undefined,
+                basePrice: bp !== undefined && !isNaN(bp) ? bp : undefined,
+                stock: st !== undefined && !isNaN(st) ? st : undefined,
+                sku: '',
+                isActive: true,
+            };
+            onChange([...sizes, newEntry]);
         }
-        setInputVal('');
+        setInputName('');
+        setInputPrice('');
+        setInputBasePrice('');
+        setInputStock('');
     };
 
-    const removeSize = (sizeToRemove: string) => {
-        const newSizes = sizes.filter(s => s !== sizeToRemove);
-        onChange(newSizes.join(', '));
+    const updateSize = (idx: number, field: keyof SizeOption, val: any) => {
+        const updated = [...sizes];
+        updated[idx] = { ...updated[idx], [field]: val };
+        onChange(updated);
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            addSize(inputVal);
-        }
+    const removeSize = (idToRemove: string) => {
+        onChange(sizes.filter(s => s.id !== idToRemove));
     };
 
-    const PRESETS = ['S', 'M', 'L', 'XL', 'XXL', 'A5', 'A4', 'A3', '4x6', '5x7', '8x10', '12x18'];
+    const PRESETS = ['S', 'M', 'L', 'XL', 'XXL', '3XL', 'A5', 'A4', 'A3', '12x18', '4x6', '5x7', '8x10'];
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    Available Product Sizes & Dimensions
-                </Label>
+                <div className="space-y-0.5">
+                    <Label className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <Coins className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        Size-Wise Pricing & Inventory ({sizes.length} Options)
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">Set unique selling price, MRP, and stock count for each product size variation.</p>
+                </div>
                 <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
-                    {sizes.length} {sizes.length === 1 ? 'size active' : 'sizes active'}
+                    {sizes.filter(s => s.isActive !== false).length} Active
                 </span>
             </div>
 
-            {/* Configured Size Tags */}
-            <div className="min-h-12 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-2">
-                {sizes.length === 0 ? (
-                    <span className="text-xs text-muted-foreground italic px-1">No sizes added yet. Type a size below or select quick presets.</span>
-                ) : (
-                    sizes.map((sz) => (
-                        <span
-                            key={sz}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 text-xs font-black shadow-sm animate-in fade-in"
+            {/* Quick Presets */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Quick Add Presets:</span>
+                {PRESETS.map((preset) => {
+                    const isAdded = sizes.some(s => s.name.toLowerCase() === preset.toLowerCase());
+                    return (
+                        <button
+                            key={preset}
+                            type="button"
+                            onClick={() => {
+                                if (!isAdded) addSize(preset);
+                            }}
+                            className={cn(
+                                "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border",
+                                isAdded
+                                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm cursor-default"
+                                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:text-indigo-600"
+                            )}
                         >
-                            <span>{sz}</span>
+                            {isAdded ? `✓ ${preset}` : `+ ${preset}`}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* List of Configured Sizes */}
+            {sizes.length > 0 && (
+                <div className="space-y-2.5">
+                    {sizes.map((sz, idx) => (
+                        <div key={sz.id} className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm space-y-2.5">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                                    <span className="w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center text-[10px] font-bold">
+                                        {idx + 1}
+                                    </span>
+                                    {sz.name}
+                                </span>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-1.5">
+                                        <Label className="text-[10px] font-bold text-slate-400">Active</Label>
+                                        <Switch
+                                            checked={sz.isActive !== false}
+                                            onCheckedChange={(val) => updateSize(idx, 'isActive', val)}
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removeSize(sz.id)}
+                                        className="h-7 w-7 text-slate-400 hover:text-destructive rounded-lg"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                                <div className="space-y-1 sm:col-span-1">
+                                    <Label className="text-[10px] font-bold text-slate-500">Size Name</Label>
+                                    <Input
+                                        value={sz.name}
+                                        onChange={(e) => updateSize(idx, 'name', e.target.value)}
+                                        className="h-8 text-xs font-bold rounded-lg"
+                                        placeholder="e.g. XL"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500">Selling Price (₹)</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={sz.price !== undefined ? sz.price : ''}
+                                        onChange={(e) => updateSize(idx, 'price', e.target.value === '' ? undefined : Number(e.target.value))}
+                                        className="h-8 text-xs font-bold rounded-lg text-emerald-600 dark:text-emerald-400"
+                                        placeholder={defaultPrice ? `₹${defaultPrice}` : '0.00'}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500">MRP / Base (₹)</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={sz.basePrice !== undefined ? sz.basePrice : ''}
+                                        onChange={(e) => updateSize(idx, 'basePrice', e.target.value === '' ? undefined : Number(e.target.value))}
+                                        className="h-8 text-xs font-bold rounded-lg text-slate-400"
+                                        placeholder="Strikethrough"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500">Stock Qty</Label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        value={sz.stock !== undefined ? sz.stock : ''}
+                                        onChange={(e) => updateSize(idx, 'stock', e.target.value === '' ? undefined : Number(e.target.value))}
+                                        className="h-8 text-xs font-bold rounded-lg"
+                                        placeholder="Available"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] font-bold text-slate-500">Variant SKU</Label>
+                                    <Input
+                                        value={sz.sku || ''}
+                                        onChange={(e) => updateSize(idx, 'sku', e.target.value)}
+                                        className="h-8 text-xs font-mono font-bold rounded-lg uppercase"
+                                        placeholder="Optional"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Add Custom Size Inputs */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <Input
+                        placeholder="Size Name (e.g. 12x18, XXL)"
+                        value={inputName}
+                        onChange={(e) => setInputName(e.target.value)}
+                        className="h-9 text-xs rounded-xl bg-white dark:bg-slate-900 font-bold"
+                    />
+                    <Input
+                        type="number"
+                        placeholder="Selling Price ₹"
+                        value={inputPrice}
+                        onChange={(e) => setInputPrice(e.target.value)}
+                        className="h-9 text-xs rounded-xl bg-white dark:bg-slate-900"
+                    />
+                    <Input
+                        type="number"
+                        placeholder="MRP / Base Price ₹"
+                        value={inputBasePrice}
+                        onChange={(e) => setInputBasePrice(e.target.value)}
+                        className="h-9 text-xs rounded-xl bg-white dark:bg-slate-900"
+                    />
+                    <Input
+                        type="number"
+                        placeholder="Stock Quantity"
+                        value={inputStock}
+                        onChange={(e) => setInputStock(e.target.value)}
+                        className="h-9 text-xs rounded-xl bg-white dark:bg-slate-900"
+                    />
+                </div>
+                <div className="flex justify-end">
+                    <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                            const p = inputPrice ? Number(inputPrice) : undefined;
+                            const bp = inputBasePrice ? Number(inputBasePrice) : undefined;
+                            const st = inputStock ? Number(inputStock) : undefined;
+                            addSize(inputName, p, bp, st);
+                        }}
+                        disabled={!inputName.trim()}
+                        className="h-8 px-4 rounded-xl font-bold text-xs bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                        <PlusCircle size={14} className="mr-1.5" /> Add Size Variation
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- Delivery Options Manager ---
+function DeliveryOptionsManager({ value, onChange }: { value?: any; onChange: (val: any) => void }) {
+    const data = useMemo(() => {
+        if (!value) return {};
+        if (typeof value === 'string') {
+            try { return JSON.parse(value); } catch { return {}; }
+        }
+        return value;
+    }, [value]);
+
+    const update = (field: string, val: any) => {
+        onChange({ ...data, [field]: val });
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Estimated Delivery</Label>
+                    <Input
+                        placeholder="e.g. 2-4 Business Days"
+                        value={data.estimatedDays || ''}
+                        onChange={(e) => update('estimatedDays', e.target.value)}
+                        className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                    />
+                    <div className="flex flex-wrap gap-1 pt-1">
+                        {['1-2 Days', '2-4 Days', '3-5 Days', 'Same Day'].map((chip) => (
                             <button
+                                key={chip}
                                 type="button"
-                                onClick={() => removeSize(sz)}
-                                className="hover:bg-indigo-200 dark:hover:bg-indigo-800 rounded-full p-0.5 transition-colors"
+                                onClick={() => update('estimatedDays', chip)}
+                                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100"
                             >
-                                <X size={12} />
+                                {chip}
                             </button>
-                        </span>
-                    ))
+                        ))}
+                    </div>
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Standard Shipping Fee (₹)</Label>
+                    <Input
+                        type="number"
+                        min="0"
+                        placeholder="0 (Free Delivery)"
+                        value={data.deliveryCharge !== undefined ? data.deliveryCharge : ''}
+                        onChange={(e) => update('deliveryCharge', e.target.value === '' ? '' : Number(e.target.value))}
+                        className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                    />
+                    <span className="text-[10px] text-muted-foreground">Leave 0 for Free Delivery.</span>
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Free Shipping Above (₹)</Label>
+                    <Input
+                        type="number"
+                        min="0"
+                        placeholder="499"
+                        value={data.freeDeliveryThreshold !== undefined ? data.freeDeliveryThreshold : ''}
+                        onChange={(e) => update('freeDeliveryThreshold', e.target.value === '' ? '' : Number(e.target.value))}
+                        className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                    />
+                    <span className="text-[10px] text-muted-foreground">Free shipping threshold for cart total.</span>
+                </div>
+            </div>
+
+            {/* Express Delivery */}
+            <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 space-y-3">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                        <Label className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5 text-amber-500" /> Express Delivery Option
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground">Offer priority high-speed courier dispatch to customers.</p>
+                    </div>
+                    <Switch
+                        checked={data.expressDeliveryAvailable ?? false}
+                        onCheckedChange={(val) => update('expressDeliveryAvailable', val)}
+                    />
+                </div>
+
+                {data.expressDeliveryAvailable && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <div className="space-y-1">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Express Delivery Time</Label>
+                            <Input
+                                placeholder="e.g. 24 Hours / 1-2 Days"
+                                value={data.expressDays || ''}
+                                onChange={(e) => update('expressDays', e.target.value)}
+                                className="h-9 text-xs rounded-xl bg-white dark:bg-slate-900"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Express Fee (₹)</Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                placeholder="99"
+                                value={data.expressCharge !== undefined ? data.expressCharge : ''}
+                                onChange={(e) => update('expressCharge', e.target.value === '' ? '' : Number(e.target.value))}
+                                className="h-9 text-xs rounded-xl bg-white dark:bg-slate-900"
+                            />
+                        </div>
+                    </div>
                 )}
             </div>
 
-            {/* Input to add size */}
-            <div className="flex gap-2">
+            {/* Cash on Delivery, Dispatch, Return */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                        <Label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Cash on Delivery</Label>
+                        <p className="text-[10px] text-muted-foreground">Enable COD orders</p>
+                    </div>
+                    <Switch
+                        checked={data.codAvailable ?? true}
+                        onCheckedChange={(val) => update('codAvailable', val)}
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Dispatch Turnaround</Label>
+                    <Input
+                        placeholder="e.g. Ships within 24 hours"
+                        value={data.dispatchTime || ''}
+                        onChange={(e) => update('dispatchTime', e.target.value)}
+                        className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Return / Replacement Policy</Label>
+                    <Input
+                        placeholder="e.g. 7 Days Replacement Guarantee"
+                        value={data.returnPolicy || ''}
+                        onChange={(e) => update('returnPolicy', e.target.value)}
+                        className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                    />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- Offers & Deals Manager ---
+function OffersManager({
+    offerBadge,
+    onOfferBadgeChange,
+    offers,
+    onOffersChange
+}: {
+    offerBadge?: string | null;
+    onOfferBadgeChange: (val: string) => void;
+    offers?: any[];
+    onOffersChange: (val: any[]) => void;
+}) {
+    const [newTitle, setNewTitle] = useState('');
+    const [newDesc, setNewDesc] = useState('');
+
+    const offerList = Array.isArray(offers) ? offers : [];
+
+    const addOffer = (title: string, desc?: string) => {
+        if (!title.trim()) return;
+        const newOffer = {
+            id: `offer-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+            title: title.trim(),
+            description: desc?.trim() || '',
+        };
+        onOffersChange([...offerList, newOffer]);
+        setNewTitle('');
+        setNewDesc('');
+    };
+
+    const removeOffer = (id: string) => {
+        onOffersChange(offerList.filter(o => o.id !== id));
+    };
+
+    const BADGE_PRESETS = [
+        '🔥 LIMITED TIME DEAL',
+        '⚡ FLASH SALE - 20% OFF',
+        'FESTIVE COMBO OFFER',
+        'SPECIAL LAUNCH PRICE',
+        'BUY 2 SAVE EXTRA',
+        'BESTSELLER DEAL',
+    ];
+
+    const OFFER_PRESETS = [
+        { title: '🏷️ Bank Offer', desc: '5% Instant Discount up to ₹100 on UPI orders' },
+        { title: '🎁 Bulk Purchase Deal', desc: 'Automatic package slab rate applied on volume orders' },
+        { title: '🚚 Free Express Shipping', desc: 'Complimentary shipping on orders over ₹499' },
+        { title: '🛡️ 100% Quality Assurance', desc: 'Safe bubble packaging with transit damage replacement' },
+    ];
+
+    return (
+        <div className="space-y-5">
+            <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Flame className="w-3.5 h-3.5 text-rose-500" />
+                    Deal Highlight Tag / Badge
+                </Label>
                 <Input
-                    value={inputVal}
-                    onChange={(e) => setInputVal(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type size (e.g. Medium, 12x18, A4) and press Enter or click Add"
-                    className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                    placeholder="e.g. 🔥 LIMITED TIME DEAL, ⚡ 20% OFF TODAY"
+                    value={offerBadge || ''}
+                    onChange={(e) => onOfferBadgeChange(e.target.value)}
+                    className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-bold text-rose-600 dark:text-rose-400"
                 />
-                <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => addSize(inputVal)}
-                    disabled={!inputVal.trim()}
-                    className="h-10 px-4 rounded-xl font-bold text-xs bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100"
-                >
-                    <PlusCircle size={14} className="mr-1.5" /> Add
-                </Button>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                    {BADGE_PRESETS.map((badge) => (
+                        <button
+                            key={badge}
+                            type="button"
+                            onClick={() => onOfferBadgeChange(badge)}
+                            className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 transition-colors"
+                        >
+                            {badge}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Quick Presets */}
-            <div className="space-y-1.5 pt-1">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Presets</p>
-                <div className="flex flex-wrap gap-1.5">
-                    {PRESETS.map((preset) => {
-                        const isAdded = sizes.includes(preset);
-                        return (
+            <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5 text-indigo-500" />
+                        Active Promotional Perks & Coupons ({offerList.length})
+                    </Label>
+                    <span className="text-[11px] text-muted-foreground">Displayed on the product detail page</span>
+                </div>
+
+                {offerList.length > 0 && (
+                    <div className="space-y-2">
+                        {offerList.map((o: any) => (
+                            <div key={o.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3">
+                                <div className="space-y-0.5">
+                                    <span className="text-xs font-black text-slate-900 dark:text-white block">{o.title}</span>
+                                    {o.description && <span className="text-[11px] text-slate-500 font-medium block">{o.description}</span>}
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeOffer(o.id)}
+                                    className="h-7 w-7 text-slate-400 hover:text-destructive rounded-lg"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Input
+                            placeholder="Offer Title (e.g. 🏷️ Extra ₹50 Off)"
+                            value={newTitle}
+                            onChange={(e) => setNewTitle(e.target.value)}
+                            className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 font-semibold"
+                        />
+                        <Input
+                            placeholder="Offer Description (e.g. Valid on UPI / Card payments)"
+                            value={newDesc}
+                            onChange={(e) => setNewDesc(e.target.value)}
+                            className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                        />
+                    </div>
+                    <div className="flex justify-end">
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => addOffer(newTitle, newDesc)}
+                            disabled={!newTitle.trim()}
+                            className="h-8 px-3 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700"
+                        >
+                            <Plus className="w-3.5 h-3.5 mr-1" /> Add Offer Perk
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="space-y-1.5 pt-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Add Perks:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                        {OFFER_PRESETS.map((preset) => (
                             <button
-                                key={preset}
+                                key={preset.title}
                                 type="button"
-                                onClick={() => isAdded ? removeSize(preset) : addSize(preset)}
-                                className={cn(
-                                    "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border",
-                                    isAdded
-                                        ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                                        : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-indigo-400"
-                                )}
+                                onClick={() => addOffer(preset.title, preset.desc)}
+                                className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:text-indigo-600 transition-colors"
                             >
-                                {isAdded ? `✓ ${preset}` : `+ ${preset}`}
+                                + {preset.title}
                             </button>
-                        );
-                    })}
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- Product Specifications & Operational Parameters Manager ---
+function SpecificationsManager({ value, onChange }: { value?: any; onChange: (val: any) => void }) {
+    const data = useMemo(() => {
+        if (!value) return {};
+        if (typeof value === 'string') {
+            try { return JSON.parse(value); } catch { return {}; }
+        }
+        return value;
+    }, [value]);
+
+    const update = (field: string, val: any) => {
+        onChange({ ...data, [field]: val });
+    };
+
+    return (
+        <div className="space-y-5">
+            {/* Technical / Material Attributes */}
+            <div className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-indigo-500" /> Material & Print Attributes
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                        <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Material / Paper GSM</Label>
+                        <Input
+                            placeholder="e.g. 350 GSM Heavy Art Card"
+                            value={data.material || ''}
+                            onChange={(e) => update('material', e.target.value)}
+                            className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Surface Finish</Label>
+                        <Input
+                            placeholder="e.g. Matte Lamination / UV Gloss"
+                            value={data.finish || ''}
+                            onChange={(e) => update('finish', e.target.value)}
+                            className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Print Method</Label>
+                        <Input
+                            placeholder="e.g. Digital Offset / UV Flatbed"
+                            value={data.printType || ''}
+                            onChange={(e) => update('printType', e.target.value)}
+                            className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Dimensions, Brand, Origin */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Display Dimensions</Label>
+                    <Input
+                        placeholder="e.g. 21 x 29.7 cm (A4) / 12x18 inch"
+                        value={data.dimensionsFormatted || ''}
+                        onChange={(e) => update('dimensionsFormatted', e.target.value)}
+                        className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                    />
+                </div>
+                <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Brand / Maker</Label>
+                    <Input
+                        placeholder="e.g. AmazoPrint Premium"
+                        value={data.brand || ''}
+                        onChange={(e) => update('brand', e.target.value)}
+                        className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                    />
+                </div>
+                <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Country of Origin</Label>
+                    <Input
+                        placeholder="e.g. Made in India"
+                        value={data.originCountry || ''}
+                        onChange={(e) => update('originCountry', e.target.value)}
+                        className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                    />
+                </div>
+            </div>
+
+            {/* Operational Parameters */}
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-indigo-500" /> Operational & Production Controls
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                        <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Min Order Qty (MOQ)</Label>
+                        <Input
+                            type="number"
+                            min="1"
+                            placeholder="1"
+                            value={data.minOrderQuantity || ''}
+                            onChange={(e) => update('minOrderQuantity', e.target.value === '' ? '' : Number(e.target.value))}
+                            className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Max Order Qty</Label>
+                        <Input
+                            type="number"
+                            min="1"
+                            placeholder="1000"
+                            value={data.maxOrderQuantity || ''}
+                            onChange={(e) => update('maxOrderQuantity', e.target.value === '' ? '' : Number(e.target.value))}
+                            className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Production Lead Time</Label>
+                        <Input
+                            placeholder="e.g. 1-2 Business Days"
+                            value={data.leadTime || ''}
+                            onChange={(e) => update('leadTime', e.target.value)}
+                            className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div className="space-y-1">
+                        <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Print Quality Warranty</Label>
+                        <Input
+                            placeholder="e.g. 100% Print Perfection Guarantee"
+                            value={data.warranty || ''}
+                            onChange={(e) => update('warranty', e.target.value)}
+                            className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Care & Handling Instructions</Label>
+                        <Input
+                            placeholder="e.g. Store flat in dry place, avoid moisture"
+                            value={data.careInstructions || ''}
+                            onChange={(e) => update('careInstructions', e.target.value)}
+                            className="h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-950"
+                        />
+                    </div>
                 </div>
             </div>
         </div>
@@ -693,21 +1282,34 @@ export default function DirectSellingPage() {
                           </div>
                         )}
 
-                        {/* GST and Price Slab Pills */}
-                        {(((product as any).taxSlabs && (product as any).taxSlabs.length > 0) || ((product as any).priceSlabs && (product as any).priceSlabs.length > 0)) && (
-                          <div className="flex flex-wrap gap-1 pt-1">
-                            {(product as any).taxSlabs?.filter((t: any) => t.isActive).map((t: any) => (
-                              <Badge key={t.id || t.name} variant="outline" className="text-[9px] font-black border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/30 px-1.5 py-0 h-4">
-                                {t.name} {t.rate}%
-                              </Badge>
-                            ))}
-                            {(product as any).priceSlabs?.filter((s: any) => s.isActive).length > 0 && (
-                              <Badge variant="outline" className="text-[9px] font-black border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 bg-amber-50/60 dark:bg-amber-950/30 px-1.5 py-0 h-4">
-                                {(product as any).priceSlabs.filter((s: any) => s.isActive).length} Slabs
-                              </Badge>
-                            )}
-                          </div>
-                        )}
+                        {/* Badges: Deal, Sizes, Delivery, GST and Price Slabs */}
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {(product as any).offerBadge && (
+                            <Badge className="text-[9px] font-black bg-rose-500 hover:bg-rose-600 text-white px-1.5 py-0 h-4 shadow-sm">
+                              {(product as any).offerBadge}
+                            </Badge>
+                          )}
+                          {((product.sizes as any) && (product.sizes as any).length > 0) && (
+                            <Badge variant="outline" className="text-[9px] font-black border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 bg-indigo-50/60 dark:bg-indigo-950/30 px-1.5 py-0 h-4">
+                              {(product.sizes as any).length} Sizes
+                            </Badge>
+                          )}
+                          {(product as any).shippingInfo?.deliveryCharge === 0 && (
+                            <Badge variant="outline" className="text-[9px] font-black border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/30 px-1.5 py-0 h-4 flex items-center gap-0.5">
+                              <Truck className="w-2.5 h-2.5" /> Free Delivery
+                            </Badge>
+                          )}
+                          {(product as any).taxSlabs?.filter((t: any) => t.isActive).map((t: any) => (
+                            <Badge key={t.id || t.name} variant="outline" className="text-[9px] font-black border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/30 px-1.5 py-0 h-4">
+                              {t.name} {t.rate}%
+                            </Badge>
+                          ))}
+                          {(product as any).priceSlabs?.filter((s: any) => s.isActive).length > 0 && (
+                            <Badge variant="outline" className="text-[9px] font-black border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 bg-amber-50/60 dark:bg-amber-950/30 px-1.5 py-0 h-4">
+                              {(product as any).priceSlabs.filter((s: any) => s.isActive).length} Slabs
+                            </Badge>
+                          )}
+                        </div>
 
                         <div className="flex justify-between items-baseline pt-2 border-t border-slate-100 dark:border-slate-800">
                             <span className="font-extrabold text-xl sm:text-2xl text-slate-900 dark:text-white flex items-center">
@@ -865,22 +1467,46 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
       taxSlabs: [],
       priceSlabs: [],
       hsnCode: '',
+      sizes: [],
+      offers: [],
+      offerBadge: '',
+      specifications: {},
+      shippingInfo: {},
     },
   });
 
   const taxSlabs = watch('taxSlabs') || [];
   const priceSlabs = watch('priceSlabs') || [];
+  const baseSellingPrice = watch('sellingPrice') || 0;
 
   useEffect(() => {
     if (product) {
-        let formattedSizes = '';
+        let normalizedSizes: any[] = [];
         if (product.sizes) {
             if (Array.isArray(product.sizes)) {
-                formattedSizes = product.sizes.map((s: any) => typeof s === 'string' ? s : s.name || JSON.stringify(s)).join(', ');
+                normalizedSizes = product.sizes.map((s: any, idx: number) => {
+                    if (typeof s === 'string') {
+                        return { id: `sz-${idx}-${Date.now()}`, name: s, isActive: true };
+                    }
+                    return {
+                        id: s.id || `sz-${idx}-${Date.now()}`,
+                        name: s.name || s.size || `Size ${idx + 1}`,
+                        price: s.price !== undefined && s.price !== null && s.price !== '' ? Number(s.price) : undefined,
+                        basePrice: s.basePrice !== undefined && s.basePrice !== null && s.basePrice !== '' ? Number(s.basePrice) : undefined,
+                        stock: s.stock !== undefined && s.stock !== null && s.stock !== '' ? Number(s.stock) : undefined,
+                        sku: s.sku || '',
+                        isActive: s.isActive !== false,
+                    };
+                });
             } else if (typeof product.sizes === 'string') {
-                formattedSizes = product.sizes;
-            } else {
-                formattedSizes = JSON.stringify(product.sizes);
+                try {
+                    const parsed = JSON.parse(product.sizes);
+                    if (Array.isArray(parsed)) {
+                        normalizedSizes = parsed.map((s: any, idx: number) => typeof s === 'string' ? { id: `sz-${idx}`, name: s, isActive: true } : { ...s, id: s.id || `sz-${idx}` });
+                    }
+                } catch {
+                    normalizedSizes = product.sizes.split(',').map((s: string, idx: number) => ({ id: `sz-${idx}`, name: s.trim(), isActive: true })).filter(s => s.name);
+                }
             }
         }
 
@@ -891,24 +1517,68 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
             weight: Number(product.weight),
             imageUrls: product.imageUrls?.join(', ') || '',
             tags: product.tags?.join(', ') || '',
-            sizes: formattedSizes,
+            sizes: normalizedSizes,
             hsnCode: (product as any).hsnCode || '',
             taxSlabs: (product as any).taxSlabs || [],
             priceSlabs: (product as any).priceSlabs || [],
+            offers: (product as any).offers || [],
+            offerBadge: (product as any).offerBadge || '',
+            specifications: (product as any).specifications || {
+                brand: 'AmazoPrint Premium',
+                originCountry: 'Made in India',
+                minOrderQuantity: 1,
+                leadTime: '1-2 Business Days',
+                warranty: '100% Print Perfection Guarantee',
+            },
+            shippingInfo: product.shippingInfo || {
+                estimatedDays: '2-4 Business Days',
+                deliveryCharge: 0,
+                freeDeliveryThreshold: 499,
+                expressDeliveryAvailable: true,
+                expressDays: '1-2 Days',
+                expressCharge: 99,
+                codAvailable: true,
+                dispatchTime: 'Ships within 24 hours',
+                returnPolicy: '7 Days Replacement Guarantee'
+            },
             dimensions: product.dimensions ? JSON.stringify(product.dimensions, null, 2) : '',
             supplierInfo: product.supplierInfo ? JSON.stringify(product.supplierInfo, null, 2) : '',
-            shippingInfo: product.shippingInfo ? JSON.stringify(product.shippingInfo, null, 2) : '',
             textAllowed: !!product.textAllowed,
             isActive: product.isActive ?? true,
         });
     } else {
-      reset({ name: '', slug: '', description: '', category: '', costPrice: 0, sellingPrice: 0, sku: '', hsnCode: '', taxSlabs: [], priceSlabs: [], stockQuantity: 0, minStockLevel: 5, weight: 0, dimensions: '', sizes: '', imageUrls: '', tags: '', isFeatured: false, isActive: true, supplierInfo: '', shippingInfo: '', textAllowed: false });
+      reset({ 
+        name: '', slug: '', description: '', category: '', costPrice: 0, sellingPrice: 0, sku: '', hsnCode: '', 
+        taxSlabs: [], priceSlabs: [], stockQuantity: 0, minStockLevel: 5, weight: 0, dimensions: '', 
+        sizes: [], 
+        offers: [], 
+        offerBadge: '', 
+        specifications: {
+            brand: 'AmazoPrint Premium',
+            originCountry: 'Made in India',
+            minOrderQuantity: 1,
+            leadTime: '1-2 Business Days',
+            warranty: '100% Print Perfection Guarantee',
+        }, 
+        shippingInfo: {
+            estimatedDays: '2-4 Business Days',
+            deliveryCharge: 0,
+            freeDeliveryThreshold: 499,
+            expressDeliveryAvailable: true,
+            expressDays: '1-2 Days',
+            expressCharge: 99,
+            codAvailable: true,
+            dispatchTime: 'Ships within 24 hours',
+            returnPolicy: '7 Days Replacement Guarantee'
+        }, 
+        imageUrls: '', tags: '', isFeatured: false, isActive: true, supplierInfo: '', textAllowed: false 
+      });
     }
   }, [product, reset]);
 
   return (
-    <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col p-0 bg-background border-slate-200/80 dark:border-slate-800/80 shadow-2xl rounded-2xl overflow-hidden mx-2 sm:mx-auto">
-      <DialogHeader className="p-5 sm:p-8 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white relative overflow-hidden border-b border-slate-800 flex-shrink-0">
+    <DialogContent className="sm:max-w-4xl h-[92vh] flex flex-col p-0 bg-background border-slate-200/80 dark:border-slate-800/80 shadow-2xl rounded-2xl overflow-hidden mx-2 sm:mx-auto">
+      <DialogHeader className="p-5 sm:p-7 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white relative overflow-hidden border-b border-slate-800 flex-shrink-0">
         <div className="absolute inset-0 bg-grid-white/[0.03] bg-[size:20px_20px]" />
         <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         <div className="flex items-center justify-between relative z-10">
@@ -920,7 +1590,7 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                     </Badge>
                 </div>
                 <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight text-white">{product ? 'Edit Direct Selling Product' : 'Create Direct Selling Product'}</DialogTitle>
-                <DialogDescription className="text-slate-300 text-xs sm:text-sm mt-1">Configure physical attributes, pricing tiers, stock minimums, and custom engraving capabilities.</DialogDescription>
+                <DialogDescription className="text-slate-300 text-xs sm:text-sm mt-1">Configure size variations, pricing tiers, delivery options, promotional offers, and specifications.</DialogDescription>
             </div>
             <div className="hidden sm:flex items-center justify-center w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 shadow-inner flex-shrink-0">
                 <Package className="w-7 h-7 text-indigo-400" />
@@ -931,16 +1601,18 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
       <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <Tabs defaultValue="basic" className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="px-4 sm:px-8 mt-4 flex-shrink-0">
-            <TabsList className="flex overflow-x-auto sm:grid sm:grid-cols-5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl max-w-full shadow-inner">
-              <TabsTrigger value="basic" className="rounded-lg font-bold text-xs py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all whitespace-nowrap">Basic Info</TabsTrigger>
-              <TabsTrigger value="pricing" className="rounded-lg font-bold text-xs py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all whitespace-nowrap">Pricing & Stock</TabsTrigger>
-              <TabsTrigger value="media" className="rounded-lg font-bold text-xs py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all whitespace-nowrap">Media & Weight</TabsTrigger>
-              <TabsTrigger value="custom" className="rounded-lg font-bold text-xs py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all whitespace-nowrap">Customization</TabsTrigger>
-              <TabsTrigger value="meta" className="rounded-lg font-bold text-xs py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all whitespace-nowrap">Meta & Tags</TabsTrigger>
+            <TabsList className="flex overflow-x-auto sm:grid sm:grid-cols-6 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl max-w-full shadow-inner">
+              <TabsTrigger value="basic" className="rounded-lg font-bold text-xs py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all whitespace-nowrap">Identity</TabsTrigger>
+              <TabsTrigger value="pricing" className="rounded-lg font-bold text-xs py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all whitespace-nowrap">Pricing & Sizes</TabsTrigger>
+              <TabsTrigger value="delivery" className="rounded-lg font-bold text-xs py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all whitespace-nowrap">Delivery Options</TabsTrigger>
+              <TabsTrigger value="offers" className="rounded-lg font-bold text-xs py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all whitespace-nowrap">Offers & Deals</TabsTrigger>
+              <TabsTrigger value="specs" className="rounded-lg font-bold text-xs py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all whitespace-nowrap">Specifications</TabsTrigger>
+              <TabsTrigger value="media" className="rounded-lg font-bold text-xs py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm transition-all whitespace-nowrap">Media & Settings</TabsTrigger>
             </TabsList>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4">
+              {/* TAB 1: BASIC IDENTITY */}
               <TabsContent value="basic" className="space-y-4 sm:space-y-6 mt-0">
                 <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-sm">
                     <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-3 sm:pb-4 bg-slate-50/50 dark:bg-slate-900/50">
@@ -968,8 +1640,8 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                                 <Input id="category" placeholder="e.g. Stationery, Accessories" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('category')} />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="sku" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">SKU (Stock Keeping Unit)</Label>
-                                <Input id="sku" placeholder="e.g. PEN-EXEC-001" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('sku')} />
+                                <Label htmlFor="sku" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Base SKU</Label>
+                                <Input id="sku" placeholder="e.g. PEN-EXEC-001" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold uppercase" {...register('sku')} />
                             </div>
                         </div>
                         <div className="space-y-2">
@@ -980,12 +1652,13 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                 </Card>
               </TabsContent>
 
+              {/* TAB 2: PRICING, SLABS & SIZE VARIATIONS */}
               <TabsContent value="pricing" className="space-y-4 sm:space-y-6 mt-0">
                 <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-sm">
                     <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-3 sm:pb-4 bg-slate-50/50 dark:bg-slate-900/50">
                         <CardTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             <DollarSign className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                            Pricing Matrix & Inventory Thresholds
+                            Base Pricing Matrix & Inventory
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -998,7 +1671,7 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="sellingPrice" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Selling Price (₹)</Label>
+                                <Label htmlFor="sellingPrice" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Base Selling Price (₹)</Label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">₹</span>
                                     <Input id="sellingPrice" type="number" step="0.01" placeholder="0.00" className="h-10 rounded-xl pl-7 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('sellingPrice')} />
@@ -1008,7 +1681,7 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-4 border-t border-slate-100 dark:border-slate-800">
                             <div className="space-y-2">
-                                <Label htmlFor="stockQuantity" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Current Stock Quantity</Label>
+                                <Label htmlFor="stockQuantity" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Overall Stock Quantity</Label>
                                 <Input id="stockQuantity" type="number" placeholder="0" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('stockQuantity')} />
                             </div>
                             <div className="space-y-2">
@@ -1018,10 +1691,6 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-                            <div className="space-y-2">
-                                <Label htmlFor="sku" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">SKU Code</Label>
-                                <Input id="sku" placeholder="e.g. DIR-PROD-001" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-mono text-xs font-bold uppercase" {...register('sku')} />
-                            </div>
                             <div className="space-y-2">
                                 <Label htmlFor="hsnCode" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">HSN / SAC Code</Label>
                                 <Input id="hsnCode" placeholder="e.g. 49111090" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-mono text-xs font-bold" {...register('hsnCode')} />
@@ -1054,7 +1723,6 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                                 </Button>
                             </div>
 
-                            {/* Tax Presets */}
                             <div className="p-3 bg-emerald-50/40 dark:bg-emerald-950/20 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 flex flex-wrap items-center gap-2">
                                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
                                     <Receipt className="w-3.5 h-3.5 text-emerald-500" /> Quick Add Tax:
@@ -1087,7 +1755,6 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                                 ))}
                             </div>
 
-                            {/* Tax Slabs List */}
                             {taxSlabs.length > 0 && (
                                 <div className="space-y-2.5">
                                     {taxSlabs.map((taxItem: any, idx: number) => (
@@ -1103,53 +1770,45 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                                                             updated[idx].isActive = val;
                                                             setValue('taxSlabs', updated, { shouldDirty: true });
                                                         }}
-                                                        className="data-[state=checked]:bg-emerald-600 scale-90"
                                                     />
                                                     <Button
                                                         type="button"
                                                         variant="ghost"
-                                                        size="sm"
+                                                        size="icon"
                                                         onClick={() => {
-                                                            setValue('taxSlabs', taxSlabs.filter((_, i) => i !== idx), { shouldDirty: true });
+                                                            setValue('taxSlabs', taxSlabs.filter((_: any, i: number) => i !== idx), { shouldDirty: true });
                                                         }}
-                                                        className="h-6 w-6 p-0 text-rose-500 hover:text-rose-700"
+                                                        className="h-7 w-7 text-slate-400 hover:text-destructive rounded-lg"
                                                     >
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </Button>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                                                <div className="sm:col-span-5">
-                                                    <Input
-                                                        placeholder="Tax Name (e.g. GST)"
-                                                        value={taxItem.name}
-                                                        onChange={(e) => {
-                                                            const updated = [...taxSlabs];
-                                                            updated[idx].name = e.target.value;
-                                                            setValue('taxSlabs', updated, { shouldDirty: true });
-                                                        }}
-                                                        className="h-8 rounded-lg text-xs font-bold"
-                                                    />
-                                                </div>
-                                                <div className="sm:col-span-3">
-                                                    <div className="relative">
-                                                        <Input
-                                                            type="number"
-                                                            step="0.1"
-                                                            placeholder="18"
-                                                            value={taxItem.rate}
-                                                            onChange={(e) => {
-                                                                const updated = [...taxSlabs];
-                                                                updated[idx].rate = parseFloat(e.target.value) || 0;
-                                                                setValue('taxSlabs', updated, { shouldDirty: true });
-                                                            }}
-                                                            className="h-8 rounded-lg text-xs font-bold pr-6"
-                                                        />
-                                                        <span className="absolute right-2 top-1.5 text-xs font-bold text-slate-400">%</span>
-                                                    </div>
-                                                </div>
-                                                <div className="sm:col-span-4 flex items-center justify-end gap-1.5">
-                                                    <Label className="text-[10px] font-bold text-slate-500">Price Inclusive</Label>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                <Input
+                                                    placeholder="Tax Name"
+                                                    value={taxItem.name}
+                                                    onChange={(e) => {
+                                                        const updated = [...taxSlabs];
+                                                        updated[idx].name = e.target.value;
+                                                        setValue('taxSlabs', updated, { shouldDirty: true });
+                                                    }}
+                                                    className="h-8 text-xs font-semibold rounded-lg"
+                                                />
+                                                <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder="Rate %"
+                                                    value={taxItem.rate}
+                                                    onChange={(e) => {
+                                                        const updated = [...taxSlabs];
+                                                        updated[idx].rate = parseFloat(e.target.value) || 0;
+                                                        setValue('taxSlabs', updated, { shouldDirty: true });
+                                                    }}
+                                                    className="h-8 text-xs font-bold rounded-lg"
+                                                />
+                                                <div className="flex items-center justify-between px-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+                                                    <span className="text-[10px] font-bold text-slate-500">Inclusive</span>
                                                     <Switch
                                                         checked={taxItem.isInclusive ?? false}
                                                         onCheckedChange={(val) => {
@@ -1157,7 +1816,6 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                                                             updated[idx].isInclusive = val;
                                                             setValue('taxSlabs', updated, { shouldDirty: true });
                                                         }}
-                                                        className="data-[state=checked]:bg-emerald-600 scale-75"
                                                     />
                                                 </div>
                                             </div>
@@ -1175,82 +1833,34 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                                         <Coins className="w-4 h-4 text-amber-500" />
                                         Quantity Price Slabs ({priceSlabs.filter((s: any) => s.isActive).length} Active)
                                     </Label>
-                                    <p className="text-[11px] text-muted-foreground">Define package tiers (e.g. 10 pcs: ₹200). Customer selects directly from these tiers.</p>
+                                    <p className="text-[11px] text-muted-foreground">Offer bulk package discounts for orders at specific quantities.</p>
                                 </div>
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        const unit = Number(watch('sellingPrice') || 10);
-                                        const qty = 50;
                                         setValue('priceSlabs', [
                                             ...priceSlabs,
-                                            { id: `slab-${Date.now()}`, quantity: qty, price: unit * qty, isActive: true }
+                                            { id: `slab-${Date.now()}`, quantity: 5, price: 500, isActive: true }
                                         ], { shouldDirty: true });
                                     }}
-                                    className="h-8 rounded-xl text-xs font-bold border-amber-300 dark:border-amber-800 text-amber-600 dark:text-amber-400 hover:bg-amber-50 shrink-0"
+                                    className="h-8 rounded-xl text-xs font-bold border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 hover:bg-amber-50 shrink-0"
                                 >
-                                    <Plus className="mr-1 h-3 w-3" /> Add Price Slab
+                                    <Plus className="mr-1 h-3 w-3" /> Add Quantity Slab
                                 </Button>
                             </div>
 
-                            {/* Slabs Quick Presets */}
-                            <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200/60 dark:border-amber-900/40 flex flex-wrap items-center gap-2">
-                                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1">
-                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Quick Add Quantity Presets:
-                                </span>
-                                {[
-                                    { qty: 10, mult: 10 },
-                                    { qty: 25, mult: 23 },
-                                    { qty: 50, mult: 45 },
-                                    { qty: 100, mult: 85 },
-                                    { qty: 250, mult: 200 },
-                                    { qty: 500, mult: 380 },
-                                ].map((p) => (
-                                    <Button
-                                        key={p.qty}
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                            const unit = Number(watch('sellingPrice') || 10);
-                                            const exists = priceSlabs.some((s: any) => Number(s.quantity) === p.qty);
-                                            if (!exists) {
-                                                const slabPrice = Math.round(unit * p.mult);
-                                                setValue('priceSlabs', [
-                                                    ...priceSlabs,
-                                                    { id: `slab-${Date.now()}-${p.qty}`, quantity: p.qty, price: slabPrice, isActive: true }
-                                                ], { shouldDirty: true });
-                                            }
-                                        }}
-                                        className="h-6 px-2 text-[10px] font-bold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 hover:text-amber-600"
-                                    >
-                                        +{p.qty} pcs
-                                    </Button>
-                                ))}
-                            </div>
-
-                            {/* Price Slabs List */}
-                            {priceSlabs.length === 0 ? (
-                                <div className="py-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-950/50 gap-1">
-                                    <Coins className="w-5 h-5 text-slate-300 dark:text-slate-700" />
-                                    <p className="text-xs font-bold text-slate-500">No Quantity Slabs Defined</p>
-                                    <p className="text-[10px] text-muted-foreground">Product will use single unit selling price. Click presets above to define bulk package tiers.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
+                            {priceSlabs.length > 0 && (
+                                <div className="space-y-2.5">
                                     {priceSlabs.map((slabItem: any, idx: number) => {
                                         const qty = Number(slabItem.quantity) || 1;
                                         const prc = Number(slabItem.price) || 0;
-                                        const perUnit = (prc / qty).toFixed(2);
+                                        const unitRate = (prc / qty).toFixed(2);
                                         return (
                                             <div key={slabItem.id || idx} className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
                                                 <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-black text-amber-600 dark:text-amber-400">Tier #{idx + 1}</span>
-                                                        <Badge variant="outline" className="text-[10px] font-bold text-slate-500">≈ ₹{perUnit} / pc</Badge>
-                                                    </div>
+                                                    <span className="text-xs font-black text-amber-600 dark:text-amber-400">Package #{idx + 1}</span>
                                                     <div className="flex items-center gap-2">
                                                         <Label className="text-[10px] font-bold text-slate-500">Active</Label>
                                                         <Switch
@@ -1260,55 +1870,48 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                                                                 updated[idx].isActive = val;
                                                                 setValue('priceSlabs', updated, { shouldDirty: true });
                                                             }}
-                                                            className="data-[state=checked]:bg-amber-600 scale-90"
                                                         />
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
-                                                            size="sm"
+                                                            size="icon"
                                                             onClick={() => {
-                                                                setValue('priceSlabs', priceSlabs.filter((_, i) => i !== idx), { shouldDirty: true });
+                                                                setValue('priceSlabs', priceSlabs.filter((_: any, i: number) => i !== idx), { shouldDirty: true });
                                                             }}
-                                                            className="h-6 w-6 p-0 text-rose-500 hover:text-rose-700"
+                                                            className="h-7 w-7 text-slate-400 hover:text-destructive rounded-lg"
                                                         >
                                                             <Trash2 className="w-3.5 h-3.5" />
                                                         </Button>
                                                     </div>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div>
-                                                        <Label className="text-[10px] font-bold uppercase text-slate-500">Order Quantity</Label>
-                                                        <Input
-                                                            type="number"
-                                                            min={1}
-                                                            placeholder="50"
-                                                            value={slabItem.quantity}
-                                                            onChange={(e) => {
-                                                                const updated = [...priceSlabs];
-                                                                updated[idx].quantity = parseInt(e.target.value) || 1;
-                                                                setValue('priceSlabs', updated, { shouldDirty: true });
-                                                            }}
-                                                            className="h-8 rounded-lg text-xs font-bold"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <Label className="text-[10px] font-bold uppercase text-slate-500">Package Price (₹)</Label>
-                                                        <div className="relative">
-                                                            <span className="absolute left-2.5 top-1.5 text-xs font-bold text-slate-400">₹</span>
-                                                            <Input
-                                                                type="number"
-                                                                step="0.01"
-                                                                min={0}
-                                                                placeholder="200"
-                                                                value={slabItem.price}
-                                                                onChange={(e) => {
-                                                                    const updated = [...priceSlabs];
-                                                                    updated[idx].price = parseFloat(e.target.value) || 0;
-                                                                    setValue('priceSlabs', updated, { shouldDirty: true });
-                                                                }}
-                                                                className="h-8 rounded-lg text-xs font-bold pl-6"
-                                                            />
-                                                        </div>
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                    <Input
+                                                        type="number"
+                                                        min={1}
+                                                        placeholder="Qty"
+                                                        value={slabItem.quantity}
+                                                        onChange={(e) => {
+                                                            const updated = [...priceSlabs];
+                                                            updated[idx].quantity = parseInt(e.target.value) || 1;
+                                                            setValue('priceSlabs', updated, { shouldDirty: true });
+                                                        }}
+                                                        className="h-8 rounded-lg text-xs font-bold"
+                                                    />
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min={0}
+                                                        placeholder="Price ₹"
+                                                        value={slabItem.price}
+                                                        onChange={(e) => {
+                                                            const updated = [...priceSlabs];
+                                                            updated[idx].price = parseFloat(e.target.value) || 0;
+                                                            setValue('priceSlabs', updated, { shouldDirty: true });
+                                                        }}
+                                                        className="h-8 rounded-lg text-xs font-bold"
+                                                    />
+                                                    <div className="flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-slate-500">
+                                                        ₹{unitRate}/unit
                                                     </div>
                                                 </div>
                                             </div>
@@ -1318,12 +1921,13 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                             )}
                         </div>
 
+                        {/* Size-Wise Pricing & Stock */}
                         <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                             <Controller
                                 name="sizes"
                                 control={control}
                                 render={({ field }) => (
-                                    <SizeManager value={field.value} onChange={field.onChange} />
+                                    <SizePricingManager value={field.value} onChange={field.onChange} defaultPrice={Number(baseSellingPrice)} />
                                 )}
                             />
                         </div>
@@ -1331,12 +1935,75 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                 </Card>
               </TabsContent>
 
+              {/* TAB 3: DELIVERY OPTIONS */}
+              <TabsContent value="delivery" className="space-y-4 sm:space-y-6 mt-0">
+                <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-sm">
+                    <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-3 sm:pb-4 bg-slate-50/50 dark:bg-slate-900/50">
+                        <CardTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Truck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                            Delivery, Shipping Rates & Returns Policy
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6">
+                        <Controller
+                            name="shippingInfo"
+                            control={control}
+                            render={({ field }) => (
+                                <DeliveryOptionsManager value={field.value} onChange={field.onChange} />
+                            )}
+                        />
+                    </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* TAB 4: OFFERS & PROMOTIONAL DEALS */}
+              <TabsContent value="offers" className="space-y-4 sm:space-y-6 mt-0">
+                <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-sm">
+                    <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-3 sm:pb-4 bg-slate-50/50 dark:bg-slate-900/50">
+                        <CardTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Gift className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                            Promotional Deals, Badges & Customer Perks
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6">
+                        <OffersManager
+                            offerBadge={watch('offerBadge')}
+                            onOfferBadgeChange={(val) => setValue('offerBadge', val, { shouldDirty: true })}
+                            offers={watch('offers')}
+                            onOffersChange={(val) => setValue('offers', val, { shouldDirty: true })}
+                        />
+                    </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* TAB 5: SPECIFICATIONS & OPERATIONAL CONTROLS */}
+              <TabsContent value="specs" className="space-y-4 sm:space-y-6 mt-0">
+                <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-sm">
+                    <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-3 sm:pb-4 bg-slate-50/50 dark:bg-slate-900/50">
+                        <CardTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                            Technical Specifications & Operational Parameters
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6">
+                        <Controller
+                            name="specifications"
+                            control={control}
+                            render={({ field }) => (
+                                <SpecificationsManager value={field.value} onChange={field.onChange} />
+                            )}
+                        />
+                    </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* TAB 6: MEDIA, WEIGHT & META SETTINGS */}
               <TabsContent value="media" className="space-y-4 sm:space-y-6 mt-0">
                  <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-sm">
                      <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-3 sm:pb-4 bg-slate-50/50 dark:bg-slate-900/50">
                          <CardTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                              <ImageIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                             Media Gallery & Shipping Specifications
+                             Media Gallery & Visibility Controls
                          </CardTitle>
                      </CardHeader>
                      <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -1351,38 +2018,16 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-4 border-t border-slate-100 dark:border-slate-800">
                             <div className="space-y-2">
-                                <Label htmlFor="sizes" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Available Sizes</Label>
-                                <Input id="sizes" placeholder="e.g. S, M, L, XL or A5, A4, A3" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold text-xs" {...register('sizes')} />
-                                <p className="text-[10px] text-muted-foreground">Separate with commas (e.g. Small, Medium, Large or 10x12, 12x18)</p>
-                            </div>
-                            <div className="space-y-2">
                                 <Label htmlFor="weight" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Physical Weight (kg)</Label>
                                 <Input id="weight" type="number" step="0.01" placeholder="e.g. 0.5" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold" {...register('weight')} />
                             </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="tags" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Search Keywords / Tags</Label>
+                                <Input id="tags" {...register('tags')} placeholder="e.g. premium, gift, executive" className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold text-xs" />
+                            </div>
                         </div>
-                        <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                            <Label htmlFor="dimensions" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Dimensions (Valid JSON)</Label>
-                            <Textarea id="dimensions" {...register('dimensions')} placeholder='e.g. {"length": 15, "width": 10, "height": 5}' className="rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold p-3 font-mono text-xs" rows={2} />
-                            {errors.dimensions && <p className="text-xs font-bold text-destructive mt-1">{errors.dimensions.message}</p>}
-                        </div>
-                         <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                             <Label htmlFor="shippingInfo" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Shipping Configuration (Valid JSON)</Label>
-                             <Textarea id="shippingInfo" {...register('shippingInfo')} placeholder='e.g. {"carrier": "FedEx", "handlingFee": 50, "fragile": true}' className="rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold p-3 font-mono text-xs" rows={2} />
-                             {errors.shippingInfo && <p className="text-xs font-bold text-destructive mt-1">{errors.shippingInfo.message}</p>}
-                         </div>
-                     </CardContent>
-                 </Card>
-              </TabsContent>
 
-              <TabsContent value="custom" className="space-y-4 sm:space-y-6 mt-0">
-                <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-sm">
-                    <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-3 sm:pb-4 bg-slate-50/50 dark:bg-slate-900/50">
-                        <CardTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                            Customer Engraving & Text Customization
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6">
+                        {/* Customer Engraving & Text Customization */}
                         <div className="flex items-center justify-between p-4 sm:p-5 bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-sm gap-4">
                             <div className="space-y-0.5">
                                 <Label htmlFor="textAllowed" className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Enable Custom Text Inputs</Label>
@@ -1396,29 +2041,7 @@ function ProductForm({ onSubmit, product, onClose }: { onSubmit: (data: any) => 
                               )} 
                             />
                         </div>
-                    </CardContent>
-                </Card>
-              </TabsContent>
 
-              <TabsContent value="meta" className="space-y-4 sm:space-y-6 mt-0">
-                <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-sm">
-                    <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-3 sm:pb-4 bg-slate-50/50 dark:bg-slate-900/50">
-                        <CardTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                            Search Tags, Supplier & Visibility Status
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="tags" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Search Keywords / Tags</Label>
-                            <Textarea id="tags" {...register('tags')} placeholder="Enter comma-separated tags e.g. premium, gift, executive, pen" className="rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold p-3 text-xs" rows={2} />
-                        </div>
-                        <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                            <Label htmlFor="supplierInfo" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Supplier Information (Valid JSON)</Label>
-                            <Textarea id="supplierInfo" {...register('supplierInfo')} placeholder='e.g. {"name": "Global Stationery Ltd", "contact": "support@globalstationery.com"}' className="rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold p-3 font-mono text-xs" rows={2} />
-                            {errors.supplierInfo && <p className="text-xs font-bold text-destructive mt-1">{errors.supplierInfo.message}</p>}
-                        </div>
-                        
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                             <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
                                 <div className="space-y-0.5">

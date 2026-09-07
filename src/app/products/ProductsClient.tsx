@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { Sparkles, Package2, Leaf, ShieldCheck, Palette, ArrowRight, CheckCircle2, IndianRupee, Search, Filter, Star, Zap, Flame, AlertCircle } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Sparkles, Package2, Leaf, ShieldCheck, Palette, ArrowRight, CheckCircle2, IndianRupee, Search, Filter, Star, Zap, Flame, AlertCircle, ChevronLeft, ChevronRight, SlidersHorizontal, LayoutGrid } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -26,7 +26,7 @@ const getDiscountInfo = (subProduct: any) => {
     if (discountRules.length === 0) {
         return null;
     }
-    
+
     const bestDiscountRule = discountRules[0];
 
     if (bestDiscountRule.discountType === 'percentage') {
@@ -83,6 +83,58 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
     const [activeFinish, setActiveFinish] = useState<string>('All');
     const [sortBy, setSortBy] = useState<string>('default');
 
+    // Single-row horizontal slider state & refs
+    const sliderRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(true);
+    const [viewMode, setViewMode] = useState<'slider' | 'grid'>('slider');
+    const [scrollProgress, setScrollProgress] = useState(0);
+
+    const checkScrollButtons = useCallback(() => {
+        if (!sliderRef.current) return;
+        const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
+        setCanScrollLeft(scrollLeft > 15);
+        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 15);
+        const maxScroll = scrollWidth - clientWidth;
+        if (maxScroll > 0) {
+            setScrollProgress(Math.min(100, Math.max(0, (scrollLeft / maxScroll) * 100)));
+        } else {
+            setScrollProgress(100);
+        }
+    }, []);
+
+    const slide = (direction: 'left' | 'right') => {
+        if (!sliderRef.current) return;
+        const container = sliderRef.current;
+        const scrollAmount = Math.max(300, Math.floor(container.clientWidth * 0.75));
+        container.scrollBy({
+            left: direction === 'left' ? -scrollAmount : scrollAmount,
+            behavior: 'smooth'
+        });
+    };
+
+    // Popular Print Niches single-row slider state & refs
+    const nichesRef = useRef<HTMLDivElement>(null);
+    const [canScrollNichesLeft, setCanScrollNichesLeft] = useState(false);
+    const [canScrollNichesRight, setCanScrollNichesRight] = useState(true);
+
+    const checkNichesScroll = useCallback(() => {
+        if (!nichesRef.current) return;
+        const { scrollLeft, scrollWidth, clientWidth } = nichesRef.current;
+        setCanScrollNichesLeft(scrollLeft > 10);
+        setCanScrollNichesRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }, []);
+
+    const slideNiches = (direction: 'left' | 'right') => {
+        if (!nichesRef.current) return;
+        const container = nichesRef.current;
+        const scrollAmount = Math.max(220, Math.floor(container.clientWidth * 0.7));
+        container.scrollBy({
+            left: direction === 'left' ? -scrollAmount : scrollAmount,
+            behavior: 'smooth'
+        });
+    };
+
     // Extract all unique categories (product categories/names and direct selling categories) for the filter pills
     const categories = useMemo(() => {
         const productCategories = initialProducts.map(p => p.category?.trim() || p.name?.trim()).filter(Boolean);
@@ -97,10 +149,10 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
             const cleanParam = decodeURIComponent(catParam).trim().toLowerCase();
             const matched = categories.find(
                 c => c.toLowerCase() === cleanParam ||
-                     c.toLowerCase().replace(/\s+/g, '-') === cleanParam ||
-                     c.toLowerCase().replace(/-/g, ' ') === cleanParam ||
-                     cleanParam.includes(c.toLowerCase()) ||
-                     c.toLowerCase().includes(cleanParam)
+                    c.toLowerCase().replace(/\s+/g, '-') === cleanParam ||
+                    c.toLowerCase().replace(/-/g, ' ') === cleanParam ||
+                    cleanParam.includes(c.toLowerCase()) ||
+                    c.toLowerCase().includes(cleanParam)
             );
             if (matched) {
                 setActiveCategory(matched);
@@ -148,8 +200,8 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                 const prodNameLower = (product.name || '').toLowerCase().trim();
                 const activeCatLower = activeCategory.toLowerCase().trim();
 
-                const matchesCategoryFilter = activeCategory === 'All' || 
-                    prodCatLower === activeCatLower || 
+                const matchesCategoryFilter = activeCategory === 'All' ||
+                    prodCatLower === activeCatLower ||
                     prodNameLower === activeCatLower;
 
                 if (!matchesCategoryFilter) {
@@ -220,8 +272,8 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                 const prodNameLower = (product.name || '').toLowerCase().trim();
                 const activeCatLower = activeCategory.toLowerCase().trim();
 
-                const matchesCategoryFilter = activeCategory === 'All' || 
-                    prodCatLower === activeCatLower || 
+                const matchesCategoryFilter = activeCategory === 'All' ||
+                    prodCatLower === activeCatLower ||
                     prodNameLower === activeCatLower;
 
                 if (!matchesCategoryFilter) {
@@ -232,7 +284,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                 const matchesCategory = prodCatLower.includes(searchLower);
                 const matchesDesc = (product.description || '').toLowerCase().includes(searchLower);
                 const matchesTags = Array.isArray(product.tags) && product.tags.some((t: string) => t.toLowerCase().includes(searchLower));
-                
+
                 if (searchLower && !matchesName && !matchesCategory && !matchesDesc && !matchesTags) {
                     return;
                 }
@@ -279,6 +331,239 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
         return list;
     }, [initialProducts, directSellingProducts, searchQuery, activeCategory, activeFinish, sortBy]);
 
+    // Attach scroll and resize listeners to monitor slider bounds
+    useEffect(() => {
+        const el = sliderRef.current;
+        if (!el) return;
+        checkScrollButtons();
+        el.addEventListener('scroll', checkScrollButtons, { passive: true });
+        window.addEventListener('resize', checkScrollButtons);
+        return () => {
+            el.removeEventListener('scroll', checkScrollButtons);
+            window.removeEventListener('resize', checkScrollButtons);
+        };
+    }, [checkScrollButtons, combinedProducts, viewMode]);
+
+    // Reset slider scroll when filter criteria change
+    useEffect(() => {
+        if (sliderRef.current) {
+            sliderRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        }
+    }, [activeCategory, activeFinish, sortBy, searchQuery]);
+
+    // Attach scroll and resize listeners for Popular Print Niches slider
+    useEffect(() => {
+        const el = nichesRef.current;
+        if (!el) return;
+        checkNichesScroll();
+        el.addEventListener('scroll', checkNichesScroll, { passive: true });
+        window.addEventListener('resize', checkNichesScroll);
+        return () => {
+            el.removeEventListener('scroll', checkNichesScroll);
+            window.removeEventListener('resize', checkNichesScroll);
+        };
+    }, [checkNichesScroll, categories]);
+
+    const renderProductCard = (item: any) => {
+        if (item.type === 'custom') {
+            const imageUrl = resolveImagePath(item.imageUrl || '/uploads/hero.png');
+            return (
+                <Link key={item.id} href={item.rawId ? `/design/${item.parentProductSlug}/start?subProductId=${item.rawId}` : `/design/${item.parentProductSlug}/start`} className="group relative block h-full outline-none">
+                    <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-slate-150/60 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[#464674]/40 hover:-translate-y-1.5">
+
+                        {/* Image Container with Interactive Hover Zoom */}
+                        <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
+                            {imageUrl ? (
+                                <ProductCardImage
+                                    src={imageUrl}
+                                    alt={item.name}
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center h-full"><Palette className="h-16 w-16 text-muted-foreground/20" /></div>
+                            )}
+
+                            {/* Floating Badges */}
+                            <div className="absolute top-3 left-3 flex flex-col gap-2 z-10 pointer-events-none">
+                                {item.spotUvAllowed && (
+                                    <Badge className="bg-violet-600 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                        UV Coat
+                                    </Badge>
+                                )}
+                            </div>
+
+                            {item.discountText && (
+                                <div className="absolute top-3 right-3 z-10 pointer-events-none">
+                                    <Badge variant="destructive" className="bg-rose-500 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                        {item.discountText}
+                                    </Badge>
+                                </div>
+                            )}
+
+                            {/* Quick Order CTA Overlay */}
+                            <div className="absolute inset-x-3 bottom-3 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10 pointer-events-none">
+                                <span className="inline-flex items-center gap-1.5 bg-[#464674] text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl">
+                                    Select & Customize
+                                </span>
+                            </div>
+                        </div>
+
+                        <CardContent className="p-5 flex-grow flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900">
+                            <div className="space-y-1">
+                                <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider leading-none">
+                                    {item.parentProductName}
+                                </p>
+                                <h3 className="text-base font-bold tracking-tight leading-snug group-hover:text-primary transition-colors text-slate-800 dark:text-white line-clamp-2">
+                                    {item.name}
+                                </h3>
+
+                                {/* Rating stars */}
+                                <div className="flex gap-0.5 text-amber-400 py-1">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <Star key={star} size={11} fill="currentColor" className="stroke-none" />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <span className="text-[8px] text-slate-400 font-extrabold uppercase block leading-none">Starting at</span>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-sm font-black text-slate-900 dark:text-white flex items-center leading-none">
+                                            ₹{item.price}
+                                        </span>
+                                        {item.price > 0 && (
+                                            <span className="text-[9px] text-slate-400 font-medium line-through">
+                                                ₹{(item.price * 1.3).toFixed(0)}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] font-black text-[#464674] dark:text-white/80 group-hover:translate-x-0.5 transition-transform">
+                                    Design →
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Link>
+            );
+        } else {
+            // Direct selling product card
+            const imageUrl = resolveImagePath(item.imageUrl || '/uploads/hero.png');
+            return (
+                <Link
+                    key={item.id}
+                    href={`/products/direct/${item.rawId}`}
+                    className="group relative block h-full outline-none"
+                >
+                    <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-amber-200/70 dark:border-amber-900/40 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-amber-500/60 hover:-translate-y-1.5">
+
+                        {/* Image Container with Interactive Hover Zoom */}
+                        <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
+                            {imageUrl ? (
+                                <ProductCardImage
+                                    src={imageUrl}
+                                    alt={item.name}
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center h-full"><Package2 className="h-16 w-16 text-muted-foreground/20" /></div>
+                            )}
+
+                            {/* Floating Badges */}
+                            <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+                                <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                    <Zap className="w-2.5 h-2.5 fill-current" /> Direct Order
+                                </Badge>
+                                {item.stockQuantity <= 0 ? (
+                                    <Badge variant="destructive" className="bg-rose-600 text-white border-none shadow-md text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                        Out of Stock
+                                    </Badge>
+                                ) : item.stockQuantity <= item.minStockLevel ? (
+                                    <Badge className="bg-gradient-to-r from-orange-500 to-rose-500 text-white border-none shadow-md text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 animate-pulse">
+                                        <Flame size={10} className="fill-current" /> Only {item.stockQuantity} Left
+                                    </Badge>
+                                ) : (
+                                    <Badge className="bg-emerald-600/90 text-white border-none shadow-md text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                        {item.stockQuantity} in Stock
+                                    </Badge>
+                                )}
+                            </div>
+
+                            {item.discountText && (
+                                <div className="absolute top-3 right-3 z-10">
+                                    <Badge variant="destructive" className="bg-rose-500 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                        {item.discountText}
+                                    </Badge>
+                                </div>
+                            )}
+
+                            {/* Quick Order CTA Overlay */}
+                            <div className="absolute inset-x-3 bottom-3 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10">
+                                {item.stockQuantity <= 0 ? (
+                                    <span className="inline-flex items-center gap-1.5 bg-slate-800 text-slate-300 text-[10px] font-black px-4 py-2 rounded-xl shadow-xl">
+                                        Out of Stock
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-xl">
+                                        Order Directly <ArrowRight className="w-3 h-3 ml-1" />
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        <CardContent className="p-5 flex-grow flex flex-col justify-between space-y-4 bg-white dark:bg-slate-900">
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider leading-none">
+                                        {item.category}
+                                    </p>
+                                    <span className={cn(
+                                        "text-[9px] font-bold px-1.5 py-0.5 rounded-md",
+                                        item.stockQuantity <= 0
+                                            ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+                                            : item.stockQuantity <= item.minStockLevel
+                                                ? "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 font-extrabold"
+                                                : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                    )}>
+                                        {item.stockQuantity <= 0 ? 'Out of stock' : `${item.stockQuantity} left`}
+                                    </span>
+                                </div>
+                                <h3 className="text-base font-bold tracking-tight leading-snug group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors text-slate-800 dark:text-white line-clamp-2">
+                                    {item.name}
+                                </h3>
+
+                                {/* Rating stars */}
+                                <div className="flex gap-0.5 text-amber-400 py-1">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <Star key={star} size={11} fill="currentColor" className="stroke-none" />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <span className="text-[8px] text-slate-400 font-extrabold uppercase block leading-none">Direct Price</span>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-sm font-black text-slate-900 dark:text-white flex items-center leading-none">
+                                            ₹{item.price}
+                                        </span>
+                                        {item.basePrice > item.price && (
+                                            <span className="text-[9px] text-slate-400 font-medium line-through">
+                                                ₹{item.basePrice}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] font-black text-amber-600 dark:text-amber-400 group-hover:translate-x-0.5 transition-transform">
+                                    {item.stockQuantity <= 0 ? 'View Details →' : 'Order Now →'}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Link>
+            );
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#F0F7FF] dark:bg-[#0B1528]">
             {/* Premium Header with subtle grid patterns */}
@@ -287,7 +572,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                 <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1.5px,transparent_1.5px)] dark:bg-[radial-gradient(#1e293b_1.5px,transparent_1.5px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
                 <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none -z-10" />
                 <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none -z-10" />
-                
+
                 <div className="w-full px-3 sm:px-4 lg:px-6 relative z-10">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
                         <div className="space-y-2 max-w-xl">
@@ -301,7 +586,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                 Customize dimensions, paper types, premium finishes, and instant direct orders.
                             </p>
                         </div>
-                        
+
                         <div className="flex flex-wrap gap-2 pb-1">
                             {[
                                 { icon: ShieldCheck, text: "Quality verified", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50/50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900/30" },
@@ -316,55 +601,129 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                         </div>
                     </div>
 
-                    {/* Category bubbles grid (Shop Banner - Category Image style) */}
-                    <div className="mt-4 bg-white/40 dark:bg-slate-900/30 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-md">
-                        <p className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center mb-4">Popular Print Niches</p>
-                        
-                        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-4 justify-items-center">
-                            {categories.map((category) => {
-                                const catLower = category.toLowerCase().trim();
-                                const prod = initialProducts.find(p => (p.category && p.category.toLowerCase().trim() === catLower) || (p.name && p.name.toLowerCase().trim() === catLower));
-                                const directProd = directSellingProducts.find(p => (p.category && p.category.toLowerCase().trim() === catLower) || (p.name && p.name.toLowerCase().trim() === catLower));
-                                const productImg = category === 'All'
-                                    ? (initialProducts[0]?.imageUrl || directSellingProducts[0]?.imageUrls?.[0] || '/uploads/hero.png')
-                                    : (prod?.imageUrl || prod?.subProducts?.find((s: any) => s.isActive)?.imageUrl || prod?.subProducts?.[0]?.imageUrl || directProd?.imageUrls?.[0] || '/uploads/hero.png');
-                                const resolvedImg = resolveImagePath(productImg);
-                                const asset = CATEGORY_ASSETS[category] || { emoji: '📦', bg: 'from-gray-50 to-slate-100', label: category };
-                                const count = getCategoryCount(category);
-                                const isActive = activeCategory === category;
-                                
-                                return (
-                                    <button 
-                                        key={category} 
-                                        onClick={() => setActiveCategory(category)}
-                                        className="group flex flex-col items-center outline-none transition-all duration-300 hover:-translate-y-1"
-                                    >
-                                        <div className={cn(
-                                            "w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center shadow-md border overflow-hidden relative transition-all duration-300 bg-slate-50 dark:bg-slate-950",
-                                            isActive 
-                                                ? "border-[#464674] ring-4 ring-[#464674]/15 scale-105 shadow-md shadow-[#464674]/20" 
-                                                : "border-slate-200/80 dark:border-slate-850 hover:border-[#464674]/40 hover:shadow-lg"
-                                        )}>
-                                            <div className="relative w-full h-full p-2">
-                                                <Image 
-                                                    src={resolvedImg} 
-                                                    alt={category} 
-                                                    fill 
-                                                    className="object-contain p-1.5"
-                                                    sizes="(max-width: 768px) 80px, 96px"
-                                                />
+                    {/* Category bubbles single-row slider (Shop Banner - Popular Print Niches) */}
+                    <div className="mt-4 bg-white/50 dark:bg-slate-900/40 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-md relative group/niches">
+                        <div className="flex items-center justify-between mb-3 px-1">
+                            <p className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                Popular Print Niches
+                            </p>
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => slideNiches('left')}
+                                    disabled={!canScrollNichesLeft}
+                                    title="Scroll niches left"
+                                    className="w-7 h-7 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-xs hover:bg-[#464674] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => slideNiches('right')}
+                                    disabled={!canScrollNichesRight}
+                                    title="Scroll niches right"
+                                    className="w-7 h-7 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-xs hover:bg-[#464674] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="relative">
+                            {/* Floating Left Arrow Button */}
+                            <button
+                                type="button"
+                                onClick={() => slideNiches('left')}
+                                disabled={!canScrollNichesLeft}
+                                aria-label="Slide niches left"
+                                className={cn(
+                                    "absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full",
+                                    "bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-700 shadow-md",
+                                    "flex items-center justify-center text-slate-700 dark:text-slate-200 transition-all duration-200",
+                                    "hover:bg-[#464674] hover:text-white hover:scale-110 active:scale-95",
+                                    !canScrollNichesLeft && "opacity-0 pointer-events-none scale-90"
+                                )}
+                            >
+                                <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+                            </button>
+
+                            {/* Floating Right Arrow Button */}
+                            <button
+                                type="button"
+                                onClick={() => slideNiches('right')}
+                                disabled={!canScrollNichesRight}
+                                aria-label="Slide niches right"
+                                className={cn(
+                                    "absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full",
+                                    "bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-700 shadow-md",
+                                    "flex items-center justify-center text-slate-700 dark:text-slate-200 transition-all duration-200",
+                                    "hover:bg-[#464674] hover:text-white hover:scale-110 active:scale-95",
+                                    !canScrollNichesRight && "opacity-0 pointer-events-none scale-90"
+                                )}
+                            >
+                                <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+                            </button>
+
+                            {/* Edge Fade Gradients */}
+                            <div className={cn(
+                                "absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white/80 dark:from-slate-900/80 to-transparent pointer-events-none z-10 transition-opacity duration-300",
+                                canScrollNichesLeft ? "opacity-100" : "opacity-0"
+                            )} />
+                            <div className={cn(
+                                "absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/80 dark:from-slate-900/80 to-transparent pointer-events-none z-10 transition-opacity duration-300",
+                                canScrollNichesRight ? "opacity-100" : "opacity-0"
+                            )} />
+
+                            {/* Single Row Horizontal Track */}
+                            <div
+                                ref={nichesRef}
+                                className="flex flex-nowrap items-start gap-4 sm:gap-6 overflow-x-auto scroll-smooth py-2 px-2 snap-x scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                            >
+                                {categories.map((category) => {
+                                    const catLower = category.toLowerCase().trim();
+                                    const prod = initialProducts.find(p => (p.category && p.category.toLowerCase().trim() === catLower) || (p.name && p.name.toLowerCase().trim() === catLower));
+                                    const directProd = directSellingProducts.find(p => (p.category && p.category.toLowerCase().trim() === catLower) || (p.name && p.name.toLowerCase().trim() === catLower));
+                                    const productImg = category === 'All'
+                                        ? (initialProducts[0]?.imageUrl || directSellingProducts[0]?.imageUrls?.[0] || '/uploads/hero.png')
+                                        : (prod?.imageUrl || prod?.subProducts?.find((s: any) => s.isActive)?.imageUrl || prod?.subProducts?.[0]?.imageUrl || directProd?.imageUrls?.[0] || '/uploads/hero.png');
+                                    const resolvedImg = resolveImagePath(productImg);
+                                    const asset = CATEGORY_ASSETS[category] || { emoji: '📦', bg: 'from-gray-50 to-slate-100', label: category };
+                                    const count = getCategoryCount(category);
+                                    const isActive = activeCategory === category;
+
+                                    return (
+                                        <button
+                                            key={category}
+                                            onClick={() => setActiveCategory(category)}
+                                            className="group flex flex-col items-center outline-none transition-all duration-300 hover:-translate-y-1 shrink-0 snap-start w-20 sm:w-24"
+                                        >
+                                            <div className={cn(
+                                                "w-18 h-18 sm:w-20 sm:h-20 rounded-full flex items-center justify-center shadow-md border overflow-hidden relative transition-all duration-300 bg-slate-50 dark:bg-slate-950",
+                                                isActive
+                                                    ? "border-[#464674] ring-4 ring-[#464674]/15 scale-105 shadow-md shadow-[#464674]/20"
+                                                    : "border-slate-200/80 dark:border-slate-850 hover:border-[#464674]/40 hover:shadow-lg"
+                                            )}>
+                                                <div className="relative w-full h-full p-2">
+                                                    <Image
+                                                        src={resolvedImg}
+                                                        alt={category}
+                                                        fill
+                                                        className="object-contain p-1.5"
+                                                        sizes="(max-width: 768px) 72px, 80px"
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
-                                        <span className={cn(
-                                            "text-xs sm:text-sm font-black mt-2 text-center truncate max-w-[100px] transition-colors leading-tight",
-                                            isActive ? "text-[#464674] dark:text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-950"
-                                        )}>
-                                            {asset.label}
-                                        </span>
-                                        <span className="text-[8px] font-extrabold text-slate-400 mt-0.5">{count} {count === 1 ? 'item' : 'items'}</span>
-                                    </button>
-                                );
-                            })}
+                                            <span className={cn(
+                                                "text-[11px] sm:text-xs font-black mt-2 text-center truncate max-w-[90px] sm:max-w-[100px] transition-colors leading-tight",
+                                                isActive ? "text-[#464674] dark:text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-950"
+                                            )}>
+                                                {asset.label}
+                                            </span>
+                                            <span className="text-[8px] font-extrabold text-slate-400 mt-0.5">{count} {count === 1 ? 'item' : 'items'}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -380,11 +739,11 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                 <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Search Catalog</h3>
                                 <div className="relative group">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-[#464674] transition-colors" />
-                                    <Input 
-                                        placeholder="Type keywords..." 
+                                    <Input
+                                        placeholder="Type keywords..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-10 h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-[#464674]/20 rounded-xl text-xs font-semibold" 
+                                        className="pl-10 h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-[#464674]/20 rounded-xl text-xs font-semibold"
                                     />
                                 </div>
                             </div>
@@ -402,16 +761,16 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                 onClick={() => setActiveCategory(category)}
                                                 className={cn(
                                                     "w-full flex items-center justify-between text-xs font-bold py-1.5 px-2.5 rounded-lg transition-all duration-200 text-left",
-                                                    isActive 
-                                                        ? "bg-[#464674] text-white shadow-sm" 
+                                                    isActive
+                                                        ? "bg-[#464674] text-white shadow-sm"
                                                         : "text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
                                                 )}
                                             >
                                                 <span>{category}</span>
                                                 <span className={cn(
                                                     "text-[9px] font-black px-1.5 py-0.5 rounded-full border",
-                                                    isActive 
-                                                        ? "bg-white/10 border-white/20 text-white" 
+                                                    isActive
+                                                        ? "bg-white/10 border-white/20 text-white"
                                                         : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400"
                                                 )}>
                                                     {count}
@@ -434,8 +793,8 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                 onClick={() => setActiveFinish(finish)}
                                                 className={cn(
                                                     "w-full flex items-center justify-between text-xs font-bold py-1.5 px-2.5 rounded-lg transition-all duration-200 text-left",
-                                                    isActive 
-                                                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm" 
+                                                    isActive
+                                                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm"
                                                         : "text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
                                                 )}
                                             >
@@ -505,7 +864,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                             return (
                                                 <Link key={item.id} href={item.rawId ? `/design/${item.parentProductSlug}/start?subProductId=${item.rawId}` : `/design/${item.parentProductSlug}/start`} className="group relative block h-full outline-none">
                                                     <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-slate-150/60 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-[#464674]/40 hover:-translate-y-1.5">
-                                                        
+
                                                         {/* Image Container with Interactive Hover Zoom */}
                                                         <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
                                                             {imageUrl ? (
@@ -516,7 +875,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                             ) : (
                                                                 <div className="flex items-center justify-center h-full"><Palette className="h-16 w-16 text-muted-foreground/20" /></div>
                                                             )}
-                                                            
+
                                                             {/* Floating Badges */}
                                                             <div className="absolute top-3 left-3 flex flex-col gap-2 z-10 pointer-events-none">
                                                                 {item.spotUvAllowed && (
@@ -550,7 +909,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                 <h3 className="text-base font-bold tracking-tight leading-snug group-hover:text-primary transition-colors text-slate-800 dark:text-white line-clamp-2">
                                                                     {item.name}
                                                                 </h3>
-                                                                
+
                                                                 {/* Rating stars */}
                                                                 <div className="flex gap-0.5 text-amber-400 py-1">
                                                                     {[1, 2, 3, 4, 5].map(star => (
@@ -558,7 +917,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                     ))}
                                                                 </div>
                                                             </div>
-                                                            
+
                                                             <div className="pt-3 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between">
                                                                 <div className="space-y-0.5">
                                                                     <span className="text-[8px] text-slate-400 font-extrabold uppercase block leading-none">Starting at</span>
@@ -591,7 +950,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                     className="group relative block h-full outline-none"
                                                 >
                                                     <Card className="h-full flex flex-col overflow-hidden rounded-3xl border border-amber-200/70 dark:border-amber-900/40 bg-white dark:bg-slate-900 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-amber-500/60 hover:-translate-y-1.5">
-                                                        
+
                                                         {/* Image Container with Interactive Hover Zoom */}
                                                         <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-850 flex items-center justify-center">
                                                             {imageUrl ? (
@@ -602,7 +961,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                             ) : (
                                                                 <div className="flex items-center justify-center h-full"><Package2 className="h-16 w-16 text-muted-foreground/20" /></div>
                                                             )}
-                                                            
+
                                                             {/* Floating Badges */}
                                                             <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
                                                                 <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
@@ -653,8 +1012,8 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                     </p>
                                                                     <span className={cn(
                                                                         "text-[9px] font-bold px-1.5 py-0.5 rounded-md",
-                                                                        item.stockQuantity <= 0 
-                                                                            ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400" 
+                                                                        item.stockQuantity <= 0
+                                                                            ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
                                                                             : item.stockQuantity <= item.minStockLevel
                                                                                 ? "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 font-extrabold"
                                                                                 : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
@@ -665,7 +1024,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                 <h3 className="text-base font-bold tracking-tight leading-snug group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors text-slate-800 dark:text-white line-clamp-2">
                                                                     {item.name}
                                                                 </h3>
-                                                                
+
                                                                 {/* Rating stars */}
                                                                 <div className="flex gap-0.5 text-amber-400 py-1">
                                                                     {[1, 2, 3, 4, 5].map(star => (
@@ -673,7 +1032,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                     ))}
                                                                 </div>
                                                             </div>
-                                                            
+
                                                             <div className="pt-3 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between">
                                                                 <div className="space-y-0.5">
                                                                     <span className="text-[8px] text-slate-400 font-extrabold uppercase block leading-none">Direct Price</span>
