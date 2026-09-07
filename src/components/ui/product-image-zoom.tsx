@@ -104,6 +104,7 @@ export function ProductImageZoom({
                         alt={alt}
                         fill
                         priority={priority}
+                        unoptimized
                         className={cn(
                             objectFit === 'contain' ? "object-contain p-6" : "object-cover",
                             "pointer-events-none transition-transform duration-300",
@@ -152,6 +153,7 @@ export function ProductImageZoom({
                         src={src}
                         alt={alt}
                         fill
+                        unoptimized
                         className={cn(objectFit === 'contain' ? "object-contain p-6" : "object-cover")}
                         sizes={sizes}
                     />
@@ -260,6 +262,7 @@ export function ProductImageZoom({
                                 src={src}
                                 alt={alt}
                                 fill
+                                unoptimized
                                 className="object-contain"
                                 sizes="(max-width: 1200px) 100vw, 1200px"
                             />

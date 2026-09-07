@@ -1,0 +1,13 @@
+[eval]:6
+  const prods = await sql\SELECT DISTINCT image_url FROM products WHERE image_url IS NOT NULL\;
+                      ^^^^
+
+SyntaxError: Invalid or unexpected token
+    at makeContextifyScript (node:internal/vm:185:14)
+    at node:internal/process/execution:107:22
+    at [eval]-wrapper:6:24
+    at runScript (node:internal/process/execution:101:62)
+    at evalScript (node:internal/process/execution:136:3)
+    at node:internal/main/eval_string:51:3
+
+Node.js v22.5.1

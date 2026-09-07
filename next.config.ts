@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -30,6 +31,14 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'firebasestorage.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'amazoprint.in',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.amazoprint.in',
       },
       // For self-hosted images
       {

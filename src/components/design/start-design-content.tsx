@@ -666,7 +666,7 @@ export function StartDesignContent() {
                                           activeThumbnailIndex === idx ? "border-indigo-600 dark:border-indigo-400 ring-2 ring-indigo-600/20 shadow-md scale-105" : "border-slate-200 dark:border-slate-800 opacity-70 hover:opacity-100"
                                       )}
                                   >
-                                      <Image src={img} alt={`Thumbnail ${idx+1}`} fill className="object-cover" />
+                                      <Image src={img} alt={`Thumbnail ${idx+1}`} fill unoptimized className="object-cover" />
                                   </button>
                               ))}
                           </div>

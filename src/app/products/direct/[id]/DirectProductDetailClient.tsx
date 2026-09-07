@@ -471,6 +471,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                             src={resolveImagePath(img)}
                                             alt={`${product.name} thumbnail ${idx + 1}`}
                                             fill
+                                            unoptimized
                                             className="object-cover"
                                         />
                                     </button>

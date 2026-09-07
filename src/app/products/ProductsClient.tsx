@@ -63,16 +63,75 @@ const CATEGORY_ASSETS: Record<string, { emoji: string, bg: string, label: string
 };
 
 function ProductCardImage({ src, alt }: { src: string; alt: string }) {
+    const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+    const [isHovered, setIsHovered] = useState(false);
+    const [imgSrc, setImgSrc] = useState(src);
+
+    useEffect(() => {
+        setImgSrc(src);
+    }, [src]);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+        const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+        setMousePos({ x, y });
+    };
+
     return (
-        <div className="relative w-full h-full overflow-hidden">
-            <Image
-                src={src}
-                alt={alt}
-                fill
-                className="object-cover pointer-events-none"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-            />
+        <div
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => { setIsHovered(false); setMousePos({ x: 50, y: 50 }); }}
+            className="relative w-full h-full overflow-hidden"
+        >
+            <div
+                className="relative w-full h-full will-change-transform"
+                style={{
+                    transform: isHovered ? 'scale(1.45)' : 'scale(1)',
+                    transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
+                    transition: isHovered ? 'transform 0.08s ease-out' : 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform-origin 0.4s ease',
+                }}
+            >
+                <Image
+                    src={imgSrc}
+                    alt={alt}
+                    fill
+                    unoptimized
+                    onError={() => {
+                        if (!imgSrc.includes('hero.png')) {
+                            setImgSrc('https://amazoprint.in/uploads/hero.png');
+                        }
+                    }}
+                    className="object-cover pointer-events-none"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                />
+            </div>
         </div>
+    );
+}
+
+function CategoryAvatarImage({ src, alt }: { src: string; alt: string }) {
+    const [imgSrc, setImgSrc] = useState(src);
+    useEffect(() => {
+        setImgSrc(src);
+    }, [src]);
+
+    return (
+        <Image
+            src={imgSrc}
+            alt={alt}
+            fill
+            unoptimized
+            onError={() => {
+                if (!imgSrc.includes('hero.png')) {
+                    setImgSrc('https://amazoprint.in/uploads/hero.png');
+                }
+            }}
+            className="object-contain p-1.5"
+            sizes="(max-width: 768px) 72px, 80px"
+        />
     );
 }
 
@@ -683,9 +742,10 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                     const catLower = category.toLowerCase().trim();
                                     const prod = initialProducts.find(p => (p.category && p.category.toLowerCase().trim() === catLower) || (p.name && p.name.toLowerCase().trim() === catLower));
                                     const directProd = directSellingProducts.find(p => (p.category && p.category.toLowerCase().trim() === catLower) || (p.name && p.name.toLowerCase().trim() === catLower));
+                                    const activeSubImg = prod?.subProducts?.find((s: any) => s.isActive && s.imageUrl)?.imageUrl || prod?.subProducts?.find((s: any) => s.imageUrl)?.imageUrl;
                                     const productImg = category === 'All'
-                                        ? (initialProducts[0]?.imageUrl || directSellingProducts[0]?.imageUrls?.[0] || '/uploads/hero.png')
-                                        : (prod?.imageUrl || prod?.subProducts?.find((s: any) => s.isActive)?.imageUrl || prod?.subProducts?.[0]?.imageUrl || directProd?.imageUrls?.[0] || '/uploads/hero.png');
+                                        ? (initialProducts.find((p: any) => p.imageUrl)?.imageUrl || directSellingProducts[0]?.imageUrls?.[0] || '/uploads/hero.png')
+                                        : (activeSubImg || prod?.imageUrl || directProd?.imageUrls?.[0] || '/uploads/hero.png');
                                     const resolvedImg = resolveImagePath(productImg);
                                     const asset = CATEGORY_ASSETS[category] || { emoji: '📦', bg: 'from-gray-50 to-slate-100', label: category };
                                     const count = getCategoryCount(category);
@@ -704,12 +764,9 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                     : "border-slate-200/80 dark:border-slate-850 hover:border-[#464674]/40 hover:shadow-lg"
                                             )}>
                                                 <div className="relative w-full h-full p-2">
-                                                    <Image
+                                                    <CategoryAvatarImage
                                                         src={resolvedImg}
                                                         alt={category}
-                                                        fill
-                                                        className="object-contain p-1.5"
-                                                        sizes="(max-width: 768px) 72px, 80px"
                                                     />
                                                 </div>
                                             </div>

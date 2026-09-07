@@ -23,6 +23,7 @@ import {
     Plus, FileText, CheckCircle2, Clock, Trash2, Edit, 
     IndianRupee, Tag, Info, Layers, Loader2, Image as ImageIcon, Eye 
 } from "lucide-react";
+import { resolveImagePath } from "@/lib/utils";
 
 interface PriceListItem {
     id: string;
@@ -410,7 +411,7 @@ export function PriceListClient({ initialPriceList }: PriceListClientProps) {
                                             {/* Mockup image preview */}
                                             <td className="py-4 px-6 md:px-8">
                                                 <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 dark:border-zinc-800 bg-white flex items-center justify-center relative">
-                                                    <img src={item.imageUrl} alt="catalog layout" className="w-full h-full object-cover" />
+                                                    <img src={resolveImagePath(item.imageUrl)} alt="catalog layout" className="w-full h-full object-cover" />
                                                 </div>
                                             </td>
 

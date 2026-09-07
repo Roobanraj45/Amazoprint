@@ -6,27 +6,82 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function resolveImagePath(path?: string): string {
-  if (!path) return '';
+export function resolveImagePath(path?: string | null): string {
+  if (!path || typeof path !== 'string') return '';
 
-  if (path.startsWith('http') || path.startsWith('data:')) {
-    return path;
+  const trimmed = path.trim();
+  if (!trimmed) return '';
+
+  if (trimmed.startsWith('data:')) {
+    return trimmed;
   }
+
+  let cleanPath = trimmed;
 
   // Rewrite dynamic /uploads/designs/ paths to /api/media/designs/ to bypass production CDN static routing 404
-  if (path.startsWith('/uploads/designs/')) {
-    return path.replace('/uploads/designs/', '/api/media/designs/');
-  }
-  if (path.startsWith('uploads/designs/')) {
-    return '/api/media/designs/' + path.substring('uploads/designs/'.length);
-  }
-
-  if (path.includes('/public/')) {
-    return path.split('/public')[1];
+  if (cleanPath.startsWith('/uploads/designs/')) {
+    cleanPath = cleanPath.replace('/uploads/designs/', '/api/media/designs/');
+  } else if (cleanPath.startsWith('uploads/designs/')) {
+    cleanPath = '/api/media/designs/' + cleanPath.substring('uploads/designs/'.length);
   }
 
-  return path.startsWith('/') ? path : `/${path}`;
+  if (cleanPath.includes('/public/')) {
+    cleanPath = cleanPath.split('/public')[1];
+  }
+
+  // Strip localhost / development server host if present so it resolves to amazoprint.in
+  if (
+    cleanPath.startsWith('http://localhost') ||
+    cleanPath.startsWith('https://localhost') ||
+    cleanPath.startsWith('http://0.0.0.0') ||
+    cleanPath.startsWith('https://0.0.0.0') ||
+    cleanPath.startsWith('http://127.0.0.1') ||
+    cleanPath.startsWith('https://127.0.0.1')
+  ) {
+    try {
+      const parsed = new URL(cleanPath);
+      cleanPath = parsed.pathname + parsed.search;
+    } catch {
+      cleanPath = cleanPath.replace(/^https?:\/\/[^/]+/, '');
+    }
+  }
+
+  // If already absolute https://amazoprint.in or https://www.amazoprint.in
+  if (cleanPath.startsWith('https://amazoprint.in') || cleanPath.startsWith('https://www.amazoprint.in')) {
+    return cleanPath;
+  }
+  if (cleanPath.startsWith('http://amazoprint.in')) {
+    return cleanPath.replace('http://amazoprint.in', 'https://amazoprint.in');
+  }
+  if (cleanPath.startsWith('http://www.amazoprint.in')) {
+    return cleanPath.replace('http://www.amazoprint.in', 'https://amazoprint.in');
+  }
+
+  // If other external absolute URLs (e.g. firebasestorage, unsplash, placehold.co)
+  if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
+    return cleanPath;
+  }
+
+  // If protocol-relative //amazoprint.in/...
+  if (cleanPath.startsWith('//')) {
+    return `https:${cleanPath}`;
+  }
+
+  // If hostname without protocol
+  if (cleanPath.startsWith('amazoprint.in')) {
+    return `https://${cleanPath}`;
+  }
+  if (cleanPath.startsWith('www.amazoprint.in')) {
+    return `https://${cleanPath}`;
+  }
+
+  if (!cleanPath.startsWith('/')) {
+    cleanPath = `/${cleanPath}`;
+  }
+
+  return `https://amazoprint.in${cleanPath}`;
 }
+
 
 /**
  * Generates an SVG path data string (d attribute) from a set of PathPoints.
