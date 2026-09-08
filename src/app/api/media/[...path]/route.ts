@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFile } from 'fs/promises';
-import { extname } from 'path';
+import { readFile, writeFile, mkdir } from 'fs/promises';
+import { extname, join, dirname } from 'path';
 import { resolveUploadPath } from '@/lib/storage';
+import fs from 'fs';
 
 export async function GET(
   request: NextRequest,
@@ -13,15 +14,15 @@ export async function GET(
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  // 1. Try to find the file in storage uploads (local or temp)
+  // 1. Try to find the file in storage uploads (local)
   let filePath = resolveUploadPath('storage', path);
   
-  // 2. Fallback to public uploads (local or temp)
+  // 2. Fallback to public uploads (local)
   if (!filePath) {
     filePath = resolveUploadPath('public', path);
   }
 
-  if (filePath) {
+  if (filePath && fs.existsSync(filePath)) {
     try {
       const fileBuffer = await readFile(filePath);
       const contentType = getContentType(extname(filePath));
@@ -33,14 +34,13 @@ export async function GET(
       });
     } catch (error) {
       console.error('Error reading local media file:', error);
-      // fall through to remote proxy
+      // Fall through to remote proxy
     }
   }
 
   // 3. File not found locally — proxy from amazoprint.in (handles images uploaded on other machines)
   try {
     const remotePath = path.join('/');
-    // Try /uploads/ first, then /api/media/
     const remoteUrl = `https://amazoprint.in/uploads/${remotePath}`;
     const remoteResponse = await fetch(remoteUrl, {
       headers: { 'User-Agent': 'AmazoPrint-Dev-Proxy/1.0' },
@@ -48,8 +48,22 @@ export async function GET(
     });
 
     if (remoteResponse.ok) {
-      const buffer = await remoteResponse.arrayBuffer();
+      const arrayBuffer = await remoteResponse.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
       const contentType = remoteResponse.headers.get('content-type') || getContentType(extname(path[path.length - 1]));
+
+      // Cache file locally so subsequent requests are fast
+      try {
+        const localSavePath = join(process.cwd(), 'public', 'uploads', ...path);
+        const parentDir = dirname(localSavePath);
+        if (!fs.existsSync(parentDir)) {
+          await mkdir(parentDir, { recursive: true });
+        }
+        await writeFile(localSavePath, buffer);
+      } catch (cacheErr) {
+        // Non-critical cache write error
+      }
+
       return new NextResponse(buffer, {
         headers: {
           'Content-Type': contentType,

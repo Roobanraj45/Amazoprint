@@ -11,41 +11,43 @@ export function resolveImagePath(path?: string | null): string {
   const trimmed = path.trim();
   if (!trimmed) return '';
 
-  // data URLs — use as-is
-  if (trimmed.startsWith('data:')) return trimmed;
+  // data URLs and blob URLs — use as-is
+  if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
 
-  // Already a full https URL — use as-is (upgrade http to https for amazoprint.in)
-  if (trimmed.startsWith('https://')) return trimmed;
-  if (trimmed.startsWith('http://amazoprint.in')) return trimmed.replace('http://', 'https://');
-  if (trimmed.startsWith('http://www.amazoprint.in')) return trimmed.replace('http://', 'https://');
-  if (trimmed.startsWith('http://')) return trimmed; // other external http URLs as-is
+  // Strip localhost / 127.0.0.1 / 0.0.0.0 — keep just the path part
+  let cleanPath = trimmed.replace(/^https?:\/\/(localhost|0\.0\.0\.0|127\.0\.0\.1)(:\d+)?/, '');
 
-  // Strip localhost — keep just the path part
-  const localhostStripped = trimmed.replace(/^https?:\/\/(localhost|0\.0\.0\.0|127\.0\.0\.1)(:\d+)?/, '');
+  // Strip amazoprint domains so they resolve relatively against current origin (works across localhost & production)
+  cleanPath = cleanPath
+    .replace(/^https?:\/\/(www\.)?amazoprint\.in/, '')
+    .replace(/^https?:\/\/(www\.)?amazoprint\.com/, '');
 
-  // Work with the clean path
-  let cleanPath = localhostStripped;
-
-  // Strip /public/ prefix
+  // Strip /public/ prefix if present
   if (cleanPath.includes('/public/')) {
     cleanPath = cleanPath.split('/public')[1];
   }
 
-  // Normalize /api/media/products/ → /uploads/products/
+  // Normalize /api/media/products/ → /uploads/products/ and /api/media/ → /uploads/
   cleanPath = cleanPath
     .replace(/^\/api\/media\/products\//, '/uploads/products/')
     .replace(/^api\/media\/products\//, '/uploads/products/')
     .replace(/^\/api\/media\//, '/uploads/')
     .replace(/^api\/media\//, '/uploads/');
 
-  // Ensure leading slash
-  if (!cleanPath.startsWith('/')) cleanPath = `/${cleanPath}`;
+  // If it is another external absolute URL (e.g. Unsplash, Firebase, external CDNs), use as-is
+  if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
+    return cleanPath;
+  }
 
-  // Prefix with amazoprint.in
-  return `https://amazoprint.in${cleanPath}`;
+  // Ensure leading slash
+  if (!cleanPath.startsWith('/')) {
+    cleanPath = `/${cleanPath}`;
+  }
+
+  return cleanPath;
 }
 
-export function getProductImageUrl(path?: string | null, fallback = 'https://amazoprint.in/uploads/hero.png'): string {
+export function getProductImageUrl(path?: string | null, fallback = '/uploads/hero.png'): string {
   if (!path || typeof path !== 'string' || !path.trim()) return fallback;
   return resolveImagePath(path) || fallback;
 }

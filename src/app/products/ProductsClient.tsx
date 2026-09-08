@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import { cn, resolveImagePath } from '@/lib/utils';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 // Helper function to extract discount info
@@ -87,30 +87,11 @@ const CATEGORY_ASSETS: Record<string, { emoji: string; bg: string; label: string
     'Calendars': { emoji: '📅', bg: 'from-cyan-50 to-blue-100', label: 'Calendars' },
 };
 
-// Build a direct amazoprint.in URL from whatever the DB gives us
+// Build a clean URL from whatever the DB gives us (works seamlessly on localhost & production)
 function buildImageUrl(raw: string | null | undefined): string {
-    const FALLBACK = 'https://amazoprint.in/uploads/hero.png';
+    const FALLBACK = '/uploads/hero.png';
     if (!raw || typeof raw !== 'string' || !raw.trim()) return FALLBACK;
-    const s = raw.trim();
-    // data URL — use as-is
-    if (s.startsWith('data:')) return s;
-    // Already absolute https
-    if (s.startsWith('https://')) return s;
-    // http amazoprint → upgrade to https
-    if (s.startsWith('http://amazoprint.in') || s.startsWith('http://www.amazoprint.in')) return s.replace('http://', 'https://');
-    // Any other http absolute URL — use as-is
-    if (s.startsWith('http://')) return s;
-    // Strip localhost prefix → keep pathname
-    const noHost = s.replace(/^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?/, '');
-    // Strip /public/ prefix
-    const noPublic = noHost.includes('/public/') ? noHost.split('/public')[1] : noHost;
-    // Normalise /api/media/ → /uploads/
-    const normalised = noPublic
-        .replace(/^\/api\/media\/products\//, '/uploads/products/')
-        .replace(/^\/api\/media\//, '/uploads/');
-    // Ensure leading slash
-    const withSlash = normalised.startsWith('/') ? normalised : `/${normalised}`;
-    return `https://amazoprint.in${withSlash}`;
+    return resolveImagePath(raw) || FALLBACK;
 }
 
 function ProductCardImage({ src, alt }: { src: string; alt: string }) {
@@ -118,7 +99,7 @@ function ProductCardImage({ src, alt }: { src: string; alt: string }) {
     const [isHovered, setIsHovered] = useState(false);
     const [errored, setErrored] = useState(false);
 
-    const imgUrl = errored ? 'https://amazoprint.in/uploads/hero.png' : buildImageUrl(src);
+    const imgUrl = errored ? '/uploads/hero.png' : buildImageUrl(src);
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -159,7 +140,7 @@ function ProductCardImage({ src, alt }: { src: string; alt: string }) {
 
 function CategoryAvatarImage({ src, alt }: { src: string; alt: string }) {
     const [errored, setErrored] = useState(false);
-    const imgUrl = errored ? 'https://amazoprint.in/uploads/hero.png' : buildImageUrl(src);
+    const imgUrl = errored ? '/uploads/hero.png' : buildImageUrl(src);
     return (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -1159,7 +1140,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                         src={buildImageUrl(modalActiveImage || selectedProductItem.imageUrl)}
                                         alt={selectedProductItem.name}
                                         className="w-full h-full object-contain p-2"
-                                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://amazoprint.in/uploads/hero.png'; }}
+                                        onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/hero.png'; }}
                                     />
                                 </div>
 
@@ -1179,7 +1160,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                     )}
                                                 >
                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img src={buildImageUrl(img)} alt={`Thumb ${idx}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = 'https://amazoprint.in/uploads/hero.png'; }} />
+                                                    <img src={buildImageUrl(img)} alt={`Thumb ${idx}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/hero.png'; }} />
                                                 </button>
                                             );
                                         })}
