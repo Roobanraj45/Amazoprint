@@ -95,45 +95,19 @@ function buildImageUrl(raw: string | null | undefined): string {
 }
 
 function ProductCardImage({ src, alt }: { src: string; alt: string }) {
-    const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
-    const [isHovered, setIsHovered] = useState(false);
     const [errored, setErrored] = useState(false);
-
     const imgUrl = errored ? '/uploads/hero.png' : buildImageUrl(src);
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) return;
-        setMousePos({
-            x: Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)),
-            y: Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100)),
-        });
-    };
-
     return (
-        <div
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => { setIsHovered(false); setMousePos({ x: 50, y: 50 }); }}
-            className="relative w-full h-full overflow-hidden bg-slate-50 dark:bg-slate-950 flex items-center justify-center"
-        >
-            <div
-                className="absolute inset-0 will-change-transform"
-                style={{
-                    transform: isHovered ? 'scale(1.2)' : 'scale(1)',
-                    transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
-                    transition: isHovered ? 'transform 0.08s ease-out' : 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                }}
-            >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                    src={imgUrl}
-                    alt={alt || 'AmazoPrint Product'}
-                    onError={() => setErrored(true)}
-                    className="w-full h-full object-cover pointer-events-none"
-                    loading="lazy"
-                />
-            </div>
+        <div className="relative w-full h-full overflow-hidden bg-slate-50 dark:bg-slate-900/40 flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+                src={imgUrl}
+                alt={alt || 'AmazoPrint Product'}
+                onError={() => setErrored(true)}
+                className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105 pointer-events-none"
+                loading="lazy"
+            />
         </div>
     );
 }
@@ -480,46 +454,48 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
     }, [selectedProductItem, currentModalSubProduct]);
 
     return (
-        <div className="min-h-screen bg-[#F0F7FF] dark:bg-[#0B1528]">
-            {/* Header with Background Pattern & Trust Badges */}
-            <header className="pt-12 pb-6 border-b border-slate-200/60 dark:border-slate-800/60 bg-[#F0F7FF] dark:bg-[#0B1528] relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1.5px,transparent_1.5px)] dark:bg-[radial-gradient(#1e293b_1.5px,transparent_1.5px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
-                <div className="absolute top-0 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none -z-10" />
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none -z-10" />
+        <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+            {/* Header with Background Pattern, Ambient Glow & Trust Badges */}
+            <header className="pt-10 pb-6 border-b border-slate-200/70 dark:border-slate-800/70 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
+                <div className="absolute top-0 right-1/4 w-96 h-96 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-transparent rounded-full blur-[100px] pointer-events-none -z-10" />
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-tr from-sky-400/10 via-emerald-400/10 to-transparent rounded-full blur-[100px] pointer-events-none -z-10" />
 
-                <div className="w-full px-3 sm:px-6 lg:px-8 relative z-10 max-w-7xl mx-auto">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 mb-6">
-                        <div className="space-y-2 max-w-2xl">
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#464674]/10 text-[#464674] dark:text-indigo-300 text-[11px] font-extrabold border border-[#464674]/20 shadow-xs backdrop-blur-md">
-                                <Sparkles className="w-3.5 h-3.5 animate-pulse text-[#464674] dark:text-indigo-300" /> AmazoPrint Master Catalog
+                <div className="w-full px-4 sm:px-6 lg:px-8 relative z-10 max-w-7xl mx-auto">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
+                        <div className="space-y-2.5 max-w-2xl">
+                            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-[#464674]/10 via-indigo-500/10 to-purple-500/10 text-[#464674] dark:text-indigo-300 text-[11px] font-extrabold border border-[#464674]/20 shadow-xs backdrop-blur-md">
+                                <Sparkles className="w-3.5 h-3.5 text-[#464674] dark:text-indigo-300 animate-pulse" />
+                                <span>AmazoPrint Studio • Professional Print & Merch</span>
                             </div>
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
-                                Custom Print & Direct <span className="bg-gradient-to-r from-[#464674] via-indigo-600 to-purple-600 bg-clip-text text-transparent">Products</span>
+                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.15]">
+                                Explore Our Fresh <span className="bg-gradient-to-r from-[#464674] via-indigo-600 to-purple-600 bg-clip-text text-transparent">Product Lineup</span>
                             </h1>
-                            <p className="text-slate-600 dark:text-slate-400 font-medium text-sm leading-relaxed">
-                                Complete technical specifications, dimensions, price slabs, delivery tiers, and direct print order pathways loaded in real-time from our database.
+                            <p className="text-slate-600 dark:text-slate-400 font-medium text-xs sm:text-sm leading-relaxed max-w-xl">
+                                From premium business cards and marketing collateral to direct custom merchandise — high-fidelity CMYK printing with instant online pricing.
                             </p>
                         </div>
 
-                        <div className="flex flex-wrap gap-2.5 pb-1">
+                        {/* Trust Badges */}
+                        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2.5">
                             {[
-                                { icon: ShieldCheck, text: "100% Quality Verified", color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-50/80 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900/50" },
-                                { icon: Truck, text: "Pan-India Dispatch", color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/50" },
-                                { icon: CheckCircle2, text: "Free Pre-Press Review", color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-50/80 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/50" },
-                                { icon: FileText, text: "GST Invoice Compliant", color: "text-purple-700 dark:text-purple-400", bg: "bg-purple-50/80 dark:bg-purple-950/40 border-purple-200 dark:border-purple-900/50" },
+                                { icon: ShieldCheck, text: "100% Quality Verified", color: "text-blue-700 dark:text-blue-300", bg: "bg-blue-50/90 dark:bg-blue-950/40 border-blue-200/80 dark:border-blue-900/50" },
+                                { icon: Truck, text: "Pan-India Express Dispatch", color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-900/50" },
+                                { icon: CheckCircle2, text: "Free Automated Pre-Press", color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-50/90 dark:bg-amber-950/40 border-amber-200/80 dark:border-amber-900/50" },
+                                { icon: FileText, text: "GST Invoice Compliant", color: "text-purple-700 dark:text-purple-300", bg: "bg-purple-50/90 dark:bg-purple-950/40 border-purple-200/80 dark:border-purple-900/50" },
                             ].map((item, i) => (
-                                <div key={i} className={`flex items-center gap-1.5 text-xs font-bold ${item.color} ${item.bg} border px-3.5 py-2 rounded-xl shadow-xs backdrop-blur-sm transition-all duration-300 hover:scale-[1.02]`}>
-                                    <item.icon className="w-3.5 h-3.5" />
-                                    {item.text}
+                                <div key={i} className={`flex items-center gap-2 text-xs font-bold ${item.color} ${item.bg} border px-3.5 py-2.5 rounded-2xl shadow-xs backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-sm`}>
+                                    <item.icon className="w-4 h-4 shrink-0" />
+                                    <span className="truncate">{item.text}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     {/* Popular Print Categories Avatar Track */}
-                    <div className="mt-4 bg-white/70 dark:bg-slate-900/70 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md relative group/niches shadow-xs">
+                    <div className="mt-2 bg-gradient-to-b from-white/90 to-slate-50/70 dark:from-slate-900/90 dark:to-slate-950/70 rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md relative group/niches shadow-xs">
                         <div className="flex items-center justify-between mb-3 px-1">
-                            <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <p className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-1.5">
                                 <Palette className="w-3.5 h-3.5 text-[#464674]" /> Browse by Print Categories
                             </p>
                             <div className="flex items-center gap-1.5">
@@ -613,7 +589,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                             <div className={cn(
                                                 "w-18 h-18 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center shadow-xs border overflow-hidden relative transition-all duration-300 bg-white dark:bg-slate-950",
                                                 isActive
-                                                    ? "border-[#464674] ring-4 ring-[#464674]/20 scale-105 shadow-md"
+                                                    ? "border-[#464674] ring-4 ring-[#464674]/25 scale-105 shadow-md"
                                                     : "border-slate-200/90 dark:border-slate-800 hover:border-[#464674]/50 hover:shadow-md"
                                             )}>
                                                 <div className="relative w-full h-full p-2">
@@ -635,12 +611,91 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                 })}
                             </div>
                         </div>
+
+                        {/* Quick Interactive Filter Pills Bar */}
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/70 dark:border-slate-800/70">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider mr-1">Filter:</span>
+                                <button
+                                    onClick={() => { setActiveFinish('All'); setActiveCategory('All'); }}
+                                    className={cn(
+                                        "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shadow-2xs",
+                                        activeCategory === 'All' && activeFinish === 'All'
+                                            ? "bg-[#464674] text-white border-[#464674] shadow-xs"
+                                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-[#464674]"
+                                    )}
+                                >
+                                    ✨ All Products ({combinedProducts.length})
+                                </button>
+                                <button
+                                    onClick={() => setActiveFinish(activeFinish === '⚡ Direct Orders' ? 'All' : '⚡ Direct Orders')}
+                                    className={cn(
+                                        "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shadow-2xs",
+                                        activeFinish === '⚡ Direct Orders'
+                                            ? "bg-amber-500 text-white border-amber-500 shadow-xs"
+                                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400"
+                                    )}
+                                >
+                                    ⚡ Direct Store ({directSellingProducts.length})
+                                </button>
+                                <button
+                                    onClick={() => setActiveFinish(activeFinish === '✨ Spot UV' ? 'All' : '✨ Spot UV')}
+                                    className={cn(
+                                        "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shadow-2xs",
+                                        activeFinish === '✨ Spot UV'
+                                            ? "bg-violet-600 text-white border-violet-600 shadow-xs"
+                                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-violet-400"
+                                    )}
+                                >
+                                    ✨ Spot UV Ready
+                                </button>
+                                <button
+                                    onClick={() => setActiveFinish(activeFinish === '📐 Multi-Sizes' ? 'All' : '📐 Multi-Sizes')}
+                                    className={cn(
+                                        "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shadow-2xs",
+                                        activeFinish === '📐 Multi-Sizes'
+                                            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-400"
+                                    )}
+                                >
+                                    📐 Multi-Sizes
+                                </button>
+                                <button
+                                    onClick={() => setActiveFinish(activeFinish === '🏷️ Discounted' ? 'All' : '🏷️ Discounted')}
+                                    className={cn(
+                                        "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border shadow-2xs",
+                                        activeFinish === '🏷️ Discounted'
+                                            ? "bg-rose-600 text-white border-rose-600 shadow-xs"
+                                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-rose-400"
+                                    )}
+                                >
+                                    🔥 On Sale
+                                </button>
+                            </div>
+
+                            {/* Hero Search Box */}
+                            <div className="relative w-full sm:w-64">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Quick search products..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-8 pr-7 h-9 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#464674]/30 shadow-2xs"
+                                />
+                                {searchQuery && (
+                                    <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>
 
             {/* Main Catalog Section */}
-            <section className="py-10 relative bg-[#F0F7FF] dark:bg-[#0B1528]">
+            <section className="py-10 relative">
                 <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                         {/* ── LEFT COLUMN: SIDEBAR FILTERS ── */}
@@ -847,7 +902,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                 className="h-full flex flex-col overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800/90 bg-white dark:bg-slate-900 shadow-xs transition-all duration-300 hover:shadow-xl hover:border-[#464674]/50 hover:-translate-y-1.5 group"
                                             >
                                                 {/* Image Container with Zoom */}
-                                                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800">
+                                                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-50 dark:bg-slate-950/60 border-b border-slate-100 dark:border-slate-800">
                                                     <ProductCardImage
                                                         src={item.imageUrl}
                                                         alt={item.name}
@@ -858,19 +913,19 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                         {isCustom ? (
                                                             <>
                                                                 {item.spotUvAllowed && (
-                                                                    <Badge className="bg-violet-600 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                                                                        Spot UV
+                                                                    <Badge className="bg-violet-600 text-white border-none shadow-md text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                                        ✨ Spot UV
                                                                     </Badge>
                                                                 )}
                                                                 {item.sizes && item.sizes.length > 0 && (
-                                                                    <Badge className="bg-blue-600 text-white border-none shadow-md text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                                                        {item.sizes.length} Sizes
+                                                                    <Badge className="bg-blue-600 text-white border-none shadow-md text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                                        📐 {item.sizes.length} Sizes
                                                                     </Badge>
                                                                 )}
                                                             </>
                                                         ) : (
-                                                            <Badge className="bg-amber-500 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-                                                                <Zap className="w-2.5 h-2.5 fill-current" /> Direct Order
+                                                            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-none shadow-md text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                                                <Zap className="w-2.5 h-2.5 fill-current" /> Direct Buy
                                                             </Badge>
                                                         )}
                                                     </div>
@@ -878,7 +933,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                     {/* Discount Badge */}
                                                     {item.discountText && (
                                                         <div className="absolute top-3 right-3 z-10 pointer-events-none">
-                                                            <Badge variant="destructive" className="bg-rose-500 text-white border-none shadow-md text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                            <Badge variant="destructive" className="bg-rose-500 text-white border-none shadow-md text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                                                                 {item.discountText}
                                                             </Badge>
                                                         </div>
@@ -892,7 +947,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                             e.stopPropagation();
                                                             openProductDetails(item);
                                                         }}
-                                                        className="absolute bottom-3 right-3 z-10 bg-white/90 dark:bg-slate-900/90 hover:bg-[#464674] hover:text-white text-slate-800 dark:text-slate-200 p-2 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 opacity-90 group-hover:opacity-100 transition-all duration-200 flex items-center gap-1 text-[11px] font-bold"
+                                                        className="absolute bottom-3 right-3 z-10 bg-white/95 dark:bg-slate-900/95 hover:bg-[#464674] hover:text-white text-slate-800 dark:text-slate-200 px-2.5 py-1.5 rounded-xl shadow-md border border-slate-200/80 dark:border-slate-700 backdrop-blur-md opacity-90 group-hover:opacity-100 transition-all duration-200 flex items-center gap-1 text-[11px] font-bold"
                                                         title="View Complete Specifications"
                                                     >
                                                         <Eye className="w-3.5 h-3.5" /> Specs
@@ -958,14 +1013,15 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                                 asChild
                                                                 size="sm"
                                                                 className={cn(
-                                                                    "h-9 px-3.5 rounded-xl font-bold text-xs shadow-xs transition-all",
+                                                                    "h-9 px-3.5 rounded-xl font-bold text-xs shadow-xs transition-all group/btn",
                                                                     isCustom
                                                                         ? "bg-[#464674] hover:bg-[#38385e] text-white"
-                                                                        : "bg-amber-500 hover:bg-amber-600 text-white"
+                                                                        : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
                                                                 )}
                                                             >
-                                                                <Link href={targetHref}>
-                                                                    {isCustom ? 'Customize →' : 'Order Now →'}
+                                                                <Link href={targetHref} className="flex items-center gap-1">
+                                                                    <span>{isCustom ? 'Customize' : 'Order Now'}</span>
+                                                                    <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5" />
                                                                 </Link>
                                                             </Button>
                                                         </div>
@@ -1077,14 +1133,15 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                         <Button
                                                             asChild
                                                             className={cn(
-                                                                "w-full rounded-xl font-bold text-xs h-10 shadow-xs",
+                                                                "w-full rounded-xl font-bold text-xs h-10 shadow-xs group/btn transition-all",
                                                                 isCustom
                                                                     ? "bg-[#464674] hover:bg-[#38385e] text-white"
-                                                                    : "bg-amber-500 hover:bg-amber-600 text-white"
+                                                                    : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
                                                             )}
                                                         >
-                                                            <Link href={targetHref}>
-                                                                {isCustom ? 'Customize & Order' : 'Instant Order'}
+                                                            <Link href={targetHref} className="flex items-center justify-center gap-1.5">
+                                                                <span>{isCustom ? 'Customize & Order' : 'Instant Order'}</span>
+                                                                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5" />
                                                             </Link>
                                                         </Button>
 
@@ -1092,7 +1149,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                             variant="outline"
                                                             size="sm"
                                                             onClick={() => openProductDetails(item)}
-                                                            className="w-full rounded-xl font-bold text-xs h-8 text-slate-700 dark:text-slate-300"
+                                                            className="w-full rounded-xl font-bold text-xs h-8 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
                                                         >
                                                             <Eye className="w-3.5 h-3.5 mr-1" /> View Full Specs
                                                         </Button>
