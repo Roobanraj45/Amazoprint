@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "check:images": "node scripts/check-and-fetch-images.js",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
   },

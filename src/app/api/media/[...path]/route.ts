@@ -21,24 +21,48 @@ export async function GET(
     filePath = resolveUploadPath('public', path);
   }
 
-  if (!filePath) {
-    return new NextResponse('Not Found', { status: 404 });
+  if (filePath) {
+    try {
+      const fileBuffer = await readFile(filePath);
+      const contentType = getContentType(extname(filePath));
+      return new NextResponse(fileBuffer, {
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        },
+      });
+    } catch (error) {
+      console.error('Error reading local media file:', error);
+      // fall through to remote proxy
+    }
   }
 
+  // 3. File not found locally — proxy from amazoprint.in (handles images uploaded on other machines)
   try {
-    const fileBuffer = await readFile(filePath);
-    const contentType = getContentType(extname(filePath));
-
-    return new NextResponse(fileBuffer, {
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      },
+    const remotePath = path.join('/');
+    // Try /uploads/ first, then /api/media/
+    const remoteUrl = `https://amazoprint.in/uploads/${remotePath}`;
+    const remoteResponse = await fetch(remoteUrl, {
+      headers: { 'User-Agent': 'AmazoPrint-Dev-Proxy/1.0' },
+      signal: AbortSignal.timeout(8000),
     });
-  } catch (error) {
-    console.error('Error reading media file:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+
+    if (remoteResponse.ok) {
+      const buffer = await remoteResponse.arrayBuffer();
+      const contentType = remoteResponse.headers.get('content-type') || getContentType(extname(path[path.length - 1]));
+      return new NextResponse(buffer, {
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=3600',
+          'X-Proxied-From': 'amazoprint.in',
+        },
+      });
+    }
+  } catch (proxyError) {
+    console.error('Remote proxy fetch failed:', proxyError);
   }
+
+  return new NextResponse('Not Found', { status: 404 });
 }
 
 function getContentType(ext: string): string {
