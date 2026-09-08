@@ -5,6 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Image from 'next/image';
+import Link from 'next/link';
 import { 
   getDirectSellingProducts, 
   createDirectSellingProduct, 
@@ -896,7 +897,7 @@ export default function DirectSellingPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-  const [sourceFilter, setSourceFilter] = useState<'all' | 'admin' | 'printer'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'admin' | 'printer' | 'freelancer'>('all');
 
   const { toast } = useToast();
 
@@ -918,6 +919,7 @@ export default function DirectSellingPage() {
   const totalCount = products.length;
   const adminCount = products.filter(p => p.addedBy === 'admin').length;
   const printerCount = products.filter(p => p.addedBy === 'printer').length;
+  const freelancerCount = products.filter(p => p.addedBy === 'freelancer').length;
   const pendingCount = products.filter(p => p.approvalStatus === 'pending').length;
   const approvedCount = products.filter(p => p.approvalStatus === 'approved').length;
   const rejectedCount = products.filter(p => p.approvalStatus === 'rejected').length;
@@ -929,7 +931,8 @@ export default function DirectSellingPage() {
                             (p.sku && p.sku.toLowerCase().includes(searchQuery.toLowerCase())) ||
                             (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
                             (p.printer?.fullName && p.printer.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                            (p.printer?.companyName && p.printer.companyName.toLowerCase().includes(searchQuery.toLowerCase()));
+                            (p.printer?.companyName && p.printer.companyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                            ((p as any).freelancer?.name && (p as any).freelancer.name.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
       const matchesStatus = statusFilter === 'all' || p.approvalStatus === statusFilter;
@@ -1060,14 +1063,11 @@ export default function DirectSellingPage() {
             </p>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
-            <Dialog open={isFormOpen} onOpenChange={(open) => { setFormOpen(open); if (!open) setEditingProduct(null); }}>
-              <DialogTrigger asChild>
-                <Button size="lg" className="h-11 sm:h-12 rounded-2xl font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-500/20 px-5 sm:px-6 transition-all hover:scale-[1.02] w-full sm:w-auto">
-                  <PlusCircle className="mr-2 h-5 w-5" /> Add Direct Product
-                </Button>
-              </DialogTrigger>
-              <ProductForm onSubmit={handleFormSubmit} product={editingProduct} onClose={() => setFormOpen(false)} />
-            </Dialog>
+            <Button asChild size="lg" className="h-11 sm:h-12 rounded-2xl font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-500/20 px-5 sm:px-6 transition-all hover:scale-[1.02] w-full sm:w-auto">
+              <Link href="/admin/direct-selling/new">
+                <PlusCircle className="mr-2 h-5 w-5" /> Add Direct Product
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -1106,6 +1106,18 @@ export default function DirectSellingPage() {
             </div>
             <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
               <Factory size={20} />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/90 shadow-sm p-4 cursor-pointer hover:border-amber-500/40 transition-colors" onClick={() => setSourceFilter('freelancer')}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Freelancer Sellers</p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">{freelancerCount}</h3>
+            </div>
+            <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
+              <Store size={20} />
             </div>
           </div>
         </Card>
@@ -1152,7 +1164,7 @@ export default function DirectSellingPage() {
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
-              placeholder="Search by title, SKU, category, or printer..." 
+              placeholder="Search by title, SKU, category, printer, or freelancer..." 
               className="pl-10 h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-semibold w-full"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -1168,6 +1180,7 @@ export default function DirectSellingPage() {
                 <SelectItem value="all" className="font-semibold text-xs">All Sources</SelectItem>
                 <SelectItem value="admin" className="font-semibold text-xs">Admin Created</SelectItem>
                 <SelectItem value="printer" className="font-semibold text-xs">Printer Created</SelectItem>
+                <SelectItem value="freelancer" className="font-semibold text-xs">Freelancer Created</SelectItem>
               </SelectContent>
             </Select>
 
@@ -1236,7 +1249,12 @@ export default function DirectSellingPage() {
 
                       {/* Creator / Printer attribution badge */}
                       <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10 max-w-[60%]">
-                          {product.addedBy === 'printer' && product.printer ? (
+                          {product.addedBy === 'freelancer' && (product as any).freelancer ? (
+                            <Badge variant="secondary" className="bg-amber-600/95 text-white font-extrabold text-[9px] px-2 py-0.5 rounded-md shadow-md backdrop-blur-md flex items-center gap-1 truncate">
+                              <Store size={10} className="shrink-0" />
+                              <span className="truncate">{(product as any).freelancer.name} (Freelancer)</span>
+                            </Badge>
+                          ) : product.addedBy === 'printer' && product.printer ? (
                             <Badge variant="secondary" className="bg-blue-600/95 text-white font-extrabold text-[9px] px-2 py-0.5 rounded-md shadow-md backdrop-blur-md flex items-center gap-1 truncate">
                               <Factory size={10} className="shrink-0" />
                               <span className="truncate">{product.printer.companyName || product.printer.fullName}</span>
@@ -1264,7 +1282,15 @@ export default function DirectSellingPage() {
                       </div>
 
                       <div className="space-y-2.5 pt-1">
-                        {/* Printer Info snippet if added by printer */}
+                        {/* Seller snippet */}
+                        {product.addedBy === 'freelancer' && (product as any).freelancer && (
+                          <div className="p-2 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 text-xs">
+                            <div className="flex items-center justify-between text-amber-700 dark:text-amber-400 gap-2">
+                              <span className="font-bold text-[11px] shrink-0">Freelancer Creator:</span>
+                              <span className="font-extrabold truncate">{(product as any).freelancer.name}</span>
+                            </div>
+                          </div>
+                        )}
                         {product.addedBy === 'printer' && product.printer && (
                           <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60 text-xs">
                             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 gap-2">
@@ -1347,9 +1373,11 @@ export default function DirectSellingPage() {
                   )}
 
                   <div className="flex items-center justify-end gap-1.5 w-full">
-                    <Button variant="ghost" size="sm" className="h-8 px-2.5 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-800 dark:hover:text-indigo-400 text-xs font-bold transition-colors" onClick={() => { setEditingProduct(product); setFormOpen(true); }}>
-                        <Edit className="h-3.5 w-3.5 mr-1" /> Edit
-                    </Button>
+                    <Link href={`/admin/direct-selling/${product.id}/edit`}>
+                      <Button variant="ghost" size="sm" className="h-8 px-2.5 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-800 dark:hover:text-indigo-400 text-xs font-bold transition-colors">
+                          <Edit className="h-3.5 w-3.5 mr-1" /> Edit
+                      </Button>
+                    </Link>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 px-2.5 rounded-xl hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400 text-destructive text-xs font-bold transition-colors">

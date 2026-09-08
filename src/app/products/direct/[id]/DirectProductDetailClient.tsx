@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     Sparkles, Package2, ArrowRight, ArrowLeft, CheckCircle2,
     IndianRupee, Star, Zap, Flame, AlertCircle, ShieldCheck,
     Truck, Lock, Share2, Check, Coins, Percent, Receipt,
     MapPin, Calendar, Clock, RotateCcw, FileText, Layers, Tag,
-    ChevronRight, Gift, Info
+    ChevronRight, Gift, Info, CheckCheck, Palette
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -25,63 +25,167 @@ interface DirectProductDetailClientProps {
     product: any;
 }
 
-export interface RichSizeOption {
+export interface RichAttributeOption {
     id?: string;
     name: string;
-    price?: number;
-    basePrice?: number;
+    value?: string; // hex color code or custom value
+    price?: number; // specific unit price override
+    priceAdjustment?: number; // delta to base price, e.g. +50
+    basePriceAdjustment?: number; // delta to MRP
     stock?: number;
     sku?: string;
+    image?: string; // image to switch to
+    isDefault?: boolean;
     isActive?: boolean;
+}
+
+export interface RichAttribute {
+    id?: string;
+    name: string; // e.g. "Color", "Size", "Material", "Capacity"
+    type?: 'color' | 'button' | 'select' | 'image';
+    options: RichAttributeOption[];
+}
+
+export interface RichVariation {
+    id: string;
+    attributes: Record<string, string>; // e.g. { "Color": "Black", "Size": "XL" }
+    sku?: string;
+    price: number;
+    basePrice?: number;
+    stock?: number;
+    image?: string;
+    isActive: boolean;
 }
 
 export function DirectProductDetailClient({ product }: DirectProductDetailClientProps) {
     const router = useRouter();
     const { toast } = useToast();
 
-    // Helper to normalize sizes to rich objects
-    const getProductSizes = (prod: any): RichSizeOption[] => {
-        if (!prod || !prod.sizes) return [];
-        const raw = prod.sizes;
-        if (Array.isArray(raw)) {
-            return raw.map((s: any, idx: number) => {
-                if (typeof s === 'string') return { id: `sz-${idx}`, name: s, isActive: true };
-                return {
-                    id: s.id || `sz-${idx}`,
-                    name: s.name || s.size || String(s),
-                    price: s.price !== undefined && s.price !== null && s.price !== '' ? Number(s.price) : undefined,
-                    basePrice: s.basePrice !== undefined && s.basePrice !== null && s.basePrice !== '' ? Number(s.basePrice) : undefined,
-                    stock: s.stock !== undefined && s.stock !== null && s.stock !== '' ? Number(s.stock) : undefined,
-                    sku: s.sku || '',
-                    isActive: s.isActive !== false,
-                };
-            }).filter(s => s.isActive !== false);
-        }
-        if (typeof raw === 'string') {
-            try {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed)) {
-                    return parsed.map((s: any, idx: number) => {
-                        if (typeof s === 'string') return { id: `sz-${idx}`, name: s, isActive: true };
-                        return {
-                            id: s.id || `sz-${idx}`,
-                            name: s.name || s.size || String(s),
-                            price: s.price !== undefined && s.price !== null && s.price !== '' ? Number(s.price) : undefined,
-                            basePrice: s.basePrice !== undefined && s.basePrice !== null && s.basePrice !== '' ? Number(s.basePrice) : undefined,
-                            stock: s.stock !== undefined && s.stock !== null && s.stock !== '' ? Number(s.stock) : undefined,
-                            sku: s.sku || '',
-                            isActive: s.isActive !== false,
-                        };
-                    }).filter(s => s.isActive !== false);
-                }
-            } catch {
-                return raw.split(',').map((s, idx) => ({ id: `sz-${idx}`, name: s.trim(), isActive: true })).filter(s => s.name);
+    // ── 1. NORMALIZE DYNAMIC ATTRIBUTES (WooCommerce-Style) ──
+    const attributes: RichAttribute[] = useMemo(() => {
+        const result: RichAttribute[] = [];
+
+        // Check if product has modern attributes JSONB array
+        if (product && product.attributes) {
+            let rawAttrs = product.attributes;
+            if (typeof rawAttrs === 'string') {
+                try { rawAttrs = JSON.parse(rawAttrs); } catch { rawAttrs = []; }
+            }
+            if (Array.isArray(rawAttrs) && rawAttrs.length > 0) {
+                rawAttrs.forEach((attr: any, idx: number) => {
+                    const opts = Array.isArray(attr.options)
+                        ? attr.options.filter((o: any) => o.isActive !== false)
+                        : [];
+                    if (opts.length > 0) {
+                        result.push({
+                            id: attr.id || `attr-${idx}`,
+                            name: attr.name || `Attribute ${idx + 1}`,
+                            type: attr.type || (attr.name?.toLowerCase().includes('color') ? 'color' : 'button'),
+                            options: opts.map((o: any, oIdx: number) => ({
+                                id: o.id || `opt-${oIdx}`,
+                                name: o.name || String(o),
+                                value: o.value || (attr.name?.toLowerCase().includes('color') ? (o.name || '#000000') : undefined),
+                                price: o.price !== undefined && o.price !== null && o.price !== '' ? Number(o.price) : undefined,
+                                priceAdjustment: o.priceAdjustment !== undefined ? Number(o.priceAdjustment) : 0,
+                                basePriceAdjustment: o.basePriceAdjustment !== undefined ? Number(o.basePriceAdjustment) : 0,
+                                stock: o.stock !== undefined ? Number(o.stock) : undefined,
+                                sku: o.sku || '',
+                                image: o.image || undefined,
+                                isDefault: o.isDefault || false,
+                                isActive: o.isActive !== false,
+                            })),
+                        });
+                    }
+                });
             }
         }
-        return [];
-    };
 
-    const sizes = useMemo(() => getProductSizes(product), [product]);
+        // Fallback: If no explicit "Size" attribute but legacy sizes array exists
+        const hasSizeAttr = result.some(a => a.name.toLowerCase().includes('size') || a.name.toLowerCase().includes('dimension'));
+        if (!hasSizeAttr && product && product.sizes) {
+            let rawSizes = product.sizes;
+            if (typeof rawSizes === 'string') {
+                try { rawSizes = JSON.parse(rawSizes); } catch { rawSizes = []; }
+            }
+            if (Array.isArray(rawSizes) && rawSizes.length > 0) {
+                const sizeOpts: RichAttributeOption[] = rawSizes.map((s: any, idx: number) => {
+                    if (typeof s === 'string') return { id: `sz-${idx}`, name: s, isActive: true };
+                    return {
+                        id: s.id || `sz-${idx}`,
+                        name: s.name || s.size || String(s),
+                        price: s.price !== undefined && s.price !== null && s.price !== '' ? Number(s.price) : undefined,
+                        basePrice: s.basePrice !== undefined && s.basePrice !== null && s.basePrice !== '' ? Number(s.basePrice) : undefined,
+                        stock: s.stock !== undefined && s.stock !== null && s.stock !== '' ? Number(s.stock) : undefined,
+                        sku: s.sku || '',
+                        isActive: s.isActive !== false,
+                    };
+                }).filter(s => s.isActive !== false);
+
+                if (sizeOpts.length > 0) {
+                    result.push({
+                        id: 'attr-sizes',
+                        name: 'Size / Dimensions',
+                        type: 'button',
+                        options: sizeOpts,
+                    });
+                }
+            }
+        }
+
+        return result;
+    }, [product]);
+
+    // Variations matrix
+    const variations: RichVariation[] = useMemo(() => {
+        if (!product || !product.variations) return [];
+        let rawVars = product.variations;
+        if (typeof rawVars === 'string') {
+            try { rawVars = JSON.parse(rawVars); } catch { rawVars = []; }
+        }
+        if (Array.isArray(rawVars)) {
+            return rawVars
+                .filter((v: any) => v.isActive !== false)
+                .map((v: any, idx: number) => ({
+                    id: v.id || `var-${idx}`,
+                    attributes: v.attributes || {},
+                    sku: v.sku || '',
+                    price: Number(v.price || product.sellingPrice || 0),
+                    basePrice: v.basePrice !== undefined ? Number(v.basePrice) : Number(product.basePrice || 0),
+                    stock: v.stock !== undefined ? Number(v.stock) : undefined,
+                    image: v.image || undefined,
+                    isActive: v.isActive !== false,
+                }));
+        }
+        return [];
+    }, [product]);
+
+    // ── 2. STATE FOR SELECTED ATTRIBUTES ──
+    const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>(() => {
+        const initial: Record<string, string> = {};
+        attributes.forEach(attr => {
+            const def = attr.options.find(o => o.isDefault) || attr.options[0];
+            if (def) {
+                initial[attr.name] = def.name;
+            }
+        });
+        return initial;
+    });
+
+    // Ensure selectedAttributes stays synced if attributes load/change
+    useEffect(() => {
+        setSelectedAttributes(prev => {
+            let changed = false;
+            const updated = { ...prev };
+            attributes.forEach(attr => {
+                if (!updated[attr.name] && attr.options.length > 0) {
+                    const def = attr.options.find(o => o.isDefault) || attr.options[0];
+                    updated[attr.name] = def.name;
+                    changed = true;
+                }
+            });
+            return changed ? updated : prev;
+        });
+    }, [attributes]);
 
     // Active Slabs & Taxes
     const taxSlabs = useMemo(() => {
@@ -100,7 +204,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         return [];
     }, [product]);
 
-    // Delivery Options / Shipping info
+    // Shipping info
     const shippingInfo = useMemo(() => {
         if (!product.shippingInfo) return {};
         if (typeof product.shippingInfo === 'string') {
@@ -122,7 +226,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         return [];
     }, [product.offers]);
 
-    // Specifications & Operational Parameters
+    // Specifications
     const specs = useMemo(() => {
         if (!product.specifications) return {};
         if (typeof product.specifications === 'string') {
@@ -131,6 +235,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         return product.specifications;
     }, [product.specifications]);
 
+    // Product Images
     const images: string[] = useMemo(() => {
         if (Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
             return product.imageUrls;
@@ -139,7 +244,98 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
     }, [product]);
 
     const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
-    const [selectedSize, setSelectedSize] = useState<string>(sizes.length > 0 ? sizes[0].name : '');
+
+    // ── 3. DYNAMIC VARIATION & PRICING CALCULATION ENGINE ──
+    // Match exact variation if present in matrix
+    const matchedVariation = useMemo(() => {
+        if (variations.length === 0) return null;
+        return variations.find(v => {
+            const vAttrs = v.attributes || {};
+            return Object.entries(selectedAttributes).every(([attrName, optName]) => {
+                return !vAttrs[attrName] || vAttrs[attrName] === optName;
+            });
+        }) || null;
+    }, [variations, selectedAttributes]);
+
+    // Calculate active unit price, base price, stock, and SKU
+    const { activeUnitPrice, activeBasePrice, activeStock, activeSku, activeVariantImage } = useMemo(() => {
+        if (matchedVariation) {
+            return {
+                activeUnitPrice: Number(matchedVariation.price),
+                activeBasePrice: Number(matchedVariation.basePrice || product.basePrice || matchedVariation.price),
+                activeStock: matchedVariation.stock !== undefined
+                    ? Number(matchedVariation.stock)
+                    : (typeof product.stockQuantity === 'number' ? product.stockQuantity : 999),
+                activeSku: matchedVariation.sku || product.sku || '',
+                activeVariantImage: matchedVariation.image || null,
+            };
+        }
+
+        // Sum price adjustments from all selected attribute options
+        let unitDelta = 0;
+        let baseDelta = 0;
+        let minOptionStock = typeof product.stockQuantity === 'number' ? product.stockQuantity : 999;
+        let selectedSku = product.sku || '';
+        let selectedImg: string | null = null;
+        let exactOptionPrice: number | null = null;
+
+        Object.entries(selectedAttributes).forEach(([attrName, optName]) => {
+            const attr = attributes.find(a => a.name === attrName);
+            const opt = attr?.options.find(o => o.name === optName);
+            if (opt) {
+                if (opt.price !== undefined && opt.price > 0) {
+                    exactOptionPrice = Number(opt.price);
+                } else if (opt.priceAdjustment !== undefined) {
+                    unitDelta += Number(opt.priceAdjustment);
+                }
+
+                if (opt.basePriceAdjustment !== undefined) {
+                    baseDelta += Number(opt.basePriceAdjustment);
+                } else if (opt.basePrice !== undefined && opt.basePrice > 0) {
+                    baseDelta += (Number(opt.basePrice) - Number(product.basePrice || 0));
+                }
+
+                if (opt.stock !== undefined) {
+                    minOptionStock = Math.min(minOptionStock, Number(opt.stock));
+                }
+                if (opt.sku) {
+                    selectedSku = opt.sku;
+                }
+                if (opt.image) {
+                    selectedImg = opt.image;
+                }
+            }
+        });
+
+        const calculatedUnitPrice = exactOptionPrice !== null
+            ? exactOptionPrice + unitDelta
+            : Math.max(0, Number(product.sellingPrice || 0) + unitDelta);
+
+        const calculatedBasePrice = Math.max(
+            calculatedUnitPrice,
+            Number(product.basePrice || 0) + baseDelta
+        );
+
+        return {
+            activeUnitPrice: calculatedUnitPrice,
+            activeBasePrice: calculatedBasePrice,
+            activeStock: minOptionStock,
+            activeSku: selectedSku,
+            activeVariantImage: selectedImg,
+        };
+    }, [matchedVariation, selectedAttributes, attributes, product]);
+
+    // When an attribute with a dedicated image is selected, switch gallery preview
+    useEffect(() => {
+        if (activeVariantImage) {
+            const idx = images.findIndex(img => resolveImagePath(img) === resolveImagePath(activeVariantImage));
+            if (idx !== -1) {
+                setActiveImageIndex(idx);
+            }
+        }
+    }, [activeVariantImage, images]);
+
+    // Quantity state
     const [quantity, setQuantity] = useState<number>(() => {
         if (product.priceSlabs && Array.isArray(product.priceSlabs)) {
             const active = product.priceSlabs.filter((s: any) => s.isActive !== false);
@@ -147,6 +343,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         }
         return 1;
     });
+
     const [customText, setCustomText] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [copied, setCopied] = useState<boolean>(false);
@@ -166,57 +363,57 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         country: 'India',
     });
 
-    // Selected size object
-    const selectedSizeObj = useMemo(() => {
-        return sizes.find(s => s.name === selectedSize);
-    }, [sizes, selectedSize]);
-
-    // Active unit price based on selected size
-    const activeUnitPrice = useMemo(() => {
-        if (selectedSizeObj && selectedSizeObj.price !== undefined && selectedSizeObj.price > 0) {
-            return selectedSizeObj.price;
-        }
-        return Number(product.sellingPrice || 0);
-    }, [selectedSizeObj, product]);
-
-    // Active base/MRP price
-    const activeBasePrice = useMemo(() => {
-        if (selectedSizeObj && selectedSizeObj.basePrice !== undefined && selectedSizeObj.basePrice > 0) {
-            return selectedSizeObj.basePrice;
-        }
-        return Number(product.basePrice || 0);
-    }, [selectedSizeObj, product]);
-
-    // Active stock based on selected size or parent product
-    const activeStock = useMemo(() => {
-        if (selectedSizeObj && selectedSizeObj.stock !== undefined) {
-            return selectedSizeObj.stock;
-        }
-        return typeof product.stockQuantity === 'number'
-            ? product.stockQuantity
-            : (parseInt(product.stockQuantity as any) || 0);
-    }, [selectedSizeObj, product]);
-
     const minStock = product.minStockLevel || 5;
 
-    // Match quantity with price slab if applicable
+    // Match quantity with price slab if applicable (supports exact match & tiered quantities)
     const matchingSlab = useMemo(() => {
-        return priceSlabs.find((s: any) => Number(s.quantity) === quantity);
+        if (!priceSlabs || priceSlabs.length === 0) return null;
+        const exact = priceSlabs.find((s: any) => Number(s.quantity) === quantity);
+        if (exact) return exact;
+
+        const qualifying = [...priceSlabs]
+            .filter((s: any) => Number(s.quantity) <= quantity)
+            .sort((a: any, b: any) => Number(b.quantity) - Number(a.quantity));
+
+        return qualifying.length > 0 ? qualifying[0] : null;
     }, [priceSlabs, quantity]);
 
-    const productTotal = useMemo(() => {
-        if (matchingSlab) {
-            return Number(matchingSlab.price);
-        }
-        return activeUnitPrice * quantity;
-    }, [matchingSlab, activeUnitPrice, quantity]);
+    // ── 4. ACCURATE PROPORTIONAL SLAB & TOTAL CALCULATION ──
+    const { productTotal, effectiveUnitRate } = useMemo(() => {
+        if (matchingSlab && quantity > 0) {
+            const slabQty = Number(matchingSlab.quantity) || 1;
+            const baseSlabExpected = slabQty * Number(product.sellingPrice || 1);
+            const slabFlatPrice = Number(matchingSlab.price);
+            const slabDiscountRate = (baseSlabExpected > 0 && slabFlatPrice < baseSlabExpected)
+                ? (1 - slabFlatPrice / baseSlabExpected)
+                : 0;
 
-    const effectiveUnitRate = useMemo(() => {
-        if (quantity > 0) {
-            return productTotal / quantity;
+            if (slabDiscountRate > 0) {
+                // Apply proportional volume discount to active variant price
+                const unitRate = activeUnitPrice * (1 - slabDiscountRate);
+                return {
+                    effectiveUnitRate: unitRate,
+                    productTotal: unitRate * quantity,
+                };
+            }
+
+            // If no volume discount (or 0% discount on slab):
+            // If activeUnitPrice is defined and base selling price exists, use activeUnitPrice
+            const unitRate = (activeUnitPrice > 0 && Number(product.sellingPrice || 0) > 0)
+                ? activeUnitPrice
+                : (slabFlatPrice / slabQty);
+
+            return {
+                effectiveUnitRate: unitRate,
+                productTotal: unitRate * quantity,
+            };
         }
-        return activeUnitPrice;
-    }, [productTotal, quantity, activeUnitPrice]);
+
+        return {
+            effectiveUnitRate: activeUnitPrice,
+            productTotal: activeUnitPrice * quantity,
+        };
+    }, [matchingSlab, quantity, activeUnitPrice, product]);
 
     // Shipping Fee calculation
     const standardFee = shippingInfo.deliveryCharge !== undefined && shippingInfo.deliveryCharge !== ''
@@ -284,7 +481,6 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
             return;
         }
 
-        // Calculate delivery date based on estimated days
         const daysToAdd = isExpressSelected ? 2 : 4;
         const targetDate = new Date();
         targetDate.setDate(targetDate.getDate() + daysToAdd);
@@ -318,17 +514,27 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         }
     };
 
+    const handleAttributeSelect = (attrName: string, optionName: string) => {
+        setSelectedAttributes(prev => ({
+            ...prev,
+            [attrName]: optionName,
+        }));
+    };
+
     const handleOrderSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         if (activeStock <= 0) {
-            toast({ variant: 'destructive', title: 'Out of Stock', description: 'This item or size variation is currently sold out.' });
+            toast({ variant: 'destructive', title: 'Out of Stock', description: 'This item or variation is currently sold out.' });
             return;
         }
 
-        if (sizes.length > 0 && !selectedSize) {
-            toast({ variant: 'destructive', title: 'Select Size', description: 'Please choose a size before proceeding.' });
-            return;
+        // Validate all attributes selected
+        for (const attr of attributes) {
+            if (!selectedAttributes[attr.name]) {
+                toast({ variant: 'destructive', title: 'Select Options', description: `Please choose an option for ${attr.name}.` });
+                return;
+            }
         }
 
         if (product.textAllowed && !customText.trim()) {
@@ -343,30 +549,54 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
 
         setIsSubmitting(true);
 
+        const selectedAttributesFormatted = Object.entries(selectedAttributes)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', ');
+
+        const orderItem = {
+            id: product.id,
+            productId: product.id,
+            name: product.name,
+            category: product.category,
+            image: images[activeImageIndex] || (images && images[0]) || '/uploads/hero.png',
+            imageUrl: images[activeImageIndex] || (images && images[0]) || '/uploads/hero.png',
+            sellingPrice: Number(effectiveUnitRate).toFixed(2),
+            unitPrice: Number(effectiveUnitRate).toFixed(2),
+            baseUnitPrice: Number(activeUnitPrice).toFixed(2),
+            totalAmount: totalPayable.toFixed(2),
+            quantity: quantity,
+            sku: activeSku || product.sku,
+            hsnCode: product.hsnCode || undefined,
+            selectedAttributes: selectedAttributes,
+            selectedSize: selectedAttributes['Size'] || selectedAttributes['Size / Dimensions'] || selectedAttributes['Dimensions'] || undefined,
+            selectedAttributesFormatted,
+            customText: customText.trim() || undefined,
+            shippingFee: finalShippingFee,
+            deliveryMode: isExpressSelected ? 'express' : 'standard',
+            taxDetails: taxBreakdown.details,
+            taxAmount: taxBreakdown.extraTaxAmount,
+            pricingBreakdown: {
+                baseUnitPrice: activeUnitPrice.toFixed(2),
+                effectiveUnitRate: effectiveUnitRate.toFixed(2),
+                quantity: quantity,
+                productSubtotal: productTotal.toFixed(2),
+                slabApplied: matchingSlab ? { quantity: matchingSlab.quantity, slabPrice: matchingSlab.price } : null,
+                taxDetails: taxBreakdown.details,
+                extraTaxAmount: taxBreakdown.extraTaxAmount.toFixed(2),
+                shippingFee: finalShippingFee.toFixed(2),
+                deliveryMode: isExpressSelected ? 'express' : 'standard',
+                totalPayable: totalPayable.toFixed(2),
+            },
+            specifications: specs,
+        };
+
         const orderPayload = {
             orderData: {
-                items: [{
-                    id: product.id,
-                    name: product.name,
-                    sellingPrice: Number(effectiveUnitRate).toFixed(2),
-                    totalAmount: totalPayable.toFixed(2),
-                    quantity: quantity,
-                    sku: selectedSizeObj?.sku || product.sku,
-                    hsnCode: product.hsnCode || undefined,
-                    selectedSize: selectedSize || undefined,
-                    customText: customText.trim() || undefined,
-                    shippingFee: finalShippingFee,
-                    deliveryMode: isExpressSelected ? 'express' : 'standard',
-                }],
+                items: [orderItem],
                 shippingAddress: shippingAddress,
             },
             amount: totalPayable,
-            items: [{
-                name: product.name,
-                quantity: quantity,
-                selectedSize: selectedSize || undefined,
-                customText: customText.trim() || undefined,
-            }],
+            items: [orderItem],
             shippingAddress: shippingAddress,
         };
 
@@ -515,7 +745,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                                     <span className="text-xs font-extrabold text-slate-900 dark:text-white block">{o.title}</span>
                                                     {o.description && (
                                                         <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block leading-snug">
-                                                            {o.description}
+                                                             {o.description}
                                                         </span>
                                                     )}
                                                 </div>
@@ -560,7 +790,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                             </CardContent>
                         </Card>
 
-                        {/* ── TECHNICAL SPECIFICATIONS & PARAMETERS TABLE ── */}
+                        {/* Technical Specifications */}
                         <Card className="rounded-3xl border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
                             <CardContent className="p-6 sm:p-8 space-y-4">
                                 <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
@@ -672,7 +902,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                         </div>
                     </div>
 
-                    {/* ── RIGHT COLUMN: CONFIGURATION, SIZES, DELIVERY & ORDER FORM ── */}
+                    {/* ── RIGHT COLUMN: DYNAMIC ATTRIBUTES, SIZES, DELIVERY & ORDER FORM ── */}
                     <div className="lg:col-span-6 space-y-6">
                         <form onSubmit={handleOrderSubmit} className="space-y-6">
 
@@ -684,9 +914,9 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                             <span className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
                                                 {product.category || 'Direct Selling Product'}
                                             </span>
-                                            {(selectedSizeObj?.sku || product.sku) && (
+                                            {activeSku && (
                                                 <span className="text-[11px] font-mono font-bold text-slate-400">
-                                                    SKU: {selectedSizeObj?.sku || product.sku}
+                                                    SKU: {activeSku}
                                                 </span>
                                             )}
                                         </div>
@@ -726,7 +956,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                         )}
                                     </div>
 
-                                    {/* Stock Alert Banner (Dynamic to Selected Size) */}
+                                    {/* Stock Alert Banner (Dynamic to Selected Variation) */}
                                     <div className={cn(
                                         "p-3.5 rounded-2xl border flex items-center justify-between gap-3 text-xs font-bold transition-all",
                                         activeStock <= 0
@@ -745,7 +975,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                             )}
                                             <span>
                                                 {activeStock <= 0
-                                                    ? `Size "${selectedSize}" is currently out of stock.`
+                                                    ? 'The selected configuration is currently out of stock.'
                                                     : activeStock <= minStock
                                                         ? `Only ${activeStock} unit(s) left in stock! Order quickly.`
                                                         : `${activeStock} units available and ready for immediate dispatch.`}
@@ -756,75 +986,149 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                         </span>
                                     </div>
 
-                                    {/* ── SIZE-WISE SELECTION WITH LIVE PRICING & STOCK ── */}
-                                    {sizes.length > 0 && (
-                                        <div className="space-y-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center justify-between">
-                                                <span>Select Size / Dimensions</span>
-                                                <span className="text-muted-foreground font-semibold">{sizes.length} Options Available</span>
-                                            </label>
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                                                {sizes.map(sz => {
-                                                    const isSelected = selectedSize === sz.name;
-                                                    const isOutOfStock = sz.stock !== undefined && sz.stock <= 0;
-                                                    return (
-                                                        <button
-                                                            key={sz.id || sz.name}
-                                                            type="button"
-                                                            disabled={isOutOfStock}
-                                                            onClick={() => setSelectedSize(sz.name)}
-                                                            className={cn(
-                                                                "p-3 rounded-2xl text-xs font-black transition-all flex flex-col items-center justify-center gap-1 border text-center relative",
-                                                                isOutOfStock
-                                                                    ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 line-through"
-                                                                    : isSelected
-                                                                        ? "bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20 scale-[1.02]"
-                                                                        : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-400"
-                                                            )}
-                                                        >
-                                                            <span>{sz.name}</span>
-                                                            <div className="flex items-center gap-1.5">
-                                                                {sz.price !== undefined && sz.price > 0 ? (
-                                                                    <span className={cn(
-                                                                        "text-[10px] px-1.5 py-0.5 rounded-md font-bold",
-                                                                        isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
-                                                                    )}>
-                                                                        ₹{sz.price}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className={cn(
-                                                                        "text-[10px] px-1.5 py-0.5 rounded-md font-bold",
-                                                                        isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
-                                                                    )}>
-                                                                        ₹{product.sellingPrice}
-                                                                    </span>
-                                                                )}
-                                                                {sz.stock !== undefined && (
-                                                                    <span className={cn(
-                                                                        "text-[9px] font-bold",
+                                    {/* ── DYNAMIC ATTRIBUTES (WooCommerce-Style Color, Size, Material, etc.) ── */}
+                                    {attributes.map(attr => {
+                                        const selectedValue = selectedAttributes[attr.name] || (attr.options[0]?.name);
+                                        const isColorAttr = attr.type === 'color' || attr.name.toLowerCase().includes('color') || attr.name.toLowerCase().includes('colour');
+
+                                        return (
+                                            <div key={attr.id || attr.name} className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                                                        {isColorAttr ? <Palette className="w-3.5 h-3.5 text-amber-500" /> : <Layers className="w-3.5 h-3.5 text-indigo-500" />}
+                                                        <span>{attr.name}</span>
+                                                        {selectedValue && (
+                                                            <span className="text-amber-600 dark:text-amber-400 font-bold normal-case ml-1">
+                                                                : {selectedValue}
+                                                            </span>
+                                                        )}
+                                                    </label>
+                                                    <span className="text-[11px] text-muted-foreground font-semibold">
+                                                        {attr.options.length} {attr.options.length === 1 ? 'Option' : 'Options'}
+                                                    </span>
+                                                </div>
+
+                                                {/* Color Swatch Picker */}
+                                                {isColorAttr ? (
+                                                    <div className="flex flex-wrap items-center gap-3">
+                                                        {attr.options.map(opt => {
+                                                            const isSelected = selectedValue === opt.name;
+                                                            const isOutOfStock = opt.stock !== undefined && opt.stock <= 0;
+                                                            const hex = opt.value || opt.name || '#000000';
+
+                                                            return (
+                                                                <button
+                                                                    key={opt.id || opt.name}
+                                                                    type="button"
+                                                                    disabled={isOutOfStock}
+                                                                    onClick={() => handleAttributeSelect(attr.name, opt.name)}
+                                                                    title={`${opt.name}${opt.priceAdjustment ? ` (+₹${opt.priceAdjustment})` : ''}`}
+                                                                    className={cn(
+                                                                        "group relative flex items-center gap-2 p-1.5 pr-3 rounded-full border transition-all text-xs font-bold",
+                                                                        isSelected
+                                                                            ? "border-amber-500 bg-amber-50 dark:bg-amber-950/40 ring-2 ring-amber-500/20 scale-105"
+                                                                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300",
+                                                                        isOutOfStock && "opacity-40 cursor-not-allowed line-through"
+                                                                    )}
+                                                                >
+                                                                    <div
+                                                                        className="w-6 h-6 rounded-full border border-black/20 shadow-xs flex items-center justify-center shrink-0"
+                                                                        style={{ backgroundColor: hex }}
+                                                                    >
+                                                                        {isSelected && (
+                                                                            <Check className={cn(
+                                                                                "w-3.5 h-3.5 stroke-[3]",
+                                                                                ['#ffffff', '#fff', 'white', '#f8fafc', '#f1f5f9'].includes(hex.toLowerCase())
+                                                                                    ? "text-black"
+                                                                                    : "text-white"
+                                                                            )} />
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="text-slate-800 dark:text-slate-200">{opt.name}</span>
+                                                                    {opt.priceAdjustment && opt.priceAdjustment !== 0 ? (
+                                                                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold">
+                                                                            +{opt.priceAdjustment > 0 ? `₹${opt.priceAdjustment}` : `-₹${Math.abs(opt.priceAdjustment)}`}
+                                                                        </span>
+                                                                    ) : null}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    /* Button / Pill / Dimension Picker */
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                                        {attr.options.map(opt => {
+                                                            const isSelected = selectedValue === opt.name;
+                                                            const isOutOfStock = opt.stock !== undefined && opt.stock <= 0;
+
+                                                            // Display price badge
+                                                            let displayPriceTag = '';
+                                                            if (opt.price !== undefined && opt.price > 0) {
+                                                                displayPriceTag = `₹${opt.price}`;
+                                                            } else if (opt.priceAdjustment && opt.priceAdjustment !== 0) {
+                                                                displayPriceTag = opt.priceAdjustment > 0 ? `+₹${opt.priceAdjustment}` : `-₹${Math.abs(opt.priceAdjustment)}`;
+                                                            }
+
+                                                            return (
+                                                                <button
+                                                                    key={opt.id || opt.name}
+                                                                    type="button"
+                                                                    disabled={isOutOfStock}
+                                                                    onClick={() => handleAttributeSelect(attr.name, opt.name)}
+                                                                    className={cn(
+                                                                        "p-3 rounded-2xl text-xs font-black transition-all flex flex-col items-center justify-center gap-1 border text-center relative",
                                                                         isOutOfStock
-                                                                            ? "text-rose-500"
+                                                                            ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 line-through"
                                                                             : isSelected
-                                                                                ? "text-amber-100"
-                                                                                : "text-slate-400"
-                                                                    )}>
-                                                                        {isOutOfStock ? '0 stock' : `${sz.stock} left`}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })}
+                                                                                ? "bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20 scale-[1.02]"
+                                                                                : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-400"
+                                                                    )}
+                                                                >
+                                                                    <span>{opt.name}</span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        {displayPriceTag ? (
+                                                                            <span className={cn(
+                                                                                "text-[10px] px-1.5 py-0.5 rounded-md font-bold",
+                                                                                isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                                                                            )}>
+                                                                                {displayPriceTag}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className={cn(
+                                                                                "text-[10px] px-1.5 py-0.5 rounded-md font-bold",
+                                                                                isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                                                                            )}>
+                                                                                ₹{activeUnitPrice}
+                                                                            </span>
+                                                                        )}
+                                                                        {opt.stock !== undefined && (
+                                                                            <span className={cn(
+                                                                                "text-[9px] font-bold",
+                                                                                isOutOfStock
+                                                                                    ? "text-rose-500"
+                                                                                    : isSelected
+                                                                                        ? "text-amber-100"
+                                                                                        : "text-slate-400"
+                                                                            )}>
+                                                                                {isOutOfStock ? '0 stock' : `${opt.stock} left`}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })}
 
                                     {/* ── QUANTITY SELECTION: PRICE SLABS OR STEPPER ── */}
                                     <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                                         <div className="flex items-center justify-between">
                                             <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                                                 <Coins className="w-3.5 h-3.5 text-amber-500" />
-                                                <span>Order Quantity</span>
+                                                <span>Order Quantity & Volume Discounts</span>
                                             </label>
                                             {priceSlabs.length > 0 && (
                                                 <span className="text-[11px] font-bold text-slate-500">
@@ -837,7 +1141,17 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                                                 {priceSlabs.map((slab: any) => {
                                                     const isSelected = quantity === Number(slab.quantity);
-                                                    const perUnit = (Number(slab.price) / Number(slab.quantity)).toFixed(2);
+                                                    
+                                                    // Calculate dynamic proportional discounted rate for this slab based on selected variant
+                                                    const baseSlabExpected = Number(slab.quantity) * Number(product.sellingPrice || 1);
+                                                    const slabDiscountRate = (baseSlabExpected > 0 && Number(slab.price) < baseSlabExpected)
+                                                        ? (1 - Number(slab.price) / baseSlabExpected)
+                                                        : 0;
+                                                    const effectiveSlabUnit = slabDiscountRate > 0
+                                                        ? activeUnitPrice * (1 - slabDiscountRate)
+                                                        : ((activeUnitPrice > 0 && Number(product.sellingPrice || 0) > 0) ? activeUnitPrice : (Number(slab.price) / Number(slab.quantity)));
+                                                    const totalForThisSlab = Math.round(effectiveSlabUnit * Number(slab.quantity));
+
                                                     return (
                                                         <button
                                                             key={slab.id || slab.quantity}
@@ -862,10 +1176,10 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                                             </div>
                                                             <div className="flex items-baseline justify-between w-full">
                                                                 <span className="text-sm font-black text-slate-900 dark:text-white">
-                                                                    ₹{Number(slab.price).toLocaleString()}
+                                                                    ₹{totalForThisSlab.toLocaleString()}
                                                                 </span>
                                                                 <span className="text-[10px] text-muted-foreground font-semibold">
-                                                                    ₹{perUnit}/pc
+                                                                    ₹{effectiveSlabUnit.toFixed(2)}/pc
                                                                 </span>
                                                             </div>
                                                         </button>
@@ -1175,7 +1489,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                     className="w-full h-14 rounded-2xl font-black text-base bg-amber-500 hover:bg-amber-600 text-white shadow-xl shadow-amber-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
                                 >
                                     {activeStock <= 0 ? (
-                                        'Size Selected is Out of Stock'
+                                        'Configuration is Out of Stock'
                                     ) : (
                                         <>
                                             Proceed to Secure Payment ({quantity} {quantity === 1 ? 'item' : 'items'} • ₹{totalPayable.toFixed(2)})

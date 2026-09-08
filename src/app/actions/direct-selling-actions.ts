@@ -27,18 +27,26 @@ async function verifyPrinter() {
     return session;
 }
 
-const jsonFromString = z.string().transform((val, ctx) => {
-    if (!val || val.trim() === '') return undefined;
-    try {
-        return JSON.parse(val);
-    } catch (e) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Invalid JSON format',
-        });
-        return z.NEVER;
+// Helper to verify freelancer
+async function verifyFreelancer() {
+    const session = await getSession();
+    if (!session?.sub || session.role !== 'freelancer') {
+        throw new Error('Unauthorized: Freelancer access required');
     }
-});
+    return session;
+}
+
+const jsonOrObjectField = z.preprocess((val) => {
+    if (!val || val === '') return undefined;
+    if (typeof val === 'string') {
+        try {
+            return JSON.parse(val);
+        } catch {
+            return undefined;
+        }
+    }
+    return val;
+}, z.any().optional());
 
 const sizesField = z.preprocess((val) => {
     if (!val) return [];
@@ -103,8 +111,22 @@ const formSchema = z.object({
   stockQuantity: z.coerce.number().int().optional().default(0),
   minStockLevel: z.coerce.number().int().optional().default(5),
   weight: z.coerce.number().optional(),
-  dimensions: jsonFromString.optional(),
+  dimensions: jsonOrObjectField,
   sizes: sizesField,
+  attributes: z.preprocess((val) => {
+    if (!val) return [];
+    if (typeof val === 'string') {
+      try { return JSON.parse(val); } catch { return []; }
+    }
+    return val;
+  }, z.array(z.any()).optional().default([])),
+  variations: z.preprocess((val) => {
+    if (!val) return [];
+    if (typeof val === 'string') {
+      try { return JSON.parse(val); } catch { return []; }
+    }
+    return val;
+  }, z.array(z.any()).optional().default([])),
   taxSlabs: z.preprocess((val) => {
     if (!val) return [];
     if (typeof val === 'string') {
@@ -126,12 +148,12 @@ const formSchema = z.object({
   tags: z.string().optional(),
   isFeatured: z.boolean().default(false),
   isActive: z.boolean().default(true),
-  supplierInfo: jsonFromString.optional(),
+  supplierInfo: jsonOrObjectField,
   shippingInfo: jsonObjectField,
   textAllowed: z.boolean().default(false),
 });
 
-// Admin: Get all direct selling products with printer info
+// Admin: Get all direct selling products with printer and freelancer info
 export async function getDirectSellingProducts() {
     await verifyAdmin();
     return await db.query.directSellingProducts.findMany({
@@ -145,6 +167,50 @@ export async function getDirectSellingProducts() {
                     email: true,
                     phone: true,
                     city: true,
+                }
+            },
+            freelancer: {
+                columns: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true,
+                }
+            },
+            approvedByAdmin: {
+                columns: {
+                    id: true,
+                    name: true,
+                    email: true,
+                }
+            }
+        }
+    });
+}
+
+// Admin: Get a single direct selling product by ID with details
+export async function getDirectSellingProductById(id: number) {
+    await verifyAdmin();
+    if (!id || isNaN(id)) return null;
+    return await db.query.directSellingProducts.findFirst({
+        where: eq(directSellingProducts.id, id),
+        with: {
+            printer: {
+                columns: {
+                    id: true,
+                    fullName: true,
+                    companyName: true,
+                    email: true,
+                    phone: true,
+                    city: true,
+                }
+            },
+            freelancer: {
+                columns: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true,
                 }
             },
             approvedByAdmin: {
@@ -174,6 +240,8 @@ export async function createDirectSellingProduct(data: z.infer<typeof formSchema
     const result = await db.insert(directSellingProducts).values({
       ...validatedData,
       sizes: validatedData.sizes || [],
+      attributes: validatedData.attributes || [],
+      variations: validatedData.variations || [],
       taxSlabs: validatedData.taxSlabs || [],
       priceSlabs: validatedData.priceSlabs || [],
       offers: validatedData.offers || [],
@@ -202,6 +270,8 @@ export async function createPrinterDirectSellingProduct(data: z.infer<typeof for
     const result = await db.insert(directSellingProducts).values({
       ...validatedData,
       sizes: validatedData.sizes || [],
+      attributes: validatedData.attributes || [],
+      variations: validatedData.variations || [],
       taxSlabs: validatedData.taxSlabs || [],
       priceSlabs: validatedData.priceSlabs || [],
       offers: validatedData.offers || [],
@@ -230,6 +300,8 @@ export async function updateDirectSellingProduct(id: number, data: z.infer<typeo
         .set({ 
           ...validatedData, 
           sizes: validatedData.sizes || [],
+          attributes: validatedData.attributes || [],
+          variations: validatedData.variations || [],
           taxSlabs: validatedData.taxSlabs || [],
           priceSlabs: validatedData.priceSlabs || [],
           offers: validatedData.offers || [],
@@ -272,6 +344,8 @@ export async function updatePrinterDirectSellingProduct(id: number, data: z.infe
         .set({ 
           ...validatedData, 
           sizes: validatedData.sizes || [],
+          attributes: validatedData.attributes || [],
+          variations: validatedData.variations || [],
           taxSlabs: validatedData.taxSlabs || [],
           priceSlabs: validatedData.priceSlabs || [],
           offers: validatedData.offers || [],
@@ -316,6 +390,118 @@ export async function deletePrinterDirectSellingProduct(id: number) {
         eq(directSellingProducts.printerId, session.sub)
     ));
     revalidatePath('/printer/direct-selling');
+    revalidatePath('/admin/direct-selling');
+    revalidatePath('/products');
+    revalidatePath('/');
+}
+
+// Freelancer: Get only this freelancer's products
+export async function getFreelancerDirectSellingProducts() {
+    const session = await verifyFreelancer();
+    return await db.query.directSellingProducts.findMany({
+        where: eq(directSellingProducts.freelancerId, session.sub),
+        orderBy: [desc(directSellingProducts.createdAt)],
+    });
+}
+
+// Freelancer: Get single direct selling product owned by freelancer
+export async function getFreelancerDirectSellingProductById(id: number) {
+    const session = await verifyFreelancer();
+    if (!id || isNaN(id)) return null;
+    return await db.query.directSellingProducts.findFirst({
+        where: and(
+            eq(directSellingProducts.id, id),
+            eq(directSellingProducts.freelancerId, session.sub)
+        ),
+    });
+}
+
+// Freelancer: Create product (starts in pending approval status)
+export async function createFreelancerDirectSellingProduct(data: z.infer<typeof formSchema>) {
+    const session = await verifyFreelancer();
+    const validatedData = formSchema.parse(data);
+    const result = await db.insert(directSellingProducts).values({
+      ...validatedData,
+      sizes: validatedData.sizes || [],
+      attributes: validatedData.attributes || [],
+      variations: validatedData.variations || [],
+      taxSlabs: validatedData.taxSlabs || [],
+      priceSlabs: validatedData.priceSlabs || [],
+      offers: validatedData.offers || [],
+      offerBadge: validatedData.offerBadge || null,
+      specifications: validatedData.specifications || {},
+      shippingInfo: validatedData.shippingInfo || {},
+      hsnCode: validatedData.hsnCode || null,
+      addedBy: 'freelancer',
+      freelancerId: session.sub,
+      approvalStatus: 'pending',
+      rejectionReason: null,
+      imageUrls: validatedData.imageUrls ? validatedData.imageUrls.split(',').map(s => s.trim()).filter(Boolean) : [],
+      tags: validatedData.tags ? validatedData.tags.split(',').map(s => s.trim()).filter(Boolean) : [],
+    }).returning();
+
+    revalidatePath('/freelancer/direct-selling');
+    revalidatePath('/admin/direct-selling');
+    return result[0];
+}
+
+// Freelancer: Update freelancer's own product (resets to pending for review)
+export async function updateFreelancerDirectSellingProduct(id: number, data: z.infer<typeof formSchema>) {
+    const session = await verifyFreelancer();
+    
+    // Verify ownership
+    const existing = await db.query.directSellingProducts.findFirst({
+        where: and(
+            eq(directSellingProducts.id, id),
+            eq(directSellingProducts.freelancerId, session.sub)
+        ),
+    });
+
+    if (!existing) {
+        throw new Error('Product not found or you do not have permission to edit it.');
+    }
+
+    const validatedData = formSchema.parse(data);
+    const result = await db.update(directSellingProducts)
+        .set({ 
+          ...validatedData, 
+          sizes: validatedData.sizes || [],
+          attributes: validatedData.attributes || [],
+          variations: validatedData.variations || [],
+          taxSlabs: validatedData.taxSlabs || [],
+          priceSlabs: validatedData.priceSlabs || [],
+          offers: validatedData.offers || [],
+          offerBadge: validatedData.offerBadge || null,
+          specifications: validatedData.specifications || {},
+          shippingInfo: validatedData.shippingInfo || {},
+          hsnCode: validatedData.hsnCode || null,
+          approvalStatus: 'pending',
+          rejectionReason: null,
+          imageUrls: validatedData.imageUrls ? validatedData.imageUrls.split(',').map(s => s.trim()).filter(Boolean) : [],
+          tags: validatedData.tags ? validatedData.tags.split(',').map(s => s.trim()).filter(Boolean) : [],
+          updatedAt: new Date() 
+        })
+        .where(and(
+            eq(directSellingProducts.id, id),
+            eq(directSellingProducts.freelancerId, session.sub)
+        ))
+        .returning();
+
+    revalidatePath('/freelancer/direct-selling');
+    revalidatePath('/admin/direct-selling');
+    revalidatePath('/products');
+    revalidatePath('/');
+    return result[0];
+}
+
+// Freelancer: Delete own direct selling product
+export async function deleteFreelancerDirectSellingProduct(id: number) {
+    const session = await verifyFreelancer();
+    await db.delete(directSellingProducts).where(and(
+        eq(directSellingProducts.id, id),
+        eq(directSellingProducts.freelancerId, session.sub)
+    ));
+    revalidatePath('/freelancer/direct-selling');
     revalidatePath('/admin/direct-selling');
     revalidatePath('/products');
     revalidatePath('/');
@@ -401,30 +587,60 @@ export async function placeDirectOrder(items: any[], shippingAddress: any, payme
     }
 
     const orderValues = items.map(item => {
-        const sellingPrice = parseFloat(item.sellingPrice);
+        const sellingPrice = parseFloat(item.sellingPrice || item.unitPrice || '0');
         if (isNaN(sellingPrice)) {
-            throw new Error(`Invalid selling price for product: ${item.name}`);
+            throw new Error(`Invalid selling price for product: ${item.name || 'Direct Product'}`);
         }
-        const calculatedTotal = item.totalAmount ? parseFloat(item.totalAmount) : (sellingPrice * item.quantity);
-        const totalAmount = isNaN(calculatedTotal) ? (sellingPrice * item.quantity) : calculatedTotal;
+        const qty = Number(item.quantity) || 1;
+        const calculatedTotal = item.totalAmount ? parseFloat(item.totalAmount) : (sellingPrice * qty);
+        const totalAmount = isNaN(calculatedTotal) ? (sellingPrice * qty) : calculatedTotal;
+
+        const selectedSize = item.selectedSize || 
+            item.selectedAttributes?.['Size'] || 
+            item.selectedAttributes?.['Size / Dimensions'] || 
+            item.selectedAttributes?.['Dimensions'] || 
+            undefined;
+
+        const selectedAttributesFormatted = item.selectedAttributesFormatted || 
+            (item.selectedAttributes && typeof item.selectedAttributes === 'object'
+                ? Object.entries(item.selectedAttributes).map(([k, v]) => `${k}: ${v}`).join(', ')
+                : undefined);
 
         return {
             userId: session.sub,
-            directSellingProductId: item.id,
+            directSellingProductId: item.id || item.productId || item.directSellingProductId,
             printerAssigned: null,
             printerAssignedAt: null,
-            quantity: item.quantity,
-            unitPrice: String(sellingPrice),
+            quantity: qty,
+            unitPrice: String(sellingPrice.toFixed(2)),
             totalAmount: String(totalAmount.toFixed(2)),
             shippingAddress: shippingAddress,
-            billingAddress: shippingAddress, // Using shipping for billing for simplicity
-            paymentMethod: 'Card', // Placeholder
-            paymentStatus: 'paid', // Placeholder
+            billingAddress: shippingAddress,
+            paymentMethod: 'Online Payment',
+            paymentStatus: 'paid',
             orderStatus: 'confirmed',
-            selectedSize: item.selectedSize || undefined,
+            selectedSize: selectedSize,
             customisation: {
-                ...(item.selectedSize ? { selectedSize: item.selectedSize } : {}),
-                ...(item.customText ? { customText: item.customText } : {}),
+                productName: item.name,
+                productCategory: item.category,
+                productImage: item.image || item.imageUrl || (item.images && item.images[0]),
+                sku: item.sku,
+                hsnCode: item.hsnCode,
+                selectedAttributes: item.selectedAttributes || {},
+                selectedAttributesFormatted: selectedAttributesFormatted,
+                selectedSize: selectedSize,
+                customText: item.customText || undefined,
+                shippingFee: item.shippingFee !== undefined ? Number(item.shippingFee) : 0,
+                deliveryMode: item.deliveryMode || 'standard',
+                taxDetails: item.taxDetails || [],
+                taxAmount: item.taxAmount !== undefined ? Number(item.taxAmount) : 0,
+                pricingBreakdown: item.pricingBreakdown || {
+                    unitPrice: sellingPrice.toFixed(2),
+                    quantity: qty,
+                    productSubtotal: (sellingPrice * qty).toFixed(2),
+                    totalAmount: totalAmount.toFixed(2),
+                },
+                ...(item.customisation || {}),
             },
             specialInstructions: item.customText || undefined,
             paymentId: paymentId,

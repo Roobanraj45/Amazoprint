@@ -257,6 +257,33 @@ export const subProducts = pgTable('sub_products', {
     isDefault?: boolean;
     isActive: boolean;
   }>>().default([]),
+  attributes: jsonb('attributes').$type<Array<{
+    id: string;
+    name: string;
+    type?: 'color' | 'button' | 'select' | 'image';
+    options: Array<{
+      id: string;
+      name: string;
+      value?: string;
+      priceAdjustment?: number;
+      basePriceAdjustment?: number;
+      stock?: number;
+      skuModifier?: string;
+      image?: string;
+      isDefault?: boolean;
+      isActive?: boolean;
+    }>;
+  }>>().default([]),
+  variations: jsonb('variations').$type<Array<{
+    id: string;
+    attributes: Record<string, string>;
+    sku?: string;
+    price: number;
+    basePrice?: number;
+    stock?: number;
+    image?: string;
+    isActive: boolean;
+  }>>().default([]),
   priceSlabs: jsonb('price_slabs').$type<Array<{
     id: string;
     quantity: number;
@@ -641,6 +668,33 @@ export const directSellingProducts = pgTable('direct_selling_products', {
     sku?: string;
     isActive?: boolean;
   } | string>>().default([]),
+  attributes: jsonb('attributes').$type<Array<{
+    id: string;
+    name: string;
+    type?: 'color' | 'button' | 'select' | 'image';
+    options: Array<{
+      id: string;
+      name: string;
+      value?: string;
+      priceAdjustment?: number;
+      basePriceAdjustment?: number;
+      stock?: number;
+      skuModifier?: string;
+      image?: string;
+      isDefault?: boolean;
+      isActive?: boolean;
+    }>;
+  }>>().default([]),
+  variations: jsonb('variations').$type<Array<{
+    id: string;
+    attributes: Record<string, string>;
+    sku?: string;
+    price: number;
+    basePrice?: number;
+    stock?: number;
+    image?: string;
+    isActive: boolean;
+  }>>().default([]),
   taxSlabs: jsonb('tax_slabs').$type<Array<{ id: string; name: string; rate: number; type?: 'percentage' | 'fixed'; isInclusive?: boolean; isActive?: boolean }>>().default([]),
   priceSlabs: jsonb('price_slabs').$type<Array<{ id: string; quantity: number; price: number; isActive?: boolean }>>().default([]),
   offers: jsonb('offers').$type<Array<{
@@ -667,8 +721,9 @@ export const directSellingProducts = pgTable('direct_selling_products', {
   }>().default({}),
   hsnCode: varchar('hsn_code', { length: 50 }),
   textAllowed: boolean('text_allowed').default(false),
-  addedBy: varchar('added_by', { length: 20, enum: ['admin', 'printer'] }).default('admin'),
+  addedBy: varchar('added_by', { length: 20, enum: ['admin', 'printer', 'freelancer'] }).default('admin'),
   printerId: uuid('printer_id').references(() => printPressUsers.id, { onDelete: 'set null' }),
+  freelancerId: uuid('freelancer_id').references(() => users.id, { onDelete: 'set null' }),
   approvalStatus: varchar('approval_status', { length: 20, enum: ['pending', 'approved', 'rejected'] }).default('approved'),
   rejectionReason: text('rejection_reason'),
   approvedAt: timestamp('approved_at'),
@@ -680,6 +735,7 @@ export const directSellingProducts = pgTable('direct_selling_products', {
   skuIdx: index('idx_dsp_sku').on(table.sku),
   categoryIdx: index('idx_dsp_category').on(table.category),
   printerIdIdx: index('idx_dsp_printer_id').on(table.printerId),
+  freelancerIdIdx: index('idx_dsp_freelancer_id').on(table.freelancerId),
   approvalStatusIdx: index('idx_dsp_approval_status').on(table.approvalStatus),
 }));
 
@@ -718,6 +774,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   assignedVerifications: many(designVerifications, { relationName: 'freelancer' }),
   orders: many(orders),
   bankDetails: many(bankDetails),
+  directSellingProducts: many(directSellingProducts),
 }));
 
 export const productsRelations = relations(products, ({ many }) => ({
@@ -957,6 +1014,10 @@ export const directSellingProductsRelations = relations(directSellingProducts, (
   printer: one(printPressUsers, {
     fields: [directSellingProducts.printerId],
     references: [printPressUsers.id],
+  }),
+  freelancer: one(users, {
+    fields: [directSellingProducts.freelancerId],
+    references: [users.id],
   }),
   approvedByAdmin: one(admins, {
     fields: [directSellingProducts.approvedBy],

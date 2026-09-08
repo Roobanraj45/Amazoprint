@@ -410,6 +410,20 @@ export default async function AdminOrderDetailsPage({ params }: { params: { orde
                                                 </Badge>
                                             </div>
                                         )}
+                                        {/* Custom Text Inscription if present */}
+                                        {(parsedCustomisation?.customText || order.specialInstructions) && (
+                                            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 mt-3">
+                                                <Sparkles className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                                <div className="space-y-0.5">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                                                        Custom Buyer Inscription / Engraved Text
+                                                    </span>
+                                                    <p className="text-xs font-black text-slate-900 dark:text-white">
+                                                        "{parsedCustomisation?.customText || order.specialInstructions}"
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

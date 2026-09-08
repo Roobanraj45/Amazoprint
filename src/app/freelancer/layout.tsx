@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar"
-import { Home, Trophy, CheckSquare, LogOut, PenSquare, UploadCloud, Palette, ShieldCheck, Package, Bell, Search, User, MessageSquare } from "lucide-react"
+import { Home, Trophy, CheckSquare, LogOut, PenSquare, UploadCloud, Palette, ShieldCheck, Package, Bell, Search, User, MessageSquare, Store } from "lucide-react"
 import Link from "next/link"
 import { AmazoprintLogo } from "@/components/ui/logo"
 import { useRouter } from "next/navigation";
@@ -59,6 +59,7 @@ export default function FreelancerLayout({ children }: { children: React.ReactNo
 
   const menuItems = [
     { href: "/freelancer/dashboard", label: "Dashboard", icon: <Home size={16} />, color: "text-blue-500" },
+    { href: "/freelancer/direct-selling", label: "Direct Selling (Store)", icon: <Store size={16} />, color: "text-amber-500" },
     { href: "/products", label: "Products", icon: <Palette size={16} />, color: "text-purple-500" },
     { href: "/contests", label: "Browse Contests", icon: <Trophy size={16} />, color: "text-rose-500" },
     { href: "/freelancer/contests", label: "My Contests", icon: <CheckSquare size={16} />, color: "text-emerald-500" },
