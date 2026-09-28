@@ -58,8 +58,11 @@ const nextConfig: NextConfig = {
     ],
   },
   // Proxy /uploads/* to amazoprint.in when the file is not found locally.
-  // This ensures product images uploaded on the production server are visible in dev.
+  // ONLY active in development so local dev can see production images without looping in prod.
   async rewrites() {
+    if (process.env.NODE_ENV !== 'development') {
+      return [];
+    }
     return {
       // These rewrites are tried AFTER checking the filesystem (public/) and before 404.
       fallback: [

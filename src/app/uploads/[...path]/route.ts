@@ -39,45 +39,56 @@ export async function GET(
     }
   }
 
-  // 3. Fallback: Proxy from remote production server if file was uploaded on remote or during dev testing
-  try {
-    const remotePath = path.join('/');
-    const remoteUrl = `https://amazoprint.in/uploads/${remotePath}`;
-    const remoteResponse = await fetch(remoteUrl, {
-      headers: { 'User-Agent': 'AmazoPrint-Dev-Proxy/1.0' },
-      signal: AbortSignal.timeout(8000),
-    });
+  // 3. Fallback: Only proxy in local development. Never proxy in production to prevent self-loops and 8s hanging requests.
+  const host = request.headers.get('host') || '';
+  const userAgent = request.headers.get('user-agent') || '';
+  const isLoop = host.includes('amazoprint.in') || userAgent.includes('AmazoPrint-Dev-Proxy');
 
-    if (remoteResponse.ok) {
-      const arrayBuffer = await remoteResponse.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const contentType = remoteResponse.headers.get('content-type') || getContentType(extname(path[path.length - 1]));
-
-      // Cache file locally so subsequent requests are served directly from disk
-      try {
-        const localSavePath = join(process.cwd(), 'public', 'uploads', ...path);
-        const parentDir = dirname(localSavePath);
-        if (!fs.existsSync(parentDir)) {
-          await mkdir(parentDir, { recursive: true });
-        }
-        await writeFile(localSavePath, buffer);
-      } catch (cacheErr) {
-        // Non-critical caching error
-      }
-
-      return new NextResponse(buffer, {
-        headers: {
-          'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=3600',
-          'X-Proxied-From': 'amazoprint.in',
-        },
+  if (process.env.NODE_ENV === 'development' && !isLoop) {
+    try {
+      const remotePath = path.join('/');
+      const remoteUrl = `https://amazoprint.in/uploads/${remotePath}`;
+      const remoteResponse = await fetch(remoteUrl, {
+        headers: { 'User-Agent': 'AmazoPrint-Dev-Proxy/1.0' },
+        signal: AbortSignal.timeout(4000),
       });
+
+      if (remoteResponse.ok) {
+        const arrayBuffer = await remoteResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const contentType = remoteResponse.headers.get('content-type') || getContentType(extname(path[path.length - 1]));
+
+        // Cache file locally so subsequent requests are served directly from disk
+        try {
+          const localSavePath = join(process.cwd(), 'public', 'uploads', ...path);
+          const parentDir = dirname(localSavePath);
+          if (!fs.existsSync(parentDir)) {
+            await mkdir(parentDir, { recursive: true });
+          }
+          await writeFile(localSavePath, buffer);
+        } catch (cacheErr) {
+          // Non-critical caching error
+        }
+
+        return new NextResponse(buffer, {
+          headers: {
+            'Content-Type': contentType,
+            'Cache-Control': 'public, max-age=3600',
+            'X-Proxied-From': 'amazoprint.in',
+          },
+        });
+      }
+    } catch (proxyError) {
+      // Remote proxy fetch failed
     }
-  } catch (proxyError) {
-    // Remote proxy fetch failed
   }
 
-  return new NextResponse('Not Found', { status: 404 });
+  return new NextResponse('Not Found', {
+    status: 404,
+    headers: {
+      'Cache-Control': 'public, max-age=3600',
+    },
+  });
 }
 
 function getContentType(ext: string): string {

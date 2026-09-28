@@ -44,6 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     React.useEffect(() => {
         const checkUnread = () => {
+            if (typeof document !== 'undefined' && document.hidden) return;
             getUnreadMessageCount().then(count => {
                 setUnreadCount(count);
                 if (count > prevCountRef.current) {
@@ -69,8 +70,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         };
 
         checkUnread();
-        const interval = setInterval(checkUnread, 8000);
-        return () => clearInterval(interval);
+        const interval = setInterval(checkUnread, 30000);
+        const handleVisibility = () => {
+            if (!document.hidden) checkUnread();
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
     }, [pathname]);
 
     const menuSections = [
