@@ -1141,7 +1141,6 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                                                 {priceSlabs.map((slab: any) => {
                                                     const isSelected = quantity === Number(slab.quantity);
-                                                    
                                                     // Calculate dynamic proportional discounted rate for this slab based on selected variant
                                                     const baseSlabExpected = Number(slab.quantity) * Number(product.sellingPrice || 1);
                                                     const slabDiscountRate = (baseSlabExpected > 0 && Number(slab.price) < baseSlabExpected)
@@ -1151,7 +1150,6 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                                         ? activeUnitPrice * (1 - slabDiscountRate)
                                                         : ((activeUnitPrice > 0 && Number(product.sellingPrice || 0) > 0) ? activeUnitPrice : (Number(slab.price) / Number(slab.quantity)));
                                                     const totalForThisSlab = Math.round(effectiveSlabUnit * Number(slab.quantity));
-
                                                     return (
                                                         <button
                                                             key={slab.id || slab.quantity}
