@@ -15,7 +15,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, ImageIcon } from 'lucide-react';
+import { Loader2, Upload, ImageIcon, Cloud, Sparkles } from 'lucide-react';
+import { resolveImagePath } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 type Folder = {
   name: string;
@@ -154,7 +156,12 @@ export function MediaLibraryDialog({
                           onClick={() => onSelect(fileUrl)}
                           className="aspect-square relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:border-indigo-500 hover:ring-2 hover:ring-indigo-500/20 hover:scale-[1.03] transition-all group shadow-sm"
                         >
-                          <Image src={fileUrl} alt="" fill className="object-cover group-hover:opacity-90" />
+                          <Image src={resolveImagePath(fileUrl)} alt="" fill className="object-cover group-hover:opacity-90" />
+                          {fileUrl.includes('firebasestorage.googleapis.com') && (
+                            <span className="absolute top-1 left-1 bg-amber-500/90 text-white rounded-full p-0.5 shadow-sm">
+                              <Cloud className="w-2.5 h-2.5" />
+                            </span>
+                          )}
                         </button>
                       </DialogClose>
                     ))}
@@ -165,6 +172,15 @@ export function MediaLibraryDialog({
           </TabsContent>
 
           <TabsContent value="upload" className="mt-4 p-6 border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 space-y-5">
+            <div className="p-3.5 bg-amber-50/60 dark:bg-amber-950/20 rounded-xl border border-amber-200/80 dark:border-amber-900/40 space-y-1">
+              <span className="text-[11px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Firebase Storage & Auto-Compression
+              </span>
+              <p className="text-xs text-amber-900/80 dark:text-amber-300/80 font-medium leading-relaxed">
+                Images are automatically compressed to <strong>&lt; 1 MB</strong> using Sharp before being inserted into Firebase Storage (<code className="font-mono text-[11px]">amazoprint-2faa2.firebasestorage.app</code>).
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="folder-name-upload" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Target Storage Folder</Label>
               <p className="text-xs text-muted-foreground">The active folder is <span className="font-bold text-indigo-600 dark:text-indigo-400 capitalize">{folder || 'N/A'}</span>. Specify a custom folder name to categorize assets.</p>
@@ -195,7 +211,7 @@ export function MediaLibraryDialog({
               className="h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 shadow-md shadow-indigo-500/20"
             >
               {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-              Upload & Select Image
+              {isUploading ? 'Compressing & Uploading...' : 'Upload to Firebase (< 1 MB)'}
             </Button>
           </TabsContent>
         </Tabs>

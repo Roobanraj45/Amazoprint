@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
 import fs from 'fs';
+import { listFirebaseStorageFiles } from '@/lib/firebase';
 
 export async function GET() {
   const folders: Record<string, Set<string>> = {};
@@ -29,14 +30,27 @@ export async function GET() {
   };
 
   try {
-    // Scan server public/uploads directory
-    await scanDir(join(process.cwd(), 'public', 'uploads'), '/api/media');
-    await scanDir(join(process.cwd(), 'storage', 'uploads'), '/api/media');
+    // 1. Scan server local directories
+    await scanDir(join(process.cwd(), 'public', 'uploads'), '/uploads');
+    await scanDir(join(process.cwd(), 'storage', 'uploads'), '/uploads');
+
+    // 2. Fetch Firebase Storage assets for products
+    try {
+      const fbProducts = await listFirebaseStorageFiles('products');
+      if (fbProducts.length > 0) {
+        if (!folders['products']) folders['products'] = new Set();
+        fbProducts.forEach(file => {
+          folders['products'].add(file.url);
+        });
+      }
+    } catch (fbErr) {
+      console.warn('Failed to fetch Firebase Storage assets list:', fbErr);
+    }
 
     const result = Object.entries(folders).map(([name, files]) => ({
       name,
       files: Array.from(files).sort((a, b) => {
-        // Sort by filename (which includes timestamp) descending
+        // Sort by filename descending
         const aName = a.split('/').pop() || '';
         const bName = b.split('/').pop() || '';
         return bName.localeCompare(aName);

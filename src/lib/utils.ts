@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { PathPoint } from "./types";
+import { FIREBASE_ASSETS } from "./firebase-assets";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -13,6 +14,11 @@ export function resolveImagePath(path?: string | null): string {
 
   // data URLs and blob URLs — use as-is
   if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
+
+  // External absolute URL (e.g. Firebase, external CDNs) — check if it's already Firebase
+  if (trimmed.startsWith('https://firebasestorage.googleapis.com')) {
+    return trimmed;
+  }
 
   // Strip localhost / 127.0.0.1 / 0.0.0.0 — keep just the path part
   let cleanPath = trimmed.replace(/^https?:\/\/(localhost|0\.0\.0\.0|127\.0\.0\.1)(:\d+)?/, '');
@@ -34,7 +40,18 @@ export function resolveImagePath(path?: string | null): string {
     .replace(/^\/api\/media\//, '/uploads/')
     .replace(/^api\/media\//, '/uploads/');
 
-  // If it is another external absolute URL (e.g. Unsplash, Firebase, external CDNs), use as-is
+  // Route brand assets and fallbacks directly to Firebase Storage
+  if (cleanPath === '/uploads/amazoLogo.png' || cleanPath === 'amazoLogo.png' || cleanPath.endsWith('/amazoLogo.png')) {
+    return FIREBASE_ASSETS.logo;
+  }
+  if (cleanPath === '/uploads/amazoIcon.png' || cleanPath === 'amazoIcon.png' || cleanPath.endsWith('/amazoIcon.png')) {
+    return FIREBASE_ASSETS.icon;
+  }
+  if (cleanPath === '/uploads/hero.png' || cleanPath === 'hero.png' || cleanPath.endsWith('/hero.png')) {
+    return FIREBASE_ASSETS.hero;
+  }
+
+  // If it is another external absolute URL (e.g. Unsplash, external CDNs), use as-is
   if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
     return cleanPath;
   }
@@ -47,7 +64,7 @@ export function resolveImagePath(path?: string | null): string {
   return cleanPath;
 }
 
-export function getProductImageUrl(path?: string | null, fallback = '/uploads/hero.png'): string {
+export function getProductImageUrl(path?: string | null, fallback: string = FIREBASE_ASSETS.hero): string {
   if (!path || typeof path !== 'string' || !path.trim()) return fallback;
   return resolveImagePath(path) || fallback;
 }

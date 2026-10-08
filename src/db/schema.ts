@@ -191,6 +191,24 @@ export const cardTextures = pgTable('card_textures', {
   };
 });
 
+export const customAddons = pgTable('custom_addons', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 150 }).notNull().unique(),
+  slug: varchar('slug', { length: 150 }).notNull().unique(),
+  description: text('description'),
+  price: numeric('price', { precision: 10, scale: 2 }).default('0.00'),
+  pricingType: varchar('pricing_type', { length: 20 }).default('per_unit'), // 'per_unit' or 'fixed'
+  imageUrl: text('image_url'),
+  isActive: boolean('is_active').default(true),
+  allowedSubProductIds: integer('allowed_sub_product_ids').array(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => {
+  return {
+    allowedSubProductsIdx: index('idx_custom_addons_allowed_sub_products').on(table.allowedSubProductIds),
+  };
+});
+
 export const subProducts = pgTable('sub_products', {
   id: serial('id').primaryKey(),
   productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
@@ -210,6 +228,8 @@ export const subProducts = pgTable('sub_products', {
   dieCutPrices: jsonb('die_cut_prices').$type<Record<string, number>>().default({}),
   allowedCardTextures: integer('allowed_card_textures').array(),
   cardTexturePrices: jsonb('card_texture_prices').$type<Record<string, number>>().default({}),
+  allowedCustomAddons: integer('allowed_custom_addons').array(),
+  customAddonPrices: jsonb('custom_addon_prices').$type<Record<string, number>>().default({}),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   unitType: varchar('unit_type', { length: 10 }).default('mm').notNull(),
@@ -297,6 +317,7 @@ export const subProducts = pgTable('sub_products', {
     skuIdx: index('idx_sub_products_sku').on(table.sku),
     allowedDieCutsIdx: index('idx_sub_products_allowed_die_cuts').on(table.allowedDieCuts),
     allowedCardTexturesIdx: index('idx_sub_products_allowed_card_textures').using('gin', table.allowedCardTextures),
+    allowedCustomAddonsIdx: index('idx_sub_products_allowed_custom_addons').on(table.allowedCustomAddons),
   };
 });
 

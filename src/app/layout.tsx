@@ -5,6 +5,7 @@ import { PageLoader } from '@/components/layout/page-loader';
 import { montserrat, plusJakarta, playfair, outfit } from './fonts';
 import { cn } from '@/lib/utils';
 import CartProviderWrapper from './cart-provider-wrapper';
+import { FIREBASE_ASSETS } from '@/lib/firebase-assets';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://amazoprint.com';
 
@@ -21,9 +22,9 @@ export const metadata: Metadata = {
   publisher: 'Amazoprint',
   applicationName: 'Amazoprint',
   icons: {
-    icon: '/uploads/amazoIcon.png',
-    shortcut: '/uploads/amazoIcon.png',
-    apple: '/uploads/amazoIcon.png',
+    icon: FIREBASE_ASSETS.icon,
+    shortcut: FIREBASE_ASSETS.icon,
+    apple: FIREBASE_ASSETS.icon,
   },
   openGraph: {
     title: 'Amazoprint | Custom Printing & Design Services',
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
     siteName: 'Amazoprint',
     images: [
       {
-        url: '/uploads/amazoIcon.png', 
+        url: FIREBASE_ASSETS.icon, 
         width: 512,
         height: 512,
         alt: 'Amazoprint - Custom Printing & Design',
@@ -45,7 +46,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Amazoprint | Custom Printing & Design Services',
     description: 'The easiest way to design and print high-quality custom products.',
-    images: [`${siteUrl}/uploads/amazoIcon.png`],
+    images: [FIREBASE_ASSETS.icon],
   },
   robots: {
     index: true,
@@ -76,7 +77,7 @@ export default function RootLayout({
     <html lang="en" className={cn("antialiased", plusJakarta.variable, playfair.variable, outfit.variable, montserrat.variable)}>
       <head>
         <StructuredData />
-        <link rel="icon" href="/uploads/amazoIcon.png" sizes="any" />
+        <link rel="icon" href={FIREBASE_ASSETS.icon} sizes="any" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter&family=Roboto&family=Open+Sans&family=Lato&family=Montserrat&family=Poppins&family=Oswald&family=Source+Sans+3&family=Raleway&family=Ubuntu&family=Playfair+Display&family=Merriweather&family=PT+Serif&family=Lora&family=Nunito&family=Roboto+Mono&family=Fira+Code&family=Outfit&family=Dancing+Script&family=Pacifico&family=Caveat&family=Righteous&family=Lobster&family=Bebas+Neue&family=Anton&family=Josefin+Sans&family=Titillium+Web&family=Quicksand&family=Rubik&family=Inconsolata&family=Cinzel&family=Amatic+SC&family=Comfortaa&family=Comic+Neue&family=Permanent+Marker&family=Bungee&family=Rakkas&family=Kalam&family=Indie+Flower&family=Satisfy&display=swap" rel="stylesheet" crossOrigin="anonymous" />

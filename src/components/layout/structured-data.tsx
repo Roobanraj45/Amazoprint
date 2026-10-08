@@ -1,4 +1,5 @@
 import React from 'react';
+import { FIREBASE_ASSETS } from '@/lib/firebase-assets';
 
 export function StructuredData() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://amazoprint.com';
@@ -8,7 +9,7 @@ export function StructuredData() {
     "@type": "Organization",
     "name": "Amazoprint",
     "url": siteUrl,
-    "logo": `${siteUrl}/uploads/amazoIcon.png`,
+    "logo": FIREBASE_ASSETS.icon,
     "sameAs": [
       "https://facebook.com/amazoprint",
       "https://instagram.com/amazoprint",

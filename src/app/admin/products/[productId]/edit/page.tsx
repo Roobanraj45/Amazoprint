@@ -35,7 +35,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { MediaLibraryDialog } from '@/components/admin/media-library-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { resolveImagePath } from '@/lib/utils';
+import { resolveImagePath, cn } from '@/lib/utils';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -50,6 +50,8 @@ import {
   Tag,
   Trash2,
   Video,
+  CloudUpload,
+  Cloud,
 } from 'lucide-react';
 
 const productSchema = z.object({
@@ -75,6 +77,40 @@ export default function EditProductPage() {
   const [productData, setProductData] = useState<any>(null);
   const [isImageBrowserOpen, setImageBrowserOpen] = useState(false);
   const [currentFolder, setCurrentFolder] = useState('products');
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+
+  const handleDirectCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCover(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', 'products');
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setValue('imageUrl', data.url, { shouldDirty: true, shouldValidate: true });
+        const sizeKb = Math.round((data.size || 0) / 1024);
+        toast({
+          title: 'Cover Image Uploaded to Firebase Storage',
+          description: `Compressed to ${sizeKb} KB (< 1 MB) and set as cover image.`,
+        });
+      } else {
+        toast({ variant: 'destructive', title: 'Upload Failed', description: data.error || 'Failed to upload image' });
+      }
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Upload Error', description: err.message });
+    } finally {
+      setIsUploadingCover(false);
+      e.target.value = '';
+    }
+  };
 
   const {
     register,
@@ -317,13 +353,18 @@ export default function EditProductPage() {
           <div className="space-y-6">
             {/* Media Asset Card */}
             <Card className="border border-slate-200/80 dark:border-slate-800/80 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4 bg-slate-50/50 dark:bg-slate-950/50">
+              <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4 bg-slate-50/50 dark:bg-slate-950/50 flex flex-row items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   <CardTitle className="text-base font-bold text-slate-900 dark:text-white">
                     Cover Image
                   </CardTitle>
                 </div>
+                {imageUrl?.includes('firebasestorage.googleapis.com') && (
+                  <Badge variant="outline" className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 gap-1 font-bold">
+                    <Cloud className="w-3 h-3 text-amber-500" /> Firebase
+                  </Badge>
+                )}
               </CardHeader>
               <CardContent className="p-6 space-y-4">
                 <div className="w-full aspect-video rounded-2xl bg-slate-100 dark:bg-slate-950 border-2 border-dashed border-slate-200 dark:border-slate-800 overflow-hidden relative flex items-center justify-center">
@@ -346,26 +387,55 @@ export default function EditProductPage() {
                   />
                   {errors.imageUrl && <p className="text-destructive text-xs font-semibold mt-1">{errors.imageUrl.message}</p>}
 
-                  <Dialog open={isImageBrowserOpen} onOpenChange={setImageBrowserOpen}>
-                    <DialogTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full h-10 rounded-xl text-xs font-bold hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-400 transition-colors border-slate-200 dark:border-slate-800"
-                      >
-                        <Library className="mr-2 h-4 w-4" />
-                        Browse Media Library
-                      </Button>
-                    </DialogTrigger>
-                    <MediaLibraryDialog
-                      folder={currentFolder}
-                      setFolder={setCurrentFolder}
-                      onSelect={(url) => {
-                        setValue('imageUrl', url, { shouldDirty: true, shouldValidate: true });
-                        setImageBrowserOpen(false);
-                      }}
-                    />
-                  </Dialog>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <label className={cn(
+                      "cursor-pointer inline-flex items-center justify-center h-10 rounded-xl text-xs font-bold border transition-colors",
+                      isUploadingCover
+                        ? "bg-slate-100 text-slate-400 border-slate-200"
+                        : "bg-indigo-600 hover:bg-indigo-700 text-white border-transparent shadow-xs"
+                    )}>
+                      {isUploadingCover ? (
+                        <>
+                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <CloudUpload className="mr-1.5 h-3.5 w-3.5" /> Upload File
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={isUploadingCover}
+                        onChange={handleDirectCoverUpload}
+                      />
+                    </label>
+
+                    <Dialog open={isImageBrowserOpen} onOpenChange={setImageBrowserOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-10 rounded-xl text-xs font-bold hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-400 transition-colors border-slate-200 dark:border-slate-800"
+                        >
+                          <Library className="mr-1.5 h-3.5 w-3.5" />
+                          Media Library
+                        </Button>
+                      </DialogTrigger>
+                      <MediaLibraryDialog
+                        folder={currentFolder}
+                        setFolder={setCurrentFolder}
+                        onSelect={(url) => {
+                          setValue('imageUrl', url, { shouldDirty: true, shouldValidate: true });
+                          setImageBrowserOpen(false);
+                        }}
+                      />
+                    </Dialog>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    Auto-compressed to &lt; 1 MB & stored on Firebase Storage
+                  </p>
                 </div>
               </CardContent>
             </Card>

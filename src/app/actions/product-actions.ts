@@ -81,6 +81,8 @@ const subProductSchema = z.object({
   dieCutPrices: z.record(z.string(), z.coerce.number()).optional().default({}),
   allowedCardTextures: z.array(z.coerce.number()).optional(),
   cardTexturePrices: z.record(z.string(), z.coerce.number()).optional().default({}),
+  allowedCustomAddons: z.array(z.coerce.number()).optional(),
+  customAddonPrices: z.record(z.string(), z.coerce.number()).optional().default({}),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
   backSideCost: z.coerce.number().optional().default(0),
   hsnCode: z.string().optional().nullable(),
@@ -195,6 +197,8 @@ export async function createSubProduct(data: z.infer<typeof subProductSchema>) {
     priceSlabs: validated.priceSlabs || [],
     dieCutPrices: validated.dieCutPrices || {},
     cardTexturePrices: validated.cardTexturePrices || {},
+    allowedCustomAddons: validated.allowedCustomAddons || [],
+    customAddonPrices: validated.customAddonPrices || {},
   }).returning();
   revalidatePath('/admin/products');
   revalidatePath('/products');
@@ -217,6 +221,8 @@ export async function updateSubProduct(id: number, data: Omit<z.infer<typeof sub
             priceSlabs: validated.priceSlabs || [],
             dieCutPrices: validated.dieCutPrices || {},
             cardTexturePrices: validated.cardTexturePrices || {},
+            allowedCustomAddons: validated.allowedCustomAddons || [],
+            customAddonPrices: validated.customAddonPrices || {},
             updatedAt: new Date() 
         })
         .where(eq(subProducts.id, id))

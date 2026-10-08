@@ -4,6 +4,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { FIREBASE_ASSETS } from '@/lib/firebase-assets';
 
 interface LogoProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'wide' | 'banner' | 'large' | 'sidebar' | 'header';
@@ -25,7 +26,7 @@ export function AmazoprintLogo(logoProps: LogoProps) {
     return (
       <div className={cn("relative w-8 h-8", className)} {...props}>
         <img
-          src="/uploads/amazoLogo.png"
+          src={FIREBASE_ASSETS.logo}
           alt="Amazoprint Logo"
           className="object-contain w-full h-full"
         />
@@ -63,7 +64,7 @@ export function AmazoprintLogo(logoProps: LogoProps) {
       >
         <div className="relative z-20 h-full w-full flex items-center justify-center">
           <img
-            src="/uploads/amazoLogo.png"
+            src={FIREBASE_ASSETS.logo}
             alt="Amazoprint Logo"
             className="object-contain drop-shadow-md transition-transform duration-500 group-hover:scale-105 w-full h-full"
           />

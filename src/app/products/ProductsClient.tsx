@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn, resolveImagePath } from '@/lib/utils';
+import { FIREBASE_ASSETS } from '@/lib/firebase-assets';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 // Helper function to extract discount info
@@ -89,14 +90,14 @@ const CATEGORY_ASSETS: Record<string, { emoji: string; bg: string; label: string
 
 // Build a clean URL from whatever the DB gives us (works seamlessly on localhost & production)
 function buildImageUrl(raw: string | null | undefined): string {
-    const FALLBACK = '/uploads/hero.png';
+    const FALLBACK = FIREBASE_ASSETS.hero;
     if (!raw || typeof raw !== 'string' || !raw.trim()) return FALLBACK;
     return resolveImagePath(raw) || FALLBACK;
 }
 
 function ProductCardImage({ src, alt }: { src: string; alt: string }) {
     const [errored, setErrored] = useState(false);
-    const imgUrl = errored ? '/uploads/hero.png' : buildImageUrl(src);
+    const imgUrl = errored ? FIREBASE_ASSETS.hero : buildImageUrl(src);
 
     return (
         <div className="relative w-full h-full overflow-hidden bg-slate-50 dark:bg-slate-900/40 flex items-center justify-center">
@@ -114,7 +115,7 @@ function ProductCardImage({ src, alt }: { src: string; alt: string }) {
 
 function CategoryAvatarImage({ src, alt }: { src: string; alt: string }) {
     const [errored, setErrored] = useState(false);
-    const imgUrl = errored ? '/uploads/hero.png' : buildImageUrl(src);
+    const imgUrl = errored ? FIREBASE_ASSETS.hero : buildImageUrl(src);
     return (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -250,7 +251,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                         if (activeFinish === '📐 Multi-Sizes' && (!sp.sizes || !sp.sizes.length)) return;
                         if (activeFinish === '🚚 Fast Dispatch' && (!sp.deliveryDays || sp.deliveryDays.includes('7+'))) return;
 
-                        const imageUrl = sp.imageUrl || product.imageUrl || '/uploads/hero.png';
+                        const imageUrl = sp.imageUrl || product.imageUrl || FIREBASE_ASSETS.hero;
                         const discount = getDiscountInfo(sp);
 
                         list.push({
@@ -299,7 +300,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
 
                     if (activeFinish === '✨ Spot UV' || activeFinish === '🏷️ Discounted' || activeFinish === '📐 Multi-Sizes') return;
 
-                    const imageUrl = product.imageUrl || '/uploads/hero.png';
+                    const imageUrl = product.imageUrl || FIREBASE_ASSETS.hero;
 
                     list.push({
                         type: 'custom',
@@ -372,7 +373,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                     return;
                 }
 
-                const mainImg = product.imageUrls?.[0] || '/uploads/hero.png';
+                const mainImg = product.imageUrls?.[0] || FIREBASE_ASSETS.hero;
 
                 list.push({
                     type: 'direct',
@@ -427,7 +428,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
     const openProductDetails = (item: any) => {
         setSelectedProductItem(item);
         setSelectedSubProductId(item.rawId);
-        setModalActiveImage(item.imageUrl || '/uploads/hero.png');
+        setModalActiveImage(item.imageUrl || FIREBASE_ASSETS.hero);
     };
 
     // Active subproduct in modal
@@ -442,7 +443,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
     // Update modal active image when subproduct switches
     useEffect(() => {
         if (currentModalSubProduct && selectedProductItem) {
-            const img = currentModalSubProduct.imageUrl || selectedProductItem.imageUrl || '/uploads/hero.png';
+            const img = currentModalSubProduct.imageUrl || selectedProductItem.imageUrl || FIREBASE_ASSETS.hero;
             setModalActiveImage(img);
         }
     }, [currentModalSubProduct, selectedProductItem]);
@@ -1197,7 +1198,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                         src={buildImageUrl(modalActiveImage || selectedProductItem.imageUrl)}
                                         alt={selectedProductItem.name}
                                         className="w-full h-full object-contain p-2"
-                                        onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/hero.png'; }}
+                                        onError={(e) => { (e.target as HTMLImageElement).src = FIREBASE_ASSETS.hero; }}
                                     />
                                 </div>
 
@@ -1217,7 +1218,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                                     )}
                                                 >
                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                    <img src={buildImageUrl(img)} alt={`Thumb ${idx}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/hero.png'; }} />
+                                                    <img src={buildImageUrl(img)} alt={`Thumb ${idx}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = FIREBASE_ASSETS.hero; }} />
                                                 </button>
                                             );
                                         })}

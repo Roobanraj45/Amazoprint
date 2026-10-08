@@ -1,4 +1,5 @@
 import React from 'react';
+import { FIREBASE_ASSETS } from '@/lib/firebase-assets';
 import { Button } from '@/components/ui/button';
 import {
     Download,
@@ -164,7 +165,7 @@ export function EditorHeader(props: any) {
 
                 {/* Logo + Text */}
                 <div className="flex items-center gap-2">
-                    <img src="/uploads/amazoIcon.png" alt="Icon" className="w-10 h-10 object-contain drop-shadow-sm" />
+                    <img src={FIREBASE_ASSETS.icon} alt="Icon" className="w-10 h-10 object-contain drop-shadow-sm" />
 
                     <div className="hidden md:flex flex-col leading-tight">
                         <span className="text-xs font-bold text-primary">
