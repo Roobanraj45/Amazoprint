@@ -6,12 +6,13 @@ import {
     IndianRupee, Star, Zap, Flame, AlertCircle, ShieldCheck,
     Truck, Lock, Share2, Check, Coins, Percent, Receipt,
     MapPin, Calendar, Clock, RotateCcw, FileText, Layers, Tag,
-    ChevronRight, Gift, Info, CheckCheck, Palette
+    ChevronRight, Gift, Info, CheckCheck, Palette, ShoppingCart
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useCart } from '@/hooks/use-cart';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -60,6 +61,7 @@ export interface RichVariation {
 export function DirectProductDetailClient({ product }: DirectProductDetailClientProps) {
     const router = useRouter();
     const { toast } = useToast();
+    const { addItem, totalItems } = useCart();
 
     // ── 1. NORMALIZE DYNAMIC ATTRIBUTES (WooCommerce-Style) ──
     const attributes: RichAttribute[] = useMemo(() => {
@@ -521,6 +523,88 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         }));
     };
 
+    const buildOrderItem = () => {
+        const selectedAttributesFormatted = Object.entries(selectedAttributes)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', ');
+
+        const chosenImg = images[activeImageIndex] || (images && images[0]) || '/uploads/hero.png';
+        const chosenSize = selectedAttributes['Size'] || selectedAttributes['Size / Dimensions'] || selectedAttributes['Dimensions'] || undefined;
+
+        return {
+            id: product.id,
+            productId: product.id,
+            name: product.name,
+            category: product.category,
+            image: chosenImg,
+            imageUrl: chosenImg,
+            imageUrls: [chosenImg],
+            sellingPrice: Number(effectiveUnitRate).toFixed(2),
+            unitPrice: Number(effectiveUnitRate).toFixed(2),
+            baseUnitPrice: Number(activeUnitPrice).toFixed(2),
+            totalAmount: (Number(effectiveUnitRate) * quantity).toFixed(2),
+            quantity: quantity,
+            sku: activeSku || product.sku,
+            hsnCode: product.hsnCode || undefined,
+            selectedAttributes: selectedAttributes,
+            selectedSize: chosenSize,
+            selectedAttributesFormatted,
+            customText: customText.trim() || undefined,
+            shippingFee: finalShippingFee,
+            deliveryMode: isExpressSelected ? 'express' : 'standard',
+            taxDetails: taxBreakdown.details,
+            taxAmount: taxBreakdown.extraTaxAmount,
+            pricingBreakdown: {
+                baseUnitPrice: activeUnitPrice.toFixed(2),
+                effectiveUnitRate: effectiveUnitRate.toFixed(2),
+                quantity: quantity,
+                productSubtotal: productTotal.toFixed(2),
+                slabApplied: matchingSlab ? { quantity: matchingSlab.quantity, slabPrice: matchingSlab.price } : null,
+                taxDetails: taxBreakdown.details,
+                extraTaxAmount: taxBreakdown.extraTaxAmount.toFixed(2),
+                shippingFee: finalShippingFee.toFixed(2),
+                deliveryMode: isExpressSelected ? 'express' : 'standard',
+                totalPayable: totalPayable.toFixed(2),
+            },
+            specifications: specs,
+        };
+    };
+
+    const handleAddToCart = (e?: React.MouseEvent) => {
+        if (e) e.preventDefault();
+
+        if (activeStock <= 0) {
+            toast({ variant: 'destructive', title: 'Out of Stock', description: 'This item or variation is currently sold out.' });
+            return;
+        }
+
+        // Validate all attributes selected
+        for (const attr of attributes) {
+            if (!selectedAttributes[attr.name]) {
+                toast({ variant: 'destructive', title: 'Select Options', description: `Please choose an option for ${attr.name}.` });
+                return;
+            }
+        }
+
+        if (product.textAllowed && !customText.trim()) {
+            toast({ variant: 'destructive', title: 'Customization Missing', description: 'Please enter your customization text or name.' });
+            return;
+        }
+
+        const item = buildOrderItem();
+        addItem(item);
+
+        toast({
+            title: 'Added to Draft Orders / Cart! 🛒',
+            description: `Saved "${product.name}" (${quantity} ${quantity === 1 ? 'unit' : 'units'}) to draft. Add more items or proceed to checkout anytime.`,
+            action: (
+                <Button size="sm" variant="outline" className="font-bold text-xs" onClick={() => router.push('/checkout-cart')}>
+                    View Drafts ({totalItems + quantity})
+                </Button>
+            ),
+        });
+    };
+
     const handleOrderSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -549,46 +633,7 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
 
         setIsSubmitting(true);
 
-        const selectedAttributesFormatted = Object.entries(selectedAttributes)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(', ');
-
-        const orderItem = {
-            id: product.id,
-            productId: product.id,
-            name: product.name,
-            category: product.category,
-            image: images[activeImageIndex] || (images && images[0]) || '/uploads/hero.png',
-            imageUrl: images[activeImageIndex] || (images && images[0]) || '/uploads/hero.png',
-            sellingPrice: Number(effectiveUnitRate).toFixed(2),
-            unitPrice: Number(effectiveUnitRate).toFixed(2),
-            baseUnitPrice: Number(activeUnitPrice).toFixed(2),
-            totalAmount: totalPayable.toFixed(2),
-            quantity: quantity,
-            sku: activeSku || product.sku,
-            hsnCode: product.hsnCode || undefined,
-            selectedAttributes: selectedAttributes,
-            selectedSize: selectedAttributes['Size'] || selectedAttributes['Size / Dimensions'] || selectedAttributes['Dimensions'] || undefined,
-            selectedAttributesFormatted,
-            customText: customText.trim() || undefined,
-            shippingFee: finalShippingFee,
-            deliveryMode: isExpressSelected ? 'express' : 'standard',
-            taxDetails: taxBreakdown.details,
-            taxAmount: taxBreakdown.extraTaxAmount,
-            pricingBreakdown: {
-                baseUnitPrice: activeUnitPrice.toFixed(2),
-                effectiveUnitRate: effectiveUnitRate.toFixed(2),
-                quantity: quantity,
-                productSubtotal: productTotal.toFixed(2),
-                slabApplied: matchingSlab ? { quantity: matchingSlab.quantity, slabPrice: matchingSlab.price } : null,
-                taxDetails: taxBreakdown.details,
-                extraTaxAmount: taxBreakdown.extraTaxAmount.toFixed(2),
-                shippingFee: finalShippingFee.toFixed(2),
-                deliveryMode: isExpressSelected ? 'express' : 'standard',
-                totalPayable: totalPayable.toFixed(2),
-            },
-            specifications: specs,
-        };
+        const orderItem = buildOrderItem();
 
         const orderPayload = {
             orderData: {
@@ -619,15 +664,34 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                         <span className="text-slate-900 dark:text-white font-extrabold line-clamp-1">{product.name}</span>
                     </div>
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleShare}
-                        className="h-8 rounded-xl text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-800"
-                    >
-                        {copied ? <Check size={14} className="text-emerald-500" /> : <Share2 size={14} />}
-                        {copied ? 'Copied' : 'Share'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            onClick={() => router.push('/checkout-cart')}
+                            className="h-8 rounded-xl text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-500/50"
+                        >
+                            <ShoppingCart size={14} className="text-amber-500" />
+                            <span>Draft Orders</span>
+                            {totalItems > 0 && (
+                                <Badge className="h-5 px-1.5 bg-amber-500 text-white font-black text-[10px] rounded-full">
+                                    {totalItems}
+                                </Badge>
+                            )}
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            onClick={handleShare}
+                            className="h-8 rounded-xl text-xs font-bold gap-1.5 border-slate-200 dark:border-slate-800"
+                        >
+                            {copied ? <Check size={14} className="text-emerald-500" /> : <Share2 size={14} />}
+                            {copied ? 'Copied' : 'Share'}
+                        </Button>
+                    </div>
                 </div>
 
                 {/* ── MAIN CONTENT GRID ── */}
@@ -1480,21 +1544,58 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                             </Card>
 
                             {/* Submit & Checkout CTA */}
-                            <div className="space-y-3">
-                                <Button
-                                    type="submit"
-                                    disabled={isSubmitting || activeStock <= 0}
-                                    className="w-full h-14 rounded-2xl font-black text-base bg-amber-500 hover:bg-amber-600 text-white shadow-xl shadow-amber-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
-                                >
-                                    {activeStock <= 0 ? (
-                                        'Configuration is Out of Stock'
-                                    ) : (
-                                        <>
-                                            Proceed to Secure Payment ({quantity} {quantity === 1 ? 'item' : 'items'} • ₹{totalPayable.toFixed(2)})
-                                            <ArrowRight className="w-5 h-5 ml-2" />
-                                        </>
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <Button
+                                        type="button"
+                                        onClick={handleAddToCart}
+                                        disabled={activeStock <= 0}
+                                        className="w-full h-14 rounded-2xl font-bold text-sm sm:text-base border-2 border-amber-500/40 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-900 dark:text-amber-200 shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
+                                    >
+                                        <ShoppingCart className="w-5 h-5 mr-2 text-amber-600 dark:text-amber-400" />
+                                        Add to Draft / Cart ({quantity} pcs)
+                                    </Button>
+
+                                    <Button
+                                        type="submit"
+                                        disabled={isSubmitting || activeStock <= 0}
+                                        className="w-full h-14 rounded-2xl font-black text-sm sm:text-base bg-amber-500 hover:bg-amber-600 text-white shadow-xl shadow-amber-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
+                                    >
+                                        {activeStock <= 0 ? (
+                                            'Out of Stock'
+                                        ) : (
+                                            <>
+                                                Buy Now (₹{totalPayable.toFixed(2)})
+                                                <ArrowRight className="w-5 h-5 ml-2" />
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+
+                                {/* Multi-Item Draft Orders helper notice */}
+                                <div className="p-3.5 rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 font-bold">
+                                            📦
+                                        </div>
+                                        <div>
+                                            <span className="font-bold text-slate-800 dark:text-slate-200">Ordering multiple items or variations?</span>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Save custom configurations to Draft, add more items, and checkout together.</p>
+                                        </div>
+                                    </div>
+                                    {totalItems > 0 && (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="secondary"
+                                            onClick={() => router.push('/checkout-cart')}
+                                            className="h-8 px-3 rounded-xl text-xs font-black bg-amber-500 text-white hover:bg-amber-600 shrink-0 shadow-sm"
+                                        >
+                                            View {totalItems} in Draft
+                                        </Button>
                                     )}
-                                </Button>
+                                </div>
+
                                 <p className="text-center text-xs text-slate-400 font-medium">
                                     Instant order processing • Real-time stock reservation • 100% Secure Checkout
                                 </p>
