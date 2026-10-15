@@ -161,3 +161,136 @@ export function measureTextDimensions(
         height: Math.max(element.fontSize * 1.5, totalLines * lineHeightPx + 15)
     };
 }
+
+export const COLOR_NAME_MAP: Record<string, string> = {
+    // Basic neutrals
+    'black': '#000000',
+    'jet black': '#0a0a0a',
+    'white': '#FFFFFF',
+    'pure white': '#FFFFFF',
+    'off white': '#FAF9F6',
+    'ivory': '#FFFFF0',
+    'cream': '#FFFDD0',
+    'grey': '#6B7280',
+    'gray': '#6B7280',
+    'light grey': '#D1D5DB',
+    'light gray': '#D1D5DB',
+    'dark grey': '#374151',
+    'dark gray': '#374151',
+    'charcoal': '#27272A',
+    'charcoal grey': '#27272A',
+    'charcoal gray': '#27272A',
+    'slate': '#475569',
+    'silver': '#E2E8F0',
+
+    // Blues
+    'navy': '#001B44',
+    'navy blue': '#001B44',
+    'dark blue': '#0A192F',
+    'midnight blue': '#191970',
+    'royal blue': '#1D4ED8',
+    'blue': '#2563EB',
+    'sky blue': '#38BDF8',
+    'light blue': '#BAE6FD',
+    'cyan': '#06B6D4',
+    'teal': '#0D9488',
+    'turquoise': '#14B8A6',
+    'indigo': '#4F46E5',
+    'cobalt': '#0047AB',
+    'denim': '#1560BD',
+
+    // Reds & Pinks
+    'red': '#DC2626',
+    'dark red': '#991B1B',
+    'crimson': '#BE123C',
+    'maroon': '#800000',
+    'burgundy': '#800020',
+    'wine': '#722F37',
+    'ruby': '#E0115F',
+    'pink': '#EC4899',
+    'light pink': '#FBCFE8',
+    'hot pink': '#DB2777',
+    'rose': '#F43F5E',
+    'rose gold': '#B76E79',
+    'magenta': '#D946EF',
+    'fuchsia': '#C026D3',
+    'salmon': '#FA8072',
+    'coral': '#FB7185',
+    'peach': '#FFDAB9',
+
+    // Greens
+    'green': '#16A34A',
+    'dark green': '#14532D',
+    'forest green': '#15803D',
+    'emerald': '#059669',
+    'olive': '#556B2F',
+    'olive green': '#556B2F',
+    'military green': '#4B5320',
+    'army green': '#4B5320',
+    'bottle green': '#064E3B',
+    'lime': '#84CC16',
+    'lime green': '#65A30D',
+    'mint': '#6EE7B7',
+    'mint green': '#6EE7B7',
+    'sage': '#9CA3AF',
+    'sage green': '#84A98C',
+    'sea green': '#2E8B57',
+
+    // Yellows & Oranges
+    'yellow': '#EAB308',
+    'light yellow': '#FEF08A',
+    'lemon': '#FDE047',
+    'mustard': '#CA8A04',
+    'mustard yellow': '#CA8A04',
+    'gold': '#EAB308',
+    'golden': '#EAB308',
+    'orange': '#EA580C',
+    'dark orange': '#C2410C',
+    'tangerine': '#F97316',
+    'amber': '#D97706',
+    'rust': '#9A3412',
+    'copper': '#B87333',
+    'bronze': '#92400E',
+
+    // Purples
+    'purple': '#7C3AED',
+    'violet': '#8B5CF6',
+    'lavender': '#DDD6FE',
+    'lilac': '#C8A2C8',
+    'plum': '#701A75',
+    'mauve': '#A855F7',
+
+    // Browns & Neutrals
+    'brown': '#78350F',
+    'chocolate': '#451A03',
+    'coffee': '#5C3D2E',
+    'tan': '#D2B48C',
+    'beige': '#F5F5DC',
+    'khaki': '#A3997A',
+    'camel': '#C19A6B',
+    'sand': '#E7D8C9',
+};
+
+export function resolveColorHex(value?: string | null, name?: string | null): string {
+    const val = (value || '').trim();
+    if (val) {
+        if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(val)) return val;
+        if (/^(rgb|hsl)a?\(.+?\)$/i.test(val)) return val;
+        const lowerVal = val.toLowerCase();
+        if (COLOR_NAME_MAP[lowerVal]) return COLOR_NAME_MAP[lowerVal];
+    }
+
+    const nm = (name || '').trim().toLowerCase();
+    if (nm) {
+        if (COLOR_NAME_MAP[nm]) return COLOR_NAME_MAP[nm];
+        // Word or substring search for composite names like "Navy Blue", "Glossy White", "Matte Black"
+        for (const [key, hex] of Object.entries(COLOR_NAME_MAP)) {
+            if (nm.includes(key)) {
+                return hex;
+            }
+        }
+    }
+
+    return val || '#000000';
+}
+

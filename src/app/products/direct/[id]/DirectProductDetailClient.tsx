@@ -6,7 +6,8 @@ import {
     IndianRupee, Star, Zap, Flame, AlertCircle, ShieldCheck,
     Truck, Lock, Share2, Check, Coins, Percent, Receipt,
     MapPin, Calendar, Clock, RotateCcw, FileText, Layers, Tag,
-    ChevronRight, Gift, Info, CheckCheck, Palette, ShoppingCart
+    ChevronRight, Gift, Info, CheckCheck, Palette, ShoppingCart,
+    Trash2, Plus
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -18,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ProductImageZoom } from '@/components/ui/product-image-zoom';
-import { resolveImagePath, cn } from '@/lib/utils';
+import { resolveImagePath, cn, resolveColorHex } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
@@ -61,7 +62,7 @@ export interface RichVariation {
 export function DirectProductDetailClient({ product }: DirectProductDetailClientProps) {
     const router = useRouter();
     const { toast } = useToast();
-    const { addItem, totalItems } = useCart();
+    const { addItem, items, totalItems, removeItem, updateQuantity } = useCart();
 
     // ── 1. NORMALIZE DYNAMIC ATTRIBUTES (WooCommerce-Style) ──
     const attributes: RichAttribute[] = useMemo(() => {
@@ -82,20 +83,25 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                         result.push({
                             id: attr.id || `attr-${idx}`,
                             name: attr.name || `Attribute ${idx + 1}`,
-                            type: attr.type || (attr.name?.toLowerCase().includes('color') ? 'color' : 'button'),
-                            options: opts.map((o: any, oIdx: number) => ({
-                                id: o.id || `opt-${oIdx}`,
-                                name: o.name || String(o),
-                                value: o.value || (attr.name?.toLowerCase().includes('color') ? (o.name || '#000000') : undefined),
-                                price: o.price !== undefined && o.price !== null && o.price !== '' ? Number(o.price) : undefined,
-                                priceAdjustment: o.priceAdjustment !== undefined ? Number(o.priceAdjustment) : 0,
-                                basePriceAdjustment: o.basePriceAdjustment !== undefined ? Number(o.basePriceAdjustment) : 0,
-                                stock: o.stock !== undefined ? Number(o.stock) : undefined,
-                                sku: o.sku || '',
-                                image: o.image || undefined,
-                                isDefault: o.isDefault || false,
-                                isActive: o.isActive !== false,
-                            })),
+                            type: attr.type || (attr.name?.toLowerCase().includes('color') || attr.name?.toLowerCase().includes('colour') ? 'color' : 'button'),
+                            options: opts.map((o: any, oIdx: number) => {
+                                const optName = typeof o === 'string' ? o : (o.name || String(o));
+                                const optVal = typeof o === 'object' && o.value ? o.value : undefined;
+                                const isColor = (attr.name || '').toLowerCase().includes('color') || (attr.name || '').toLowerCase().includes('colour') || attr.type === 'color';
+                                return {
+                                    id: (typeof o === 'object' && o.id) || `opt-${oIdx}`,
+                                    name: optName,
+                                    value: isColor ? resolveColorHex(optVal, optName) : optVal,
+                                    price: typeof o === 'object' && o.price !== undefined && o.price !== null && o.price !== '' ? Number(o.price) : undefined,
+                                    priceAdjustment: typeof o === 'object' && o.priceAdjustment !== undefined ? Number(o.priceAdjustment) : 0,
+                                    basePriceAdjustment: typeof o === 'object' && o.basePriceAdjustment !== undefined ? Number(o.basePriceAdjustment) : 0,
+                                    stock: typeof o === 'object' && o.stock !== undefined ? Number(o.stock) : undefined,
+                                    sku: (typeof o === 'object' && o.sku) || '',
+                                    image: (typeof o === 'object' && o.image) || undefined,
+                                    isDefault: (typeof o === 'object' && o.isDefault) || false,
+                                    isActive: typeof o === 'object' ? o.isActive !== false : true,
+                                };
+                            }),
                         });
                     }
                 });
@@ -355,16 +361,6 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
     const [pincodeInput, setPincodeInput] = useState<string>('');
     const [pincodeStatus, setPincodeStatus] = useState<{ checked: boolean; valid: boolean; message: string; dateStr?: string } | null>(null);
 
-    const [shippingAddress, setShippingAddress] = useState({
-        name: '',
-        phone: '',
-        addressLine1: '',
-        city: '',
-        state: '',
-        zip: '',
-        country: 'India',
-    });
-
     const minStock = product.minStockLevel || 5;
 
     // Match quantity with price slab if applicable (supports exact match & tiered quantities)
@@ -495,10 +491,6 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
             message: `Delivery available to ${clean}`,
             dateStr,
         });
-
-        if (!shippingAddress.zip) {
-            setShippingAddress(prev => ({ ...prev, zip: clean }));
-        }
     };
 
     const handleShare = () => {
@@ -595,11 +587,11 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
         addItem(item);
 
         toast({
-            title: 'Added to Draft Orders / Cart! 🛒',
-            description: `Saved "${product.name}" (${quantity} ${quantity === 1 ? 'unit' : 'units'}) to draft. Add more items or proceed to checkout anytime.`,
+            title: 'Added to Order Batch! 📦',
+            description: `Saved "${product.name}" (${quantity} ${quantity === 1 ? 'unit' : 'units'}) to your order list. You can add more variations or proceed to checkout.`,
             action: (
                 <Button size="sm" variant="outline" className="font-bold text-xs" onClick={() => router.push('/checkout-cart')}>
-                    View Drafts ({totalItems + quantity})
+                    Go to Checkout
                 </Button>
             ),
         });
@@ -607,6 +599,12 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
 
     const handleOrderSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // If items already exist in draft/order batch, proceed to checkout
+        if (items.length > 0) {
+            router.push('/checkout-cart');
+            return;
+        }
 
         if (activeStock <= 0) {
             toast({ variant: 'destructive', title: 'Out of Stock', description: 'This item or variation is currently sold out.' });
@@ -626,27 +624,13 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
             return;
         }
 
-        if (!shippingAddress.name || !shippingAddress.phone || !shippingAddress.addressLine1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zip) {
-            toast({ variant: 'destructive', title: 'Address Incomplete', description: 'Please fill in all shipping address fields.' });
-            return;
-        }
-
         setIsSubmitting(true);
 
         const orderItem = buildOrderItem();
+        addItem(orderItem);
 
-        const orderPayload = {
-            orderData: {
-                items: [orderItem],
-                shippingAddress: shippingAddress,
-            },
-            amount: totalPayable,
-            items: [orderItem],
-            shippingAddress: shippingAddress,
-        };
-
-        const encodedData = btoa(encodeURIComponent(JSON.stringify(orderPayload)));
-        router.push(`/payment?orderType=direct&orderData=${encodedData}`);
+        // Directly navigate to checkout where shipping address is entered in the correct way
+        router.push('/checkout-cart');
     };
 
     return (
@@ -1078,7 +1062,8 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                                         {attr.options.map(opt => {
                                                             const isSelected = selectedValue === opt.name;
                                                             const isOutOfStock = opt.stock !== undefined && opt.stock <= 0;
-                                                            const hex = opt.value || opt.name || '#000000';
+                                                            const hex = resolveColorHex(opt.value, opt.name);
+                                                            const isLight = ['#ffffff', '#fff', '#faf9f6', '#fffff0', '#fffdd0', 'white', '#f8fafc', '#f1f5f9', '#ffd700', '#fef08a', '#fde047', '#eab308'].includes(hex.toLowerCase());
 
                                                             return (
                                                                 <button
@@ -1096,15 +1081,16 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                                                     )}
                                                                 >
                                                                     <div
-                                                                        className="w-6 h-6 rounded-full border border-black/20 shadow-xs flex items-center justify-center shrink-0"
+                                                                        className={cn(
+                                                                            "w-6 h-6 rounded-full shadow-xs flex items-center justify-center shrink-0 border",
+                                                                            isLight ? "border-slate-300 dark:border-slate-600" : "border-black/20 dark:border-white/20"
+                                                                        )}
                                                                         style={{ backgroundColor: hex }}
                                                                     >
                                                                         {isSelected && (
                                                                             <Check className={cn(
                                                                                 "w-3.5 h-3.5 stroke-[3]",
-                                                                                ['#ffffff', '#fff', 'white', '#f8fafc', '#f1f5f9'].includes(hex.toLowerCase())
-                                                                                    ? "text-black"
-                                                                                    : "text-white"
+                                                                                isLight ? "text-slate-900" : "text-white"
                                                                             )} />
                                                                         )}
                                                                     </div>
@@ -1461,90 +1447,83 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                 </CardContent>
                             </Card>
 
-                            {/* Shipping Address Card */}
-                            <Card className="rounded-3xl border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-                                <CardContent className="p-6 sm:p-8 space-y-5">
-                                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                                        <Package2 size={16} className="text-primary" /> Delivery & Shipping Address
-                                    </h3>
+                            {/* Items in Current Order Draft (if any) */}
+                            {items.length > 0 && (
+                                <Card className="rounded-3xl border-amber-200/90 dark:border-amber-900/60 bg-amber-50/30 dark:bg-amber-950/20 shadow-sm overflow-hidden">
+                                    <CardContent className="p-5 sm:p-6 space-y-3.5">
+                                        <div className="flex items-center justify-between pb-3 border-b border-amber-100 dark:border-amber-900/40">
+                                            <div className="flex items-center gap-2">
+                                                <Package2 className="w-4 h-4 text-amber-500" />
+                                                <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                                                    Current Order Items ({items.length} {items.length === 1 ? 'item' : 'variations'} • {totalItems} units)
+                                                </h3>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => router.push('/checkout-cart')}
+                                                className="h-7 px-2.5 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/60 rounded-xl"
+                                            >
+                                                Go to Checkout →
+                                            </Button>
+                                        </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Full Name <span className="text-rose-500">*</span></label>
-                                            <Input
-                                                required
-                                                placeholder="e.g. Rahul Sharma"
-                                                value={shippingAddress.name}
-                                                onChange={e => setShippingAddress(s => ({ ...s, name: e.target.value }))}
-                                                className="h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-medium"
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Phone Number <span className="text-rose-500">*</span></label>
-                                            <Input
-                                                required
-                                                placeholder="+91 9876543210"
-                                                value={shippingAddress.phone}
-                                                onChange={e => setShippingAddress(s => ({ ...s, phone: e.target.value }))}
-                                                className="h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-medium"
-                                            />
-                                        </div>
-                                    </div>
+                                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                            {items.map((it) => {
+                                                const itKey = it.cartItemId || String(it.id);
+                                                const itPrice = Number(it.sellingPrice || it.unitPrice || 0);
+                                                return (
+                                                    <div
+                                                        key={itKey}
+                                                        className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 text-xs shadow-xs"
+                                                    >
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="font-bold text-slate-900 dark:text-white truncate">
+                                                                {it.name}
+                                                            </div>
+                                                            {it.selectedAttributesFormatted && (
+                                                                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
+                                                                    {it.selectedAttributesFormatted}
+                                                                </div>
+                                                            )}
+                                                            {it.customText && (
+                                                                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold truncate">
+                                                                    Inscription: &quot;{it.customText}&quot;
+                                                                </div>
+                                                            )}
+                                                        </div>
 
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Address Line 1 <span className="text-rose-500">*</span></label>
-                                        <Input
-                                            required
-                                            placeholder="Flat / House No., Street, Landmark"
-                                            value={shippingAddress.addressLine1}
-                                            onChange={e => setShippingAddress(s => ({ ...s, addressLine1: e.target.value }))}
-                                            className="h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-medium"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">City <span className="text-rose-500">*</span></label>
-                                            <Input
-                                                required
-                                                placeholder="Mumbai"
-                                                value={shippingAddress.city}
-                                                onChange={e => setShippingAddress(s => ({ ...s, city: e.target.value }))}
-                                                className="h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-medium"
-                                            />
+                                                        <div className="flex items-center gap-2.5 shrink-0">
+                                                            <div className="text-right">
+                                                                <div className="font-black text-slate-900 dark:text-white">
+                                                                    ₹{(itPrice * it.quantity).toFixed(2)}
+                                                                </div>
+                                                                <div className="text-[10px] text-slate-400 font-semibold">
+                                                                    {it.quantity} pcs
+                                                                </div>
+                                                            </div>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => removeItem(itKey)}
+                                                                className="h-7 w-7 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
+                                                                title="Remove item"
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">State <span className="text-rose-500">*</span></label>
-                                            <Input
-                                                required
-                                                placeholder="Maharashtra"
-                                                value={shippingAddress.state}
-                                                onChange={e => setShippingAddress(s => ({ ...s, state: e.target.value }))}
-                                                className="h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-medium"
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">ZIP Code <span className="text-rose-500">*</span></label>
-                                            <Input
-                                                required
-                                                placeholder="400001"
-                                                value={shippingAddress.zip}
-                                                onChange={e => {
-                                                    const val = e.target.value;
-                                                    setShippingAddress(s => ({ ...s, zip: val }));
-                                                    if (!pincodeInput && val.length <= 6) {
-                                                        setPincodeInput(val);
-                                                    }
-                                                }}
-                                                className="h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-medium"
-                                            />
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
+                            )}
 
                             {/* Submit & Checkout CTA */}
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <Button
                                         type="button"
@@ -1552,8 +1531,8 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                         disabled={activeStock <= 0}
                                         className="w-full h-14 rounded-2xl font-bold text-sm sm:text-base border-2 border-amber-500/40 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-900 dark:text-amber-200 shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
                                     >
-                                        <ShoppingCart className="w-5 h-5 mr-2 text-amber-600 dark:text-amber-400" />
-                                        Add to Draft / Cart ({quantity} pcs)
+                                        <Plus className="w-5 h-5 mr-1.5 text-amber-600 dark:text-amber-400" />
+                                        Add to Order ({quantity} pcs)
                                     </Button>
 
                                     <Button
@@ -1563,6 +1542,11 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                     >
                                         {activeStock <= 0 ? (
                                             'Out of Stock'
+                                        ) : items.length > 0 ? (
+                                            <>
+                                                Proceed to Checkout ({totalItems} items)
+                                                <ArrowRight className="w-5 h-5 ml-2" />
+                                            </>
                                         ) : (
                                             <>
                                                 Buy Now (₹{totalPayable.toFixed(2)})
@@ -1572,32 +1556,8 @@ export function DirectProductDetailClient({ product }: DirectProductDetailClient
                                     </Button>
                                 </div>
 
-                                {/* Multi-Item Draft Orders helper notice */}
-                                <div className="p-3.5 rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between gap-3">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 font-bold">
-                                            📦
-                                        </div>
-                                        <div>
-                                            <span className="font-bold text-slate-800 dark:text-slate-200">Ordering multiple items or variations?</span>
-                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Save custom configurations to Draft, add more items, and checkout together.</p>
-                                        </div>
-                                    </div>
-                                    {totalItems > 0 && (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="secondary"
-                                            onClick={() => router.push('/checkout-cart')}
-                                            className="h-8 px-3 rounded-xl text-xs font-black bg-amber-500 text-white hover:bg-amber-600 shrink-0 shadow-sm"
-                                        >
-                                            View {totalItems} in Draft
-                                        </Button>
-                                    )}
-                                </div>
-
                                 <p className="text-center text-xs text-slate-400 font-medium">
-                                    Instant order processing • Real-time stock reservation • 100% Secure Checkout
+                                    Delivery address & payment options will be selected at the secure checkout step • 100% Secure Checkout
                                 </p>
                             </div>
                         </form>
