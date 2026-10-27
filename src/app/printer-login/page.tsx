@@ -101,7 +101,7 @@ export default function PrinterLoginPage() {
             </div>
             <h1 className="text-4xl xl:text-5xl font-black text-white leading-tight tracking-tight">
               Scale your printing facility with <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-indigo-300 to-emerald-400">
+              <span className="text-emerald-400">
                 automated orders & guaranteed payouts.
               </span>
             </h1>

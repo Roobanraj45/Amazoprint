@@ -134,7 +134,7 @@ export default async function ClientDashboard() {
               <Sparkles className="w-3 h-3 mr-1 inline" /> Client Workspace
             </Badge>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight font-headline">
-              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-200">{session.name || 'Client'}</span>
+              Welcome back, <span className="text-blue-300">{session.name || 'Client'}</span>
             </h1>
             <p className="text-slate-300 text-sm md:text-base font-medium max-w-xl">
               Track your commercial print runs, edit custom designs, and request expert layout verification from your dashboard.

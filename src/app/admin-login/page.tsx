@@ -121,7 +121,7 @@ export default function AdminLoginPage() {
             </div>
             <h1 className="text-4xl xl:text-5xl font-black text-white leading-tight tracking-tight">
               Enterprise administration, <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-indigo-300 to-emerald-400">
+              <span className="text-indigo-400">
                 governance & press operations.
               </span>
             </h1>

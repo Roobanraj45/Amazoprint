@@ -85,7 +85,13 @@
 }
 
 .gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-400 to-primary bg-[length:200%_auto] animate-gradient;
+  color: hsl(var(--primary));
+}
+
+@supports (-webkit-background-clip: text) or (background-clip: text) {
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-400 to-primary bg-[length:200%_auto] animate-gradient;
+  }
 }
 
 @keyframes gradient {

@@ -806,7 +806,7 @@ export function CheckoutContent() {
                                     <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest">Total Payable</span>
                                     <span className="text-[10px] font-medium text-slate-500">All taxes & shipping included</span>
                                 </div>
-                                <span className="text-2xl font-black bg-gradient-to-r from-white via-indigo-100 to-indigo-200 bg-clip-text text-transparent">
+                                <span className="text-2xl font-black text-white">
                                     ₹{details.total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                 </span>
                             </div>

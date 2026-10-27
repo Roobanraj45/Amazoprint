@@ -42,7 +42,7 @@ export default async function ContestsPage() {
               Elite Design Arena
             </div>
             <h1 className="text-4xl md:text-6xl font-black tracking-tight font-headline text-slate-900 dark:text-white leading-tight">
-              Active <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-indigo-500">Contests</span>
+              Active <span className="text-sky-500 dark:text-sky-400">Contests</span>
             </h1>
             <p className="text-muted-foreground text-lg max-w-xl font-medium leading-relaxed">
               Showcase your creative mastery, compete with global talent, and claim high-value bounties.

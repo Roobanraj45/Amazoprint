@@ -58,7 +58,7 @@ export default function PrinterReportsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">
             Payouts & Settlement Report
           </h1>
           <p className="text-muted-foreground text-xs mt-1">

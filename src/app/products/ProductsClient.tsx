@@ -470,7 +470,7 @@ export function ProductsClient({ initialProducts, directSellingProducts = [] }: 
                                 <span>AmazoPrint Studio • Professional Print & Merch</span>
                             </div>
                             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.15]">
-                                Explore Our Fresh <span className="bg-gradient-to-r from-[#464674] via-indigo-600 to-purple-600 bg-clip-text text-transparent">Product Lineup</span>
+                                Explore Our Fresh <span className="text-[#464674] dark:text-indigo-400">Product Lineup</span>
                             </h1>
                             <p className="text-slate-600 dark:text-slate-400 font-medium text-xs sm:text-sm leading-relaxed max-w-xl">
                                 From premium business cards and marketing collateral to direct custom merchandise — high-fidelity CMYK printing with instant online pricing.

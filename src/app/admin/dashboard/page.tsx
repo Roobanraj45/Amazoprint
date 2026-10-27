@@ -120,7 +120,7 @@ export default async function AdminDashboard() {
                     <Badge className="bg-blue-500 hover:bg-blue-600 text-white border-none px-4 py-1 rounded-full animate-pulse">
                         System Online
                     </Badge>
-                    <h1 className="text-5xl md:text-6xl font-black tracking-tighter">Command <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Center</span></h1>
+                    <h1 className="text-5xl md:text-6xl font-black tracking-tighter">Command <span className="text-emerald-400">Center</span></h1>
                     <p className="text-slate-400 text-lg max-w-md">Real-time oversight across the ecosystem. Optimal performance detected.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4">

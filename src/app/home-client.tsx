@@ -46,6 +46,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { cn, resolveImagePath } from '@/lib/utils';
+import { FIREBASE_ASSETS } from '@/lib/firebase-assets';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import {
@@ -81,21 +82,21 @@ const PROMO_ITEMS = [
   '🎨 500+ Premium Design Templates — now FREE with every order!',
 ];
 
-const ALL_CATEGORIES = [
-  { emoji: '🪪', name: 'Business Cards', bg: '#4e46e5', light: '#ede9fe' },
-  { emoji: '✉️', name: 'Invitations',   bg: '#db2777', light: '#fce7f3' },
-  { emoji: '📄', name: 'Flyers',         bg: '#f97316', light: '#fff7ed' },
-  { emoji: '✉️', name: 'Envelopes',      bg: '#0891b2', light: '#ecfeff' },
-  { emoji: '🏷️', name: 'Labels',         bg: '#16a34a', light: '#dcfce7' },
-  { emoji: '🏳️', name: 'Banners',        bg: '#dc2626', light: '#fef2f2' },
-  { emoji: '⭐', name: 'Stickers',       bg: '#ca8a04', light: '#fefce8' },
-  { emoji: '📅', name: 'Calendar',       bg: '#7c3aed', light: '#f5f3ff' },
-  { emoji: '🖼️', name: 'Posters',        bg: '#059669', light: '#d1fae5' },
-  { emoji: '🖼️', name: 'Photo Frames',   bg: '#9333ea', light: '#faf5ff' },
-  { emoji: '🗺️', name: 'Photo Maps',     bg: '#2563eb', light: '#eff6ff' },
-  { emoji: '👕', name: 'T-Shirts',       bg: '#e11d48', light: '#fff1f2' },
-  { emoji: '🎁', name: 'Gifts',          bg: '#d97706', light: '#fffbeb' },
-  { emoji: '📦', name: 'Printing Blanks',bg: '#64748b', light: '#f8fafc' },
+const DEFAULT_ALL_CATEGORIES = [
+  { name: 'Business Cards', category: 'Business Cards', imageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=500&auto=format&fit=crop&q=80', startingPrice: 1.5, itemCount: 5 },
+  { name: 'Invitations', category: 'Invitation Cards', imageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500&auto=format&fit=crop&q=80', startingPrice: 6, itemCount: 3 },
+  { name: 'Marketing & Flyers', category: 'Marketing', imageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500&auto=format&fit=crop&q=80', startingPrice: 2.5, itemCount: 5 },
+  { name: 'Envelopes', category: 'Envelopes', imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=500&auto=format&fit=crop&q=80', startingPrice: 9, itemCount: 1 },
+  { name: 'Labels & Stickers', category: 'Stickers', imageUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=80', startingPrice: 2.5, itemCount: 2 },
+  { name: 'Custom Banners', category: 'Banners', imageUrl: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=500&auto=format&fit=crop&q=80', startingPrice: 100, itemCount: 1 },
+  { name: 'Posters & Prints', category: 'Posters', imageUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=500&auto=format&fit=crop&q=80', startingPrice: 15, itemCount: 3 },
+  { name: 'Stationery', category: 'Stationery', imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=500&auto=format&fit=crop&q=80', startingPrice: 15, itemCount: 3 },
+  { name: 'Photo Frames', category: 'customize photo frame', imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=500&auto=format&fit=crop&q=80', startingPrice: 199, itemCount: 1 },
+  { name: 'T-Shirts & Apparel', category: 'Apparel & Clothing', imageUrl: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&auto=format&fit=crop&q=80', startingPrice: 199, itemCount: 3 },
+  { name: 'Packaging & Boxes', category: 'package', imageUrl: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=500&auto=format&fit=crop&q=80', startingPrice: 49, itemCount: 1 },
+  { name: 'Desk Calendars', category: 'Calendar', imageUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=500&auto=format&fit=crop&q=80', startingPrice: 45, itemCount: 1 },
+  { name: 'Gifts & Merch', category: 'Gifts', imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=80', startingPrice: 50, itemCount: 1 },
+  { name: 'Printing Blanks', category: 'Printing Blanks', imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=500&auto=format&fit=crop&q=80', startingPrice: 20, itemCount: 1 },
 ];
 
 const HOW_STEPS = [
@@ -327,7 +328,7 @@ function StudioMockup() {
             {/* Header of Business Card */}
             <div className="flex justify-between items-start relative z-10">
               <div>
-                <p className="text-[9px] font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 tracking-wider font-display">
+                <p className="text-[9px] font-black text-amber-400 tracking-wider font-display">
                   AMAZOPRINT STUDIO
                 </p>
                 <p className="text-[6px] text-slate-400 font-bold uppercase tracking-widest">
@@ -1126,12 +1127,49 @@ function HeroMonitorMockup() {
 export function HomeClient({
   subProducts,
   directSellingProducts,
+  categoryProducts = [],
 }: {
   subProducts: any[];
   directSellingProducts: any[];
+  categoryProducts?: any[];
 }) {
   const [activeTab, setActiveTab] = React.useState('studio');
   const activeData = ECOSYSTEM_TABS.find((t) => t.id === activeTab) || ECOSYSTEM_TABS[0];
+
+  // Category horizontal scroll state (max 2 rows)
+  const categoryTrackRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollCatLeft, setCanScrollCatLeft] = React.useState(false);
+  const [canScrollCatRight, setCanScrollCatRight] = React.useState(true);
+
+  const checkCatScroll = React.useCallback(() => {
+    const el = categoryTrackRef.current;
+    if (!el) return;
+    setCanScrollCatLeft(el.scrollLeft > 6);
+    setCanScrollCatRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 6);
+  }, []);
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    const el = categoryTrackRef.current;
+    if (!el) return;
+    const scrollAmount = el.clientWidth * 0.75;
+    el.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+  };
+
+  React.useEffect(() => {
+    const el = categoryTrackRef.current;
+    if (!el) return;
+    checkCatScroll();
+    el.addEventListener('scroll', checkCatScroll, { passive: true });
+    window.addEventListener('resize', checkCatScroll);
+    return () => {
+      el.removeEventListener('scroll', checkCatScroll);
+      window.removeEventListener('resize', checkCatScroll);
+    };
+  }, [checkCatScroll, categoryProducts]);
+
+  const displayCategories = categoryProducts && categoryProducts.length > 0
+    ? categoryProducts
+    : DEFAULT_ALL_CATEGORIES;
 
   const tabIconMap: Record<string, React.ReactNode> = {
     studio:       <Monitor size={13} />,
@@ -1197,7 +1235,7 @@ export function HomeClient({
                   <p className="text-gray-800 text-lg sm:text-2xl font-black leading-tight font-display">
                     Let's execute thoughts{' '}
                     <span className="relative inline-block">
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 font-classy italic font-bold">with color</span>
+                      <span className="text-orange-500 italic font-bold">with color</span>
                       <motion.span
                         animate={{ scaleX: [0, 1, 0] }}
                         transition={{ duration: 3, repeat: Infinity, repeatDelay: 2, ease: 'easeInOut' }}
@@ -1296,28 +1334,95 @@ export function HomeClient({
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight font-headline">
                 Shop Customize Premium Printing
                 <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#464674] to-[#8b8bb3] font-classy italic font-extrabold">&amp; Unprinting Blank Products</span>
+                <span className="text-[#464674] italic font-extrabold">&amp; Unprinting Blank Products</span>
               </h2>
             </motion.div>
 
-            {/* Category circles */}
-            <div className="flex flex-wrap justify-center gap-4 sm:gap-6 lg:gap-8 pb-4">
-              {ALL_CATEGORIES.map((cat, i) => (
-                <motion.div key={cat.name} {...FI(i * 0.03)}>
-                  <Link href="/products" className="group flex flex-col items-center gap-2.5 min-w-[85px] sm:min-w-[105px]">
-                    {/* Circle */}
-                    <div
-                      className="w-18 h-18 sm:w-22 sm:h-22 lg:w-24 lg:h-24 rounded-full flex items-center justify-center text-3xl sm:text-4xl shadow-lg group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:ring-4 group-hover:ring-offset-2 transition-all duration-300 border-4 border-white"
-                      style={{ backgroundColor: cat.light, boxShadow: `0 6px 24px ${cat.bg}25`, ['--tw-ring-color' as any]: cat.bg + '55' }}
-                    >
-                      <span>{cat.emoji}</span>
-                    </div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-700 text-center leading-tight group-hover:text-[#464674] transition-colors w-full">
-                      {cat.name}
-                    </p>
-                  </Link>
-                </motion.div>
-              ))}
+            {/* Category track with navigation arrows (Strictly Max 2 Rows) */}
+            <div className="relative group/catsection max-w-7xl mx-auto">
+              {/* Left Arrow Button */}
+              <button
+                type="button"
+                onClick={() => scrollCategories('left')}
+                disabled={!canScrollCatLeft}
+                aria-label="Scroll left"
+                className={cn(
+                  "absolute -left-2 sm:-left-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full",
+                  "bg-white/95 backdrop-blur-md border border-slate-200 shadow-xl shadow-slate-900/10",
+                  "flex items-center justify-center text-slate-700 transition-all duration-200",
+                  "hover:bg-[#464674] hover:text-white hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none",
+                  !canScrollCatLeft && "opacity-0 pointer-events-none"
+                )}
+              >
+                <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+              </button>
+
+              {/* Right Arrow Button */}
+              <button
+                type="button"
+                onClick={() => scrollCategories('right')}
+                disabled={!canScrollCatRight}
+                aria-label="Scroll right"
+                className={cn(
+                  "absolute -right-2 sm:-right-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full",
+                  "bg-white/95 backdrop-blur-md border border-slate-200 shadow-xl shadow-slate-900/10",
+                  "flex items-center justify-center text-slate-700 transition-all duration-200",
+                  "hover:bg-[#464674] hover:text-white hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none",
+                  !canScrollCatRight && "opacity-0 pointer-events-none"
+                )}
+              >
+                <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+              </button>
+
+              {/* 2-Row Grid Container */}
+              <div
+                ref={categoryTrackRef}
+                className="w-full overflow-x-auto scroll-smooth py-4 px-2 scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                <div className="grid grid-rows-2 grid-flow-col auto-cols-[115px] sm:auto-cols-[135px] md:auto-cols-[150px] lg:auto-cols-[160px] gap-x-4 sm:gap-x-6 gap-y-6 sm:gap-y-7 w-max mx-auto min-w-full justify-center">
+                  {displayCategories.map((cat: any, i: number) => (
+                    <motion.div key={cat.name + i} {...FI(i * 0.02)}>
+                      <Link
+                        href={cat.href || `/products?category=${encodeURIComponent(cat.category || cat.name)}`}
+                        className="group flex flex-col items-center gap-2.5 w-full text-center"
+                      >
+                        {/* Rounded Card with Product Image */}
+                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 lg:w-26 lg:h-26 rounded-2xl sm:rounded-3xl p-1 bg-white shadow-md group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:ring-4 group-hover:ring-[#464674]/20 transition-all duration-300 border-2 border-slate-100/90 overflow-hidden flex items-center justify-center">
+                          <div className="relative w-full h-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-50 flex items-center justify-center">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={cat.imageUrl || FIREBASE_ASSETS.hero}
+                              alt={cat.name}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 pointer-events-none"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = FIREBASE_ASSETS.hero;
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#464674]/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        {/* Title & Price/Count Info */}
+                        <div className="w-full px-1 space-y-0.5">
+                          <p className="text-xs sm:text-sm font-bold text-gray-800 line-clamp-1 group-hover:text-[#464674] transition-colors leading-tight">
+                            {cat.name}
+                          </p>
+                          {cat.startingPrice && cat.startingPrice > 0 ? (
+                            <p className="text-[10px] sm:text-[11px] font-semibold text-emerald-600 font-mono">
+                              From ₹{Number(cat.startingPrice).toFixed(0)}
+                            </p>
+                          ) : cat.itemCount ? (
+                            <p className="text-[10px] sm:text-[11px] font-medium text-slate-400">
+                              {cat.itemCount} {cat.itemCount === 1 ? 'item' : 'items'}
+                            </p>
+                          ) : null}
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* See More button */}
@@ -1351,7 +1456,7 @@ export function HomeClient({
               </div>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white font-headline leading-[1.15]">
                 A Complete Printing{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+                <span className="text-indigo-400">
                   Ecosystem
                 </span>
               </h2>
@@ -1925,7 +2030,7 @@ export function HomeClient({
               <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-[1.1] font-headline">
                 Ready to Create{' '}
                 <br className="hidden md:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-400 to-pink-400 font-classy italic font-extrabold">Something Amazing?</span>
+                <span className="text-amber-300 italic font-extrabold">Something Amazing?</span>
               </h2>
               <p className="text-white/80 text-base font-medium max-w-xl mx-auto leading-relaxed">
                 Join 10,000+ businesses and designers who trust AmazoPrint for premium quality printing across India.

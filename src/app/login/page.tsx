@@ -135,7 +135,7 @@ export default function LoginPage() {
             </div>
             <h1 className="text-4xl xl:text-5xl font-black text-white leading-tight tracking-tight">
               Create, customize & print <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-indigo-400 to-emerald-400">
+              <span className="text-emerald-400">
                 with exclusive member savings.
               </span>
             </h1>
