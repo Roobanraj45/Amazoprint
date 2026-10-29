@@ -63,6 +63,24 @@ const priceSlabSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+const customAddonSectionItemSchema = z.object({
+  id: z.string().default(() => Math.random().toString(36).substring(2, 9)),
+  name: z.string().optional().default('Option'),
+  price: z.coerce.number().optional().default(0),
+  pricingType: z.enum(['per_unit', 'fixed']).optional().default('per_unit'),
+  description: z.string().nullish().default(''),
+  imageUrl: z.string().nullish().default(''),
+  isDefault: z.boolean().nullish().default(false),
+});
+
+const customAddonSectionSchema = z.object({
+  id: z.string().default(() => Math.random().toString(36).substring(2, 9)),
+  title: z.string().optional().default('Add-on Section'),
+  selectionType: z.enum(['single', 'multiple']).optional().default('single'),
+  isRequired: z.boolean().nullish().default(false),
+  items: z.array(customAddonSectionItemSchema).optional().default([]),
+});
+
 const subProductSchema = z.object({
   productId: z.number(),
   name: z.string().min(1, 'Name is required'),
@@ -83,6 +101,7 @@ const subProductSchema = z.object({
   cardTexturePrices: z.record(z.string(), z.coerce.number()).optional().default({}),
   allowedCustomAddons: z.array(z.coerce.number()).optional(),
   customAddonPrices: z.record(z.string(), z.coerce.number()).optional().default({}),
+  customAddonSections: z.array(customAddonSectionSchema).optional().default([]),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
   backSideCost: z.coerce.number().optional().default(0),
   hsnCode: z.string().optional().nullable(),
@@ -199,6 +218,7 @@ export async function createSubProduct(data: z.infer<typeof subProductSchema>) {
     cardTexturePrices: validated.cardTexturePrices || {},
     allowedCustomAddons: validated.allowedCustomAddons || [],
     customAddonPrices: validated.customAddonPrices || {},
+    customAddonSections: validated.customAddonSections || [],
   }).returning();
   revalidatePath('/admin/products');
   revalidatePath('/products');
@@ -223,6 +243,7 @@ export async function updateSubProduct(id: number, data: Omit<z.infer<typeof sub
             cardTexturePrices: validated.cardTexturePrices || {},
             allowedCustomAddons: validated.allowedCustomAddons || [],
             customAddonPrices: validated.customAddonPrices || {},
+            customAddonSections: validated.customAddonSections || [],
             updatedAt: new Date() 
         })
         .where(eq(subProducts.id, id))

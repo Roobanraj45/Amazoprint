@@ -230,6 +230,21 @@ export const subProducts = pgTable('sub_products', {
   cardTexturePrices: jsonb('card_texture_prices').$type<Record<string, number>>().default({}),
   allowedCustomAddons: integer('allowed_custom_addons').array(),
   customAddonPrices: jsonb('custom_addon_prices').$type<Record<string, number>>().default({}),
+  customAddonSections: jsonb('custom_addon_sections').$type<Array<{
+    id: string;
+    title: string;
+    selectionType: 'single' | 'multiple';
+    isRequired?: boolean;
+    items: Array<{
+      id: string;
+      name: string;
+      price: number;
+      pricingType?: 'per_unit' | 'fixed';
+      description?: string;
+      imageUrl?: string;
+      isDefault?: boolean;
+    }>;
+  }>>().default([]),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   unitType: varchar('unit_type', { length: 10 }).default('mm').notNull(),

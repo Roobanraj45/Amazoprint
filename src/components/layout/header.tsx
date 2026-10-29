@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { LayoutGrid, Home, Settings, ShieldCheck, Menu, Search } from "lucide-react";
 
 import { NoticeSlider } from "./notice-slider";
+import { MainMenuDrawer } from "./main-menu-drawer";
 
 type Session = Awaited<ReturnType<typeof getSession>>;
 
@@ -70,8 +71,13 @@ export function Header() {
     )}>
       {!scrolled && <NoticeSlider />}
       <div className="w-full h-20 sm:h-24 md:h-26 px-3 sm:px-4 lg:px-6 flex items-center justify-between py-2">
-        {/* Logo */}
-        <div className="flex-shrink-0">
+        {/* Left Corner: Handle + Logo */}
+        <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+          <MainMenuDrawer
+            theme={isHome ? "dark" : "auto"}
+            buttonLabel="Menu"
+            showLabel={true}
+          />
           <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-all active:scale-95" prefetch={false}>
             <AmazoprintLogo variant="header" className={cn(
                 "transition-all duration-300 origin-left",
@@ -80,36 +86,6 @@ export function Header() {
             )} />
           </Link>
         </div>
-
-        {/* Navigation */}
-        <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href;
-            return (
-              <Link 
-                key={link.href} 
-                href={link.href} 
-                className={cn(
-                  "text-[13px] font-semibold tracking-tight transition-all duration-200 relative group",
-                  isHome
-                    ? isActive 
-                      ? "text-white" 
-                      : "text-white/70 hover:text-white"
-                    : isActive 
-                      ? "text-primary" 
-                      : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {link.label}
-                <span className={cn(
-                  "absolute -bottom-1.5 left-0 h-[2px] transition-all duration-300 rounded-full",
-                  isHome ? "bg-white" : "bg-primary",
-                  isActive ? "w-full" : "w-0 group-hover:w-full"
-                )} />
-              </Link>
-            );
-          })}
-        </nav>
 
         {/* Actions */}
         <div className="flex items-center gap-4">
@@ -162,17 +138,6 @@ export function Header() {
               
               <div className={cn("h-8 w-[1px] mx-1", isHome ? "bg-white/20" : "bg-border/60")} />
               <CartSheet className={isHome ? "bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white" : ""} />
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className={cn(
-                  "md:hidden rounded-full h-10 w-10",
-                  isHome ? "text-white hover:bg-white/10 hover:text-white" : ""
-                )}
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
             </>
           )}
         </div>

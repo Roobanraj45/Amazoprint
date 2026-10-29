@@ -12,6 +12,7 @@ import { getFoilTypes } from '@/app/actions/foil-actions';
 import { getDieCuts } from '@/app/actions/die-cut-actions';
 import { getCardTextures } from '@/app/actions/card-texture-actions';
 import { getCustomAddons } from '@/app/actions/custom-addon-actions';
+import { CustomAddonSectionsBuilder } from '@/components/admin/custom-addon-sections-builder';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -126,6 +127,7 @@ const subProductSchema = z.object({
   cardTexturePrices: z.record(z.string(), z.coerce.number()).optional().default({}),
   allowedCustomAddons: z.array(z.coerce.number()).optional(),
   customAddonPrices: z.record(z.string(), z.coerce.number()).optional().default({}),
+  customAddonSections: z.array(z.any()).optional().default([]),
   unitType: z.enum(['mm', 'inch', 'ft']).optional().default('mm'),
   backSideCost: z.coerce.number().optional().default(0),
   hsnCode: z.string().optional().nullable(),
@@ -202,6 +204,7 @@ export default function NewVariantPage() {
       cardTexturePrices: {},
       allowedCustomAddons: [],
       customAddonPrices: {},
+      customAddonSections: [],
       unitType: 'mm',
       backSideCost: 0,
       minOrderQuantity: 100,
@@ -337,6 +340,7 @@ export default function NewVariantPage() {
     register('dieCutPrices');
     register('cardTexturePrices');
     register('customAddonPrices');
+    register('customAddonSections');
     register('deliveryTiers');
   }, [register]);
 
@@ -395,6 +399,16 @@ export default function NewVariantPage() {
     setValue('deliveryTiers', updated, { shouldDirty: true });
   };
 
+  const onInvalid = (errors: any) => {
+    console.error('Variant form validation errors:', errors);
+    const fields = Object.keys(errors);
+    toast({
+      variant: 'destructive',
+      title: 'Validation Error',
+      description: `Please review required fields: ${fields.join(', ')}`,
+    });
+  };
+
   const onSubmit = async (data: SubProductFormData) => {
     try {
       await createSubProduct({
@@ -404,6 +418,7 @@ export default function NewVariantPage() {
         cardTexturePrices: watch('cardTexturePrices') || {},
         deliveryTiers: watch('deliveryTiers') || [],
         priceSlabs: watch('priceSlabs') || [],
+        customAddonSections: watch('customAddonSections') || [],
       });
       toast({
         title: 'Variant Created',
@@ -480,7 +495,7 @@ export default function NewVariantPage() {
             </Button>
             <Button
               type="button"
-              onClick={handleSubmit(onSubmit)}
+              onClick={handleSubmit(onSubmit, onInvalid)}
               disabled={isSubmitting}
               className="h-11 rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 px-7 transition-all hover:scale-[1.02]"
             >
@@ -670,7 +685,7 @@ export default function NewVariantPage() {
         <Button
           type="button"
           size="sm"
-          onClick={handleSubmit(onSubmit)}
+          onClick={handleSubmit(onSubmit, onInvalid)}
           disabled={isSubmitting}
           className="h-8 rounded-xl font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4 text-xs shrink-0"
         >
@@ -679,7 +694,7 @@ export default function NewVariantPage() {
       </div>
 
       {/* ── MAIN FORM BODY ── */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
 
         {/* ═════════════════════════════════════════════════════════════════ */}
         {/* STEP 1: IMAGES (PRIMARY & GALLERY) - TOP PRIORITY                */}
@@ -1878,6 +1893,14 @@ export default function NewVariantPage() {
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* Sub-product Level Custom Add-on Sections */}
+                  <div className="lg:col-span-12 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <CustomAddonSectionsBuilder
+                      sections={watch('customAddonSections') || []}
+                      onChange={(newSections) => setValue('customAddonSections', newSections, { shouldDirty: true })}
+                    />
                   </div>
 
                 </div>

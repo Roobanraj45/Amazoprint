@@ -86,6 +86,17 @@ export function StartDesignContent() {
     const fromQuery = searchParams.get('customAddons');
     return fromQuery ? fromQuery.split(',').map(Number).filter(Boolean) : [];
   });
+  const [selectedSectionAddons, setSelectedSectionAddons] = useState<Record<string, string[]>>(() => {
+    const fromQuery = searchParams.get('sectionAddons');
+    if (fromQuery) {
+      try {
+        return JSON.parse(decodeURIComponent(fromQuery));
+      } catch (e) {
+        return {};
+      }
+    }
+    return {};
+  });
   const [customAddons, setCustomAddons] = useState<any[]>([]);
   const [selectedDeliveryTier, setSelectedDeliveryTier] = useState<string>(searchParams.get('deliveryTier') || 'standard');
 
@@ -301,6 +312,57 @@ export function StartDesignContent() {
     );
   };
 
+  const configuredCustomAddonSections = useMemo(() => {
+    if (!subProduct) return [];
+    let raw = (subProduct as any).customAddonSections ?? (subProduct as any).custom_addon_sections;
+    if (typeof raw === 'string') {
+      try {
+        raw = JSON.parse(raw);
+      } catch (e) {
+        raw = [];
+      }
+    }
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((sec: any) => sec && sec.title && Array.isArray(sec.items) && sec.items.length > 0);
+  }, [subProduct]);
+
+  useEffect(() => {
+    if (!subProduct || configuredCustomAddonSections.length === 0) {
+      setSelectedSectionAddons({});
+      return;
+    }
+    const initialSelections: Record<string, string[]> = {};
+    configuredCustomAddonSections.forEach((sec: any) => {
+      const defaultItems = (sec.items || []).filter((it: any) => it.isDefault).map((it: any) => it.id);
+      if (defaultItems.length > 0) {
+        initialSelections[sec.id] = sec.selectionType === 'single' ? [defaultItems[0]] : defaultItems;
+      } else if (sec.isRequired && sec.selectionType === 'single' && sec.items?.length > 0) {
+        initialSelections[sec.id] = [sec.items[0].id];
+      } else {
+        initialSelections[sec.id] = [];
+      }
+    });
+    setSelectedSectionAddons(initialSelections);
+  }, [subProduct?.id, configuredCustomAddonSections]);
+
+  const handleToggleSectionItem = useCallback((sec: any, item: any) => {
+    setSelectedSectionAddons(prev => {
+      const currentSelected = prev[sec.id] || [];
+      if (sec.selectionType === 'single') {
+        if (currentSelected.includes(item.id)) {
+          return sec.isRequired ? prev : { ...prev, [sec.id]: [] };
+        }
+        return { ...prev, [sec.id]: [item.id] };
+      } else {
+        if (currentSelected.includes(item.id)) {
+          return { ...prev, [sec.id]: currentSelected.filter((id: string) => id !== item.id) };
+        } else {
+          return { ...prev, [sec.id]: [...currentSelected, item.id] };
+        }
+      }
+    });
+  }, []);
+
   const discountRules = useMemo(() => {
     return pricingRules
         .filter(rule => rule.isDiscount)
@@ -456,6 +518,31 @@ export function StartDesignContent() {
         }
     });
 
+    // Sub-product Level Custom Add-on Sections Calculation
+    configuredCustomAddonSections.forEach((section: any) => {
+      const selectedItemIds = selectedSectionAddons[section.id] || [];
+      selectedItemIds.forEach((itemId: string) => {
+        const item = (section.items || []).find((it: any) => it.id === itemId);
+        if (item) {
+          const itemPrice = Number(item.price || 0);
+          const isFixed = item.pricingType === 'fixed';
+          if (isFixed) {
+            flatAddonsTotal += itemPrice;
+            addonBreakdown.push({
+              name: `${section.title}: ${item.name} (Flat Fee)`,
+              totalAmount: itemPrice,
+            });
+          } else {
+            addonTotalPerUnit += itemPrice;
+            addonBreakdown.push({
+              name: `${section.title}: ${item.name}`,
+              totalAmount: itemPrice * qty,
+            });
+          }
+        }
+      });
+    });
+
     const availableTiers = (subProduct as any).deliveryTiers || [];
     const selectedTierObj = selectedDeliveryTier === 'standard'
       ? null
@@ -524,7 +611,7 @@ export function StartDesignContent() {
         },
     });
 
-  }, [quantity, subProduct, pricingRules, selectedAddons, selectedCustomAddons, customAddons, pages, selectedDie, dieCuts, selectedTexture, cardTextures, selectedDeliveryTier, activeSize, activePriceSlabs]);
+  }, [quantity, subProduct, pricingRules, selectedAddons, selectedCustomAddons, customAddons, selectedSectionAddons, configuredCustomAddonSections, pages, selectedDie, dieCuts, selectedTexture, cardTextures, selectedDeliveryTier, activeSize, activePriceSlabs]);
 
   const constructedQuery = useMemo(() => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -547,6 +634,18 @@ export function StartDesignContent() {
       newParams.set('customAddons', selectedCustomAddons.join(','));
     } else {
       newParams.delete('customAddons');
+    }
+    if (Object.keys(selectedSectionAddons).length > 0) {
+      const filtered = Object.fromEntries(
+        Object.entries(selectedSectionAddons).filter(([_, items]) => items && items.length > 0)
+      );
+      if (Object.keys(filtered).length > 0) {
+        newParams.set('sectionAddons', encodeURIComponent(JSON.stringify(filtered)));
+      } else {
+        newParams.delete('sectionAddons');
+      }
+    } else {
+      newParams.delete('sectionAddons');
     }
     if (selectedDie) {
       newParams.set('dieCut', String(selectedDie));
@@ -599,7 +698,7 @@ export function StartDesignContent() {
     }
 
     return newParams.toString();
-  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, selectedCustomAddons, customWidth, customHeight, selectedDie, selectedTexture, selectedDeliveryTier, activeSize]);
+  }, [searchParams, quantity, pages, spotUv, subProduct, selectedAddons, selectedCustomAddons, selectedSectionAddons, customWidth, customHeight, selectedDie, selectedTexture, selectedDeliveryTier, activeSize]);
 
   const thumbnailImages = useMemo(() => {
     if (!subProduct && !product) return [];
@@ -891,6 +990,39 @@ export function StartDesignContent() {
 
                   {/* Option Groups Matrix */}
                   <div className="space-y-5">
+                      {/* Sub-Product / Variant Selector */}
+                      {product.subProducts && product.subProducts.length > 1 && (
+                          <div className="space-y-2.5">
+                              <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center justify-between uppercase">
+                                  <span className="flex items-center gap-1.5">
+                                      <span className="text-indigo-600 dark:text-indigo-400 font-bold">Select Variant:</span>
+                                      <span className="text-slate-500 normal-case font-medium">{subProduct?.name}</span>
+                                  </span>
+                              </Label>
+                              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 [&::-webkit-scrollbar]:hidden">
+                                  {product.subProducts.filter(sp => sp.isActive).map((sp) => {
+                                      const isSelected = subProduct?.id === sp.id;
+                                      return (
+                                          <button
+                                              key={sp.id}
+                                              type="button"
+                                              onClick={() => handleSubProductChange(sp)}
+                                              className={cn(
+                                                  "flex-shrink-0 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer",
+                                                  isSelected
+                                                      ? "border-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-600/20 scale-[1.02]"
+                                                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                              )}
+                                          >
+                                              {isSelected && <Check className="w-3.5 h-3.5 stroke-[3] text-indigo-600 dark:text-indigo-400" />}
+                                              <span>{sp.name}</span>
+                                          </button>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      )}
+
                       {/* 1. Size Selection */}
                       <div className="space-y-2.5">
                           <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center justify-between uppercase">
@@ -1346,6 +1478,118 @@ export function StartDesignContent() {
                               </div>
                           </div>
                       )}
+
+                      {/* Sub-product Level Custom Add-on Sections (e.g. Paper add on, Finishing, etc.) */}
+                      {configuredCustomAddonSections.map((sec: any, secIdx: number) => {
+                          const isSingle = sec.selectionType === 'single';
+                          const currentSelected = selectedSectionAddons[sec.id] || [];
+
+                          return (
+                              <div key={sec.id || secIdx} className="space-y-2.5">
+                                  <div className="flex items-center justify-between">
+                                      <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                                          <span className="text-violet-600 dark:text-violet-400 font-bold">{sec.title}</span>
+                                      </Label>
+                                      <div className="flex items-center gap-1.5">
+                                          {sec.isRequired && (
+                                              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                                                  Required
+                                              </span>
+                                          )}
+                                          <span className={cn(
+                                              "text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                                              isSingle 
+                                                  ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800" 
+                                                  : "text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/50 border-violet-200 dark:border-violet-800"
+                                          )}>
+                                              {isSingle ? 'Single Choice' : 'Multi-Select'}
+                                          </span>
+                                      </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                      {(sec.items || []).map((item: any) => {
+                                          const isSelected = currentSelected.includes(item.id);
+                                          const price = Number(item.price || 0);
+                                          const isFixed = item.pricingType === 'fixed';
+
+                                          return (
+                                              <button
+                                                  key={item.id}
+                                                  type="button"
+                                                  onClick={() => handleToggleSectionItem(sec, item)}
+                                                  className={cn(
+                                                      "p-3 rounded-2xl border text-left transition-all relative flex items-start gap-3 shadow-xs group cursor-pointer",
+                                                      isSelected 
+                                                          ? "border-violet-600 bg-violet-50/70 dark:bg-violet-950/40 ring-2 ring-violet-600/20 shadow-md scale-[1.01]" 
+                                                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                                                  )}
+                                              >
+                                                  {/* Radio or Checkbox indicator */}
+                                                  <div className={cn(
+                                                      "w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                                                      isSingle ? "rounded-full border" : "rounded-lg border",
+                                                      isSelected 
+                                                          ? "bg-violet-600 border-violet-600 text-white shadow-xs" 
+                                                          : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-transparent group-hover:border-slate-400"
+                                                  )}>
+                                                      {isSingle ? (
+                                                          <div className={cn("w-2 h-2 rounded-full", isSelected ? "bg-white" : "bg-transparent")} />
+                                                      ) : (
+                                                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                                      )}
+                                                  </div>
+
+                                                  {/* Thumbnail Graphic if available */}
+                                                  {item.imageUrl ? (
+                                                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden relative shrink-0 border border-slate-200 dark:border-slate-800 p-1">
+                                                          <img 
+                                                              src={resolveImagePath(item.imageUrl)} 
+                                                              alt={item.name} 
+                                                              className="w-full h-full object-contain"
+                                                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                          />
+                                                      </div>
+                                                  ) : (
+                                                      <div className="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/50 flex items-center justify-center text-violet-600 dark:text-violet-400 shrink-0">
+                                                          <Layers className="w-5 h-5" />
+                                                      </div>
+                                                  )}
+
+                                                  <div className="flex-1 min-w-0">
+                                                      <div className="flex items-center justify-between gap-1">
+                                                          <span className={cn(
+                                                              "text-xs font-bold truncate",
+                                                              isSelected ? "text-violet-900 dark:text-violet-200" : "text-slate-900 dark:text-white"
+                                                          )}>
+                                                              {item.name}
+                                                          </span>
+                                                          <Badge variant="outline" className={cn(
+                                                              "text-[10px] font-black shrink-0 px-1.5 py-0.5 rounded-md",
+                                                              isSelected 
+                                                                  ? "bg-violet-600 text-white border-violet-600" 
+                                                                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                                                          )}>
+                                                              {price > 0 ? (isFixed ? `+₹${price}` : `+₹${price}/unit`) : 'Included'}
+                                                          </Badge>
+                                                      </div>
+                                                      {item.description ? (
+                                                          <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5 font-normal">
+                                                              {item.description}
+                                                          </p>
+                                                      ) : (
+                                                          <p className="text-[10px] text-slate-400 italic mt-0.5">
+                                                              {isFixed ? 'Fixed flat fee' : 'Per unit rate'}
+                                                          </p>
+                                                      )}
+                                                  </div>
+                                              </button>
+                                          );
+                                      })}
+                                  </div>
+                              </div>
+                          );
+                      })}
 
                       {/* 6. Printing Sides */}
                       {subProduct.maxPages > 1 && (
