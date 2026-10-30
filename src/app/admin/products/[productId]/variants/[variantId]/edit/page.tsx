@@ -38,35 +38,22 @@ import {
   DollarSign,
   FileText,
   ImageIcon,
-  Layers,
-  Library,
   Loader2,
-  PlusCircle,
   Ruler,
   Sparkles,
-  Tag,
   Trash2,
   Truck,
-  Clock,
   Plus,
   PenSquare,
   Upload,
   Trophy,
   Video,
   FileDown,
-  Percent,
-  Receipt,
   Coins,
-  ShieldCheck,
-  Zap,
-  Info,
-  ExternalLink,
-  Scissors,
-  Check,
+  Copy,
   CloudUpload,
   Cloud,
   LayoutGrid,
-  Copy,
 } from 'lucide-react';
 
 const deliveryTierSchema = z.object({
@@ -154,6 +141,8 @@ const subProductSchema = z.object({
 
 type SubProductFormData = z.infer<typeof subProductSchema>;
 
+type SectionTab = 'basic' | 'prices' | 'sizes' | 'finishes' | 'delivery' | 'all';
+
 export default function EditVariantPage() {
   const router = useRouter();
   const params = useParams();
@@ -163,13 +152,13 @@ export default function EditVariantPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [parentProduct, setParentProduct] = useState<any>(null);
-  const [variantData, setVariantData] = useState<any>(null);
   const [foilTypes, setFoilTypes] = useState<any[]>([]);
   const [dieCuts, setDieCuts] = useState<any[]>([]);
   const [cardTextures, setCardTextures] = useState<any[]>([]);
   const [customAddons, setCustomAddons] = useState<any[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'all' | 'images' | 'prices' | 'variants' | 'finishes' | 'delivery' | 'details'>('all');
+  // Clean Tab Selector
+  const [activeTab, setActiveTab] = useState<SectionTab>('basic');
 
   const [isPrimaryBrowserOpen, setPrimaryBrowserOpen] = useState(false);
   const [isGalleryBrowserOpen, setGalleryBrowserOpen] = useState(false);
@@ -245,11 +234,11 @@ export default function EditVariantPage() {
   const handleSampleFileUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     const ext = file.name.split('.').pop()?.toUpperCase() || 'FILE';
     const sizeInMb = (file.size / (1024 * 1024)).toFixed(2);
     const sizeStr = `${sizeInMb} MB`;
-    
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', 'samples');
@@ -296,10 +285,9 @@ export default function EditVariantPage() {
       const data = await res.json();
       if (data.success && data.url) {
         setValue('imageUrl', data.url, { shouldDirty: true, shouldValidate: true });
-        const sizeKb = Math.round((data.size || 0) / 1024);
         toast({
-          title: 'Image Uploaded to Firebase Storage',
-          description: `Compressed to ${sizeKb} KB (< 1 MB) and saved to products folder.`,
+          title: 'Image Uploaded',
+          description: 'Primary cover image saved successfully.',
         });
       } else {
         toast({ variant: 'destructive', title: 'Upload Failed', description: data.error || 'Failed to upload image' });
@@ -329,10 +317,9 @@ export default function EditVariantPage() {
       const data = await res.json();
       if (data.success && data.url) {
         setValue('imageUrls', [...imageUrls, data.url], { shouldDirty: true, shouldValidate: true });
-        const sizeKb = Math.round((data.size || 0) / 1024);
         toast({
-          title: 'Gallery Image Uploaded',
-          description: `Compressed to ${sizeKb} KB (< 1 MB) and added to gallery.`,
+          title: 'Gallery Image Added',
+          description: 'Image added to sub-product gallery.',
         });
       } else {
         toast({ variant: 'destructive', title: 'Upload Failed', description: data.error || 'Failed to upload image' });
@@ -367,13 +354,12 @@ export default function EditVariantPage() {
       ]);
 
       if (!variant) {
-        toast({ variant: 'destructive', title: 'Variant Not Found', description: 'Could not find the requested variant.' });
+        toast({ variant: 'destructive', title: 'Sub-Product Not Found', description: 'Could not find the requested sub-product.' });
         router.push('/admin/products');
         return;
       }
 
       setParentProduct(prod);
-      setVariantData(variant);
       setFoilTypes(foils);
       setDieCuts(cuts);
       setCardTextures(textures);
@@ -417,7 +403,7 @@ export default function EditVariantPage() {
         priceSlabs: (variant as any).priceSlabs || [],
       });
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Error Loading Variant', description: error.message });
+      toast({ variant: 'destructive', title: 'Error Loading Data', description: error.message });
     } finally {
       setIsLoading(false);
     }
@@ -450,13 +436,13 @@ export default function EditVariantPage() {
     setValue('deliveryTiers', updated, { shouldDirty: true });
   };
 
-  const onInvalid = (errors: any) => {
-    console.error('Variant edit form validation errors:', errors);
-    const fields = Object.keys(errors);
+  const onInvalid = (validationErrors: any) => {
+    console.error('Sub-product form validation errors:', validationErrors);
+    const fields = Object.keys(validationErrors);
     toast({
       variant: 'destructive',
-      title: 'Validation Error',
-      description: `Please review the following fields: ${fields.join(', ')}`,
+      title: 'Missing Required Fields',
+      description: `Please verify: ${fields.join(', ')}`,
     });
   };
 
@@ -471,14 +457,14 @@ export default function EditVariantPage() {
         customAddonSections: watch('customAddonSections') || [],
       });
       toast({
-        title: 'Variant Updated',
-        description: `Successfully updated variant "${data.name}".`,
+        title: 'Changes Saved',
+        description: `Sub-product "${data.name}" updated successfully.`,
       });
       router.push('/admin/products');
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error Updating Variant',
+        title: 'Error Saving Changes',
         description: error.message || 'An unexpected error occurred.',
       });
     }
@@ -486,423 +472,380 @@ export default function EditVariantPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[450px] gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-indigo-600 dark:text-indigo-400" />
-        <p className="text-sm font-semibold text-slate-500">Loading sub-product configuration blueprint...</p>
+      <div className="flex flex-col items-center justify-center min-h-[450px] gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+        <p className="text-sm font-medium text-slate-500">Loading sub-product details...</p>
       </div>
     );
   }
 
-  const activeSizesCount = sizes.filter((s: any) => s.isActive).length;
-  const defaultSize = sizes.find((s: any) => s.isDefault) || sizes[0];
-  const activeTaxes = taxSlabs.filter((t: any) => t.isActive);
+  const tabs = [
+    { id: 'basic' as SectionTab, label: 'Basic Info & Photos', icon: FileText },
+    { id: 'prices' as SectionTab, label: 'Pricing & Slabs', icon: DollarSign },
+    { id: 'sizes' as SectionTab, label: 'Dimensions & Sizes', icon: Ruler },
+    { id: 'finishes' as SectionTab, label: 'Finishes & Add-ons', icon: Sparkles },
+    { id: 'delivery' as SectionTab, label: 'Delivery & Settings', icon: Truck },
+    { id: 'all' as SectionTab, label: 'All Sections', icon: LayoutGrid },
+  ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-24 px-4 sm:px-6">
-      
-      {/* ── TOP HERO HEADER & STICKY ACTIONS ── */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="flex items-start gap-4">
+    <div className="max-w-6xl mx-auto space-y-6 pb-20">
+
+      {/* ── TOP UNIFIED HEADER BAR (SEAMLESSLY DOCKED, NOT FLOATING) ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+        {/* Header Main Bar */}
+        <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
             <Button
               asChild
               variant="outline"
               size="icon"
-              className="h-11 w-11 rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 shadow-xs hover:bg-slate-100 shrink-0"
+              className="h-10 w-10 rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 shrink-0"
             >
-              <Link href="/admin/products">
-                <ArrowLeft className="h-5 w-5" />
+              <Link href="/admin/products" title="Back to Products">
+                <ArrowLeft className="h-4 w-4 text-slate-700 dark:text-slate-300" />
               </Link>
             </Button>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap text-xs font-semibold text-slate-500 dark:text-slate-400">
-                <Link href="/admin/products" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                  Products
-                </Link>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                <Link href="/admin/products" className="hover:text-indigo-600 transition-colors">Products</Link>
                 <span>/</span>
-                <span className="text-indigo-600 dark:text-indigo-400 font-bold">{parentProduct?.name || 'Product'}</span>
+                <span className="text-slate-700 dark:text-slate-300 font-medium">{parentProduct?.name || 'Product'}</span>
                 <span>/</span>
-                <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[10px]">
-                  ID: #{variantId}
-                </Badge>
+                <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Sub-Product #{variantId}</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                 {watchName || 'Edit Sub-Product'}
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Make corrections quickly across media, pricing slabs, dimensions, and finishes.
-              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 self-end lg:self-center">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 self-end md:self-center">
+            {/* Active Switch */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+              <span className={cn(
+                "text-xs font-semibold",
+                watchIsActive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"
+              )}>
+                {watchIsActive ? 'Active' : 'Inactive'}
+              </span>
+              <Controller
+                name="isActive"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    className="data-[state=checked]:bg-emerald-600 scale-90"
+                  />
+                )}
+              />
+            </div>
+
             <Button
               asChild
               variant="outline"
-              className="h-11 rounded-2xl font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-5"
+              className="h-9 rounded-xl font-medium border-slate-200 dark:border-slate-800 text-xs px-4"
             >
               <Link href="/admin/products">Cancel</Link>
             </Button>
+
             <Button
               type="button"
               onClick={handleSubmit(onSubmit, onInvalid)}
               disabled={isSubmitting}
-              className="h-11 rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 px-7 transition-all hover:scale-[1.02]"
+              className="h-9 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-5 text-xs transition-colors"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Changes...
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Saving...
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="mr-2 h-4 w-4" /> Save Sub-Product
+                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Save Changes
                 </>
               )}
             </Button>
           </div>
         </div>
 
-        {/* Top Quick Status & KPI Highlight Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/70 dark:border-slate-800/70 space-y-1">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Base Unit Price</span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-base font-black text-slate-900 dark:text-white">
-                ₹{watchPrice ? Number(watchPrice).toFixed(2) : '0.00'}
-              </span>
-              <span className="text-[10px] font-semibold text-slate-400">/ piece</span>
-            </div>
-          </div>
-
-          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/70 dark:border-slate-800/70 space-y-1">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Price Slabs</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-base font-black text-amber-600 dark:text-amber-400">
-                {priceSlabs.filter((s: any) => s.isActive).length} Active
-              </span>
-              <span className="text-[10px] font-bold text-slate-400">
-                Slabs
-              </span>
-            </div>
-          </div>
-
-          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/70 dark:border-slate-800/70 space-y-1">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Configured Sizes</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-base font-black text-indigo-600 dark:text-indigo-400">
-                {activeSizesCount} Active
-              </span>
-              {defaultSize && (
-                <span className="text-[10px] font-mono text-slate-500 truncate max-w-[90px]">
-                  ({defaultSize.width}×{defaultSize.height}{defaultSize.unit || 'mm'})
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/70 dark:border-slate-800/70 space-y-1">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Tax / GST</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
-                {activeTaxes.length > 0 ? activeTaxes.map((t: any) => `${t.rate}%`).join(', ') : '0%'}
-              </span>
-              <span className="text-[10px] font-bold text-slate-400">
-                {activeTaxes.length > 0 ? (activeTaxes[0].isInclusive ? 'Incl.' : 'Excl.') : ''}
-              </span>
-            </div>
-          </div>
-
-          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/70 dark:border-slate-800/70 flex items-center justify-between">
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Store Status</span>
-              <span className={cn(
-                "inline-flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full",
-                watchIsActive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
-              )}>
-                {watchIsActive ? '● Active' : '○ Inactive'}
-              </span>
-            </div>
-            <Controller
-              name="isActive"
-              control={control}
-              render={({ field }) => (
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  className="data-[state=checked]:bg-emerald-600"
-                />
-              )}
-            />
-          </div>
+        {/* Clean Docked Tabs (Integrated into Header, Flush Border) */}
+        <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/60 px-3 py-1.5 flex items-center gap-1 overflow-x-auto scrollbar-none">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                id={`tab-${tab.id}`}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer",
+                  isActive
+                    ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs border border-slate-200/90 dark:border-slate-800"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-900/50"
+                )}
+              >
+                <Icon className={cn("w-3.5 h-3.5", isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400")} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* ── STICKY CONTROL & FILTER STRIP ── */}
-      <div className="sticky top-2 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 rounded-2xl p-1.5 shadow-sm flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
-        <div className="flex items-center gap-1 min-w-max text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => setActiveTab('all')}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-bold whitespace-nowrap",
-              activeTab === 'all'
-                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-            )}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" /> All Sections
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => setActiveTab('images')}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-bold whitespace-nowrap",
-              activeTab === 'images'
-                ? "bg-indigo-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-400"
-            )}
-          >
-            <ImageIcon className="w-3.5 h-3.5" /> 1. Images
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('prices')}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-bold whitespace-nowrap",
-              activeTab === 'prices'
-                ? "bg-amber-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/60 dark:hover:text-amber-400"
-            )}
-          >
-            <DollarSign className="w-3.5 h-3.5" /> 2. Prices & Slabs
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('variants')}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-bold whitespace-nowrap",
-              activeTab === 'variants'
-                ? "bg-indigo-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-400"
-            )}
-          >
-            <Ruler className="w-3.5 h-3.5" /> 3. Sizes & Variants
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('finishes')}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-bold whitespace-nowrap",
-              activeTab === 'finishes'
-                ? "bg-purple-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-950/60 dark:hover:text-purple-400"
-            )}
-          >
-            <Sparkles className="w-3.5 h-3.5" /> 4. Finishes
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('delivery')}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-bold whitespace-nowrap",
-              activeTab === 'delivery'
-                ? "bg-blue-600 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/60 dark:hover:text-blue-400"
-            )}
-          >
-            <Truck className="w-3.5 h-3.5" /> 5. Delivery & Pathways
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('details')}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-bold whitespace-nowrap",
-              activeTab === 'details'
-                ? "bg-slate-700 text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-            )}
-          >
-            <Tag className="w-3.5 h-3.5" /> 6. Details & Specs
-          </button>
-        </div>
-
-        <Button
-          type="button"
-          size="sm"
-          onClick={handleSubmit(onSubmit, onInvalid)}
-          disabled={isSubmitting}
-          className="h-8 rounded-xl font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-4 text-xs shrink-0"
-        >
-          {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />} Save
-        </Button>
-      </div>
-
-      {/* ── MAIN FORM BODY ── */}
+      {/* ── FORM CONTAINER ── */}
       <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
 
         {/* ═════════════════════════════════════════════════════════════════ */}
-        {/* STEP 1: IMAGES (PRIMARY & GALLERY) - TOP PRIORITY                */}
+        {/* SECTION 1: BASIC INFO & PHOTOS                                   */}
         {/* ═════════════════════════════════════════════════════════════════ */}
-        {(activeTab === 'all' || activeTab === 'images') && (
-          <section id="section-images" className="scroll-mt-20">
-            <Card className="border border-slate-200/90 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800/90 pb-4 bg-slate-50/50 dark:bg-slate-950/50 flex flex-row items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-black text-xs flex items-center justify-center">
-                      01
-                    </span>
-                    <CardTitle className="text-base font-black text-slate-900 dark:text-white">
-                      Variant Media & Visual Gallery
-                    </CardTitle>
-                  </div>
-                  <CardDescription className="text-xs">
-                    Configure cover photo and supporting angles. All files auto-compressed to &lt; 1 MB on Firebase Storage.
-                  </CardDescription>
+        {(activeTab === 'all' || activeTab === 'basic') && (
+          <Card className="border border-slate-200 dark:border-slate-800 shadow-xs rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 px-6 py-4 bg-slate-50/40 dark:bg-slate-950/40">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-indigo-600" />
+                <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">
+                  Basic Information & Photos
+                </CardTitle>
+              </div>
+              <CardDescription className="text-xs text-slate-500">
+                General sub-product title, inventory SKU, HSN tax classification, description, and images.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+
+              {/* Title, SKU, HSN */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                <div className="md:col-span-12 space-y-1.5">
+                  <Label htmlFor="name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Sub-Product Name <span className="text-rose-500">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    placeholder="e.g. Premium 350 GSM Matte Lamination"
+                    className="h-10 rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-semibold text-sm"
+                    {...register('name')}
+                  />
+                  {errors.name && <p className="text-rose-500 text-xs font-medium mt-1">{errors.name.message}</p>}
                 </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                  
-                  {/* Left: Primary Cover Image (5 cols) */}
-                  <div className="lg:col-span-5 flex flex-col justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                          <span>Primary Cover Image</span>
-                        </Label>
-                        {imageUrl?.includes('firebasestorage.googleapis.com') ? (
-                          <Badge variant="outline" className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 gap-1 font-bold">
-                            <Cloud className="w-3 h-3 text-amber-500" /> Firebase
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-200 font-semibold">
-                            Storefront Thumbnail
-                          </Badge>
+
+                <div className="md:col-span-4 space-y-1.5">
+                  <Label htmlFor="sku" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    SKU Code
+                  </Label>
+                  <Input
+                    id="sku"
+                    placeholder="e.g. BC-350-MATTE"
+                    className="h-10 rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-mono text-xs uppercase"
+                    {...register('sku')}
+                  />
+                </div>
+
+                <div className="md:col-span-4 space-y-1.5">
+                  <Label htmlFor="hsnCode" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    HSN / SAC Code
+                  </Label>
+                  <Input
+                    id="hsnCode"
+                    placeholder="e.g. 49111090"
+                    className="h-10 rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-mono text-xs"
+                    {...register('hsnCode')}
+                  />
+                </div>
+
+                <div className="md:col-span-4 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="maxPages" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Copy className="w-3.5 h-3.5 text-indigo-600" /> No. of Pages / Sides
+                    </Label>
+                    <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                      {maxPages <= 1 ? '1 Page (Single)' : maxPages === 2 ? '2 Pages (Front & Back)' : `${maxPages} Pages`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      id="maxPages"
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="1"
+                      className="h-10 rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-bold text-xs"
+                      {...register('maxPages', { valueAsNumber: true })}
+                    />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setValue('maxPages', 1, { shouldDirty: true, shouldValidate: true })}
+                        className={cn(
+                          "h-10 px-2.5 rounded-xl border text-[11px] font-bold transition-all",
+                          maxPages === 1
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                            : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
                         )}
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        {imageUrl && imageUrl.trim() ? (
-                          <div className="relative w-28 h-28 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-xs flex-shrink-0 bg-white">
-                            <Image src={resolveImagePath(imageUrl)} alt="Primary image" fill className="object-cover" />
-                          </div>
-                        ) : (
-                          <div className="w-28 h-28 rounded-2xl bg-slate-200/70 dark:bg-slate-800 flex flex-col items-center justify-center flex-shrink-0 border border-dashed border-slate-300 dark:border-slate-700 text-slate-400">
-                            <ImageIcon className="h-7 w-7 mb-1" />
-                            <span className="text-[10px] font-bold">No Cover</span>
-                          </div>
+                        title="1 Page - Single Sided"
+                      >
+                        1P
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setValue('maxPages', 2, { shouldDirty: true, shouldValidate: true })}
+                        className={cn(
+                          "h-10 px-2.5 rounded-xl border text-[11px] font-bold transition-all",
+                          maxPages === 2
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                            : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
                         )}
+                        title="2 Pages - Front & Back (Double Sided)"
+                      >
+                        2P
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-                        <div className="flex-1 space-y-2">
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                            Main image displayed on cards, categories & product header.
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            <label className={cn(
-                              "cursor-pointer inline-flex items-center justify-center h-8.5 px-3 rounded-xl text-xs font-bold border transition-colors",
-                              isUploadingPrimary
-                                ? "bg-slate-100 text-slate-400 border-slate-200"
-                                : "bg-indigo-600 hover:bg-indigo-700 text-white border-transparent shadow-xs"
-                            )}>
-                              {isUploadingPrimary ? (
-                                <>
-                                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> Uploading...
-                                </>
-                              ) : (
-                                <>
-                                  <CloudUpload className="mr-1 h-3.5 w-3.5" /> Upload File
-                                </>
-                              )}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                disabled={isUploadingPrimary}
-                                onChange={handleDirectPrimaryUpload}
-                              />
-                            </label>
+                <div className="md:col-span-12 space-y-1.5">
+                  <Label htmlFor="description" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Description & Specifications
+                  </Label>
+                  <Textarea
+                    id="description"
+                    rows={4}
+                    placeholder="Material specs, GSM paper thickness, finish attributes, and ideal applications..."
+                    className="rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-medium"
+                    {...register('description')}
+                  />
+                </div>
+              </div>
 
-                            <Dialog open={isPrimaryBrowserOpen} onOpenChange={setPrimaryBrowserOpen}>
-                              <DialogTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8.5 rounded-xl text-xs font-bold hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950 border-slate-200 dark:border-slate-800"
-                                >
-                                  <Library className="mr-1 h-3.5 w-3.5" /> Media Library
-                                </Button>
-                              </DialogTrigger>
-                              <MediaLibraryDialog
-                                folder={currentFolder}
-                                setFolder={setCurrentFolder}
-                                onSelect={(url) => {
-                                  setValue('imageUrl', url, { shouldDirty: true, shouldValidate: true });
-                                  setPrimaryBrowserOpen(false);
-                                }}
-                              />
-                            </Dialog>
-                          </div>
+              {/* Photos Section */}
+              <div className="pt-5 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                <Label className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-indigo-600" /> Sub-Product Images
+                </Label>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                  {/* Primary Cover Image */}
+                  <div className="md:col-span-5 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        Primary Cover Image
+                      </span>
+                      {imageUrl?.includes('firebasestorage.googleapis.com') ? (
+                        <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                          <Cloud className="w-3 h-3 mr-1 text-amber-500" /> Firebase
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-200">
+                          Storefront
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {imageUrl && imageUrl.trim() ? (
+                        <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white shrink-0">
+                          <Image src={resolveImagePath(imageUrl)} alt="Primary image" fill className="object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-20 h-20 rounded-xl bg-slate-100 dark:bg-slate-800 flex flex-col items-center justify-center border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 shrink-0">
+                          <ImageIcon className="h-5 w-5 mb-0.5" />
+                          <span className="text-[9px] font-medium">No Image</span>
+                        </div>
+                      )}
+
+                      <div className="space-y-2 flex-1">
+                        <div className="flex flex-wrap gap-2">
+                          <label className={cn(
+                            "cursor-pointer inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-semibold border transition-colors",
+                            isUploadingPrimary
+                              ? "bg-slate-100 text-slate-400 border-slate-200"
+                              : "bg-indigo-600 hover:bg-indigo-700 text-white border-transparent"
+                          )}>
+                            {isUploadingPrimary ? (
+                              <>
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <CloudUpload className="mr-1 h-3 w-3" /> Upload Photo
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={isUploadingPrimary}
+                              onChange={handleDirectPrimaryUpload}
+                            />
+                          </label>
+
+                          <Dialog open={isPrimaryBrowserOpen} onOpenChange={setPrimaryBrowserOpen}>
+                            <DialogTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 rounded-lg text-xs font-medium border-slate-200 dark:border-slate-800"
+                              >
+                                Media Library
+                              </Button>
+                            </DialogTrigger>
+                            <MediaLibraryDialog
+                              folder={currentFolder}
+                              setFolder={setCurrentFolder}
+                              onSelect={(url) => {
+                                setValue('imageUrl', url, { shouldDirty: true, shouldValidate: true });
+                                setPrimaryBrowserOpen(false);
+                              }}
+                            />
+                          </Dialog>
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-                      <div className="flex items-center gap-1.5">
-                        <Input
-                          type="text"
-                          placeholder="Image URL or Firebase Storage link..."
-                          className="h-8 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-600 dark:text-slate-300"
-                          {...register('imageUrl')}
-                        />
-                        {imageUrl && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 text-[10px] text-slate-400 hover:text-rose-600 shrink-0"
-                            onClick={() => setValue('imageUrl', '', { shouldDirty: true })}
-                          >
-                            Clear
-                          </Button>
-                        )}
-                      </div>
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <Input
+                        type="text"
+                        placeholder="Image URL link..."
+                        className="h-8 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[11px] font-mono"
+                        {...register('imageUrl')}
+                      />
+                      {imageUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-xs text-slate-400 hover:text-rose-600 shrink-0"
+                          onClick={() => setValue('imageUrl', '', { shouldDirty: true })}
+                        >
+                          Clear
+                        </Button>
+                      )}
                     </div>
                   </div>
 
-                  {/* Right: Supporting Gallery Images (7 cols) */}
-                  <div className="lg:col-span-7 flex flex-col justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+                  {/* Supporting Gallery Images */}
+                  <div className="md:col-span-7 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
                     <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                          Gallery Perspectives
-                        </Label>
-                        <Badge variant="secondary" className="text-[10px] font-black h-5 px-1.5 rounded-md">
-                          {imageUrls.length}
-                        </Badge>
-                      </div>
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        Gallery Photos ({imageUrls.length})
+                      </span>
 
                       <div className="flex items-center gap-2">
                         <label className={cn(
-                          "cursor-pointer inline-flex items-center justify-center h-8 px-3 rounded-xl text-xs font-bold border transition-colors",
+                          "cursor-pointer inline-flex items-center justify-center h-8 px-2.5 rounded-lg text-xs font-semibold border transition-colors",
                           isUploadingGallery
                             ? "bg-slate-100 text-slate-400 border-slate-200"
-                            : "bg-indigo-600 hover:bg-indigo-700 text-white border-transparent shadow-xs"
+                            : "bg-indigo-600 hover:bg-indigo-700 text-white border-transparent"
                         )}>
                           {isUploadingGallery ? (
-                            <>
-                              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> Uploading...
-                            </>
+                            <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
                             <>
-                              <CloudUpload className="mr-1.5 h-3 w-3" /> Upload Angle
+                              <Plus className="mr-1 h-3 w-3" /> Add Photo
                             </>
                           )}
                           <input
@@ -920,16 +863,16 @@ export default function EditVariantPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="h-8 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-800 hover:bg-indigo-50 hover:text-indigo-600"
+                              className="h-8 rounded-lg text-xs font-medium border-slate-200 dark:border-slate-800"
                             >
-                              <Library className="mr-1.5 h-3 w-3" /> Library
+                              Media Library
                             </Button>
                           </DialogTrigger>
                           <MediaLibraryDialog
                             folder={currentFolder}
                             setFolder={setCurrentFolder}
                             onSelect={(url) => {
-                              setValue('imageUrls', [...imageUrls, url], { shouldDirty: true, shouldValidate: true });
+                              setValue('imageUrls', [...imageUrls, url], { shouldDirty: true });
                               setGalleryBrowserOpen(false);
                             }}
                           />
@@ -938,1347 +881,1126 @@ export default function EditVariantPage() {
                     </div>
 
                     {imageUrls.length === 0 ? (
-                      <div className="h-32 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center bg-white/50 dark:bg-slate-900/50 gap-1.5">
-                        <ImageIcon className="w-6 h-6 text-slate-300 dark:text-slate-700" />
-                        <p className="text-xs font-bold text-slate-500">No supporting angles added yet</p>
-                        <p className="text-[10px] text-muted-foreground">Upload finish closeups, back view, or stack perspectives.</p>
+                      <div className="py-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center text-center text-slate-400 gap-1">
+                        <ImageIcon className="w-5 h-5 text-slate-400" />
+                        <span className="text-xs">No gallery photos added yet</span>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
+                      <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-[140px] overflow-y-auto pr-1">
                         {imageUrls.map((url, idx) => (
-                          <div
-                            key={idx}
-                            className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 aspect-square shadow-xs"
-                          >
-                            <Image src={resolveImagePath(url)} alt={`Gallery ${idx}`} fill className="object-cover" />
-                            {url.includes('firebasestorage.googleapis.com') && (
-                              <span className="absolute top-1 left-1 bg-amber-500/90 text-white rounded-full p-0.5 shadow-sm">
-                                <Cloud className="w-2.5 h-2.5" />
-                              </span>
-                            )}
-                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center backdrop-blur-[2px]">
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="h-7 w-7 rounded-full shadow-lg hover:scale-105"
-                                onClick={() => {
-                                  setValue('imageUrls', imageUrls.filter((_, i) => i !== idx), { shouldDirty: true });
-                                }}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
+                          <div key={idx} className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white">
+                            <Image src={resolveImagePath(url)} alt={`Gallery ${idx + 1}`} fill className="object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setValue('imageUrls', imageUrls.filter((_, i) => i !== idx), { shouldDirty: true })}
+                              className="absolute top-1 right-1 h-5 w-5 rounded-full bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-
                 </div>
-              </CardContent>
-            </Card>
-          </section>
+              </div>
+
+            </CardContent>
+          </Card>
         )}
 
         {/* ═════════════════════════════════════════════════════════════════ */}
-        {/* STEP 2: PRICES, QUANTITY SLABS & TAXES                           */}
+        {/* SECTION 2: PRICING & QUANTITY SLABS                              */}
         {/* ═════════════════════════════════════════════════════════════════ */}
         {(activeTab === 'all' || activeTab === 'prices') && (
-          <section id="section-prices" className="scroll-mt-20">
-            <Card className="border border-slate-200/90 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800/90 pb-4 bg-slate-50/50 dark:bg-slate-950/50 flex flex-row items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-black text-xs flex items-center justify-center">
-                      02
-                    </span>
-                    <CardTitle className="text-base font-black text-slate-900 dark:text-white">
-                      Pricing, Quantity Slabs & Taxes
-                    </CardTitle>
+          <Card className="border border-slate-200 dark:border-slate-800 shadow-xs rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 px-6 py-4 bg-slate-50/40 dark:bg-slate-950/40">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-amber-600" />
+                <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">
+                  Pricing, Slabs & Taxes
+                </CardTitle>
+              </div>
+              <CardDescription className="text-xs text-slate-500">
+                Base piece pricing, double-sided printing surcharges, quantity package slabs, and GST mode.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+
+              {/* Base Price & GST */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="space-y-1.5">
+                  <Label htmlFor="price" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Base Unit Price (₹) <span className="text-rose-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">₹</span>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      className="h-10 rounded-xl pl-8 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-base"
+                      {...register('price')}
+                    />
                   </div>
-                  <CardDescription className="text-xs">
-                    Base rates, per-card printing add-ons, quantity package discounts, and GST calculation.
-                  </CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                
-                {/* Base Pricing & Tax Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="price" className="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                      Base Price (₹) <span className="text-rose-500">*</span>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    GST Tax Rate
+                  </Label>
+                  <Select
+                    value={taxSlabs[0]?.rate?.toString() || '18'}
+                    onValueChange={(val) => {
+                      const num = Number(val);
+                      const updated = taxSlabs.length > 0 ? [...taxSlabs] : [{ id: 'tax-1', name: 'GST', rate: 18, isInclusive: false, isActive: true }];
+                      updated[0] = { ...updated[0], rate: num, name: num === 0 ? 'Exempt' : `GST ${num}%` };
+                      setValue('taxSlabs', updated, { shouldDirty: true });
+                    }}
+                  >
+                    <SelectTrigger className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="18">GST 18% (Standard Print)</SelectItem>
+                      <SelectItem value="12">GST 12%</SelectItem>
+                      <SelectItem value="5">GST 5%</SelectItem>
+                      <SelectItem value="28">GST 28%</SelectItem>
+                      <SelectItem value="0">Exempt 0%</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Tax Application
+                  </Label>
+                  <Select
+                    value={taxSlabs[0]?.isInclusive ? 'inclusive' : 'exclusive'}
+                    onValueChange={(val) => {
+                      const isInc = val === 'inclusive';
+                      const updated = taxSlabs.length > 0 ? [...taxSlabs] : [{ id: 'tax-1', name: 'GST', rate: 18, isInclusive: false, isActive: true }];
+                      updated[0] = { ...updated[0], isInclusive: isInc };
+                      setValue('taxSlabs', updated, { shouldDirty: true });
+                    }}
+                  >
+                    <SelectTrigger className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-medium text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="exclusive">Exclusive (+ Tax added extra)</SelectItem>
+                      <SelectItem value="inclusive">Inclusive (Tax included in price)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* No. of Pages & Printing Sides Configuration */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <Label className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <Copy className="w-4 h-4 text-indigo-600" /> No. of Pages & Printing Sides Configuration
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground">Configure printable pages count (single side, double side, or multi-page) and back-side surcharge.</p>
+                  </div>
+                  <Badge variant="outline" className={cn(
+                    "text-xs px-2.5 py-0.5 font-semibold",
+                    maxPages > 1 ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-slate-100 text-slate-600 border-slate-200"
+                  )}>
+                    {maxPages <= 1 ? '1 Page · Single Sided' : maxPages === 2 ? '2 Pages · Double Sided' : `${maxPages} Pages · Multi-Page`}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center pt-1">
+                  <div className="md:col-span-8 grid grid-cols-3 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setValue('maxPages', 1, { shouldDirty: true, shouldValidate: true })}
+                      className={cn(
+                        "p-3 rounded-xl border text-left transition-all",
+                        maxPages === 1
+                          ? "border-indigo-600 bg-white dark:bg-slate-900 shadow-xs ring-1 ring-indigo-500/30"
+                          : "border-slate-200 dark:border-slate-800 bg-white/60 hover:border-slate-300"
+                      )}
+                    >
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">1 Page (Single)</span>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Front print only</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setValue('maxPages', 2, { shouldDirty: true, shouldValidate: true })}
+                      className={cn(
+                        "p-3 rounded-xl border text-left transition-all",
+                        maxPages === 2
+                          ? "border-indigo-600 bg-white dark:bg-slate-900 shadow-xs ring-1 ring-indigo-500/30"
+                          : "border-slate-200 dark:border-slate-800 bg-white/60 hover:border-slate-300"
+                      )}
+                    >
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">2 Pages (Double)</span>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Front & back sides</p>
+                    </button>
+
+                    <div className={cn(
+                      "p-2.5 rounded-xl border transition-all flex flex-col justify-between",
+                      maxPages > 2
+                        ? "border-indigo-600 bg-white dark:bg-slate-900 shadow-xs ring-1 ring-indigo-500/30"
+                        : "border-slate-200 dark:border-slate-800 bg-white/60"
+                    )}>
+                      <span className="text-[11px] font-bold text-slate-900 dark:text-white block">Custom Pages</span>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Input
+                          type="number"
+                          min="1"
+                          step="1"
+                          placeholder="4"
+                          value={maxPages}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10) || 1;
+                            setValue('maxPages', val, { shouldDirty: true, shouldValidate: true });
+                          }}
+                          className="h-7 text-xs font-bold px-2"
+                        />
+                        <span className="text-[10px] text-slate-400 font-semibold shrink-0">pgs</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-4 space-y-1">
+                    <Label htmlFor="backSideCost" className={cn(
+                      "text-xs font-semibold flex items-center justify-between",
+                      maxPages > 1 ? "text-slate-800 dark:text-slate-200" : "text-slate-400"
+                    )}>
+                      <span>Back-Side Surcharge (₹)</span>
+                      {maxPages > 1 && <span className="text-[10px] text-indigo-600 font-medium">per piece</span>}
                     </Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-black">₹</span>
+                      <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">₹</span>
                       <Input
-                        id="price"
+                        id="backSideCost"
                         type="number"
                         step="0.01"
                         placeholder="0.00"
-                        className="h-10 rounded-xl pl-8 bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-800/80 font-black text-base text-amber-700 dark:text-amber-300"
-                        {...register('price')}
+                        disabled={maxPages <= 1}
+                        className={cn(
+                          "h-10 rounded-xl pl-8 font-semibold",
+                          maxPages > 1 ? "bg-white dark:bg-slate-900" : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                        )}
+                        {...register('backSideCost')}
                       />
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                      GST Rate Mode
+              {/* Quantity Price Slabs Table */}
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <Coins className="w-4 h-4 text-amber-600" /> Quantity Price Slabs ({priceSlabs.length})
                     </Label>
-                    <Select
-                      value={taxSlabs[0]?.rate?.toString() || '18'}
-                      onValueChange={(val) => {
-                        const num = Number(val);
-                        const updated = taxSlabs.length > 0 ? [...taxSlabs] : [{ id: 'tax-1', name: 'GST', rate: 18, isInclusive: false, isActive: true }];
-                        updated[0] = { ...updated[0], rate: num, name: num === 0 ? 'Exempt' : `GST ${num}%` };
-                        setValue('taxSlabs', updated, { shouldDirty: true });
-                      }}
-                    >
-                      <SelectTrigger className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="18" className="font-bold">GST 18% (Standard Print)</SelectItem>
-                        <SelectItem value="12" className="font-bold">GST 12%</SelectItem>
-                        <SelectItem value="5" className="font-bold">GST 5%</SelectItem>
-                        <SelectItem value="28" className="font-bold">GST 28%</SelectItem>
-                        <SelectItem value="0" className="font-bold">Exempt 0%</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <p className="text-[11px] text-muted-foreground">Fixed bundle pricing for defined order quantities.</p>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                      Tax Application
-                    </Label>
-                    <Select
-                      value={taxSlabs[0]?.isInclusive ? 'inclusive' : 'exclusive'}
-                      onValueChange={(val) => {
-                        const isInc = val === 'inclusive';
-                        const updated = taxSlabs.length > 0 ? [...taxSlabs] : [{ id: 'tax-1', name: 'GST', rate: 18, isInclusive: false, isActive: true }];
-                        updated[0] = { ...updated[0], isInclusive: isInc };
-                        setValue('taxSlabs', updated, { shouldDirty: true });
-                      }}
-                    >
-                      <SelectTrigger className="h-10 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="exclusive">Exclusive (+ Added extra)</SelectItem>
-                        <SelectItem value="inclusive">Inclusive (Included in price)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const currentSlabs = watch('priceSlabs') || [];
+                      const nextQty = currentSlabs.length === 0 ? 100 : (Number(currentSlabs[currentSlabs.length - 1].quantity) * 2);
+                      const nextPrice = currentSlabs.length === 0 ? 200 : (Number(currentSlabs[currentSlabs.length - 1].price) * 1.8);
+                      const newSlab = {
+                        id: `slab-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                        quantity: nextQty,
+                        price: Math.round(nextPrice),
+                        isActive: true,
+                      };
+                      setValue('priceSlabs', [...currentSlabs, newSlab], { shouldDirty: true });
+                    }}
+                    className="h-8 rounded-lg text-xs font-semibold border-amber-200 text-amber-700 hover:bg-amber-50"
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" /> Add Slab
+                  </Button>
                 </div>
 
-                {/* Printing Sides Configuration (Single vs Double Sided) */}
-                <div className="p-4 bg-slate-50/90 dark:bg-slate-950/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <Label className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                        <Copy className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                        Printing Sides Configuration
-                      </Label>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Specify if this variant is single-sided only or allows customers to choose front & back double-sided printing.
-                      </p>
-                    </div>
-                    {maxPages > 1 ? (
-                      <Badge className="bg-indigo-600 text-white hover:bg-indigo-700 text-[10px] font-black tracking-wide px-2.5 py-0.5 rounded-lg shrink-0">
-                        Double-Sided Enabled (2 Sides)
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 text-[10px] font-bold px-2.5 py-0.5 rounded-lg shrink-0">
-                        Single-Sided Only (1 Side)
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center pt-1">
-                    {/* Interactive Selection Cards */}
-                    <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setValue('maxPages', 1, { shouldDirty: true, shouldValidate: true });
-                        }}
-                        className={cn(
-                          "flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all duration-150",
-                          maxPages <= 1
-                            ? "border-indigo-600 bg-white dark:bg-slate-900 shadow-sm ring-2 ring-indigo-500/20"
-                            : "border-slate-200/90 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-                          maxPages <= 1
-                            ? "bg-indigo-600 text-white shadow-xs"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                        )}>
-                          <FileText className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-black text-slate-900 dark:text-white">Single Sided Only</span>
-                            {maxPages <= 1 && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Front page only (1 side)</p>
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setValue('maxPages', 2, { shouldDirty: true, shouldValidate: true });
-                        }}
-                        className={cn(
-                          "flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all duration-150",
-                          maxPages > 1
-                            ? "border-indigo-600 bg-white dark:bg-slate-900 shadow-sm ring-2 ring-indigo-500/20"
-                            : "border-slate-200/90 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-                          maxPages > 1
-                            ? "bg-indigo-600 text-white shadow-xs"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                        )}>
-                          <Copy className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-black text-slate-900 dark:text-white">Double Sided Allowed</span>
-                            {maxPages > 1 && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">Customer chooses 1 or 2 sides</p>
-                        </div>
-                      </button>
-                    </div>
-
-                    {/* Back-Side Surcharge Input */}
-                    <div className="md:col-span-4 space-y-1.5">
-                      <Label htmlFor="backSideCost" className={cn(
-                        "text-xs font-bold uppercase tracking-wider flex items-center justify-between",
-                        maxPages > 1 ? "text-slate-800 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"
-                      )}>
-                        <span>Back-Side Add-on (₹)</span>
-                        {maxPages > 1 ? (
-                          <span className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400">per piece surcharge</span>
-                        ) : (
-                          <span className="text-[10px] font-normal text-slate-400">Not Applicable</span>
-                        )}
-                      </Label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">₹</span>
-                        <Input
-                          id="backSideCost"
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          disabled={maxPages <= 1}
-                          className={cn(
-                            "h-10 rounded-xl pl-8 font-bold",
-                            maxPages > 1
-                              ? "bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-800/80 text-indigo-900 dark:text-indigo-200 focus-visible:ring-indigo-500"
-                              : "bg-slate-100/70 dark:bg-slate-900/40 text-slate-400 border-slate-200 dark:border-slate-800 cursor-not-allowed"
-                          )}
-                          {...register('backSideCost')}
-                        />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">
-                        {maxPages > 1
-                          ? "Added to unit price when customer chooses 'Front & Back'."
-                          : "Enable 'Double Sided Allowed' above to configure surcharge."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quantity Price Slabs Table */}
-                <div className="space-y-3 pt-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <Label className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <Coins className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                        Quantity Package Slabs ({priceSlabs.length})
-                      </Label>
-                      <p className="text-[11px] text-muted-foreground">Fixed price package bundles for defined quantity tiers.</p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const currentSlabs = watch('priceSlabs') || [];
-                          const nextQty = currentSlabs.length === 0 ? 100 : (Number(currentSlabs[currentSlabs.length - 1].quantity) * 2);
-                          const nextPrice = currentSlabs.length === 0 ? 200 : (Number(currentSlabs[currentSlabs.length - 1].price) * 1.8);
-                          const newSlab = {
-                            id: `slab-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-                            quantity: nextQty,
-                            price: Math.round(nextPrice),
-                            isActive: true,
-                          };
-                          setValue('priceSlabs', [...currentSlabs, newSlab], { shouldDirty: true });
-                        }}
-                        className="h-8.5 rounded-xl text-xs font-bold border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50"
-                      >
-                        <Plus className="mr-1 h-3.5 w-3.5" /> Add Slab
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Quick Presets Bar */}
-                  <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-100 dark:border-amber-900/40 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 mr-1 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> Quick Add:
-                    </span>
-                    {[
-                      { qty: 100, price: 200 },
-                      { qty: 250, price: 450 },
-                      { qty: 500, price: 800 },
-                      { qty: 1000, price: 1400 },
-                      { qty: 2500, price: 3200 },
-                      { qty: 5000, price: 6000 },
-                    ].map((preset) => (
-                      <Button
-                        key={preset.qty}
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const currentSlabs = watch('priceSlabs') || [];
-                          const exists = currentSlabs.some((s: any) => Number(s.quantity) === preset.qty);
-                          if (!exists) {
-                            setValue('priceSlabs', [
-                              ...currentSlabs,
-                              {
-                                id: `slab-${Date.now()}-${preset.qty}`,
-                                quantity: preset.qty,
-                                price: preset.price,
-                                isActive: true,
-                              }
-                            ].sort((a: any, b: any) => Number(a.quantity) - Number(b.quantity)), { shouldDirty: true });
-                          }
-                        }}
-                        className="h-6.5 px-2 text-[11px] font-bold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-500 hover:text-amber-600"
-                      >
-                        +{preset.qty} Pcs (₹{preset.price})
-                      </Button>
-                    ))}
-                  </div>
-
-                  {/* Slabs List */}
-                  {priceSlabs.length === 0 ? (
-                    <div className="py-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-950/50 gap-1.5">
-                      <Coins className="w-6 h-6 text-slate-300 dark:text-slate-700" />
-                      <p className="text-xs font-bold text-slate-500">No Quantity Price Slabs Configured</p>
-                      <p className="text-[11px] text-muted-foreground">Select presets above or click Add Slab to specify bundle pricing.</p>
-                    </div>
-                  ) : (
-                    <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
-                      {/* Table Header */}
-                      <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-950 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                        <div className="col-span-3 sm:col-span-3">Quantity (Cards/Pcs)</div>
-                        <div className="col-span-4 sm:col-span-3">Total Package Price (₹)</div>
-                        <div className="col-span-3 sm:col-span-3">Est. Rate / Piece</div>
-                        <div className="col-span-1 sm:col-span-2 text-center">Status</div>
-                        <div className="col-span-1 sm:col-span-1 text-right">Delete</div>
-                      </div>
-
-                      {priceSlabs.map((slabItem: any, idx: number) => {
-                        const qtyVal = Number(slabItem.quantity) || 1;
-                        const priceVal = Number(slabItem.price) || 0;
-                        const unitRate = (priceVal / qtyVal).toFixed(2);
-
-                        return (
-                          <div
-                            key={slabItem.id || idx}
-                            className={cn(
-                              "grid grid-cols-12 gap-3 items-center px-4 py-2.5 transition-colors",
-                              slabItem.isActive ? "bg-white dark:bg-slate-900" : "bg-slate-50/70 dark:bg-slate-950/60 opacity-60"
-                            )}
-                          >
-                            <div className="col-span-3 sm:col-span-3">
-                              <Input
-                                type="number"
-                                min="1"
-                                value={slabItem.quantity}
-                                onChange={(e) => {
-                                  const updated = [...priceSlabs];
-                                  updated[idx].quantity = parseInt(e.target.value, 10) || 0;
-                                  setValue('priceSlabs', updated, { shouldDirty: true });
-                                }}
-                                className="h-8.5 rounded-lg bg-slate-50 dark:bg-slate-950 text-xs font-bold"
-                              />
-                            </div>
-
-                            <div className="col-span-4 sm:col-span-3 relative">
-                              <span className="absolute left-2.5 top-2 text-slate-400 text-xs font-bold">₹</span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={slabItem.price}
-                                onChange={(e) => {
-                                  const updated = [...priceSlabs];
-                                  updated[idx].price = parseFloat(e.target.value) || 0;
-                                  setValue('priceSlabs', updated, { shouldDirty: true });
-                                }}
-                                className="h-8.5 rounded-lg pl-6 bg-slate-50 dark:bg-slate-950 text-xs font-black text-amber-600 dark:text-amber-400"
-                              />
-                            </div>
-
-                            <div className="col-span-3 sm:col-span-3">
-                              <Badge variant="outline" className="text-[11px] font-mono font-bold bg-slate-50 dark:bg-slate-950 border-slate-200">
-                                ≈ ₹{unitRate} / pc
-                              </Badge>
-                            </div>
-
-                            <div className="col-span-1 sm:col-span-2 flex items-center justify-center">
-                              <Switch
-                                checked={slabItem.isActive ?? true}
-                                onCheckedChange={(val) => {
-                                  const updated = [...priceSlabs];
-                                  updated[idx].isActive = val;
-                                  setValue('priceSlabs', updated, { shouldDirty: true });
-                                }}
-                                className="data-[state=checked]:bg-amber-600"
-                              />
-                            </div>
-
-                            <div className="col-span-1 sm:col-span-1 flex justify-end">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setValue('priceSlabs', priceSlabs.filter((_, i) => i !== idx), { shouldDirty: true });
-                                }}
-                                className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-              </CardContent>
-            </Card>
-          </section>
-        )}
-
-        {/* ═════════════════════════════════════════════════════════════════ */}
-        {/* STEP 3: VARIANTS, SIZES & DIMENSIONS                             */}
-        {/* ═════════════════════════════════════════════════════════════════ */}
-        {(activeTab === 'all' || activeTab === 'variants') && (
-          <section id="section-variants" className="scroll-mt-20">
-            <Card className="border border-slate-200/90 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800/90 pb-4 bg-slate-50/50 dark:bg-slate-950/50 flex flex-row items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-black text-xs flex items-center justify-center">
-                      03
-                    </span>
-                    <CardTitle className="text-base font-black text-slate-900 dark:text-white">
-                      Product Sizes & Dimension Variants ({sizes.length})
-                    </CardTitle>
-                  </div>
-                  <CardDescription className="text-xs">
-                    Configure standard and custom size choices for customer selection with individual price adjustments.
-                  </CardDescription>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const currentSizes = watch('sizes') || [];
-                    const newSize = {
-                      id: `size-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-                      name: `Size Option ${currentSizes.length + 1}`,
-                      width: Number(watch('width') || 85),
-                      height: Number(watch('height') || 55),
-                      unit: (watch('unitType') || 'mm') as any,
-                      priceAdjustment: 0,
-                      isDefault: currentSizes.length === 0,
-                      isActive: true,
-                    };
-                    setValue('sizes', [...currentSizes, newSize], { shouldDirty: true });
-                  }}
-                  className="h-8.5 rounded-xl text-xs font-bold border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 shrink-0"
-                >
-                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Custom Size
-                </Button>
-              </CardHeader>
-              <CardContent className="p-6 space-y-5">
-                
-                {/* Base Blueprint Dimension Bar */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Default Unit</Label>
-                    <Controller
-                      name="unitType"
-                      control={control}
-                      render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="h-9 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            <SelectItem value="mm" className="font-bold">Millimeters (mm)</SelectItem>
-                            <SelectItem value="inch" className="font-bold">Inches (inch)</SelectItem>
-                            <SelectItem value="ft" className="font-bold">Feet (ft)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Base Width</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      className="h-9 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-xs"
-                      {...register('width')}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Base Height</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      className="h-9 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold text-xs"
-                      {...register('height')}
-                    />
-                  </div>
-                </div>
-
-                {/* Quick Add Presets Bar */}
-                <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mr-1 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" /> Popular Presets:
+                {/* Quick Presets */}
+                <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200/60 dark:border-amber-900/40 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mr-1 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> Quick Add:
                   </span>
                   {[
-                    { name: 'Standard (85 × 55 mm)', width: 85, height: 55, unit: 'mm' },
-                    { name: 'Square (65 × 65 mm)', width: 65, height: 65, unit: 'mm' },
-                    { name: 'Slim (90 × 45 mm)', width: 90, height: 45, unit: 'mm' },
-                    { name: 'A6 (105 × 148 mm)', width: 105, height: 148, unit: 'mm' },
-                    { name: 'A5 (148 × 210 mm)', width: 148, height: 210, unit: 'mm' },
-                    { name: 'A4 (210 × 297 mm)', width: 210, height: 297, unit: 'mm' },
-                    { name: 'Photo (4 × 6 in)', width: 4, height: 6, unit: 'inch' },
+                    { qty: 100, price: 200 },
+                    { qty: 250, price: 450 },
+                    { qty: 500, price: 800 },
+                    { qty: 1000, price: 1400 },
+                    { qty: 2500, price: 3200 },
+                    { qty: 5000, price: 6000 },
                   ].map((preset) => (
                     <Button
-                      key={preset.name}
+                      key={preset.qty}
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        const currentSizes = watch('sizes') || [];
-                        const exists = currentSizes.some((s: any) => s.width === preset.width && s.height === preset.height && s.unit === preset.unit);
+                        const currentSlabs = watch('priceSlabs') || [];
+                        const exists = currentSlabs.some((s: any) => Number(s.quantity) === preset.qty);
                         if (!exists) {
-                          setValue('sizes', [
-                            ...currentSizes,
+                          setValue('priceSlabs', [
+                            ...currentSlabs,
                             {
-                              id: `size-${Date.now()}-${preset.width}x${preset.height}`,
-                              name: preset.name,
-                              width: preset.width,
-                              height: preset.height,
-                              unit: preset.unit as any,
-                              priceAdjustment: 0,
-                              isDefault: currentSizes.length === 0,
+                              id: `slab-${Date.now()}-${preset.qty}`,
+                              quantity: preset.qty,
+                              price: preset.price,
                               isActive: true,
                             }
-                          ], { shouldDirty: true });
+                          ].sort((a: any, b: any) => Number(a.quantity) - Number(b.quantity)), { shouldDirty: true });
                         }
                       }}
-                      className="h-6.5 px-2 text-[11px] font-bold rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:text-indigo-600"
+                      className="h-6.5 px-2 text-[11px] font-medium rounded-lg bg-white dark:bg-slate-900 border border-slate-200 hover:border-amber-500 hover:text-amber-600"
                     >
-                      +{preset.name}
+                      +{preset.qty} Pcs (₹{preset.price})
                     </Button>
                   ))}
                 </div>
 
-                {/* Size Variants Table */}
-                {sizes.length === 0 ? (
-                  <div className="py-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-950/50 gap-1.5">
-                    <Ruler className="w-6 h-6 text-slate-300 dark:text-slate-700" />
-                    <p className="text-xs font-bold text-slate-500">Using standard dimensions ({width} × {height} {unitType})</p>
-                    <p className="text-[11px] text-muted-foreground">Select presets above to offer multiple size options.</p>
+                {/* Table */}
+                {priceSlabs.length === 0 ? (
+                  <div className="py-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center text-center text-slate-400 gap-1">
+                    <Coins className="w-5 h-5" />
+                    <span className="text-xs font-medium">No quantity price slabs configured yet</span>
                   </div>
                 ) : (
-                  <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 shadow-xs">
-                    {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-950 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                      <div className="col-span-4">Size Name / Label</div>
-                      <div className="col-span-2">Width</div>
-                      <div className="col-span-2">Height</div>
-                      <div className="col-span-2">Price Adj. (₹)</div>
-                      <div className="col-span-1 text-center">Default</div>
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                    <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-950 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      <div className="col-span-3">Quantity (Pcs)</div>
+                      <div className="col-span-4 sm:col-span-3">Total Price (₹)</div>
+                      <div className="col-span-3 sm:col-span-3">Rate / Piece</div>
+                      <div className="col-span-1 sm:col-span-2 text-center">Status</div>
                       <div className="col-span-1 text-right">Delete</div>
                     </div>
 
-                    {sizes.map((sizeItem: any, idx: number) => (
-                      <div
-                        key={sizeItem.id || idx}
-                        className={cn(
-                          "grid grid-cols-12 gap-3 items-center px-4 py-2.5 transition-colors",
-                          sizeItem.isActive ? "bg-white dark:bg-slate-900" : "bg-slate-50/70 dark:bg-slate-950/60 opacity-60"
-                        )}
-                      >
-                        <div className="col-span-4">
-                          <Input
-                            placeholder="e.g. Standard"
-                            value={sizeItem.name}
-                            onChange={(e) => {
-                              const updated = [...sizes];
-                              updated[idx].name = e.target.value;
-                              setValue('sizes', updated, { shouldDirty: true });
-                            }}
-                            className="h-8.5 rounded-lg bg-slate-50 dark:bg-slate-950 text-xs font-bold"
-                          />
-                        </div>
+                    {priceSlabs.map((slabItem: any, idx: number) => {
+                      const qtyVal = Number(slabItem.quantity) || 1;
+                      const priceVal = Number(slabItem.price) || 0;
+                      const unitRate = (priceVal / qtyVal).toFixed(2);
 
-                        <div className="col-span-2 relative">
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={sizeItem.width}
-                            onChange={(e) => {
-                              const updated = [...sizes];
-                              updated[idx].width = parseFloat(e.target.value) || 0;
-                              setValue('sizes', updated, { shouldDirty: true });
-                            }}
-                            className="h-8.5 rounded-lg pr-7 bg-slate-50 dark:bg-slate-950 text-xs font-bold"
-                          />
-                          <span className="absolute right-2 top-2 text-[10px] font-bold text-slate-400 pointer-events-none">
-                            {sizeItem.unit || watch('unitType') || 'mm'}
-                          </span>
-                        </div>
-
-                        <div className="col-span-2 relative">
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={sizeItem.height}
-                            onChange={(e) => {
-                              const updated = [...sizes];
-                              updated[idx].height = parseFloat(e.target.value) || 0;
-                              setValue('sizes', updated, { shouldDirty: true });
-                            }}
-                            className="h-8.5 rounded-lg pr-7 bg-slate-50 dark:bg-slate-950 text-xs font-bold"
-                          />
-                          <span className="absolute right-2 top-2 text-[10px] font-bold text-slate-400 pointer-events-none">
-                            {sizeItem.unit || watch('unitType') || 'mm'}
-                          </span>
-                        </div>
-
-                        <div className="col-span-2 relative">
-                          <span className="absolute left-2.5 top-2 text-slate-400 text-xs font-bold">₹</span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={sizeItem.priceAdjustment ?? 0}
-                            onChange={(e) => {
-                              const updated = [...sizes];
-                              updated[idx].priceAdjustment = parseFloat(e.target.value) || 0;
-                              setValue('sizes', updated, { shouldDirty: true });
-                            }}
-                            className="h-8.5 rounded-lg pl-6 bg-slate-50 dark:bg-slate-950 text-xs font-bold"
-                          />
-                        </div>
-
-                        <div className="col-span-1 flex justify-center">
-                          {sizeItem.isDefault ? (
-                            <Badge className="bg-indigo-600 text-white text-[9px] font-black px-2 py-0.5 shadow-xs">
-                              Default
-                            </Badge>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = sizes.map((s: any, i: number) => ({
-                                  ...s,
-                                  isDefault: i === idx,
-                                }));
-                                setValue('sizes', updated, { shouldDirty: true });
-                              }}
-                              className="text-[10px] font-bold text-slate-400 hover:text-indigo-600 transition-colors"
-                            >
-                              Set Default
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="col-span-1 flex justify-end">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setValue('sizes', sizes.filter((_, i) => i !== idx), { shouldDirty: true });
-                            }}
-                            className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-              </CardContent>
-            </Card>
-          </section>
-        )}
-
-        {/* ═════════════════════════════════════════════════════════════════ */}
-        {/* STEP 4: FINISHES, FOILS, DIE-CUTS & TEXTURES                    */}
-        {/* ═════════════════════════════════════════════════════════════════ */}
-        {(activeTab === 'all' || activeTab === 'finishes') && (
-          <section id="section-finishes" className="scroll-mt-20">
-            <Card className="border border-slate-200/90 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800/90 pb-4 bg-slate-50/50 dark:bg-slate-950/50 flex flex-row items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-black text-xs flex items-center justify-center">
-                      04
-                    </span>
-                    <CardTitle className="text-base font-black text-slate-900 dark:text-white">
-                      Print Finishes & Shape Enhancements
-                    </CardTitle>
-                  </div>
-                  <CardDescription className="text-xs">
-                    Spot UV, metallic foil accents, specialty paper textures, and custom die cuts.
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  
-                  {/* Left Column: Finishes & Specialty Papers (6 cols) */}
-                  <div className="lg:col-span-6 space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="spotUvAllowed" className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                          Spot UV Coating Option
-                        </Label>
-                        <p className="text-[11px] text-muted-foreground">Enable glossy raised UV varnish accent selection on storefront.</p>
-                      </div>
-                      <Controller
-                        name="spotUvAllowed"
-                        control={control}
-                        render={({ field }) => (
-                          <Switch
-                            id="spotUvAllowed"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="data-[state=checked]:bg-indigo-600"
-                          />
-                        )}
-                      />
-                    </div>
-
-                    {spotUvAllowed && (
-                      <div className="space-y-2 p-4 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
-                        <Label className="text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider">
-                          Allowed Metallic Foil Finishes
-                        </Label>
-                        <Controller
-                          name="allowedFoils"
-                          control={control}
-                          render={({ field }) => (
-                            <MultiSelect
-                              items={foilTypes}
-                              selected={field.value || []}
-                              onChange={field.onChange}
-                              placeholder="Select allowed metallic foils..."
-                            />
-                          )}
-                        />
-                      </div>
-                    )}
-
-                    {/* Paper Textures Card */}
-                    <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Allowed Card Textures
-                        </Label>
-                        <Controller
-                          name="allowedCardTextures"
-                          control={control}
-                          render={({ field }) => (
-                            <MultiSelect
-                              items={cardTextures}
-                              selected={field.value || []}
-                              onChange={(newSelected) => {
-                                field.onChange(newSelected);
-                                const currentPrices = watch('cardTexturePrices') || {};
-                                const newPrices = { ...currentPrices };
-                                newSelected.forEach((id) => {
-                                  if (newPrices[id] === undefined) {
-                                    const ct = cardTextures.find((c) => c.id === id);
-                                    newPrices[id] = Number(ct?.amount || 0);
-                                  }
-                                });
-                                setValue('cardTexturePrices', newPrices, { shouldDirty: true });
-                              }}
-                              placeholder="Select paper textures..."
-                            />
-                          )}
-                        />
-                      </div>
-
-                      {(watch('allowedCardTextures') || []).length > 0 && (
-                        <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Texture Unit Overrides (₹)
-                          </p>
-                          <div className="grid grid-cols-2 gap-2">
-                            {(watch('allowedCardTextures') || []).map((id) => {
-                              const ct = cardTextures.find((c) => c.id === id);
-                              if (!ct) return null;
-                              const currentPrices = watch('cardTexturePrices') || {};
-                              return (
-                                <div
-                                  key={id}
-                                  className="flex items-center justify-between gap-2 p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs"
-                                >
-                                  <span className="text-xs font-bold truncate">{ct.name}</span>
-                                  <div className="relative w-20">
-                                    <span className="absolute left-2 top-1.5 text-[10px] text-slate-400 font-bold">₹</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      className="h-7 pl-5 text-xs font-bold"
-                                      value={currentPrices[id] ?? Number(ct.amount || 0)}
-                                      onChange={(e) => {
-                                        const val = parseFloat(e.target.value) || 0;
-                                        setValue('cardTexturePrices', { ...currentPrices, [id]: val }, { shouldDirty: true });
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right Column: Custom Die Cuts (6 cols) */}
-                  <div className="lg:col-span-6 space-y-4">
-                    <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Allowed Custom Die Cuts
-                        </Label>
-                        <Controller
-                          name="allowedDieCuts"
-                          control={control}
-                          render={({ field }) => (
-                            <MultiSelect
-                              items={dieCuts}
-                              selected={field.value || []}
-                              onChange={(newSelected) => {
-                                field.onChange(newSelected);
-                                const currentPrices = watch('dieCutPrices') || {};
-                                const newPrices = { ...currentPrices };
-                                newSelected.forEach((id) => {
-                                  if (newPrices[id] === undefined) {
-                                    const dc = dieCuts.find((d) => d.id === id);
-                                    newPrices[id] = Number(dc?.amount || 0);
-                                  }
-                                });
-                                setValue('dieCutPrices', newPrices, { shouldDirty: true });
-                              }}
-                              placeholder="Select die-cut patterns..."
-                            />
-                          )}
-                        />
-                      </div>
-
-                      {(watch('allowedDieCuts') || []).length > 0 && (
-                        <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Die-Cut Unit Overrides (₹)
-                          </p>
-                          <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
-                            {(watch('allowedDieCuts') || []).map((id) => {
-                              const dc = dieCuts.find((d) => d.id === id);
-                              if (!dc) return null;
-                              const currentPrices = watch('dieCutPrices') || {};
-                              return (
-                                <div
-                                  key={id}
-                                  className="flex items-center justify-between gap-2 p-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs"
-                                >
-                                  <span className="text-xs font-bold truncate">{dc.name}</span>
-                                  <div className="relative w-20">
-                                    <span className="absolute left-2 top-1.5 text-[10px] text-slate-400 font-bold">₹</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      className="h-7 pl-5 text-xs font-bold"
-                                      value={currentPrices[id] ?? Number(dc.amount || 0)}
-                                      onChange={(e) => {
-                                        const val = parseFloat(e.target.value) || 0;
-                                        setValue('dieCutPrices', { ...currentPrices, [id]: val }, { shouldDirty: true });
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Full-width Section: Custom Add-ons */}
-                  <div className="lg:col-span-12 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
-                    <div className="p-5 bg-gradient-to-r from-purple-500/5 via-indigo-500/5 to-slate-50 dark:to-slate-950 rounded-2xl border border-purple-500/20 dark:border-purple-500/30 space-y-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                            <Label className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                              Allowed Custom Add-ons
-                            </Label>
-                            <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-600 border-purple-500/20 px-2 py-0.5 font-bold">
-                              Multi-Select Enabled
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            Select bespoke custom add-ons (coatings, accessories, rush jobs) available for multi-selection on the customer design page.
-                          </p>
-                        </div>
-                        <Link 
-                          href="/admin/addons" 
-                          target="_blank" 
-                          className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 self-start sm:self-auto hover:underline"
-                        >
-                          Manage Add-on Catalog &rarr;
-                        </Link>
-                      </div>
-
-                      <Controller
-                        name="allowedCustomAddons"
-                        control={control}
-                        render={({ field }) => (
-                          <MultiSelect
-                            items={customAddons}
-                            selected={field.value || []}
-                            onChange={(newSelected) => {
-                              field.onChange(newSelected);
-                              const currentPrices = watch('customAddonPrices') || {};
-                              const newPrices = { ...currentPrices };
-                              newSelected.forEach((id) => {
-                                if (newPrices[id] === undefined) {
-                                  const ca = customAddons.find((c) => c.id === id);
-                                  newPrices[id] = Number(ca?.price || 0);
-                                }
-                              });
-                              setValue('customAddonPrices', newPrices, { shouldDirty: true });
-                            }}
-                            placeholder="Select allowed custom add-ons..."
-                          />
-                        )}
-                      />
-
-                      {(watch('allowedCustomAddons') || []).length > 0 && (
-                        <div className="space-y-2 pt-3 border-t border-purple-200/50 dark:border-purple-900/30">
-                          <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <DollarSign className="w-3.5 h-3.5 text-purple-600" />
-                            Custom Add-on Price Overrides for this Variant
-                          </p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {(watch('allowedCustomAddons') || []).map((id) => {
-                              const ca = customAddons.find((c) => c.id === id);
-                              if (!ca) return null;
-                              const currentPrices = watch('customAddonPrices') || {};
-                              const isFixed = ca.pricingType === 'fixed';
-                              return (
-                                <div
-                                  key={id}
-                                  className="flex items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs"
-                                >
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-black truncate text-slate-900 dark:text-white">{ca.name}</p>
-                                    <span className="text-[10px] font-semibold text-slate-400">
-                                      {isFixed ? 'Fixed Flat Fee' : 'Per Unit Rate'} (catalog ₹{Number(ca.price).toFixed(2)})
-                                    </span>
-                                  </div>
-                                  <div className="relative w-24 shrink-0">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">₹</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      className="h-8 pl-6 text-xs font-bold"
-                                      value={currentPrices[id] ?? Number(ca.price || 0)}
-                                      onChange={(e) => {
-                                        const val = parseFloat(e.target.value) || 0;
-                                        setValue('customAddonPrices', { ...currentPrices, [id]: val }, { shouldDirty: true });
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Sub-product Level Custom Add-on Sections */}
-                  <div className="lg:col-span-12 pt-4 border-t border-slate-200 dark:border-slate-800">
-                    <CustomAddonSectionsBuilder
-                      sections={watch('customAddonSections') || []}
-                      onChange={(newSections) => setValue('customAddonSections', newSections, { shouldDirty: true })}
-                    />
-                  </div>
-
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-        )}
-
-        {/* ═════════════════════════════════════════════════════════════════ */}
-        {/* STEP 5: DELIVERY & PRODUCTION PATHWAYS                           */}
-        {/* ═════════════════════════════════════════════════════════════════ */}
-        {(activeTab === 'all' || activeTab === 'delivery') && (
-          <section id="section-delivery" className="scroll-mt-20">
-            <Card className="border border-slate-200/90 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800/90 pb-4 bg-slate-50/50 dark:bg-slate-950/50 flex flex-row items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-black text-xs flex items-center justify-center">
-                      05
-                    </span>
-                    <CardTitle className="text-base font-black text-slate-900 dark:text-white">
-                      Delivery & Creation Pathways
-                    </CardTitle>
-                  </div>
-                  <CardDescription className="text-xs">
-                    Order quantities, standard turnaround, expedited tiers, and customer ordering workflows.
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  
-                  {/* Delivery Controls (6 cols) */}
-                  <div className="lg:col-span-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="minOrderQuantity" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Min Quantity <span className="text-rose-500">*</span>
-                        </Label>
-                        <Input
-                          id="minOrderQuantity"
-                          type="number"
-                          placeholder="100"
-                          className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-bold"
-                          {...register('minOrderQuantity')}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="maxOrderQuantity" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Max Quantity <span className="text-rose-500">*</span>
-                        </Label>
-                        <Input
-                          id="maxOrderQuantity"
-                          type="number"
-                          placeholder="10000"
-                          className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-bold"
-                          {...register('maxOrderQuantity')}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 pt-1">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="deliveryDays" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Turnaround Days
-                        </Label>
-                        <Input
-                          id="deliveryDays"
-                          placeholder="3-5 Business Days"
-                          className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-semibold text-xs"
-                          {...register('deliveryDays')}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="deliveryAmount" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Standard Shipping (₹)
-                        </Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-2.5 text-slate-400 text-xs font-bold">₹</span>
-                          <Input
-                            id="deliveryAmount"
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            className="h-10 rounded-xl pl-7 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-bold"
-                            {...register('deliveryAmount')}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Expedited Tiers */}
-                    <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                      <div className="flex justify-between items-center">
-                        <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Expedited Shipping Tiers ({deliveryTiers.length})
-                        </Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={addDeliveryTier}
-                          className="h-7.5 rounded-xl text-xs font-bold"
-                        >
-                          <Plus className="mr-1 h-3 w-3" /> Add Tier
-                        </Button>
-                      </div>
-
-                      {deliveryTiers.map((tier, idx) => (
+                      return (
                         <div
-                          key={tier.id || idx}
-                          className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2"
+                          key={slabItem.id || idx}
+                          className={cn(
+                            "grid grid-cols-12 gap-3 items-center px-4 py-2 transition-colors",
+                            slabItem.isActive ? "bg-white dark:bg-slate-900" : "bg-slate-50/70 opacity-60"
+                          )}
                         >
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
-                              Tier #{idx + 1}
-                            </span>
+                          <div className="col-span-3">
+                            <Input
+                              type="number"
+                              min="1"
+                              value={slabItem.quantity}
+                              onChange={(e) => {
+                                const updated = [...priceSlabs];
+                                updated[idx].quantity = parseInt(e.target.value, 10) || 0;
+                                setValue('priceSlabs', updated, { shouldDirty: true });
+                              }}
+                              className="h-8 rounded-lg text-xs font-bold"
+                            />
+                          </div>
+
+                          <div className="col-span-4 sm:col-span-3 relative">
+                            <span className="absolute left-2.5 top-2 text-slate-400 text-xs font-bold">₹</span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={slabItem.price}
+                              onChange={(e) => {
+                                const updated = [...priceSlabs];
+                                updated[idx].price = parseFloat(e.target.value) || 0;
+                                setValue('priceSlabs', updated, { shouldDirty: true });
+                              }}
+                              className="h-8 rounded-lg pl-6 text-xs font-bold text-amber-600 dark:text-amber-400"
+                            />
+                          </div>
+
+                          <div className="col-span-3 sm:col-span-3 text-xs font-mono text-slate-600 dark:text-slate-300">
+                            ≈ ₹{unitRate} / pc
+                          </div>
+
+                          <div className="col-span-1 sm:col-span-2 flex items-center justify-center">
+                            <Switch
+                              checked={slabItem.isActive ?? true}
+                              onCheckedChange={(val) => {
+                                const updated = [...priceSlabs];
+                                updated[idx].isActive = val;
+                                setValue('priceSlabs', updated, { shouldDirty: true });
+                              }}
+                              className="data-[state=checked]:bg-amber-600 scale-90"
+                            />
+                          </div>
+
+                          <div className="col-span-1 flex justify-end">
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => removeDeliveryTier(idx)}
-                              className="h-6 w-6 p-0 text-slate-400 hover:text-rose-600"
+                              onClick={() => {
+                                setValue('priceSlabs', priceSlabs.filter((_, i) => i !== idx), { shouldDirty: true });
+                              }}
+                              className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </div>
-
-                          <div className="grid grid-cols-3 gap-2">
-                            <Input
-                              value={tier.name}
-                              placeholder="Name"
-                              onChange={(e) => updateDeliveryTier(idx, 'name', e.target.value)}
-                              className="h-8 text-xs font-bold"
-                            />
-                            <Input
-                              value={tier.estimatedTime}
-                              placeholder="Turnaround"
-                              onChange={(e) => updateDeliveryTier(idx, 'estimatedTime', e.target.value)}
-                              className="h-8 text-xs font-semibold"
-                            />
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={tier.amount}
-                              onChange={(e) => updateDeliveryTier(idx, 'amount', parseFloat(e.target.value) || 0)}
-                              className="h-8 text-xs font-bold"
-                            />
-                          </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
+                )}
+              </div>
 
-                  {/* Pathways (6 cols) */}
-                  <div className="lg:col-span-6 space-y-3">
-                    <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="allowDesignerTool" className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                          <PenSquare className="w-3.5 h-3.5 text-indigo-600" /> Online Designer Tool
-                        </Label>
-                        <p className="text-[11px] text-muted-foreground">Interactive web canvas designer.</p>
-                      </div>
-                      <Controller
-                        name="allowDesignerTool"
-                        control={control}
-                        render={({ field }) => (
-                          <Switch
-                            id="allowDesignerTool"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="data-[state=checked]:bg-indigo-600"
-                          />
-                        )}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="allowFileUpload" className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                          <Upload className="w-3.5 h-3.5 text-indigo-600" /> File Upload (PDF / AI)
-                        </Label>
-                        <p className="text-[11px] text-muted-foreground">Direct print-ready file uploads.</p>
-                      </div>
-                      <Controller
-                        name="allowFileUpload"
-                        control={control}
-                        render={({ field }) => (
-                          <Switch
-                            id="allowFileUpload"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="data-[state=checked]:bg-indigo-600"
-                          />
-                        )}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="allowFreelancerContest" className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                          <Trophy className="w-3.5 h-3.5 text-pink-600" /> Freelancer Contests
-                        </Label>
-                        <p className="text-[11px] text-muted-foreground">Community graphic design requests.</p>
-                      </div>
-                      <Controller
-                        name="allowFreelancerContest"
-                        control={control}
-                        render={({ field }) => (
-                          <Switch
-                            id="allowFreelancerContest"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            className="data-[state=checked]:bg-pink-600"
-                          />
-                        )}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 pt-2">
-                      <Label htmlFor="youtubeUrl" className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                        <Video className="w-3.5 h-3.5 text-rose-500" /> YouTube Video Guide URL
-                      </Label>
-                      <Input
-                        id="youtubeUrl"
-                        type="url"
-                        placeholder="https://www.youtube.com/watch?v=..."
-                        className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-medium"
-                        {...register('youtubeUrl')}
-                      />
-                    </div>
-                  </div>
-
-                </div>
-              </CardContent>
-            </Card>
-          </section>
+            </CardContent>
+          </Card>
         )}
 
         {/* ═════════════════════════════════════════════════════════════════ */}
-        {/* STEP 6: IDENTITY, SKU & SAMPLE FILES                             */}
+        {/* SECTION 3: DIMENSIONS & SIZES                                    */}
         {/* ═════════════════════════════════════════════════════════════════ */}
-        {(activeTab === 'all' || activeTab === 'details') && (
-          <section id="section-details" className="scroll-mt-20">
-            <Card className="border border-slate-200/90 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="border-b border-slate-100 dark:border-slate-800/90 pb-4 bg-slate-50/50 dark:bg-slate-950/50 flex flex-row items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-black text-xs flex items-center justify-center">
-                      06
-                    </span>
-                    <CardTitle className="text-base font-black text-slate-900 dark:text-white">
-                      Identity Details & Starter Templates
-                    </CardTitle>
-                  </div>
-                  <CardDescription className="text-xs">
-                    Variant name, SKU, HSN tax classification, specifications, and downloadable customer templates.
-                  </CardDescription>
+        {(activeTab === 'all' || activeTab === 'sizes') && (
+          <Card className="border border-slate-200 dark:border-slate-800 shadow-xs rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 px-6 py-4 bg-slate-50/40 dark:bg-slate-950/40 flex flex-row items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Ruler className="w-4 h-4 text-indigo-600" />
+                  <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">
+                    Dimensions & Size Variants ({sizes.length})
+                  </CardTitle>
                 </div>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                  <div className="md:col-span-6 space-y-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center justify-between">
-                        <span>Variant Name <span className="text-rose-500">*</span></span>
-                        <span className="text-[10px] text-slate-400 font-medium">Customer Facing</span>
+                <CardDescription className="text-xs text-slate-500">
+                  Default print dimensions and optional customer size variants with price adjustments.
+                </CardDescription>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const currentSizes = watch('sizes') || [];
+                  const newSize = {
+                    id: `size-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                    name: `Size Option ${currentSizes.length + 1}`,
+                    width: Number(watch('width') || 85),
+                    height: Number(watch('height') || 55),
+                    unit: (watch('unitType') || 'mm') as any,
+                    priceAdjustment: 0,
+                    isDefault: currentSizes.length === 0,
+                    isActive: true,
+                  };
+                  setValue('sizes', [...currentSizes, newSize], { shouldDirty: true });
+                }}
+                className="h-8 rounded-lg text-xs font-semibold border-indigo-200 text-indigo-600 hover:bg-indigo-50 shrink-0"
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" /> Add Size
+              </Button>
+            </CardHeader>
+            <CardContent className="p-6 space-y-5">
+
+              {/* Default Dimensions */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Default Unit</Label>
+                  <Controller
+                    name="unitType"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger className="h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-medium">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mm">Millimeters (mm)</SelectItem>
+                          <SelectItem value="inch">Inches (inch)</SelectItem>
+                          <SelectItem value="ft">Feet (ft)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Default Width</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    className="h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                    {...register('width')}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Default Height</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    className="h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                    {...register('height')}
+                  />
+                </div>
+              </div>
+
+              {/* Presets */}
+              <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 mr-1 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Popular Presets:
+                </span>
+                {[
+                  { name: 'Standard (85 × 55 mm)', width: 85, height: 55, unit: 'mm' },
+                  { name: 'Square (65 × 65 mm)', width: 65, height: 65, unit: 'mm' },
+                  { name: 'Slim (90 × 45 mm)', width: 90, height: 45, unit: 'mm' },
+                  { name: 'A6 (105 × 148 mm)', width: 105, height: 148, unit: 'mm' },
+                  { name: 'A5 (148 × 210 mm)', width: 148, height: 210, unit: 'mm' },
+                  { name: 'A4 (210 × 297 mm)', width: 210, height: 297, unit: 'mm' },
+                  { name: 'Photo (4 × 6 in)', width: 4, height: 6, unit: 'inch' },
+                ].map((preset) => (
+                  <Button
+                    key={preset.name}
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const currentSizes = watch('sizes') || [];
+                      const exists = currentSizes.some((s: any) => s.width === preset.width && s.height === preset.height && s.unit === preset.unit);
+                      if (!exists) {
+                        setValue('sizes', [
+                          ...currentSizes,
+                          {
+                            id: `size-${Date.now()}-${preset.width}x${preset.height}`,
+                            name: preset.name,
+                            width: preset.width,
+                            height: preset.height,
+                            unit: preset.unit as any,
+                            priceAdjustment: 0,
+                            isDefault: currentSizes.length === 0,
+                            isActive: true,
+                          }
+                        ], { shouldDirty: true });
+                      }
+                    }}
+                    className="h-6.5 px-2 text-[11px] font-medium rounded-lg bg-white dark:bg-slate-900 border border-slate-200 hover:border-indigo-500 hover:text-indigo-600"
+                  >
+                    +{preset.name}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Sizes Table */}
+              {sizes.length === 0 ? (
+                <div className="py-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center text-center text-slate-400 gap-1">
+                  <Ruler className="w-5 h-5" />
+                  <span className="text-xs font-medium">Using default dimensions ({width} × {height} {unitType})</span>
+                </div>
+              ) : (
+                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                  <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-950 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    <div className="col-span-4">Size Label</div>
+                    <div className="col-span-2">Width</div>
+                    <div className="col-span-2">Height</div>
+                    <div className="col-span-2">Price Adj. (₹)</div>
+                    <div className="col-span-1 text-center">Default</div>
+                    <div className="col-span-1 text-right">Delete</div>
+                  </div>
+
+                  {sizes.map((sizeItem: any, idx: number) => (
+                    <div
+                      key={sizeItem.id || idx}
+                      className={cn(
+                        "grid grid-cols-12 gap-3 items-center px-4 py-2 transition-colors",
+                        sizeItem.isActive ? "bg-white dark:bg-slate-900" : "bg-slate-50/70 opacity-60"
+                      )}
+                    >
+                      <div className="col-span-4">
+                        <Input
+                          placeholder="e.g. Standard"
+                          value={sizeItem.name}
+                          onChange={(e) => {
+                            const updated = [...sizes];
+                            updated[idx].name = e.target.value;
+                            setValue('sizes', updated, { shouldDirty: true });
+                          }}
+                          className="h-8 rounded-lg text-xs font-semibold"
+                        />
+                      </div>
+
+                      <div className="col-span-2 relative">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={sizeItem.width}
+                          onChange={(e) => {
+                            const updated = [...sizes];
+                            updated[idx].width = parseFloat(e.target.value) || 0;
+                            setValue('sizes', updated, { shouldDirty: true });
+                          }}
+                          className="h-8 rounded-lg pr-7 text-xs font-medium"
+                        />
+                        <span className="absolute right-2 top-2 text-[10px] text-slate-400 pointer-events-none">
+                          {sizeItem.unit || watch('unitType') || 'mm'}
+                        </span>
+                      </div>
+
+                      <div className="col-span-2 relative">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={sizeItem.height}
+                          onChange={(e) => {
+                            const updated = [...sizes];
+                            updated[idx].height = parseFloat(e.target.value) || 0;
+                            setValue('sizes', updated, { shouldDirty: true });
+                          }}
+                          className="h-8 rounded-lg pr-7 text-xs font-medium"
+                        />
+                        <span className="absolute right-2 top-2 text-[10px] text-slate-400 pointer-events-none">
+                          {sizeItem.unit || watch('unitType') || 'mm'}
+                        </span>
+                      </div>
+
+                      <div className="col-span-2 relative">
+                        <span className="absolute left-2.5 top-2 text-slate-400 text-xs font-bold">₹</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={sizeItem.priceAdjustment ?? 0}
+                          onChange={(e) => {
+                            const updated = [...sizes];
+                            updated[idx].priceAdjustment = parseFloat(e.target.value) || 0;
+                            setValue('sizes', updated, { shouldDirty: true });
+                          }}
+                          className="h-8 rounded-lg pl-6 text-xs font-semibold"
+                        />
+                      </div>
+
+                      <div className="col-span-1 flex justify-center">
+                        {sizeItem.isDefault ? (
+                          <Badge className="bg-indigo-600 text-white text-[9px] font-bold px-1.5 py-0.5">
+                            Default
+                          </Badge>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = sizes.map((s: any, i: number) => ({
+                                ...s,
+                                isDefault: i === idx,
+                              }));
+                              setValue('sizes', updated, { shouldDirty: true });
+                            }}
+                            className="text-[10px] font-medium text-slate-400 hover:text-indigo-600"
+                          >
+                            Set
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="col-span-1 flex justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setValue('sizes', sizes.filter((_, i) => i !== idx), { shouldDirty: true });
+                          }}
+                          className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ═════════════════════════════════════════════════════════════════ */}
+        {/* SECTION 4: FINISHES & CUSTOM ADD-ONS                              */}
+        {/* ═════════════════════════════════════════════════════════════════ */}
+        {(activeTab === 'all' || activeTab === 'finishes') && (
+          <Card className="border border-slate-200 dark:border-slate-800 shadow-xs rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 px-6 py-4 bg-slate-50/40 dark:bg-slate-950/40">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">
+                  Finishes & Custom Add-ons
+                </CardTitle>
+              </div>
+              <CardDescription className="text-xs text-slate-500">
+                Spot UV varnish, metallic foils, paper textures, die cuts, and custom add-on sections.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Spot UV & Foils */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div>
+                      <Label htmlFor="spotUvAllowed" className="text-xs font-semibold text-slate-900 dark:text-white block">
+                        Spot UV Coating
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground">Enable raised glossy UV coating option.</p>
+                    </div>
+                    <Controller
+                      name="spotUvAllowed"
+                      control={control}
+                      render={({ field }) => (
+                        <Switch
+                          id="spotUvAllowed"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="data-[state=checked]:bg-indigo-600 scale-90"
+                        />
+                      )}
+                    />
+                  </div>
+
+                  {spotUvAllowed && (
+                    <div className="p-4 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30 space-y-1.5">
+                      <Label className="text-xs font-semibold text-indigo-900 dark:text-indigo-300">
+                        Allowed Metallic Foils
+                      </Label>
+                      <Controller
+                        name="allowedFoils"
+                        control={control}
+                        render={({ field }) => (
+                          <MultiSelect
+                            items={foilTypes}
+                            selected={field.value || []}
+                            onChange={field.onChange}
+                            placeholder="Select allowed metallic foils..."
+                          />
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Paper Textures */}
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Allowed Paper Textures
+                    </Label>
+                    <Controller
+                      name="allowedCardTextures"
+                      control={control}
+                      render={({ field }) => (
+                        <MultiSelect
+                          items={cardTextures}
+                          selected={field.value || []}
+                          onChange={(newSelected) => {
+                            field.onChange(newSelected);
+                            const currentPrices = watch('cardTexturePrices') || {};
+                            const newPrices = { ...currentPrices };
+                            newSelected.forEach((id) => {
+                              if (newPrices[id] === undefined) {
+                                const ct = cardTextures.find((c) => c.id === id);
+                                newPrices[id] = Number(ct?.amount || 0);
+                              }
+                            });
+                            setValue('cardTexturePrices', newPrices, { shouldDirty: true });
+                          }}
+                          placeholder="Select paper textures..."
+                        />
+                      )}
+                    />
+
+                    {(watch('allowedCardTextures') || []).length > 0 && (
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                          Texture Surcharges (₹)
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(watch('allowedCardTextures') || []).map((id) => {
+                            const ct = cardTextures.find((c) => c.id === id);
+                            if (!ct) return null;
+                            const currentPrices = watch('cardTexturePrices') || {};
+                            return (
+                              <div
+                                key={id}
+                                className="flex items-center justify-between gap-2 p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800"
+                              >
+                                <span className="text-xs font-medium truncate">{ct.name}</span>
+                                <div className="relative w-16">
+                                  <span className="absolute left-1.5 top-1.5 text-[10px] text-slate-400 font-bold">₹</span>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    className="h-7 pl-4 text-xs font-semibold"
+                                    value={currentPrices[id] ?? Number(ct.amount || 0)}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      setValue('cardTexturePrices', { ...currentPrices, [id]: val }, { shouldDirty: true });
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Die Cuts & Catalog Add-ons */}
+                <div className="space-y-4">
+                  {/* Die Cuts */}
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Allowed Die Cuts
+                    </Label>
+                    <Controller
+                      name="allowedDieCuts"
+                      control={control}
+                      render={({ field }) => (
+                        <MultiSelect
+                          items={dieCuts}
+                          selected={field.value || []}
+                          onChange={(newSelected) => {
+                            field.onChange(newSelected);
+                            const currentPrices = watch('dieCutPrices') || {};
+                            const newPrices = { ...currentPrices };
+                            newSelected.forEach((id) => {
+                              if (newPrices[id] === undefined) {
+                                const dc = dieCuts.find((d) => d.id === id);
+                                newPrices[id] = Number(dc?.amount || 0);
+                              }
+                            });
+                            setValue('dieCutPrices', newPrices, { shouldDirty: true });
+                          }}
+                          placeholder="Select die-cut patterns..."
+                        />
+                      )}
+                    />
+
+                    {(watch('allowedDieCuts') || []).length > 0 && (
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                          Die-Cut Surcharges (₹)
+                        </span>
+                        <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
+                          {(watch('allowedDieCuts') || []).map((id) => {
+                            const dc = dieCuts.find((d) => d.id === id);
+                            if (!dc) return null;
+                            const currentPrices = watch('dieCutPrices') || {};
+                            return (
+                              <div
+                                key={id}
+                                className="flex items-center justify-between gap-2 p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800"
+                              >
+                                <span className="text-xs font-medium truncate">{dc.name}</span>
+                                <div className="relative w-16">
+                                  <span className="absolute left-1.5 top-1.5 text-[10px] text-slate-400 font-bold">₹</span>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    className="h-7 pl-4 text-xs font-semibold"
+                                    value={currentPrices[id] ?? Number(dc.amount || 0)}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      setValue('dieCutPrices', { ...currentPrices, [id]: val }, { shouldDirty: true });
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Catalog Addons */}
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Allowed Catalog Add-ons
+                      </Label>
+                      <Link href="/admin/addons" target="_blank" className="text-xs font-medium text-indigo-600 hover:underline">
+                        Manage Add-ons &rarr;
+                      </Link>
+                    </div>
+                    <Controller
+                      name="allowedCustomAddons"
+                      control={control}
+                      render={({ field }) => (
+                        <MultiSelect
+                          items={customAddons}
+                          selected={field.value || []}
+                          onChange={(newSelected) => {
+                            field.onChange(newSelected);
+                            const currentPrices = watch('customAddonPrices') || {};
+                            const newPrices = { ...currentPrices };
+                            newSelected.forEach((id) => {
+                              if (newPrices[id] === undefined) {
+                                const ca = customAddons.find((c) => c.id === id);
+                                newPrices[id] = Number(ca?.price || 0);
+                              }
+                            });
+                            setValue('customAddonPrices', newPrices, { shouldDirty: true });
+                          }}
+                          placeholder="Select catalog add-ons..."
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sub-Product Custom Add-on Sections */}
+              <div className="pt-5 border-t border-slate-200 dark:border-slate-800">
+                <CustomAddonSectionsBuilder
+                  sections={watch('customAddonSections') || []}
+                  onChange={(newSections) => setValue('customAddonSections', newSections, { shouldDirty: true })}
+                />
+              </div>
+
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ═════════════════════════════════════════════════════════════════ */}
+        {/* SECTION 5: DELIVERY & ORDER SETTINGS                             */}
+        {/* ═════════════════════════════════════════════════════════════════ */}
+        {(activeTab === 'all' || activeTab === 'delivery') && (
+          <Card className="border border-slate-200 dark:border-slate-800 shadow-xs rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 px-6 py-4 bg-slate-50/40 dark:bg-slate-950/40">
+              <div className="flex items-center gap-2">
+                <Truck className="w-4 h-4 text-blue-600" />
+                <CardTitle className="text-sm font-bold text-slate-900 dark:text-white">
+                  Delivery & Order Settings
+                </CardTitle>
+              </div>
+              <CardDescription className="text-xs text-slate-500">
+                Order limits, delivery turnaround, shipping tiers, design options, and customer template files.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Quantities & Delivery */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="minOrderQuantity" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Min Quantity <span className="text-rose-500">*</span>
                       </Label>
                       <Input
-                        id="name"
-                        placeholder="e.g. Premium 350 GSM Matte Lamination"
-                        className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-bold text-sm"
-                        {...register('name')}
+                        id="minOrderQuantity"
+                        type="number"
+                        placeholder="100"
+                        className="h-10 rounded-xl text-xs font-semibold"
+                        {...register('minOrderQuantity')}
                       />
-                      {errors.name && <p className="text-rose-500 text-xs font-bold mt-1">{errors.name.message}</p>}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="sku" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          SKU Code
-                        </Label>
-                        <Input
-                          id="sku"
-                          placeholder="e.g. BC-350-MATTE"
-                          className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-mono text-xs font-bold uppercase"
-                          {...register('sku')}
-                        />
-                      </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="maxOrderQuantity" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Max Quantity <span className="text-rose-500">*</span>
+                      </Label>
+                      <Input
+                        id="maxOrderQuantity"
+                        type="number"
+                        placeholder="10000"
+                        className="h-10 rounded-xl text-xs font-semibold"
+                        {...register('maxOrderQuantity')}
+                      />
+                    </div>
+                  </div>
 
-                      <div className="space-y-1.5">
-                        <Label htmlFor="hsnCode" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          HSN / SAC Code
-                        </Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="deliveryDays" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Turnaround Days
+                      </Label>
+                      <Input
+                        id="deliveryDays"
+                        placeholder="3-5 Business Days"
+                        className="h-10 rounded-xl text-xs"
+                        {...register('deliveryDays')}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="deliveryAmount" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Standard Shipping (₹)
+                      </Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-slate-400 text-xs font-bold">₹</span>
                         <Input
-                          id="hsnCode"
-                          placeholder="e.g. 49111090"
-                          className="h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 font-mono text-xs font-bold"
-                          {...register('hsnCode')}
+                          id="deliveryAmount"
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          className="h-10 rounded-xl pl-7 text-xs font-semibold"
+                          {...register('deliveryAmount')}
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="md:col-span-6 space-y-1.5 flex flex-col">
-                    <Label htmlFor="description" className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                      Specifications & Overview
+                  {/* Expedited Tiers */}
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        Expedited Shipping Tiers ({deliveryTiers.length})
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addDeliveryTier}
+                        className="h-7 rounded-lg text-xs font-medium"
+                      >
+                        <Plus className="mr-1 h-3 w-3" /> Add Tier
+                      </Button>
+                    </div>
+
+                    {deliveryTiers.map((tier, idx) => (
+                      <div
+                        key={tier.id || idx}
+                        className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2"
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-indigo-600">Tier #{idx + 1}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeDeliveryTier(idx)}
+                            className="h-6 w-6 p-0 text-slate-400 hover:text-rose-600"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <Input
+                            value={tier.name}
+                            placeholder="Name"
+                            onChange={(e) => updateDeliveryTier(idx, 'name', e.target.value)}
+                            className="h-7 text-xs font-medium"
+                          />
+                          <Input
+                            value={tier.estimatedTime}
+                            placeholder="Turnaround"
+                            onChange={(e) => updateDeliveryTier(idx, 'estimatedTime', e.target.value)}
+                            className="h-7 text-xs"
+                          />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={tier.amount}
+                            onChange={(e) => updateDeliveryTier(idx, 'amount', parseFloat(e.target.value) || 0)}
+                            className="h-7 text-xs font-semibold"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Ordering Options & Media */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div>
+                      <Label htmlFor="allowDesignerTool" className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <PenSquare className="w-3.5 h-3.5 text-indigo-600" /> Online Designer Tool
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground">Allow customers to design directly in browser.</p>
+                    </div>
+                    <Controller
+                      name="allowDesignerTool"
+                      control={control}
+                      render={({ field }) => (
+                        <Switch
+                          id="allowDesignerTool"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="data-[state=checked]:bg-indigo-600 scale-90"
+                        />
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div>
+                      <Label htmlFor="allowFileUpload" className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <Upload className="w-3.5 h-3.5 text-indigo-600" /> Print File Upload
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground">Allow PDF, AI, PSD, and CDR uploads.</p>
+                    </div>
+                    <Controller
+                      name="allowFileUpload"
+                      control={control}
+                      render={({ field }) => (
+                        <Switch
+                          id="allowFileUpload"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="data-[state=checked]:bg-indigo-600 scale-90"
+                        />
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div>
+                      <Label htmlFor="allowFreelancerContest" className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <Trophy className="w-3.5 h-3.5 text-pink-600" /> Freelancer Contest Requests
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground">Allow graphic design contest requests.</p>
+                    </div>
+                    <Controller
+                      name="allowFreelancerContest"
+                      control={control}
+                      render={({ field }) => (
+                        <Switch
+                          id="allowFreelancerContest"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="data-[state=checked]:bg-pink-600 scale-90"
+                        />
+                      )}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 pt-1">
+                    <Label htmlFor="youtubeUrl" className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <Video className="w-3.5 h-3.5 text-rose-500" /> Video Guide URL
                     </Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Material specs, GSM paper thickness, finish attributes, and ideal print applications..."
-                      className="h-[140px] resize-y rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-indigo-500 p-3 text-xs font-medium"
-                      {...register('description')}
+                    <Input
+                      id="youtubeUrl"
+                      type="url"
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="h-10 rounded-xl text-xs"
+                      {...register('youtubeUrl')}
                     />
                   </div>
                 </div>
 
-                {/* Sample Starter Templates */}
-                <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                {/* Templates Section */}
+                <div className="md:col-span-2 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
                   <div className="flex justify-between items-center">
                     <div>
-                      <Label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <FileDown className="w-4 h-4 text-indigo-600" /> Downloadable Starter Files ({sampleFiles.length})
+                      <Label className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <FileDown className="w-4 h-4 text-indigo-600" /> Downloadable Starter Templates ({sampleFiles.length})
                       </Label>
-                      <p className="text-[11px] text-muted-foreground">Downloadable starter templates for customers (PDF, PSD, AI, CDR).</p>
+                      <p className="text-[11px] text-muted-foreground">Blank design starter templates for customers (PDF, PSD, AI, CDR).</p>
                     </div>
                     <Button
                       type="button"
@@ -2290,26 +2012,26 @@ export default function EditVariantPage() {
                           { id: `sample-${Date.now()}`, name: '', fileUrl: '', fileType: 'PDF', fileSize: '' }
                         ], { shouldDirty: true });
                       }}
-                      className="h-8 rounded-xl text-xs font-bold"
+                      className="h-8 rounded-lg text-xs font-medium"
                     >
-                      <Plus className="mr-1 h-3.5 w-3.5" /> Add File
+                      <Plus className="mr-1 h-3.5 w-3.5" /> Add Template
                     </Button>
                   </div>
 
                   {sampleFiles.length === 0 ? (
-                    <div className="py-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center bg-slate-50/50 dark:bg-slate-950/50 gap-1.5">
-                      <FileDown className="w-6 h-6 text-slate-300 dark:text-slate-700" />
-                      <p className="text-xs font-bold text-slate-500">No template files attached</p>
+                    <div className="py-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center text-center text-slate-400 gap-1">
+                      <FileDown className="w-5 h-5" />
+                      <span className="text-xs">No starter templates attached</span>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {sampleFiles.map((fileItem, idx) => (
                         <div
                           key={fileItem.id || idx}
-                          className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2"
+                          className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
                               Template #{idx + 1}
                             </span>
                             <Button
@@ -2334,17 +2056,17 @@ export default function EditVariantPage() {
                                 updated[idx].name = e.target.value;
                                 setValue('sampleFiles', updated, { shouldDirty: true });
                               }}
-                              className="h-8 text-xs font-bold col-span-2"
+                              className="h-8 text-xs font-semibold col-span-2"
                             />
                             <Input
-                              placeholder="PDF"
+                              placeholder="PDF/AI"
                               value={fileItem.fileType || ''}
                               onChange={(e) => {
                                 const updated = [...sampleFiles];
                                 updated[idx].fileType = e.target.value.toUpperCase();
                                 setValue('sampleFiles', updated, { shouldDirty: true });
                               }}
-                              className="h-8 text-xs font-bold uppercase text-center"
+                              className="h-8 text-xs font-semibold uppercase text-center"
                             />
                           </div>
 
@@ -2359,7 +2081,7 @@ export default function EditVariantPage() {
                               }}
                               className="h-8 text-xs font-mono"
                             />
-                            <label className="cursor-pointer inline-flex items-center justify-center h-8 px-2.5 rounded-lg bg-indigo-50 text-indigo-600 font-bold text-xs shrink-0 border border-indigo-200">
+                            <label className="cursor-pointer inline-flex items-center justify-center h-8 px-2.5 rounded-lg bg-indigo-50 text-indigo-600 font-semibold text-xs shrink-0 border border-indigo-200">
                               <Upload className="w-3 h-3 mr-1" />
                               <input
                                 type="file"
@@ -2373,18 +2095,18 @@ export default function EditVariantPage() {
                     </div>
                   )}
                 </div>
+              </div>
 
-              </CardContent>
-            </Card>
-          </section>
+            </CardContent>
+          </Card>
         )}
 
-        {/* ── BOTTOM STICKY/FINAL ACTION BAR ── */}
-        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        {/* ── BOTTOM ACTIONS ── */}
+        <div className="flex items-center justify-between pt-2">
           <Button
             asChild
             variant="outline"
-            className="h-11 rounded-2xl font-bold border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-6"
+            className="h-10 rounded-xl font-medium border-slate-200 dark:border-slate-800 text-xs px-5"
           >
             <Link href="/admin/products">Back to Products</Link>
           </Button>
@@ -2392,15 +2114,15 @@ export default function EditVariantPage() {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="h-11 rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/25 px-8 transition-all hover:scale-[1.02]"
+            className="h-10 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs px-6 text-xs transition-colors"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Changes...
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Saving Changes...
               </>
             ) : (
               <>
-                <CheckCircle2 className="mr-2 h-4 w-4" /> Save Sub-Product
+                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Save Sub-Product
               </>
             )}
           </Button>
