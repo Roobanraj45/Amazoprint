@@ -56,6 +56,7 @@ import {
 import { LayersPanel } from '@/components/design/layers-panel';
 import { AmazoprintLogo } from '@/components/ui/logo';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 export function EditorHeader(props: any) {
     const router = useRouter();
@@ -179,29 +180,58 @@ export function EditorHeader(props: any) {
 
                 {/* Page Navigation */}
                 {totalPages > 1 && (
-                    <div className="flex items-center gap-1.5 px-1.5 py-1 bg-muted/40 rounded-xl border border-border/40 backdrop-blur-sm ml-2">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 rounded-lg hover:bg-background/80"
-                            disabled={currentPage === 0}
-                            onClick={() => setCurrentPage(currentPage - 1)}
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <div className="flex flex-col items-center justify-center min-w-[70px] leading-none">
-                            <span className="text-[10px] font-bold text-muted-foreground">Page</span>
-                            <span className="text-xs font-bold text-primary">{currentPage + 1} / {totalPages}</span>
-                        </div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 rounded-lg hover:bg-background/80"
-                            disabled={currentPage === totalPages - 1}
-                            onClick={() => setCurrentPage(currentPage + 1)}
-                        >
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/50 rounded-xl border border-border/60 backdrop-blur-sm ml-2">
+                        {totalPages === 2 ? (
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant={currentPage === 0 ? "default" : "ghost"}
+                                    size="sm"
+                                    className={cn(
+                                        "h-7 px-2.5 text-xs font-bold rounded-lg transition-all",
+                                        currentPage === 0 ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-background/80"
+                                    )}
+                                    onClick={() => setCurrentPage(0)}
+                                >
+                                    Front Side
+                                </Button>
+                                <Button
+                                    variant={currentPage === 1 ? "default" : "ghost"}
+                                    size="sm"
+                                    className={cn(
+                                        "h-7 px-2.5 text-xs font-bold rounded-lg transition-all",
+                                        currentPage === 1 ? "bg-primary text-primary-foreground shadow-xs" : "hover:bg-background/80"
+                                    )}
+                                    onClick={() => setCurrentPage(1)}
+                                >
+                                    Back Side
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-1.5">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 rounded-lg hover:bg-background/80"
+                                    disabled={currentPage === 0}
+                                    onClick={() => setCurrentPage(currentPage - 1)}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <div className="flex flex-col items-center justify-center min-w-[70px] leading-none">
+                                    <span className="text-[10px] font-bold text-muted-foreground">Page</span>
+                                    <span className="text-xs font-bold text-primary">{currentPage + 1} / {totalPages}</span>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 rounded-lg hover:bg-background/80"
+                                    disabled={currentPage === totalPages - 1}
+                                    onClick={() => setCurrentPage(currentPage + 1)}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
 

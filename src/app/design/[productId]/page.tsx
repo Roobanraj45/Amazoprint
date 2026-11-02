@@ -132,11 +132,12 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
     cardTexturePrices: subProductForDims?.cardTexturePrices,
     price: subProductForDims?.price,
     youtubeUrl: (subProductForDims as any)?.youtubeUrl || (productData as any)?.youtubeUrl || null,
+    maxPages: subProductForDims?.maxPages || 1,
   };
 
-
+  const configuredPages = subProductForDims?.maxPages || 1;
   const quantity = searchParams.quantity ? Number(searchParams.quantity) : 100;
-  let totalPages = searchParams.pages ? Number(searchParams.pages) : 1;
+  let totalPages = searchParams.pages ? Math.max(1, Number(searchParams.pages) || 1) : configuredPages;
 
   const { templateId, verificationId, contestId } = searchParams;
   let initialElements: DesignElement[] | DesignElement[][] = [];
@@ -209,11 +210,10 @@ export default async function DesignPage({ params, searchParams: searchParamsPro
     initialElements = template.elements as DesignElement[] | DesignElement[][];
     initialBackground = template.background as Background | Background[];
 
-    if (Array.isArray(initialElements) && initialElements.length > 0 && Array.isArray(initialElements[0])) {
-      totalPages = initialElements.length;
-    } else {
-      totalPages = 1;
-    }
+    const templatePages = (Array.isArray(initialElements) && initialElements.length > 0 && Array.isArray(initialElements[0]))
+      ? initialElements.length
+      : 1;
+    totalPages = Math.max(totalPages, templatePages);
 
     if (!searchParams.width && !searchParams.height && template.width && template.height) {
       productForEditor.width = template.width > 200 ? template.width : Math.round(template.width * unitToPx);

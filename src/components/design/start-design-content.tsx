@@ -201,8 +201,12 @@ export function StartDesignContent() {
             if (!sp.spotUvAllowed) {
                 setSpotUv(false);
             }
-            if (sp.maxPages <= 1) {
-                setPages('1');
+            const configuredPages = sp.maxPages || 1;
+            const paramPages = searchParams.get('pages');
+            if (paramPages && !isNaN(parseInt(paramPages, 10))) {
+                setPages(paramPages);
+            } else {
+                setPages(String(configuredPages));
             }
             const paramQty = searchParams.get('quantity');
             if (paramQty && !isNaN(parseInt(paramQty, 10))) {
@@ -248,9 +252,8 @@ export function StartDesignContent() {
     if (!sp.spotUvAllowed) {
         setSpotUv(false);
     }
-    if (sp.maxPages <= 1) {
-        setPages('1');
-    }
+    const configuredPages = sp.maxPages || 1;
+    setPages(String(configuredPages));
     if (Array.isArray((sp as any)?.priceSlabs) && (sp as any).priceSlabs.length > 0) {
         const firstActive = (sp as any).priceSlabs.find((s: any) => s.isActive !== false);
         if (firstActive) {
@@ -1591,33 +1594,56 @@ export function StartDesignContent() {
                           );
                       })}
 
-                      {/* 6. Printing Sides */}
+                      {/* 6. Printing Sides & Pages */}
                       {subProduct.maxPages > 1 && (
                           <div className="space-y-2.5">
-                              <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
-                                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">6.</span> Printing Sides
-                              </Label>
-                              <div className="grid grid-cols-2 gap-2.5">
+                              <div className="flex items-center justify-between">
+                                  <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
+                                      <span className="text-indigo-600 dark:text-indigo-400 font-bold">6.</span> Printing Sides & Pages
+                                  </Label>
+                                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                                      {pages === '1' ? 'Single Sided (1 Page)' : pages === '2' ? 'Double Sided (2 Pages)' : `${pages} Pages (Multi-Page)`}
+                                  </span>
+                              </div>
+                              <div className={cn(
+                                  "grid gap-2.5",
+                                  subProduct.maxPages > 2 ? "grid-cols-3" : "grid-cols-2"
+                              )}>
                                   <button 
+                                      type="button"
                                       onClick={() => setPages('1')}
                                       className={cn(
-                                          "py-2.5 px-4 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
+                                          "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
                                           pages === '1' ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
                                       )}
                                   >
                                       <FileText className={cn("w-4 h-4 shrink-0", pages === '1' ? "text-white dark:text-slate-900" : "text-indigo-500")} />
-                                      <span>Front Only</span>
+                                      <span>Front Only (1P)</span>
                                   </button>
                                   <button 
+                                      type="button"
                                       onClick={() => setPages('2')}
                                       className={cn(
-                                          "py-2.5 px-4 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
+                                          "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
                                           pages === '2' ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
                                       )}
                                   >
                                       <Copy className={cn("w-4 h-4 shrink-0", pages === '2' ? "text-white dark:text-slate-900" : "text-indigo-500")} />
-                                      <span>Front & Back</span>
+                                      <span>Front & Back (2P)</span>
                                   </button>
+                                  {subProduct.maxPages > 2 && (
+                                      <button 
+                                          type="button"
+                                          onClick={() => setPages(String(subProduct.maxPages))}
+                                          className={cn(
+                                              "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
+                                              Number(pages) > 2 ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                          )}
+                                      >
+                                          <Layers className={cn("w-4 h-4 shrink-0", Number(pages) > 2 ? "text-white dark:text-slate-900" : "text-indigo-500")} />
+                                          <span>{subProduct.maxPages} Pages</span>
+                                      </button>
+                                  )}
                               </div>
                           </div>
                       )}

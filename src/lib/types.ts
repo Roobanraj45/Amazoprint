@@ -215,6 +215,7 @@ export type Product = {
   subProductName?: string;
   categoryName?: string;
   youtubeUrl?: string | null;
+  maxPages?: number;
 };
 
 export type DynamicFile = {

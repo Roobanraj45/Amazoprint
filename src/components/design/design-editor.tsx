@@ -2625,11 +2625,31 @@ function DesignEditorInternal({
                 setEditingId={setEditingTextId}
                 pathEditingElement={pathEditingElementId ? findElementRecursive(currentElements, pathEditingElementId) ?? null : null}
               />
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-end justify-center gap-2">
-                <div className="hidden lg:flex items-center gap-1 rounded-lg bg-card p-1.5 shadow-md border">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomOut}><ZoomOut className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs w-16" onClick={resetView}>{Math.round(viewState.zoom * 100)}%</Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomIn}><ZoomIn className="h-4 w-4" /></Button>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-2">
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1 rounded-xl bg-card/95 backdrop-blur-md p-1 shadow-lg border border-border/60">
+                    {Array.from({ length: totalPages }).map((_, idx) => (
+                      <Button
+                        key={idx}
+                        variant={currentPage === idx ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setCurrentPage(idx)}
+                        className={cn(
+                          "h-8 px-3 text-xs font-bold rounded-lg transition-all",
+                          currentPage === idx 
+                            ? "bg-primary text-primary-foreground shadow-xs" 
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {totalPages === 2 ? (idx === 0 ? 'Front Side' : 'Back Side') : `Page ${idx + 1}`}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+                <div className="hidden lg:flex items-center gap-1 rounded-xl bg-card/95 backdrop-blur-md p-1 shadow-lg border border-border/60">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={handleZoomOut}><ZoomOut className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs w-16 font-semibold rounded-lg" onClick={resetView}>{Math.round(viewState.zoom * 100)}%</Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={handleZoomIn}><ZoomIn className="h-4 w-4" /></Button>
                 </div>
               </div>
             </div>
