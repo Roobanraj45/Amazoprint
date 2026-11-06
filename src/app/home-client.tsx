@@ -42,6 +42,8 @@ import {
   RefreshCw,
   Layers,
   Store,
+  Heart,
+  ArrowUp,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -1123,6 +1125,192 @@ function HeroMonitorMockup() {
   );
 }
 
+// ─── Agista Perspective Stationery 3D Hero Mockup ──────────────────────────
+function AgistaHeroMockup() {
+  const [activeSlide, setActiveSlide] = React.useState(0);
+
+  const heroSlides = [
+    {
+      badge: 'Professional Stationery Printing',
+      tag: 'Desk Calendar 2026',
+      title: 'Custom Business Stationery Solutions',
+      specs: 'Spiral Bound · 250 GSM Matte Art Paper',
+      price: 'From ₹45/pc',
+      img: '/uploads/products/1791445283362-001.jpeg',
+      floatingTag: 'Spot UV Gloss',
+      floatingRating: '★ 4.9',
+      floatingTitle: 'Desk Calendar & Planner',
+      floatingSub: 'Monthly Desk Planner · Spiral Ring',
+    },
+    {
+      badge: 'Luxury Business Printing',
+      tag: 'Executive Visiting Cards',
+      title: 'Velvet Touch & Raised Gold Foil',
+      specs: '350 GSM Velvet Touch + Pure Gold Foil',
+      price: 'From ₹1.5/pc',
+      img: '/uploads/products/1791445210091-Amazoprint_business_printing_02.jpg',
+      floatingTag: 'Gold Foil Gloss',
+      floatingRating: '★ 4.95',
+      floatingTitle: 'Executive Visiting Card',
+      floatingSub: 'Heavy Cardstock · Gold Foil Edge',
+    },
+    {
+      badge: 'Artisan Brand Packaging',
+      tag: 'Rigid Gift Boxes',
+      title: 'Custom Branded Packaging & Boxes',
+      specs: 'Rigid Matte Laminated Boxes · Die-cut',
+      price: 'From ₹49/pc',
+      img: '/uploads/products/1775241468772-180_NT_Spot_UV_1.jpg.webp',
+      floatingTag: 'Rigid Box',
+      floatingRating: '★ 4.9',
+      floatingTitle: 'Luxury Gift Box',
+      floatingSub: 'Magnetic Closure · Foam Insert',
+    },
+  ];
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5500);
+    return () => clearInterval(timer);
+  }, [heroSlides.length]);
+
+  const slide = heroSlides[activeSlide];
+
+  return (
+    <div className="relative w-full max-w-[580px] mx-auto select-none py-4 sm:py-8">
+      {/* Background Soft Glow Aura */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[340px] sm:w-[460px] h-[340px] sm:h-[460px] bg-gradient-to-tr from-[#091642]/10 via-[#f07000]/10 to-indigo-500/10 rounded-full blur-[80px]" />
+      </div>
+
+      {/* Main 3D Perspective Stationery Composition */}
+      <div className="relative aspect-[4/3] w-full flex items-center justify-center">
+
+        {/* 1. Large Luxury Product Display Stage */}
+        <motion.div
+          key={activeSlide}
+          initial={{ opacity: 0.8, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="relative z-20 w-[94%] sm:w-[90%] aspect-[16/10] rounded-3xl bg-white shadow-2xl shadow-[#091642]/15 border border-white/80 p-5 sm:p-7 overflow-hidden flex flex-col justify-between"
+        >
+          {/* Header pill & specs */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-[#091642] uppercase bg-[#091642]/5 border border-[#091642]/10 px-3.5 py-1.5 rounded-full flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#f07000]" />
+              {slide.tag}
+            </span>
+            <span className="text-xs sm:text-sm font-bold text-slate-500 font-mono tracking-wider">
+              CMYK 2400 DPI
+            </span>
+          </div>
+
+          {/* Center 3D Showcase Image */}
+          <div className="relative flex-1 my-3 rounded-2xl overflow-hidden bg-slate-100 flex items-center justify-center group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={slide.img}
+              alt={slide.title}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/uploads/hero.png';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#091642]/70 via-[#091642]/20 to-transparent" />
+            <div className="absolute bottom-4 left-5 right-5 flex items-center justify-between text-white">
+              <div>
+                <p className="text-sm sm:text-base font-black leading-tight drop-shadow-md">
+                  {slide.specs}
+                </p>
+                <p className="text-xs text-white/90 font-semibold mt-0.5">Ready for instant commercial press dispatch</p>
+              </div>
+              <span className="bg-[#f07000] text-white text-xs sm:text-sm font-black px-3.5 py-1.5 rounded-full shadow-md">
+                {slide.price}
+              </span>
+            </div>
+          </div>
+
+          {/* Footer Quality Verification Badges */}
+          <div className="flex items-center justify-between text-xs sm:text-sm text-slate-600 font-semibold border-t border-slate-100 pt-3">
+            <span className="flex items-center gap-1.5 text-emerald-600 font-bold">
+              <CheckCircle2 size={16} /> 100% Pre-Flight Verified
+            </span>
+            <span className="text-[#091642] font-extrabold">Same-Day Dispatch Available</span>
+          </div>
+        </motion.div>
+
+        {/* 2. Floating Perspective Visiting Card (Top Left) */}
+        <motion.div
+          animate={{ y: [0, -8, 0], rotate: [-7, -4, -7] }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -top-4 sm:-top-6 -left-2 sm:-left-6 z-30 bg-[#091642] text-white rounded-2xl p-4 sm:p-5 shadow-2xl border border-white/20 w-48 sm:w-56"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-black uppercase text-[#f07000] tracking-wider">{slide.floatingTag}</span>
+            <span className="text-xs text-amber-300 font-bold">{slide.floatingRating}</span>
+          </div>
+          <p className="text-sm sm:text-base font-black text-white leading-tight">{slide.floatingTitle}</p>
+          <p className="text-xs text-slate-300 mt-1 font-medium">{slide.floatingSub}</p>
+        </motion.div>
+
+        {/* 3. Floating Quality Guarantee Badge (Bottom Right) */}
+        <motion.div
+          animate={{ y: [0, 8, 0], rotate: [6, 3, 6] }}
+          transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -bottom-4 sm:-bottom-6 -right-2 sm:-right-4 z-30 bg-white rounded-2xl p-4 sm:p-5 shadow-2xl border border-slate-100 flex items-center gap-3.5"
+        >
+          <div className="w-11 h-11 rounded-2xl bg-[#f07000] text-white flex items-center justify-center font-black text-base shadow-md">
+            24H
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase text-slate-400 tracking-wider">Express Press</p>
+            <p className="text-sm font-black text-[#091642]">Doorstep Pan-India</p>
+            <p className="text-xs text-emerald-600 font-bold">Free Over ₹999</p>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Agista-style Carousel Dots & Slide Switcher */}
+      <div className="flex items-center justify-center gap-2 mt-4 sm:mt-6">
+        {heroSlides.map((s, idx) => (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => setActiveSlide(idx)}
+            className={cn(
+              'h-2.5 rounded-full transition-all duration-300 cursor-pointer',
+              activeSlide === idx ? 'w-8 bg-[#091642]' : 'w-2.5 bg-gray-300 hover:bg-gray-400'
+            )}
+            aria-label={`Slide ${idx + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Agista Category & Order Constants ─────────────────────────────────────
+const AGISTA_CIRCULAR_CATEGORIES = [
+  { name: 'Business Cards', href: '/products?category=Business%20Cards', img: '/uploads/products/1775241468772-180_NT_Spot_UV_1.jpg.webp', count: '12+ Styles' },
+  { name: 'T-shirt Print', href: '/products?category=Apparel%20%26%20Clothing', img: '/uploads/hero.png', count: '20+ Colors' },
+  { name: 'Cap & Hat', href: '/products?category=Apparel%20%26%20Clothing', img: '/uploads/hero.png', count: 'Embroidered' },
+  { name: 'Umbrella Print', href: '/products?category=Marketing', img: '/uploads/products/1788879169781-images.jpeg', count: 'Custom Print' },
+  { name: 'Calendar Print', href: '/products?category=Calendar', img: '/uploads/products/1791445283362-001.jpeg', count: 'Year 2026' },
+  { name: 'Tin box & Mugs', href: '/products?category=Gifts', img: '/uploads/products/1791445210091-Amazoprint_business_printing_02.jpg', count: '8+ Models' },
+  { name: 'Packaging Boxes', href: '/products?category=package', img: '/uploads/products/1775241758168-4_.jpg.webp', count: '15+ Sizes' },
+  { name: 'Flyers & Brochures', href: '/products?category=Marketing', img: '/uploads/sub-products/1775728837996-A4_130_1.jpg.webp', count: '6+ Finishes' },
+];
+
+const POPULAR_FILTER_TABS = [
+  'All Items',
+  'Mugs & Drinkware',
+  'Pens & Stationery',
+  'Apparel & Caps',
+  'Packaging & Boxes',
+];
+
+
 // ─── Main export ─────────────────────────────────────────────────────────────
 export function HomeClient({
   subProducts,
@@ -1167,6 +1355,23 @@ export function HomeClient({
     };
   }, [checkCatScroll, categoryProducts]);
 
+  // Agista "Shop Popular" Filter Tab State
+  const [selectedPopularTab, setSelectedPopularTab] = React.useState('All Categories');
+
+  // Filter products according to the selected tab
+  const filteredPopularProducts = React.useMemo(() => {
+    if (!subProducts || subProducts.length === 0) return [];
+    if (selectedPopularTab === 'All Categories') return subProducts.slice(0, 8);
+    const q = selectedPopularTab.toLowerCase();
+    const matches = subProducts.filter(
+      (p) =>
+        p.productName?.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q) ||
+        p.name?.toLowerCase().includes(q)
+    );
+    return matches.length > 0 ? matches.slice(0, 8) : subProducts.slice(0, 8);
+  }, [subProducts, selectedPopularTab]);
+
   const displayCategories = categoryProducts && categoryProducts.length > 0
     ? categoryProducts
     : DEFAULT_ALL_CATEGORIES;
@@ -1180,259 +1385,625 @@ export function HomeClient({
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-gray-900 overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-white text-gray-900 overflow-x-hidden font-sans">
       <Navbar />
 
       <main className="flex-1">
 
         {/* ═══════════════════════════════════════════════════════════
-            HERO SECTION
+            1. HERO SECTION (Agista Lavender/Periwinkle Pattern)
         ═══════════════════════════════════════════════════════════ */}
-        <section className="relative overflow-hidden bg-white border-b border-gray-100">
-          {/* Subtle grid bg */}
-          <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(#464674 1px, transparent 1px), linear-gradient(90deg, #464674 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-          {/* Soft colour blobs */}
-          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#464674]/8 rounded-full blur-[120px] pointer-events-none -translate-x-1/3 -translate-y-1/3" />
-          <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-orange-400/6 rounded-full blur-[100px] pointer-events-none translate-x-1/4 translate-y-1/4" />
+        <section className="relative overflow-hidden bg-gradient-to-br from-[#eef3ff] via-[#f4f7ff] to-[#e6eeff] border-b border-blue-100/60 py-10 sm:py-16 lg:py-20">
+          {/* Subtle Ambient Decorative Circles */}
+          <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-[#091642]/5 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[450px] h-[450px] bg-[#f07000]/5 rounded-full blur-[90px] pointer-events-none" />
 
-          <div className="w-full px-3 sm:px-4 lg:px-6 py-6 sm:py-10 lg:py-16">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-16 items-center">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
 
-              {/* ── Visual Showcase (Order 2 on mobile, Order 1 on Desktop) ── */}
+              {/* Left Column: Agista Brand Copy & CTA */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.75 }}
-                className="relative order-2 lg:order-1 w-full"
+                initial={{ opacity: 0, x: -24 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.7 }}
+                className="lg:col-span-6 space-y-6 text-left"
               >
-                <HeroMonitorMockup />
+                {/* Defining Brand Identity Pill */}
+                <div className="inline-flex items-center gap-2 bg-white/90 border border-[#091642]/15 text-[#091642] px-4 py-1.5 rounded-full shadow-xs">
+                  <span className="w-2 h-2 rounded-full bg-[#f07000]" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Defining Brand Identity</span>
+                </div>
+
+                {/* Big Bold Headline in Agista Midnight Navy */}
+                <h1 className="text-3xl sm:text-5xl lg:text-[3.25rem] font-black text-[#091642] tracking-tight leading-[1.12]">
+                  Branded Business &amp;{' '}
+                  <span className="text-[#091642] block">Advertising Products</span>
+                </h1>
+
+                {/* Agista 3-Checklist Badges */}
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm font-bold text-[#091642]">
+                  <span className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black shadow-xs">✓</span>
+                    Easy to customize
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-black shadow-xs">✓</span>
+                    Premium quality
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-black shadow-xs">✓</span>
+                    Best value
+                  </span>
+                </div>
+
+                {/* Description */}
+                <p className="text-gray-600 text-sm sm:text-base font-medium leading-relaxed max-w-xl">
+                  Customize business cards, packaging, promotional apparel, and marketing essentials with instant digital proofs and high-speed door delivery across India.
+                </p>
+
+                {/* Agista Pill Button with Circular Orange Arrow */}
+                <div className="flex flex-wrap items-center gap-4 pt-2">
+                  <Link
+                    href="/products"
+                    className="inline-flex items-center gap-3 bg-white text-[#091642] font-black text-sm px-6 py-3 rounded-full shadow-lg shadow-[#091642]/10 hover:shadow-xl transition-all hover:-translate-y-0.5 group border border-gray-200"
+                  >
+                    <span>Explore Now!</span>
+                    <span className="w-8 h-8 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                      <ArrowRight size={14} />
+                    </span>
+                  </Link>
+
+                  <Link
+                    href="/templates"
+                    className="inline-flex items-center gap-2 border-2 border-[#091642] text-[#091642] hover:bg-[#091642] hover:text-white font-bold text-sm px-6 py-3 rounded-full transition-all"
+                  >
+                    <span>Free Templates</span>
+                    <ChevronRight size={15} />
+                  </Link>
+                </div>
+
+                {/* Quick Trust Highlights */}
+                <div className="pt-2 flex items-center gap-6 text-xs text-gray-500 font-semibold">
+                  <span>⭐ 4.9/5 Rating (1,200+ Reviews)</span>
+                  <span>•</span>
+                  <span>🚀 Same-Day Dispatch</span>
+                </div>
               </motion.div>
 
-              {/* ── Copy + CTA (Order 1 on mobile, Order 2 on Desktop) ── */}
+              {/* Right Column: 3D Perspective Hero Mockup */}
               <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.75, delay: 0.1 }}
-                className="space-y-4 sm:space-y-6 lg:pl-4 order-1 lg:order-2"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.75, delay: 0.15 }}
+                className="lg:col-span-6 w-full"
               >
-                {/* Trust badge */}
-                <span className="inline-flex items-center gap-2 bg-[#464674]/10 border border-[#464674]/20 text-[#464674] text-[10px] sm:text-[11px] font-bold tracking-wide px-3.5 py-1.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  India's Most Trusted Printing Ecosystem
-                </span>
-
-                {/* Headline */}
-                <div className="space-y-2 sm:space-y-3">
-                  <h1 className="text-2xl sm:text-4xl lg:text-[2.85rem] font-black text-gray-900 tracking-tight leading-[1.2] lg:leading-[1.15] font-display">
-                    Create beautiful designs on{' '}
-                    <span className="text-[#464674] font-classy italic font-black">Amazoprint</span>
-                    <br />
-                    <span className="text-gray-800 text-xl sm:text-3xl font-black font-display">and get printing delivered</span>{' '}
-                    <span className="text-gray-500 text-lg sm:text-2xl font-semibold font-body">right on doorstep!</span>
-                  </h1>
-
-                  {/* Tagline */}
-                  <p className="text-gray-800 text-lg sm:text-2xl font-black leading-tight font-display">
-                    Let's execute thoughts{' '}
-                    <span className="relative inline-block">
-                      <span className="text-orange-500 italic font-bold">with color</span>
-                      <motion.span
-                        animate={{ scaleX: [0, 1, 0] }}
-                        transition={{ duration: 3, repeat: Infinity, repeatDelay: 2, ease: 'easeInOut' }}
-                        className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-orange-400 to-pink-500 rounded-full origin-left"
-                      />
-                    </span>
-                  </p>
-                </div>
-
-                {/* CTA button */}
-                <div className="flex flex-wrap gap-2.5 sm:gap-3 pt-1">
-                  <Link
-                    href="/products"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-[#464674] to-[#5c5c96] hover:from-[#5c5c96] hover:to-[#464674] text-white font-black text-xs sm:text-sm px-5 sm:px-7 py-3 sm:py-3.5 rounded-xl shadow-xl shadow-[#464674]/25 transition-all hover:-translate-y-0.5 group"
-                  >
-                    Start Your Unique Designs
-                    <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                  <Link
-                    href="/products"
-                    className="inline-flex items-center gap-2 border-2 border-[#464674]/20 text-[#464674] hover:border-[#464674] hover:bg-[#464674]/5 font-bold text-sm px-6 py-3.5 rounded-xl transition-all"
-                  >
-                    <Printer size={15} />
-                    Get Print Quotes
-                  </Link>
-                </div>
-
-                {/* Pipe-separated product quick links */}
-                <div className="space-y-1.5">
-                  <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Popular Categories</p>
-                  <p className="text-[12px] text-gray-500 leading-relaxed">
-                    {PRODUCT_LINKS.map((item, i) => (
-                      <React.Fragment key={item}>
-                        <Link href="/products" className="text-[#464674] hover:text-[#5c5c96] hover:underline font-semibold transition-colors">
-                          {item}
-                        </Link>
-                        {i < PRODUCT_LINKS.length - 1 && (
-                          <span className="text-gray-300 mx-1.5">|</span>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </p>
-                </div>
-
-                {/* Carousel dots (decorative) */}
-                <div className="flex items-center gap-2 pt-1">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      animate={{ scale: i === 0 ? [1, 1.2, 1] : 1 }}
-                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
-                      className={cn(
-                        'rounded-full transition-all',
-                        i === 0 ? 'w-6 h-2 bg-[#464674]' : 'w-2 h-2 bg-gray-300'
-                      )}
-                    />
-                  ))}
-                </div>
-
-                {/* Stats row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                  {[
-                    { icon: <ShoppingCart size={14} />, val: '10K+',  lbl: 'Orders', color: 'text-[#464674] bg-[#464674]/10' },
-                    { icon: <Printer size={14} />,      val: '2K+',   lbl: 'Printers', color: 'text-indigo-600 bg-indigo-50' },
-                    { icon: <PenTool size={14} />,      val: '5K+',   lbl: 'Designers', color: 'text-violet-600 bg-violet-50' },
-                    { icon: <BadgeCheck size={14} />,   val: '98%',   lbl: 'Satisfied', color: 'text-emerald-600 bg-emerald-50' },
-                  ].map((s) => (
-                    <div key={s.lbl} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
-                      <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0', s.color)}>
-                        {s.icon}
-                      </div>
-                      <div>
-                        <p className="text-gray-900 font-black text-sm leading-tight">{s.val}</p>
-                        <p className="text-gray-400 text-[9px] font-medium">{s.lbl}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <AgistaHeroMockup />
               </motion.div>
             </div>
           </div>
         </section>
 
         {/* ═══════════════════════════════════════════════════════════
-            SECTION: SHOP CATEGORIES
+            2. SHOP BY CATEGORY (Agista Circular Pods)
         ═══════════════════════════════════════════════════════════ */}
-        <section className="py-14 bg-white relative overflow-hidden">
-          {/* Soft decorative blobs */}
-          <div className="absolute top-0 right-0 w-72 h-72 bg-[#464674]/4 rounded-full blur-[80px] pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-400/5 rounded-full blur-[80px] pointer-events-none" />
-          <div className="w-full px-3 sm:px-4 lg:px-6 relative z-10">
-            <motion.div {...FU()} className="text-center mb-12">
-              <span className="inline-flex items-center gap-2 bg-[#464674]/10 text-[#464674] border border-[#464674]/20 text-xs sm:text-sm font-black tracking-widest uppercase px-4 py-2 rounded-full mb-4 font-display">
-                <LayoutGrid size={15} /> All Categories
+        <section className="py-14 sm:py-20 bg-white">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            {/* Heading */}
+            <div className="text-center mb-12 space-y-2">
+              <span className="text-xs font-black uppercase tracking-widest text-[#f07000] bg-orange-50 px-4 py-1.5 rounded-full border border-orange-200/80 inline-block shadow-xs">
+                Curated Collections
               </span>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight font-headline">
-                Shop Customize Premium Printing
-                <br />
-                <span className="text-[#464674] italic font-extrabold">&amp; Unprinting Blank Products</span>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#091642] tracking-tight">
+                Shop By <span className="text-[#091642]">Category</span>
               </h2>
-            </motion.div>
+              <p className="text-slate-500 text-sm sm:text-base font-medium max-w-xl mx-auto leading-relaxed">
+                Explore our full line of professional custom printing and brand merchandising solutions.
+              </p>
+            </div>
 
-            {/* Category track with navigation arrows (Strictly Max 2 Rows) */}
-            <div className="relative group/catsection max-w-7xl mx-auto">
-              {/* Left Arrow Button */}
-              <button
-                type="button"
-                onClick={() => scrollCategories('left')}
-                disabled={!canScrollCatLeft}
-                aria-label="Scroll left"
-                className={cn(
-                  "absolute -left-2 sm:-left-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full",
-                  "bg-white/95 backdrop-blur-md border border-slate-200 shadow-xl shadow-slate-900/10",
-                  "flex items-center justify-center text-slate-700 transition-all duration-200",
-                  "hover:bg-[#464674] hover:text-white hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none",
-                  !canScrollCatLeft && "opacity-0 pointer-events-none"
-                )}
+            {/* Circular Pods Grid (8 Columns on desktop) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-6 sm:gap-5 justify-center">
+              {AGISTA_CIRCULAR_CATEGORIES.map((cat, idx) => (
+                <motion.div
+                  key={cat.name}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: idx * 0.04 }}
+                >
+                  <Link
+                    href={cat.href}
+                    className="group flex flex-col items-center text-center space-y-3"
+                  >
+                    {/* Circle Image Pod with Pedestal Ring & Ambient Shadow */}
+                    <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1.5 bg-gradient-to-b from-[#f8fafc] to-[#edf2f9] shadow-md group-hover:shadow-2xl group-hover:-translate-y-2 transition-all duration-300 ring-2 ring-slate-100 group-hover:ring-4 group-hover:ring-[#f07000]/40 overflow-hidden">
+                      <div className="w-full h-full rounded-full overflow-hidden bg-white p-2 flex items-center justify-center relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={cat.img}
+                          alt={cat.name}
+                          className="w-full h-full object-contain group-hover:scale-115 transition-transform duration-500"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/uploads/hero.png';
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Label & Count with Standard Readable Typography */}
+                    <div className="pt-1">
+                      <p className="text-sm sm:text-base font-black text-[#091642] group-hover:text-[#f07000] transition-colors leading-snug">
+                        {cat.name}
+                      </p>
+                      <span className="text-xs text-slate-500 font-semibold block mt-1">
+                        {cat.count}
+                      </span>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════
+            3. DUAL SPLIT PROMOTIONAL BANNERS (Agista Pattern)
+        ═══════════════════════════════════════════════════════════ */}
+        <section className="py-6 sm:py-8 bg-white">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+
+              {/* Banner 1: Emerald/Teal Gift Solutions */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#005c53] via-[#042940] to-[#041f33] p-8 sm:p-10 text-white shadow-xl flex flex-col justify-between min-h-[280px] group border border-emerald-500/20"
               >
-                <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-              </button>
-
-              {/* Right Arrow Button */}
-              <button
-                type="button"
-                onClick={() => scrollCategories('right')}
-                disabled={!canScrollCatRight}
-                aria-label="Scroll right"
-                className={cn(
-                  "absolute -right-2 sm:-right-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full",
-                  "bg-white/95 backdrop-blur-md border border-slate-200 shadow-xl shadow-slate-900/10",
-                  "flex items-center justify-center text-slate-700 transition-all duration-200",
-                  "hover:bg-[#464674] hover:text-white hover:scale-110 active:scale-95 disabled:opacity-0 disabled:pointer-events-none",
-                  !canScrollCatRight && "opacity-0 pointer-events-none"
-                )}
-              >
-                <ChevronRight className="w-5 h-5 stroke-[2.5]" />
-              </button>
-
-              {/* 2-Row Grid Container */}
-              <div
-                ref={categoryTrackRef}
-                className="w-full overflow-x-auto scroll-smooth py-4 px-2 scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              >
-                <div className="grid grid-rows-2 grid-flow-col auto-cols-[115px] sm:auto-cols-[135px] md:auto-cols-[150px] lg:auto-cols-[160px] gap-x-4 sm:gap-x-6 gap-y-6 sm:gap-y-7 w-max mx-auto min-w-full justify-center">
-                  {displayCategories.map((cat: any, i: number) => (
-                    <motion.div key={cat.name + i} {...FI(i * 0.02)}>
-                      <Link
-                        href={cat.href || `/products?category=${encodeURIComponent(cat.category || cat.name)}`}
-                        className="group flex flex-col items-center gap-2.5 w-full text-center"
-                      >
-                        {/* Rounded Card with Product Image */}
-                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 lg:w-26 lg:h-26 rounded-2xl sm:rounded-3xl p-1 bg-white shadow-md group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:ring-4 group-hover:ring-[#464674]/20 transition-all duration-300 border-2 border-slate-100/90 overflow-hidden flex items-center justify-center">
-                          <div className="relative w-full h-full rounded-xl sm:rounded-2xl overflow-hidden bg-slate-50 flex items-center justify-center">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={cat.imageUrl || FIREBASE_ASSETS.hero}
-                              alt={cat.name}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 pointer-events-none"
-                              loading="lazy"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = FIREBASE_ASSETS.hero;
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#464674]/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                          </div>
-                        </div>
-
-                        {/* Title & Price/Count Info */}
-                        <div className="w-full px-1 space-y-0.5">
-                          <p className="text-xs sm:text-sm font-bold text-gray-800 line-clamp-1 group-hover:text-[#464674] transition-colors leading-tight">
-                            {cat.name}
-                          </p>
-                          {cat.startingPrice && cat.startingPrice > 0 ? (
-                            <p className="text-[10px] sm:text-[11px] font-semibold text-emerald-600 font-mono">
-                              From ₹{Number(cat.startingPrice).toFixed(0)}
-                            </p>
-                          ) : cat.itemCount ? (
-                            <p className="text-[10px] sm:text-[11px] font-medium text-slate-400">
-                              {cat.itemCount} {cat.itemCount === 1 ? 'item' : 'items'}
-                            </p>
-                          ) : null}
-                        </div>
-                      </Link>
-                    </motion.div>
-                  ))}
+                <div className="relative z-10 max-w-sm space-y-3">
+                  <span className="text-xs font-black uppercase tracking-widest bg-white/20 text-emerald-200 px-3.5 py-1.5 rounded-full backdrop-blur-xs inline-block">
+                    Gift Solutions
+                  </span>
+                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight">
+                    Elevate Your Brand Identity
+                  </h3>
+                  <p className="text-sm text-slate-200 font-medium leading-relaxed">
+                    Personalized corporate gift sets, luxury pen engravings, and branded executive mugs.
+                  </p>
                 </div>
+
+                <div className="relative z-10 pt-6">
+                  <Link
+                    href="/products?category=Gifts"
+                    className="inline-flex items-center gap-3 bg-white text-[#005c53] font-black text-sm px-6 py-3 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all group/btn"
+                  >
+                    <span>Start Designing</span>
+                    <span className="w-7 h-7 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-sm">
+                      <ArrowRight size={14} />
+                    </span>
+                  </Link>
+                </div>
+
+                {/* Decorative Background Product Illustration */}
+                <div className="absolute -right-4 -bottom-6 w-52 h-52 opacity-40 group-hover:opacity-60 transition-opacity pointer-events-none">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/uploads/products/1791445210091-Amazoprint_business_printing_02.jpg"
+                    alt="Gift solution"
+                    className="w-full h-full object-cover rounded-full mix-blend-screen"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/uploads/hero.png';
+                    }}
+                  />
+                </div>
+              </motion.div>
+
+              {/* Banner 2: Midnight/Cobalt Custom Apparel */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#091642] via-[#102468] to-[#1c357f] p-8 sm:p-10 text-white shadow-xl flex flex-col justify-between min-h-[280px] group border border-blue-500/20"
+              >
+                <div className="relative z-10 max-w-sm space-y-3">
+                  <span className="text-xs font-black uppercase tracking-widest bg-white/20 text-cyan-200 px-3.5 py-1.5 rounded-full backdrop-blur-xs inline-block">
+                    Own Custom Merch
+                  </span>
+                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight">
+                    Define Your Unique Style
+                  </h3>
+                  <p className="text-sm text-slate-200 font-medium leading-relaxed">
+                    Heavyweight cotton t-shirts, embroidered caps, hoodies, and team uniform printing.
+                  </p>
+                </div>
+
+                <div className="relative z-10 pt-6">
+                  <Link
+                    href="/products?category=Apparel%20%26%20Clothing"
+                    className="inline-flex items-center gap-3 bg-white text-[#091642] font-black text-sm px-6 py-3 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all group/btn"
+                  >
+                    <span>Explore Now</span>
+                    <span className="w-7 h-7 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-sm">
+                      <ArrowRight size={14} />
+                    </span>
+                  </Link>
+                </div>
+
+                {/* Decorative Background Product Illustration */}
+                <div className="absolute -right-4 -bottom-6 w-52 h-52 opacity-40 group-hover:opacity-60 transition-opacity pointer-events-none">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/uploads/hero.png"
+                    alt="Custom apparel"
+                    className="w-full h-full object-cover rounded-full mix-blend-screen"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/uploads/hero.png';
+                    }}
+                  />
+                </div>
+              </motion.div>
+
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════
+            4. SHOP POPULAR FILTERABLE SHOWCASE (Agista Asymmetric Grid)
+        ═══════════════════════════════════════════════════════════ */}
+        <section className="py-16 sm:py-20 bg-slate-50/70">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            {/* Header: Title on Left, Filter Pills on Right */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 pb-4 border-b border-gray-200/70">
+              <div>
+                <span className="text-xs font-black uppercase tracking-widest text-[#f07000] bg-orange-50 px-3.5 py-1.5 rounded-full border border-orange-200/80 inline-block shadow-xs">
+                  Top Rated Picks
+                </span>
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#091642] tracking-tight mt-2.5">
+                  Shop <span className="text-[#091642]">Popular</span>
+                </h2>
+              </div>
+
+              {/* Agista Filter Pills */}
+              <div className="flex flex-wrap items-center gap-2">
+                {POPULAR_FILTER_TABS.map((tab) => {
+                  const isActive = selectedPopularTab === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setSelectedPopularTab(tab)}
+                      className={cn(
+                        'px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer',
+                        isActive
+                          ? 'bg-[#091642] text-white font-black shadow-md shadow-[#091642]/20'
+                          : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-xs'
+                      )}
+                    >
+                      {tab}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* See More button */}
-            <div className="mt-10 flex justify-center">
+            {/* Asymmetric Grid: 1 Featured Banner + 3 Product Columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+              {/* Column 1: Agista Featured Vertical Promo Card */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4 }}
+                className="relative rounded-[26px] overflow-hidden bg-gradient-to-br from-[#101935] via-[#091642] to-[#061033] p-7 text-white shadow-xl flex flex-col justify-end min-h-[420px] group border border-white/10"
+              >
+                {/* Background Lifestyle Image */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/uploads/products/1791445210091-Amazoprint_business_printing_02.jpg"
+                    alt="Mugs and Drinkware collection"
+                    className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 opacity-60 mix-blend-overlay"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/uploads/hero.png';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#061033] via-[#091642]/70 to-transparent" />
+                </div>
+
+                <div className="relative z-10 space-y-3.5">
+                  <span className="text-xs font-black uppercase tracking-widest bg-white/20 text-orange-200 px-3 py-1 rounded-full inline-block backdrop-blur-xs">
+                    Staff Favorite
+                  </span>
+                  <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                    Mugs &amp; Drinkware
+                  </h3>
+                  <p className="text-sm text-slate-200 font-medium leading-relaxed">
+                    Personalized insulated tumblers, ceramic mugs, and flasks with full-color press wrapping.
+                  </p>
+
+                  <div className="pt-2">
+                    <Link
+                      href="/products?category=Gifts"
+                      className="inline-flex items-center gap-3 bg-white text-[#091642] font-black text-sm px-6 py-3 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all group/btn"
+                    >
+                      <span>Search Now!</span>
+                      <span className="w-7 h-7 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-sm">
+                        <ArrowRight size={14} />
+                      </span>
+                    </Link>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Columns 2, 3, 4: Rich Popular Product Cards */}
+              {filteredPopularProducts.slice(0, 6).map((prod: any, idx: number) => {
+                const price = Number(prod.price || 0);
+                const img = resolveImagePath(prod.imageUrl || prod.parentProductImageUrl);
+                const discount = idx % 2 === 0 ? '-20%' : null;
+                const specTags = idx % 3 === 0 
+                  ? ['350 GSM Velvet', 'Spot UV'] 
+                  : idx % 3 === 1 
+                  ? ['HD Sublimation', 'Dishwasher Safe'] 
+                  : ['100% Bio-Wash', '220 GSM Cotton'];
+
+                return (
+                  <motion.div
+                    key={prod.id || idx}
+                    initial={{ opacity: 0, y: 15 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.35, delay: idx * 0.04 }}
+                  >
+                    <Link
+                      href={prod.id ? `/design/${prod.productSlug}/start?subProductId=${prod.id}` : `/products`}
+                      className="group block h-full"
+                    >
+                      <div className="bg-white rounded-[26px] p-5 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_48px_rgba(9,22,66,0.12)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full relative overflow-hidden">
+                        
+                        {/* High-Fidelity Studio Pedestal Image */}
+                        <div className="relative aspect-square rounded-[20px] overflow-hidden bg-gradient-to-b from-[#f8fafc] via-[#f1f5f9] to-[#e8edf6] p-4 mb-4 flex items-center justify-center border border-slate-100/80">
+                          {img ? (
+                            <Image
+                              src={img}
+                              alt={prod.name || 'Product'}
+                              fill
+                              className="object-contain p-3 group-hover:scale-110 transition-transform duration-500"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-slate-100 text-gray-400">
+                              <Package size={32} />
+                            </div>
+                          )}
+
+                          {/* Top Badges */}
+                          <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+                            {discount && (
+                              <span className="bg-rose-500 text-white text-xs font-black uppercase px-2.5 py-1 rounded-full shadow-sm">
+                                {discount}
+                              </span>
+                            )}
+                            <span className="bg-[#f07000] text-white text-xs font-black uppercase px-2.5 py-1 rounded-full shadow-sm">
+                              HOT
+                            </span>
+                          </div>
+
+                          {/* Hover Action Overlay Icons (Agista Style) */}
+                          <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                            <span
+                              className="w-9 h-9 rounded-full bg-white text-slate-700 hover:text-[#f07000] shadow-md flex items-center justify-center transition-all hover:scale-110"
+                              title="Add to Wishlist"
+                            >
+                              <Heart size={16} />
+                            </span>
+                            <span
+                              className="w-9 h-9 rounded-full bg-white text-slate-700 hover:text-[#091642] shadow-md flex items-center justify-center transition-all hover:scale-110"
+                              title="Quick View"
+                            >
+                              <Eye size={16} />
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Product Info & Tangible Specs */}
+                        <div className="space-y-2 flex-1 text-left">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-[#f07000] uppercase tracking-wider">
+                              {prod.productName || 'DRINKWARE PRINT'}
+                            </span>
+                            <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                              In Stock
+                            </span>
+                          </div>
+
+                          <h4 className="text-base sm:text-lg font-extrabold text-[#091642] group-hover:text-[#f07000] transition-colors line-clamp-1 leading-snug">
+                            {prod.name}
+                          </h4>
+
+                          {/* Spec Pills (Rich tangible card details) */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            {specTags.map((spec, sIdx) => (
+                              <span
+                                key={sIdx}
+                                className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200/60"
+                              >
+                                {spec}
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* 5-Star Rating with Review Count */}
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className="text-amber-400 text-sm">★★★★★</span>
+                            <span className="text-xs font-bold text-slate-700">4.9</span>
+                            <span className="text-xs text-slate-400 font-medium">(48+ reviews)</span>
+                          </div>
+                        </div>
+
+                        {/* Price & Action Button */}
+                        <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100">
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-lg sm:text-xl font-black text-[#091642] group-hover:text-[#f07000] transition-colors">
+                                {price > 0 ? `₹${price.toFixed(2)}` : 'Get Quote'}
+                              </span>
+                              {discount && (
+                                <span className="text-xs text-slate-400 line-through font-semibold">
+                                  ₹{(price * 1.25).toFixed(0)}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-slate-400 font-semibold block">Min qty: 50 pcs</span>
+                          </div>
+
+                          <span className="inline-flex items-center gap-1.5 bg-[#f07000] hover:bg-[#d96500] text-white text-xs font-black px-4 py-2 rounded-full shadow-md shadow-[#f07000]/25 transition-all group-hover:scale-105">
+                            <span>Order</span>
+                            <ArrowRight size={13} />
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* View Full Catalog */}
+            <div className="mt-12 text-center">
               <Link
                 href="/products"
-                className="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#464674] to-[#5c5c96] hover:from-[#5c5c96] hover:to-[#464674] text-white font-bold text-sm px-8 py-2.5 rounded-full transition-all shadow-lg shadow-[#464674]/25 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 bg-[#091642] hover:bg-[#061033] text-white font-bold text-xs uppercase tracking-wider px-8 py-3.5 rounded-full shadow-md transition-all hover:scale-105"
               >
-                View All Products <ChevronRight size={14} />
+                <span>View Full Catalog</span>
+                <ChevronRight size={14} />
               </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════
+            5. WE TURN IDEAS INTO BRANDED PRODUCTS (Agista 2-Col Showcase)
+        ═══════════════════════════════════════════════════════════ */}
+        <section className="py-16 sm:py-24 bg-white border-y border-gray-100">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+
+              {/* Left Column: Composite Visual (Polo, Lanyard, Mug, Bag) */}
+              <div className="lg:col-span-6">
+                <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#ebf3ff] via-[#f0f5ff] to-[#e6efff] p-8 sm:p-12 border border-blue-100/60 shadow-lg min-h-[420px] flex items-center justify-center group">
+                  {/* Subtle Background Glow */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-blue-400/10 rounded-full blur-2xl pointer-events-none" />
+
+                  {/* Visual Composition */}
+                  <div className="relative z-10 w-full flex flex-col items-center space-y-6">
+                    {/* Branded Polo Shirt Card */}
+                    <div className="relative w-64 sm:w-72 aspect-[4/3] bg-gradient-to-br from-[#1a3db8] to-[#0f2575] rounded-2xl p-5 shadow-2xl text-white flex flex-col justify-between border border-white/20 transform -rotate-2 group-hover:rotate-0 transition-transform duration-500">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-3 py-1 rounded-full shadow-xs">
+                          Polo T-Shirt DTF
+                        </span>
+                        <span className="text-xs text-cyan-200 font-bold">100% Bio-Wash</span>
+                      </div>
+
+                      <div className="my-auto text-center border-2 border-dashed border-white/40 rounded-xl p-4 bg-white/5 backdrop-blur-xs">
+                        <p className="text-sm sm:text-base font-black uppercase tracking-widest text-white">
+                          YOUR ARTWORK HERE
+                        </p>
+                        <p className="text-xs text-white/80 mt-1 font-medium">Vector Logo or Custom Print</p>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-white/90 font-bold">
+                        <span>220 GSM Cotton</span>
+                        <span className="text-amber-300 font-black">★ 4.9 Rating</span>
+                      </div>
+                    </div>
+
+                    {/* Lanyard & Mug Floating Badges */}
+                    <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                      <div className="bg-white rounded-2xl p-4 shadow-md border border-slate-100 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-orange-100 text-[#f07000] flex items-center justify-center font-black text-sm shadow-xs">
+                          🏷️
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-[#091642]">Lanyard Badges</p>
+                          <p className="text-xs text-slate-500 font-medium">Custom Satin Ribbon</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-2xl p-4 shadow-md border border-slate-100 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-sm shadow-xs">
+                          ☕
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-[#091642]">Ceramic Mugs</p>
+                          <p className="text-xs text-slate-500 font-medium">Sublimation HD</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Title + 4 Agista Capability Badges */}
+              <div className="lg:col-span-6 space-y-6">
+                <div>
+                  <span className="text-xs font-black uppercase tracking-widest text-[#091642] bg-[#091642]/10 px-4 py-1.5 rounded-full border border-[#091642]/15 inline-block mb-3 shadow-xs">
+                    Manufacturing Excellence
+                  </span>
+                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#091642] tracking-tight leading-tight">
+                    We Turn Ideas Into <span className="text-[#091642] block">Branded Products</span>
+                  </h2>
+                  <p className="text-gray-500 text-sm sm:text-base font-medium mt-3 leading-relaxed">
+                    A rich collection of industrial capabilities and creative tools to visualize, proof, and manufacture your brand merchandise seamlessly.
+                  </p>
+                </div>
+
+                {/* 4 Feature Items with Circular Colored Badges (Exact Agista Style) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+                  <div className="space-y-2">
+                    <div className="w-11 h-11 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-md shadow-[#f07000]/25">
+                      <Layers size={20} />
+                    </div>
+                    <h4 className="text-base font-black text-[#091642]">Rich Templates</h4>
+                    <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                      A rich collection of modern, easy-to-read fonts and industry-tested layouts.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="w-11 h-11 rounded-full bg-[#3b5998] text-white flex items-center justify-center shadow-md shadow-[#3b5998]/25">
+                      <Monitor size={20} />
+                    </div>
+                    <h4 className="text-base font-black text-[#091642]">Easy Customizer</h4>
+                    <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                      Adjust colors, upload vector logos, and inspect real-time 3D press-ready proofs.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="w-11 h-11 rounded-full bg-[#10b981] text-white flex items-center justify-center shadow-md shadow-[#10b981]/25">
+                      <Sparkles size={20} />
+                    </div>
+                    <h4 className="text-base font-black text-[#091642]">Free Icons &amp; Graphics</h4>
+                    <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                      Access a wide range of icons and graphic elements to enhance your designs.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="w-11 h-11 rounded-full bg-[#8b5cf6] text-white flex items-center justify-center shadow-md shadow-[#8b5cf6]/25">
+                      <Printer size={20} />
+                    </div>
+                    <h4 className="text-base font-black text-[#091642]">Offset &amp; Screen HD</h4>
+                    <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                      Industrial grade 2400 DPI Heidelberg presses with true Pantone color fidelity.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
@@ -1662,18 +2233,20 @@ export function HomeClient({
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-16 bg-white">
           <div className="w-full px-3 sm:px-4 lg:px-6">
-            <motion.div {...FU()} className="text-center mb-10">
-              <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-600 border border-orange-100 text-[10px] font-black tracking-[0.15em] uppercase px-3 py-1 rounded-full mb-3 font-display">
-                <Flame size={11} /> Featured Products
+            <motion.div {...FU()} className="text-center mb-10 space-y-2">
+              <span className="inline-flex items-center gap-1.5 bg-orange-50 text-[#f07000] border border-orange-200/80 text-xs font-black tracking-widest uppercase px-3.5 py-1.5 rounded-full shadow-xs">
+                <Flame size={13} className="text-[#f07000]" /> Featured Products
               </span>
-              <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight font-headline">
+              <h2 className="text-3xl sm:text-4xl font-black text-[#091642] tracking-tight">
                 Latest Products
               </h2>
-              <p className="text-gray-400 text-sm font-medium mt-1 font-body">Discover our freshest additions — crafted for perfection.</p>
+              <p className="text-slate-500 text-sm sm:text-base font-medium max-w-lg mx-auto">
+                Discover our freshest additions — crafted for perfection.
+              </p>
             </motion.div>
 
             {subProducts && subProducts.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
                 {subProducts.slice(0, 10).map((sp: any, i: number) => {
                   const price = Number(sp.price || 0);
                   const imgUrl = resolveImagePath(sp.imageUrl || sp.parentProductImageUrl);
@@ -1683,46 +2256,48 @@ export function HomeClient({
                         href={sp.id ? `/design/${sp.productSlug}/start?subProductId=${sp.id}` : `/design/${sp.productSlug}/start`}
                         className="group block h-full"
                       >
-                        <div className="h-full rounded-2xl overflow-hidden border border-gray-100 bg-white transition-all duration-300 shadow-sm hover:shadow-2xl hover:-translate-y-1.5 hover:border-[#464674]/20 flex flex-col">
+                        <div className="h-full rounded-[22px] overflow-hidden border border-slate-100 bg-white transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(9,22,66,0.12)] hover:-translate-y-1.5 flex flex-col justify-between">
                           {/* Image */}
-                          <div className="relative overflow-hidden aspect-square">
+                          <div className="relative overflow-hidden aspect-square bg-gradient-to-b from-[#f8fafc] to-[#edf2f9] p-3 flex items-center justify-center">
                             {imgUrl ? (
                               <Image
                                 src={imgUrl}
                                 alt={sp.name}
                                 fill
-                                className="object-cover transition-transform duration-700 group-hover:scale-108"
+                                className="object-contain p-3 transition-transform duration-700 group-hover:scale-110"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#464674]/10 to-[#5c5c96]/10">
-                                <Palette className="w-8 h-8 text-[#464674]/40" />
+                              <div className="w-full h-full flex items-center justify-center bg-slate-100">
+                                <Palette className="w-8 h-8 text-slate-400" />
                               </div>
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
                             {i < 3 && (
-                              <span className="absolute top-2 left-2 text-[9px] font-black text-white bg-gradient-to-r from-orange-500 to-red-500 px-2 py-0.5 rounded-full shadow-lg">
+                              <span className="absolute top-2.5 left-2.5 text-xs font-black text-white bg-gradient-to-r from-orange-500 to-rose-500 px-2.5 py-1 rounded-full shadow-md">
                                 🔥 Hot
                               </span>
                             )}
-                            <div className="absolute inset-x-2 bottom-2 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-                              <span className="inline-flex items-center gap-1 bg-[#464674] text-white text-[9px] font-black px-3 py-1.5 rounded-lg shadow-lg">
-                                <ShoppingCart size={10} /> Quick Order
+                            <div className="absolute inset-x-3 bottom-3 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                              <span className="inline-flex items-center gap-1.5 bg-[#091642] text-white text-xs font-black px-4 py-2 rounded-full shadow-lg">
+                                <ShoppingCart size={13} /> Quick Order
                               </span>
                             </div>
                           </div>
+
                           {/* Info */}
-                          <div className="p-3 flex flex-col flex-1 justify-between">
+                          <div className="p-4 flex flex-col flex-1 justify-between space-y-3">
                             <div>
-                              <p className="text-[8px] font-extrabold text-gray-400 uppercase tracking-widest">{sp.productName}</p>
-                              <h4 className="text-xs font-black text-gray-900 mt-0.5 line-clamp-2 group-hover:text-[#464674] transition-colors">{sp.name}</h4>
+                              <p className="text-xs font-extrabold text-[#f07000] uppercase tracking-wider">{sp.productName || 'PRINT ITEM'}</p>
+                              <h4 className="text-sm sm:text-base font-black text-[#091642] mt-1 line-clamp-2 group-hover:text-[#f07000] transition-colors leading-snug">{sp.name}</h4>
                             </div>
-                            <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between">
+
+                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                               <div>
-                                <span className="text-[8px] text-gray-400 font-bold block leading-none">FROM</span>
-                                <span className="text-sm font-black text-[#464674]">₹{price > 0 ? price.toFixed(0) : '—'}</span>
+                                <span className="text-[11px] text-slate-400 font-bold block leading-none mb-1">FROM</span>
+                                <span className="text-base sm:text-lg font-black text-[#091642]">₹{price > 0 ? price.toFixed(0) : '—'}</span>
                               </div>
                               {price > 0 && (
-                                <span className="text-[9px] font-black text-emerald-700 bg-emerald-100/80 border-2 border-white shadow-sm px-2.5 py-0.5 rounded-full">
+                                <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 shadow-xs px-2.5 py-1 rounded-full">
                                   30% OFF
                                 </span>
                               )}
@@ -1869,22 +2444,22 @@ export function HomeClient({
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-14 bg-white">
           <div className="w-full px-3 sm:px-4 lg:px-6">
-            <motion.div {...FU()} className="text-center mb-10">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#464674]/10 text-[#464674] text-xs font-black uppercase tracking-wider mb-3">
-                <Zap size={14} className="text-[#464674] animate-pulse" />
+            <motion.div {...FU()} className="text-center mb-10 space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-black uppercase tracking-wider shadow-xs">
+                <Zap size={14} className="text-indigo-600 animate-pulse" />
                 <span>Instant Direct Orders</span>
               </div>
-              <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center justify-center gap-2 font-headline">
-                <Store size={26} className="text-[#464674]" />
+              <h2 className="text-3xl sm:text-4xl font-black text-[#091642] tracking-tight flex items-center justify-center gap-2">
+                <Store size={28} className="text-[#f07000]" />
                 Direct Selling Products
               </h2>
-              <p className="text-gray-500 text-xs sm:text-sm font-medium mt-1.5 max-w-xl mx-auto">
-                Ready-to-ship printed goods & merchandise available for immediate ordering from verified partners.
+              <p className="text-slate-500 text-sm sm:text-base font-medium max-w-xl mx-auto">
+                Ready-to-ship printed goods &amp; merchandise available for immediate ordering from verified partners.
               </p>
             </motion.div>
 
             {directSellingProducts && directSellingProducts.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
                 {directSellingProducts.slice(0, 5).map((sp: any, i: number) => {
                   const price = Number(sp.sellingPrice || sp.price || 0);
                   const rawImg = (Array.isArray(sp.imageUrls) && sp.imageUrls.length > 0 ? sp.imageUrls[0] : null) || sp.imageUrl || '';
@@ -1892,28 +2467,36 @@ export function HomeClient({
                   return (
                     <motion.div key={sp.id || i} {...FU(i * 0.04)}>
                       <Link href={`/products`} className="group block h-full">
-                        <div className="h-full rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 hover:shadow-lg transition-all duration-300 flex flex-col justify-between">
+                        <div className="h-full rounded-[22px] overflow-hidden border border-slate-100 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
                           <div>
-                            <div className="relative overflow-hidden aspect-square bg-slate-100">
+                            <div className="relative overflow-hidden aspect-square bg-gradient-to-b from-[#f8fafc] to-[#edf2f9] p-3 flex items-center justify-center">
                               {imgUrl ? (
-                                <Image src={imgUrl} alt={sp.name || 'Product'} fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                                <Image src={imgUrl} alt={sp.name || 'Product'} fill className="object-contain p-3 group-hover:scale-110 transition-transform duration-700" />
                               ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                                  <Package className="w-8 h-8 text-gray-400" />
+                                <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                                  <Package className="w-8 h-8 text-slate-400" />
                                 </div>
                               )}
                               {sp.category && (
-                                <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-white/90 backdrop-blur-sm text-[9px] font-black text-[#464674] uppercase tracking-wider shadow-sm">
+                                <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-xs text-xs font-bold text-slate-700 uppercase tracking-wider shadow-xs border border-slate-100">
                                   {sp.category}
                                 </span>
                               )}
                             </div>
-                            <div className="p-3 pb-1">
-                              <p className="text-xs font-black text-gray-800 line-clamp-1 group-hover:text-[#464674] transition-colors">{sp.name || 'Product'}</p>
+                            <div className="p-4 pb-2">
+                              <p className="text-sm sm:text-base font-bold text-[#091642] line-clamp-1 group-hover:text-[#f07000] transition-colors">{sp.name || 'Product'}</p>
                             </div>
                           </div>
-                          <div className="p-3 pt-0">
-                            {price > 0 && <p className="text-sm font-black text-[#464674] mt-1">₹{price.toFixed(0)}</p>}
+                          <div className="p-4 pt-0 flex items-center justify-between border-t border-slate-100 mt-2">
+                            {price > 0 ? (
+                              <p className="text-base sm:text-lg font-black text-[#091642]">₹{price.toFixed(0)}</p>
+                            ) : (
+                              <p className="text-sm font-bold text-slate-400">Get Quote</p>
+                            )}
+                            <span className="text-xs font-bold text-[#f07000] flex items-center gap-1">
+                              <span>Order</span>
+                              <ArrowRight size={13} />
+                            </span>
                           </div>
                         </div>
                       </Link>
@@ -1962,99 +2545,138 @@ export function HomeClient({
         </section>
 
         {/* ═══════════════════════════════════════════════════════════
-            SECTION: TESTIMONIALS
+            SECTION: TESTIMONIALS (Agista "See What Our Customers Say")
         ═══════════════════════════════════════════════════════════ */}
-        <section className="py-16 bg-white">
-          <div className="w-full px-3 sm:px-4 lg:px-6">
-            <motion.div {...FU()} className="text-center mb-12">
-              <span className="inline-flex items-center gap-1.5 bg-yellow-50 text-yellow-600 text-[11px] font-bold tracking-wide px-3 py-1 rounded-full mb-3 border border-yellow-100 font-display">
-                <Star size={12} className="fill-yellow-400 text-yellow-400" /> 4.9 / 5 Rating
-              </span>
-              <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight mb-2 font-headline">
-                What Our Customers Say
-              </h2>
-              <p className="text-gray-500 font-medium text-sm max-w-lg mx-auto font-body">
-                Trusted by 10,000+ businesses, designers and individuals across India.
-              </p>
-            </motion.div>
+        <section className="py-16 sm:py-20 bg-white">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <div className="bg-[#edf2fc] rounded-3xl p-8 sm:p-14 text-center">
+              {/* Header */}
+              <div className="space-y-3 mb-12">
+                <h2 className="text-3xl sm:text-4xl font-black text-[#091642] tracking-tight">
+                  See What Our <span className="text-[#f07000]">Customers Say</span>
+                </h2>
+                <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-700">
+                  <span>4.82/5</span>
+                  <span className="text-emerald-500 text-base">★</span>
+                  <span className="text-gray-900 font-extrabold tracking-tight">Trustpilot</span>
+                </div>
+              </div>
 
-            <Carousel opts={{ align: 'start', loop: true }} plugins={[Autoplay({ delay: 5000 })]} className="w-full">
-              <CarouselContent className="-ml-4">
-                {TESTIMONIALS.map((t, i) => {
-                  const initials = t.name.split(' ').map((n) => n[0]).join('');
-                  const grad = ['from-[#464674] to-[#5c5c96]', 'from-violet-500 to-purple-600', 'from-emerald-500 to-teal-600', 'from-orange-500 to-red-500', 'from-pink-500 to-rose-600'][i % 5];
-                  return (
-                    <CarouselItem key={i} className="pl-4 md:basis-1/2 lg:basis-1/3">
-                      <div className="bg-white rounded-3xl border border-gray-100 border-l-4 border-l-[#464674] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col gap-4">
-                        <div className="flex gap-0.5">
-                          {Array(5).fill(0).map((_, j) => (
-                            <Star key={j} size={13} className={j < t.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'} />
-                          ))}
-                        </div>
-                        <p className="text-sm text-gray-600 font-medium leading-relaxed flex-1 italic">"{t.text}"</p>
-                        <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
-                          <div className={cn('w-10 h-10 rounded-full bg-gradient-to-br text-white text-sm font-black flex items-center justify-center flex-shrink-0 shadow-md', grad)}>
-                            {initials}
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-gray-900">{t.name}</p>
-                            <p className="text-[11px] text-gray-400 font-medium">{t.role}</p>
-                          </div>
+              {/* 3 Agista Testimonial Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                {[
+                  {
+                    name: 'Esther Howard',
+                    headline: 'T-shirt printing made easy.',
+                    quote: 'Great quality products - Flags, programs for exceptional capacities, birthday, and occasion welcome are largely still mainstream on paper.',
+                    role: 'Verified Buyer',
+                  },
+                  {
+                    name: 'Robert Fox',
+                    headline: 'Spot UV visiting cards are stunning!',
+                    quote: 'Amazoprint delivered 1,000 spot UV gold foil visiting cards within 48 hours. The paper thickness and registration were immaculate.',
+                    role: 'Creative Director, Studio Aura',
+                  },
+                  {
+                    name: 'Eleanor Pena',
+                    headline: 'Fast turnaround for company swag.',
+                    quote: 'Ordered insulated tumblers and branded executive notebooks for our national sales meet. Every item was packed flawlessly.',
+                    role: 'Operations Lead, NovaTech',
+                  },
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between border border-slate-100"
+                  >
+                    <div className="space-y-3">
+                      <div>
+                        <h4 className="font-bold text-base text-[#091642]">{item.name}</h4>
+                        <div className="flex items-center text-amber-400 text-xs mt-1">
+                          {'★★★★★'}
                         </div>
                       </div>
-                    </CarouselItem>
-                  );
-                })}
-              </CarouselContent>
-              <div className="flex items-center justify-center gap-3 mt-8">
-                <CarouselPrevious className="static translate-y-0 h-9 w-9 border-gray-200 hover:bg-[#464674] hover:text-white hover:border-[#464674] transition-all" />
-                <CarouselNext className="static translate-y-0 h-9 w-9 border-gray-200 hover:bg-[#464674] hover:text-white hover:border-[#464674] transition-all" />
+                      <h5 className="font-bold text-sm text-[#091642] pt-1">
+                        {item.headline}
+                      </h5>
+                      <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                        &quot;{item.quote}&quot;
+                      </p>
+                    </div>
+                    <div className="pt-4 mt-4 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
+                      <span className="font-semibold">{item.role}</span>
+                      <span className="text-emerald-600 font-bold flex items-center gap-1">
+                        <CheckCircle2 size={12} /> Verified
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </Carousel>
+            </div>
           </div>
         </section>
 
         {/* ═══════════════════════════════════════════════════════════
-            SECTION: FINAL CTA
+            SECTION: NEWSLETTER BAR (Agista "Keep Me Updated")
         ═══════════════════════════════════════════════════════════ */}
-        <section className="py-20 bg-gradient-to-br from-[#1a1a4e] via-[#282860] to-[#464674] relative overflow-hidden">
-          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1.5px, transparent 0)', backgroundSize: '28px 28px' }} />
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-500/10 rounded-full blur-[100px] pointer-events-none" />
-          <div className="w-full px-3 sm:px-4 lg:px-6 relative z-10 text-center">
-            <motion.div {...FU()} className="max-w-3xl mx-auto space-y-7">
-              <span className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white text-[11px] font-bold tracking-wide px-4 py-2 rounded-full font-display">
-                <Sparkles size={13} className="text-yellow-300" />
-                Start Your Print Journey Today
-              </span>
-              <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-[1.1] font-headline">
-                Ready to Create{' '}
-                <br className="hidden md:block" />
-                <span className="text-amber-300 italic font-extrabold">Something Amazing?</span>
-              </h2>
-              <p className="text-white/80 text-base font-medium max-w-xl mx-auto leading-relaxed">
-                Join 10,000+ businesses and designers who trust AmazoPrint for premium quality printing across India.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button size="lg" asChild className="h-12 px-9 rounded-2xl text-sm font-black bg-white hover:bg-slate-50 text-[#464674] border-none shadow-2xl shadow-white/10 group">
-                  <Link href="/register" className="flex items-center gap-2">
-                    Get Started Free <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </Button>
-                <Button variant="outline" size="lg" asChild className="h-12 px-9 rounded-2xl text-sm font-bold bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm">
-                  <Link href="/products">Browse Products</Link>
-                </Button>
+        <section className="py-14 bg-white">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <div className="bg-[#091642] rounded-3xl p-8 sm:p-14 text-white shadow-2xl relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8">
+              {/* Left Column: Heading & Testimonial Quote */}
+              <div className="space-y-3 max-w-lg text-left">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#f07000] bg-white/10 px-3 py-1 rounded-full">
+                  Keep Me Updated
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                  Get Special Offers &amp; Free Templates
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed italic">
+                  &quot;Fantastic print gear! Performed flawlessly, gave peace of mind throughout our pan-India launch. Felt confident and professional.&quot;
+                </p>
+                <p className="text-[11px] text-[#f07000] font-bold">— Ritu Sen, Creative Director at Apex Studio</p>
               </div>
-              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                {['🔒 Secure Payments', '✅ 100% Quality', '⭐ 98% Satisfaction', '🚀 Fast Delivery'].map((t) => (
-                  <span key={t} className="text-[11px] font-bold text-white/75 bg-white/10 border border-white/15 px-3 py-1 rounded-full">{t}</span>
-                ))}
+
+              {/* Right Column: Pill Email Form with Orange Circular Arrow */}
+              <div className="w-full max-w-md">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    alert('Thank you for subscribing to Amazoprint offers!');
+                  }}
+                  className="flex items-center bg-white rounded-full pl-5 pr-1.5 py-1.5 shadow-lg"
+                >
+                  <input
+                    type="email"
+                    required
+                    placeholder="Your email address..."
+                    className="flex-1 bg-transparent text-xs sm:text-sm text-gray-900 placeholder-gray-400 outline-none font-medium"
+                  />
+                  <button
+                    type="submit"
+                    className="w-10 h-10 rounded-full bg-[#f07000] hover:bg-[#d96500] text-white flex items-center justify-center flex-shrink-0 transition-transform active:scale-95 shadow-md shadow-[#f07000]/30"
+                    aria-label="Subscribe"
+                  >
+                    <ArrowRight size={16} />
+                  </button>
+                </form>
+                <p className="text-[10px] text-slate-400 mt-2 text-center lg:text-left">
+                  We respect your privacy. No spam, unsubscribe anytime.
+                </p>
               </div>
-            </motion.div>
+            </div>
           </div>
         </section>
 
       </main>
+
+      {/* ── AGISTA FLOATING BACK-TO-TOP BUTTON (Bottom-Right) ── */}
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="fixed bottom-6 right-6 z-40 w-11 h-11 rounded-full bg-[#f07000] hover:bg-[#d96500] text-white shadow-xl shadow-[#f07000]/40 flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
+        aria-label="Back to top"
+      >
+        <ArrowUp size={18} />
+      </button>
 
       <Footer />
     </div>

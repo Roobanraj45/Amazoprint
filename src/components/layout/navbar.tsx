@@ -217,23 +217,62 @@ export function Navbar() {
     },
   ];
 
+  const [isCatMenuOpen, setIsCatMenuOpen] = React.useState(false);
+
   return (
     <>
       {/* ════════════════════════════════════════════════════════════
-          FIXED HEADER
+          FIXED AGISTA 3-TIER HEADER
       ════════════════════════════════════════════════════════════ */}
       <header
         className={cn(
           'fixed top-0 w-full z-50 transition-all duration-300',
-          scrolled && 'shadow-2xl shadow-[#1a1a4e]/30'
+          scrolled && 'shadow-xl shadow-[#061033]/25'
         )}
       >
-        <NoticeSlider />
-        {/* ── TOP ROW ─────────────────────────────────────────────── */}
-        <div className="bg-gradient-to-r from-[#1a1a4e] via-[#282860] to-[#1a1a4e] border-b border-white/10 relative z-20">
-          <div className="w-full px-3 sm:px-4 lg:px-6 h-[72px] sm:h-[80px] flex items-center gap-3 lg:gap-4 xl:gap-5 py-2">
+        {/* ── TIER 1: TOP TRUST & ANNOUNCEMENT BAR (Agista Navy #061033) ── */}
+        <div className="bg-[#061033] text-white/90 text-xs border-b border-white/10 hidden md:block">
+          <div className="w-full px-4 lg:px-8 h-9 flex items-center justify-between">
+            {/* Google Review Badge */}
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-white tracking-wide">Google</span>
+              <div className="flex items-center text-amber-400 text-xs">
+                {'★★★★★'}
+              </div>
+              <span className="text-[11px] text-white/80 font-medium">
+                <strong className="text-white font-bold">4.9/5</strong> Based on 1,200+ Reviews
+              </span>
+            </div>
 
-            {/* ── Three-Line Bar Option Handle at Corner ── */}
+            {/* Core Agista Value Props */}
+            <div className="flex items-center gap-6 text-[11px] font-semibold text-white/80">
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                25+ Years in Business
+              </span>
+              <span className="text-white/30">•</span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                Fast delivery Worldwide
+              </span>
+              <span className="text-white/30">•</span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#f07000]" />
+                Price Beat Promise
+              </span>
+              <span className="text-white/30">•</span>
+              <a href="tel:1800818808" className="hover:text-white transition-colors text-amber-300 font-bold">
+                Hotline: 1800 818 808
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* ── TIER 2: MAIN BRAND HEADER (Midnight Navy #091642) ── */}
+        <div className="bg-[#091642] border-b border-white/10 relative z-20">
+          <div className="w-full px-4 lg:px-8 h-[74px] flex items-center gap-4 lg:gap-6 py-2">
+
+            {/* Hamburger / Menu drawer */}
             <div className="relative flex-shrink-0">
               <MainMenuDrawer
                 theme="dark"
@@ -247,11 +286,11 @@ export function Navbar() {
               <AmazoprintLogo variant="header" className="brightness-0 invert" />
             </Link>
 
-            {/* Search */}
-            <div ref={searchContainerRef} className="hidden md:block flex-1 max-w-xs lg:max-w-md xl:max-w-lg min-w-0 relative">
+            {/* Agista Signature Search Pill (Full Rounded White with Circular Orange Button) */}
+            <div ref={searchContainerRef} className="hidden md:block flex-1 max-w-lg lg:max-w-xl xl:max-w-2xl min-w-0 relative">
               <form onSubmit={handleSearchSubmit}>
-                <div className="flex items-center gap-2.5 bg-white/10 border border-white/20 rounded-xl px-3.5 py-2.5 focus-within:border-white/50 focus-within:bg-white/15 transition-all">
-                  <Search className="w-4 h-4 text-white/70 flex-shrink-0" />
+                <div className="flex items-center bg-white rounded-full pl-4 pr-1.5 py-1.5 shadow-md shadow-black/10 transition-all focus-within:ring-2 focus-within:ring-[#f07000]/50">
+                  <Search className="w-4 h-4 text-gray-400 flex-shrink-0 mr-2" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -260,19 +299,27 @@ export function Navbar() {
                       setIsSearchFocused(true);
                     }}
                     onFocus={() => setIsSearchFocused(true)}
-                    placeholder="Search cards, flyers, stickers, gifts..."
-                    className="flex-1 bg-transparent text-sm text-white placeholder-white/50 outline-none font-medium min-w-0"
+                    placeholder="Search over 10,000 products, prints & templates..."
+                    className="flex-1 bg-transparent text-xs sm:text-sm text-gray-900 placeholder-gray-400 outline-none font-medium min-w-0"
                   />
                   {searchQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="text-white/50 hover:text-white transition-colors"
+                      className="text-gray-400 hover:text-gray-600 transition-colors mr-1.5"
                       aria-label="Clear search"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-4 h-4" />
                     </button>
                   )}
+                  {/* Agista Orange Circular Button */}
+                  <button
+                    type="submit"
+                    className="w-9 h-9 rounded-full bg-[#f07000] hover:bg-[#d96500] text-white flex items-center justify-center flex-shrink-0 transition-transform active:scale-95 shadow-md shadow-[#f07000]/30"
+                    aria-label="Submit search"
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
                 </div>
               </form>
 
@@ -289,7 +336,7 @@ export function Navbar() {
                     {searchResults.length > 0 ? (
                       <div className="flex flex-col gap-1">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-3 py-1">
-                          Suggestions
+                          Product Suggestions
                         </p>
                         {searchResults.map((item) => {
                           const img = resolveImagePath(item.imageUrl);
@@ -301,7 +348,7 @@ export function Navbar() {
                                 setIsSearchFocused(false);
                                 setSearchQuery('');
                               }}
-                              className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[#464674]/5 transition-colors group"
+                              className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[#091642]/5 transition-colors group"
                             >
                               <div className="w-9 h-9 rounded-lg bg-gray-100 overflow-hidden relative flex-shrink-0 flex items-center justify-center">
                                 {img ? (
@@ -311,7 +358,7 @@ export function Navbar() {
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-gray-800 group-hover:text-[#464674] truncate transition-colors">
+                                <p className="text-xs font-bold text-gray-800 group-hover:text-[#091642] truncate transition-colors">
                                   {item.name}
                                 </p>
                                 <p className="text-[10px] text-gray-400 font-medium truncate">
@@ -319,11 +366,11 @@ export function Navbar() {
                                 </p>
                               </div>
                               {item.price && (
-                                <span className="text-[11px] font-black text-[#464674]">
+                                <span className="text-[11px] font-black text-[#f07000]">
                                   ₹{Number(item.price).toFixed(0)}
                                 </span>
                               )}
-                              <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#464674] transition-colors flex-shrink-0" />
+                              <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#091642] transition-colors flex-shrink-0" />
                             </Link>
                           );
                         })}
@@ -340,7 +387,7 @@ export function Navbar() {
                       <button
                         type="button"
                         onClick={() => handleSearchSubmit()}
-                        className="w-full py-2 px-3 text-left text-xs font-bold text-[#464674] hover:bg-[#464674]/5 rounded-xl transition-colors flex items-center justify-between"
+                        className="w-full py-2 px-3 text-left text-xs font-bold text-[#091642] hover:bg-[#091642]/5 rounded-xl transition-colors flex items-center justify-between"
                       >
                         <span>Search all for &quot;{searchQuery}&quot;</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -351,77 +398,71 @@ export function Navbar() {
               </AnimatePresence>
             </div>
 
-            {/* Contact — on wide screens */}
-            <div className="hidden 2xl:flex items-center gap-5 flex-shrink-0">
-              <a href="tel:+916001234567" className="flex items-center gap-2.5 group">
-                <div className="w-8 h-8 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center flex-shrink-0 transition-colors border border-white/15">
-                  <Phone className="w-3.5 h-3.5 text-white/80" />
+            {/* Right Action Bar */}
+            <div className="flex items-center gap-2 sm:gap-3 ml-auto flex-shrink-0">
+              {/* Hotline Pill (Agista Style) */}
+              <a
+                href="tel:1800818808"
+                className="hidden xl:flex items-center gap-3 bg-white/10 hover:bg-white/15 border border-white/15 rounded-full pl-2 pr-5 py-1.5 transition-all group"
+              >
+                <div className="w-8 h-8 rounded-full bg-white text-[#091642] flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                  <Phone className="w-4 h-4 text-[#091642]" />
                 </div>
-                <div>
-                  <p className="text-xs font-black text-white leading-tight">+1600-123 456 789</p>
-                  <p className="text-[10px] text-white/50 font-medium">24/7 Support</p>
-                </div>
-              </a>
-              <a href="mailto:support@amazoprint.in" className="flex items-center gap-2.5 group">
-                <div className="w-8 h-8 rounded-full bg-white/10 group-hover:bg-white/20 flex items-center justify-center flex-shrink-0 transition-colors border border-white/15">
-                  <Mail className="w-3.5 h-3.5 text-white/80" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-white leading-tight">support@amazoprint.in</p>
-                  <p className="text-[10px] text-white/50 font-medium">Contact Email</p>
+                <div className="text-left">
+                  <p className="text-[10px] text-white/70 font-semibold uppercase tracking-wider">24/7 Hotline</p>
+                  <p className="text-xs font-black text-white group-hover:text-[#f07000] transition-colors">+ 1800 818 808</p>
                 </div>
               </a>
-            </div>
 
-            {/* Right action icons */}
-            <div className="flex items-center gap-1 sm:gap-1.5 ml-auto flex-shrink-0">
               {/* Account */}
               {loading ? (
-                <Skeleton className="h-9 w-9 rounded-full bg-white/10" />
+                <Skeleton className="h-10 w-10 rounded-full bg-white/10" />
               ) : session ? (
                 <Link
                   href={dashboardUrl}
                   title="My Workspace"
-                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-colors"
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center transition-colors text-white"
                 >
-                  <User className="w-4 h-4 text-white" />
+                  <User className="w-4 h-4" />
                 </Link>
               ) : (
                 <Link
                   href="/login"
                   title="Login"
-                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-colors"
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center transition-colors text-white"
                 >
-                  <LogIn className="w-4 h-4 text-white" />
+                  <LogIn className="w-4 h-4" />
                 </Link>
               )}
 
               {/* Wishlist */}
-              <button
-                type="button"
-                className="relative w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-colors hidden sm:flex"
+              <Link
+                href="/products"
+                className="relative w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center transition-colors hidden sm:flex text-white"
                 aria-label="Wishlist"
               >
                 <Heart className="w-4 h-4 text-rose-300" />
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none">0</span>
-              </button>
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#f07000] text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none">
+                  0
+                </span>
+              </Link>
 
               {/* Cart */}
               <CartSheet />
 
-              {/* Auth buttons */}
+              {/* Auth links on large screens */}
               {!loading && !session && (
-                <div className="hidden sm:flex items-center gap-1.5 ml-1 pl-1.5 border-l border-white/15">
-                  <Button asChild variant="ghost" size="sm" className="rounded-xl font-bold text-xs text-white/80 hover:text-white hover:bg-white/10 h-8.5 px-3">
+                <div className="hidden lg:flex items-center gap-1.5 ml-1 pl-2 border-l border-white/15">
+                  <Button asChild variant="ghost" size="sm" className="rounded-full font-bold text-xs text-white hover:text-white hover:bg-white/10 h-9 px-3">
                     <Link href="/login">Login</Link>
                   </Button>
-                  <Button asChild size="sm" className="rounded-xl font-bold text-xs bg-white hover:bg-slate-50 text-[#464674] border-none h-8.5 px-3.5 shadow-md shadow-black/20">
+                  <Button asChild size="sm" className="rounded-full font-bold text-xs bg-[#f07000] hover:bg-[#d96500] text-white border-none h-9 px-4 shadow-md shadow-[#f07000]/30">
                     <Link href="/register">Register</Link>
                   </Button>
                 </div>
               )}
 
-              {/* Mobile Three-Line Menu Button */}
+              {/* Mobile Menu */}
               <div className="lg:hidden ml-1">
                 <MainMenuDrawer
                   theme="dark"
@@ -432,11 +473,115 @@ export function Navbar() {
           </div>
         </div>
 
+        {/* ── TIER 3: BOTTOM NAVIGATION RIBBON (Agista Clean White) ── */}
+        <div className="bg-white border-b border-gray-200 text-[#091642] hidden lg:block shadow-xs relative">
+          <div className="w-full px-4 lg:px-8 flex items-center justify-between h-[52px]">
+            {/* Left: Agista "Shop Product ▾" Mega-Menu Button */}
+            <div className="flex items-center gap-6 h-full">
+              <div
+                className="relative h-full flex items-center"
+                onMouseEnter={() => setIsCatMenuOpen(true)}
+                onMouseLeave={() => setIsCatMenuOpen(false)}
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsCatMenuOpen(!isCatMenuOpen)}
+                  className="bg-[#091642] hover:bg-[#061033] text-white px-5 h-full font-black text-xs uppercase tracking-wider flex items-center gap-2.5 transition-colors cursor-pointer select-none"
+                >
+                  <div className="w-5 h-5 rounded-sm bg-white/10 flex items-center justify-center">
+                    <LayoutGrid className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span>Shop <strong className="text-[#f07000]">Product</strong></span>
+                  <ChevronDown className={cn('w-3.5 h-3.5 transition-transform text-white/80', isCatMenuOpen && 'rotate-180')} />
+                </button>
+
+                {/* Dropdown Menu */}
+                <AnimatePresence>
+                  {isCatMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 w-72 bg-white rounded-b-2xl shadow-2xl border border-gray-200 py-3 z-50 overflow-hidden"
+                    >
+                      <div className="px-4 pb-2 border-b border-gray-100 flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">All Categories</span>
+                        <Link href="/products" className="text-[10px] font-bold text-[#f07000] hover:underline">View All →</Link>
+                      </div>
+                      <div className="py-1 max-h-[360px] overflow-y-auto">
+                        {activeProductsList.slice(0, 10).map((prod) => (
+                          <Link
+                            key={prod.id}
+                            href={`/products?category=${encodeURIComponent(prod.name)}`}
+                            className="flex items-center justify-between px-4 py-2.5 hover:bg-[#091642]/5 text-xs font-bold text-gray-700 hover:text-[#091642] transition-colors"
+                          >
+                            <span>{prod.name}</span>
+                            <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+                          </Link>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Main Nav Links */}
+              <nav className="flex items-center gap-6 text-xs font-bold uppercase tracking-wider text-[#091642]">
+                <Link
+                  href="/"
+                  className={cn(
+                    'transition-colors flex items-center gap-1',
+                    pathname === '/' ? 'text-[#f07000] font-black' : 'hover:text-[#f07000]'
+                  )}
+                >
+                  <span>Home</span>
+                  {pathname === '/' && <span className="w-1.5 h-1.5 rounded-full bg-[#f07000]" />}
+                </Link>
+                <Link href="/products" className="hover:text-[#f07000] transition-colors">
+                  All Products
+                </Link>
+                <Link href="/products?type=direct" className="hover:text-[#f07000] transition-colors flex items-center gap-1">
+                  <span>Direct Selling</span>
+                  <span className="bg-[#f07000] text-white text-[9px] px-1.5 py-0.2 rounded-full font-black">HOT</span>
+                </Link>
+                <Link href="/templates" className="hover:text-[#f07000] transition-colors">
+                  Templates
+                </Link>
+                <Link href="/contests" className="hover:text-[#f07000] transition-colors">
+                  Contests
+                </Link>
+                <Link href="/printer-registration" className="hover:text-[#f07000] transition-colors">
+                  Printers
+                </Link>
+                <Link href="/freelancer/dashboard" className="hover:text-[#f07000] transition-colors">
+                  Designers
+                </Link>
+                <Link href="/contact" className="hover:text-[#f07000] transition-colors">
+                  Contact
+                </Link>
+              </nav>
+            </div>
+
+            {/* Right: Promotional Flash Badge */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-gray-600 hidden xl:inline-block">
+                🎉 <strong className="text-[#091642]">Special Offer:</strong> Flat 20% OFF with code{' '}
+                <span className="text-[#f07000] font-black">AMAZO20</span>
+              </span>
+              <div className="flex items-center gap-2 pl-3 border-l border-gray-200 text-xs font-semibold text-gray-500">
+                <span>INR (₹)</span>
+                <span>•</span>
+                <span>ENG</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </header>
 
-      {/* ── HEIGHT SPACER — matches single topbar height ─────────────── */}
-      <div className="h-[72px] sm:h-[80px]" aria-hidden="true" />
-
+      {/* ── HEIGHT SPACER (Matches Fixed Header Height) ── */}
+      <div className="h-[74px] md:h-[110px] lg:h-[162px]" aria-hidden="true" />
     </>
   );
 }
+

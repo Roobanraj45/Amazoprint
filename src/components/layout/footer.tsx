@@ -88,16 +88,66 @@ export function Footer() {
   };
 
   return (
-    <footer className="bg-[#0f1117] text-slate-300 border-t border-white/5">
+    <footer className="bg-[#061033] text-slate-300 border-t border-white/10">
 
       {/* ── Main columns ─────────────────────────────────────────────────── */}
-      <div className="w-full px-3 sm:px-4 lg:px-6 pt-14 pb-8">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 lg:gap-6">
+      <div className="w-full px-4 sm:px-6 lg:px-8 pt-16 pb-10">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 lg:gap-8">
+
+          {/* Brand Info (Spans 2 columns on desktop) */}
+          <div className="col-span-2 space-y-4">
+            <Link href="/" className="inline-block">
+              <AmazoprintLogo variant="header" className="brightness-0 invert h-9" />
+            </Link>
+            <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
+              Amazoprint is India's leading technology-powered custom printing platform. We deliver premium business cards, merchandise, marketing materials, and packaging with industry-leading precision and door-to-door delivery.
+            </p>
+
+            <div className="space-y-2 pt-2 text-xs text-slate-300">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[#f07000] flex-shrink-0">
+                  <Phone size={13} />
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Toll-Free 24/7 Hotline</span>
+                  <a href="tel:1800818808" className="font-bold text-white hover:text-[#f07000] transition-colors">1800 818 808</a>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[#f07000] flex-shrink-0">
+                  <Mail size={13} />
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-semibold">Customer Support</span>
+                  <a href="mailto:support@amazoprint.in" className="font-bold text-white hover:text-[#f07000] transition-colors">support@amazoprint.in</a>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Icons in Clean Circles */}
+            <div className="pt-2">
+              <div className="flex items-center gap-2.5">
+                {SOCIAL_ICONS.map(({ Icon, href, color, label }) => (
+                  <Link
+                    key={label}
+                    href={href}
+                    aria-label={label}
+                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-[#f07000] border border-white/15 flex items-center justify-center transition-all hover:-translate-y-1 group"
+                  >
+                    <Icon
+                      size={15}
+                      className="text-white transition-colors"
+                    />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
 
           {/* Quick Links */}
           {FOOTER_COLUMNS.slice(0, 3).map((col) => (
             <div key={col.heading}>
-              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.18em] mb-5 border-b border-white/10 pb-2">
+              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.16em] mb-5 border-b border-white/10 pb-2">
                 {col.heading}
               </h4>
               <ul className="space-y-2.5">
@@ -105,11 +155,11 @@ export function Footer() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-[12px] text-slate-400 hover:text-[#8b8bb3] transition-colors flex items-center gap-1.5 group"
+                      className="text-[12px] text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 group font-medium"
                     >
                       <ArrowRight
                         size={10}
-                        className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-[#464674] flex-shrink-0"
+                        className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-[#f07000] flex-shrink-0"
                       />
                       {link.label}
                     </Link>
@@ -119,92 +169,34 @@ export function Footer() {
             </div>
           ))}
 
-          {/* Follow column */}
-          <div>
-            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.18em] mb-5 border-b border-white/10 pb-2">
-              Follow
-            </h4>
-            <ul className="space-y-2.5">
-              {FOOTER_COLUMNS[3].links.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-[12px] text-slate-400 hover:text-[#8b8bb3] transition-colors flex items-center gap-1.5 group"
-                  >
-                    <ArrowRight
-                      size={10}
-                      className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-[#464674] flex-shrink-0"
-                    />
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Newsletter + Social — spans 2 cols */}
-          <div className="col-span-2 md:col-span-3 lg:col-span-2 space-y-5">
-            {/* Newsletter */}
+          {/* Payment & Security */}
+          <div className="space-y-5">
             <div>
-              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.18em] mb-4">
-                Sign up to our newsletter
+              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.16em] mb-4 border-b border-white/10 pb-2">
+                Security & Trust
               </h4>
-              {subscribed ? (
-                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 text-[12px] text-emerald-400 font-bold">
-                  ✅ You're subscribed! Thank you.
-                </div>
-              ) : (
-                <form onSubmit={handleSubscribe} className="flex gap-2">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Your email address"
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-[12px] text-white placeholder:text-slate-500 focus:outline-none focus:border-[#464674]/60 focus:bg-white/8 transition-all"
-                    required
-                  />
-                  <button
-                    type="submit"
-                    className="bg-[#464674] hover:bg-[#5c5c96] text-white rounded-xl px-3.5 py-2.5 flex items-center gap-1.5 text-[12px] font-bold transition-all hover:-translate-y-0.5 flex-shrink-0"
-                  >
-                    <Send size={13} />
-                  </button>
-                </form>
-              )}
-            </div>
-
-            {/* Follow Us social icons */}
-            <div>
-              <p className="text-[11px] font-black text-white uppercase tracking-[0.18em] mb-3">
-                Follow as
+              <p className="text-xs text-slate-400 mb-3 leading-relaxed">
+                256-bit SSL encrypted checkout with multi-layer fraud protection.
               </p>
-              <div className="flex flex-wrap gap-2.5">
-                {SOCIAL_ICONS.map(({ Icon, href, color, label }) => (
-                  <Link
-                    key={label}
-                    href={href}
-                    aria-label={label}
-                    className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all hover:-translate-y-0.5 hover:border-white/20 group"
-                  >
-                    <Icon
-                      size={15}
-                      className="text-slate-400 group-hover:text-white transition-colors"
-                    />
-                  </Link>
-                ))}
+              <div className="space-y-2 text-xs font-semibold text-slate-300">
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                  <ShieldCheck size={14} /> 100% Guaranteed Quality
+                </span>
+                <span className="flex items-center gap-1.5 text-cyan-400">
+                  <Truck size={14} /> Pan-India Express Delivery
+                </span>
               </div>
             </div>
 
-            {/* Payment methods */}
-             <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">
-                We Accept
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">
+                Payment Gateways
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {PAYMENT_METHODS.map((method) => (
                   <span
                     key={method}
-                    className="text-[9px] font-black text-slate-400 bg-white/5 border border-white/10 px-2 py-1 rounded-md tracking-wide"
+                    className="text-[9px] font-black text-slate-300 bg-white/10 border border-white/15 px-2.5 py-1 rounded-md tracking-wide"
                   >
                     {method}
                   </span>
@@ -216,30 +208,20 @@ export function Footer() {
       </div>
 
       {/* ── Divider ─────────────────────────────────────────────────────── */}
-      <div className="border-t border-white/5" />
+      <div className="border-t border-white/10" />
 
       {/* ── Bottom bar ──────────────────────────────────────────────────── */}
-      <div className="w-full px-3 sm:px-4 lg:px-6 py-5">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-5 bg-[#040b24]">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-
-          {/* Left: trust items */}
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-5">
-            {[
-              { Icon: ShieldCheck, text: 'Secure Payments',   color: 'text-emerald-400' },
-              { Icon: Truck,       text: 'Pan-India Shipping', color: 'text-blue-400' },
-              { Icon: CreditCard,  text: 'Multiple Gateways', color: 'text-violet-400' },
-            ].map(({ Icon, text, color }) => (
-              <div key={text} className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
-                <Icon size={13} className={color} />
-                {text}
-              </div>
-            ))}
-          </div>
-
-          {/* Right: copyright */}
-          <p className="text-slate-500 text-[11px] font-semibold text-center md:text-right">
-            © {new Date().getFullYear()} Amazoprint | All Right Reserved.
+          <p className="text-slate-400 text-xs font-semibold text-center md:text-left">
+            © {new Date().getFullYear()} <strong className="text-white">Amazoprint Technologies</strong>. All Rights Reserved. Built for high performance printing.
           </p>
+
+          <div className="flex items-center gap-6 text-xs text-slate-400 font-medium">
+            <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="/refund" className="hover:text-white transition-colors">Refund Policy</Link>
+          </div>
         </div>
       </div>
     </footer>
