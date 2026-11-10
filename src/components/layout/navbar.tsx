@@ -477,16 +477,16 @@ export function Navbar() {
         <div className="bg-white border-b border-gray-200 text-[#091642] hidden lg:block shadow-xs relative">
           <div className="w-full px-4 lg:px-8 flex items-center justify-between h-[52px]">
             {/* Left: Agista "Shop Product ▾" Mega-Menu Button */}
-            <div className="flex items-center gap-6 h-full">
+            <div className="flex items-center gap-4 xl:gap-6 h-full min-w-0">
               <div
-                className="relative h-full flex items-center"
+                className="relative h-full flex items-center flex-shrink-0"
                 onMouseEnter={() => setIsCatMenuOpen(true)}
                 onMouseLeave={() => setIsCatMenuOpen(false)}
               >
                 <button
                   type="button"
                   onClick={() => setIsCatMenuOpen(!isCatMenuOpen)}
-                  className="bg-[#091642] hover:bg-[#061033] text-white px-5 h-full font-black text-xs uppercase tracking-wider flex items-center gap-2.5 transition-colors cursor-pointer select-none"
+                  className="bg-[#091642] hover:bg-[#061033] text-white px-4 xl:px-5 h-full font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer select-none"
                 >
                   <div className="w-5 h-5 rounded-sm bg-white/10 flex items-center justify-center">
                     <LayoutGrid className="w-3.5 h-3.5 text-white" />
@@ -527,52 +527,48 @@ export function Navbar() {
               </div>
 
               {/* Main Nav Links */}
-              <nav className="flex items-center gap-6 text-xs font-bold uppercase tracking-wider text-[#091642]">
+              <nav className="flex items-center gap-3 lg:gap-3.5 xl:gap-4.5 2xl:gap-6 text-[11px] xl:text-xs font-bold uppercase tracking-wider text-[#091642] whitespace-nowrap">
                 <Link
                   href="/"
                   className={cn(
-                    'transition-colors flex items-center gap-1',
+                    'transition-colors flex items-center gap-1.5 py-1',
                     pathname === '/' ? 'text-[#f07000] font-black' : 'hover:text-[#f07000]'
                   )}
                 >
                   <span>Home</span>
                   {pathname === '/' && <span className="w-1.5 h-1.5 rounded-full bg-[#f07000]" />}
                 </Link>
-                <Link href="/products" className="hover:text-[#f07000] transition-colors">
+                <Link href="/products" className="hover:text-[#f07000] transition-colors py-1">
                   All Products
                 </Link>
-                <Link href="/products?type=direct" className="hover:text-[#f07000] transition-colors flex items-center gap-1">
+                <Link href="/products?type=direct" className="hover:text-[#f07000] transition-colors flex items-center gap-1.5 py-1">
                   <span>Direct Selling</span>
-                  <span className="bg-[#f07000] text-white text-[9px] px-1.5 py-0.2 rounded-full font-black">HOT</span>
+                  <span className="bg-[#f07000] text-white text-[9px] px-1.5 py-0.5 rounded-full font-black leading-none">HOT</span>
                 </Link>
-                <Link href="/templates" className="hover:text-[#f07000] transition-colors">
+                <Link href="/templates" className="hover:text-[#f07000] transition-colors py-1">
                   Templates
                 </Link>
-                <Link href="/contests" className="hover:text-[#f07000] transition-colors">
+                <Link href="/contests" className="hover:text-[#f07000] transition-colors py-1">
                   Contests
                 </Link>
-                <Link href="/printer-registration" className="hover:text-[#f07000] transition-colors">
+                <Link href="/printer-registration" className="hover:text-[#f07000] transition-colors py-1">
                   Printers
                 </Link>
-                <Link href="/freelancer/dashboard" className="hover:text-[#f07000] transition-colors">
+                <Link href="/freelancer/dashboard" className="hover:text-[#f07000] transition-colors py-1">
                   Designers
                 </Link>
-                <Link href="/contact" className="hover:text-[#f07000] transition-colors">
+                <Link href="/contact" className="hover:text-[#f07000] transition-colors py-1">
                   Contact
                 </Link>
               </nav>
             </div>
 
             {/* Right: Promotional Flash Badge */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-600 hidden xl:inline-block">
-                🎉 <strong className="text-[#091642]">Special Offer:</strong> Flat 20% OFF with code{' '}
-                <span className="text-[#f07000] font-black">AMAZO20</span>
-              </span>
-              <div className="flex items-center gap-2 pl-3 border-l border-gray-200 text-xs font-semibold text-gray-500">
-                <span>INR (₹)</span>
-                <span>•</span>
-                <span>ENG</span>
+            <div className="flex items-center gap-3.5 flex-shrink-0 ml-auto pl-4">
+              <div className="hidden xl:flex items-center gap-1.5 bg-orange-50/90 border border-orange-200/80 px-3 py-1 rounded-full text-[11px] font-bold text-gray-700 shadow-2xs whitespace-nowrap">
+                <span>🎉</span>
+                <span className="text-[#091642] font-bold">20% OFF:</span>
+                <span className="text-[#f07000] font-black tracking-wide">AMAZO20</span>
               </div>
             </div>
           </div>

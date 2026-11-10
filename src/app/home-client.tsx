@@ -102,18 +102,18 @@ const DEFAULT_ALL_CATEGORIES = [
 ];
 
 const HOW_STEPS = [
-  { n: '01', icon: <Search size={22} />, label: 'Choose Product',   desc: 'Pick from 500+ print products across categories.', col: 'from-[#464674] to-[#5c5c96]' },
-  { n: '02', icon: <PenTool size={22} />,  label: 'Customize Design', desc: 'Use our drag-and-drop studio or upload your own artwork.', col: 'from-violet-500 to-purple-600' },
-  { n: '03', icon: <ShoppingCart size={22} />, label: 'Place Order',  desc: 'Instant quotes, pick a printer, pay securely.', col: 'from-emerald-500 to-teal-600' },
-  { n: '04', icon: <Truck size={22} />,    label: 'Receive Delivery', desc: 'Pan-India delivery, tracked right to your door.', col: 'from-orange-500 to-red-500' },
+  { n: '01', icon: <Search size={22} />, label: 'Choose Product', desc: 'Pick from 500+ commercial print products and blanks.', col: 'from-[#464674] to-[#5c5c96]' },
+  { n: '02', icon: <PenTool size={22} />, label: 'Customize Design', desc: 'Design in vector canvas studio or upload print-ready files.', col: 'from-violet-500 to-purple-600' },
+  { n: '03', icon: <ShoppingCart size={22} />, label: 'Pre-flight & Order', desc: 'Automated CMYK/DPI audit, certified press routing, secure checkout.', col: 'from-emerald-500 to-teal-600' },
+  { n: '04', icon: <Truck size={22} />, label: 'Doorstep Delivery', desc: 'Real-time tracked dispatch across 28,000+ PIN codes in India.', col: 'from-orange-500 to-red-500' },
 ];
 
 const TESTIMONIALS = [
-  { name: 'Ravi Sharma',  role: 'Marketing Head, TechNova',    rating: 5, text: 'Amazing quality and super fast delivery. AmazoPrint is now our go-to for all business printing needs.' },
-  { name: 'Priya Nair',   role: 'Founder, Creative Lab',       rating: 5, text: 'The design studio is incredibly easy to use. Got my brochures done in minutes — quality exceeded expectations!' },
-  { name: 'Arjun Mehta',  role: 'Graphic Designer',            rating: 5, text: 'Great platform for designers. I earn consistently through template sales and verification jobs.' },
-  { name: 'Sneha Reddy',  role: 'Event Manager',               rating: 5, text: 'Ordered banners and stickers for my event — absolutely loved the output and speed of delivery!' },
-  { name: 'Deepak Joshi', role: 'SMB Owner',                   rating: 4, text: 'Very affordable pricing and great support team. Been a regular customer for 6 months now.' },
+  { name: 'Ravi Sharma', role: 'Marketing Head, TechNova', rating: 5, text: 'Amazing quality and super fast delivery. AmazoPrint is now our go-to for all business printing needs.' },
+  { name: 'Priya Nair', role: 'Founder, Creative Lab', rating: 5, text: 'The design studio is incredibly easy to use. Got my brochures done in minutes — quality exceeded expectations!' },
+  { name: 'Arjun Mehta', role: 'Graphic Designer', rating: 5, text: 'Great platform for designers. I earn consistently through template sales and verification jobs.' },
+  { name: 'Sneha Reddy', role: 'Event Manager', rating: 5, text: 'Ordered banners and stickers for my event — absolutely loved the output and speed of delivery!' },
+  { name: 'Deepak Joshi', role: 'SMB Owner', rating: 4, text: 'Very affordable pricing and great support team. Been a regular customer for 6 months now.' },
 ];
 
 const ECOSYSTEM_TABS = [
@@ -326,7 +326,7 @@ function StudioMockup() {
           <div className="w-full aspect-[1.75/1] bg-gradient-to-br from-[#1b1e36] via-[#242647] to-[#16172e] rounded-xl shadow-2xl relative overflow-hidden p-4 flex flex-col justify-between border border-amber-400/20 group-hover:scale-[1.02] transition-transform duration-500">
             {/* Ambient Shine */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/10 to-transparent rounded-full blur-xl pointer-events-none" />
-            
+
             {/* Header of Business Card */}
             <div className="flex justify-between items-start relative z-10">
               <div>
@@ -471,7 +471,7 @@ function ContestsMockup() {
           {[
             { designer: 'Aravind K.', rating: '★ 5.0', tag: '🏆 Leading', bg: 'from-amber-600 to-amber-950', sel: true },
             { designer: 'Shalini S.', rating: '★ 4.9', tag: 'Entry #18', bg: 'from-purple-800 to-slate-950', sel: false },
-            { designer: 'Neil D.',    rating: '★ 4.8', tag: 'Entry #12', bg: 'from-emerald-800 to-slate-950', sel: false },
+            { designer: 'Neil D.', rating: '★ 4.8', tag: 'Entry #12', bg: 'from-emerald-800 to-slate-950', sel: false },
           ].map((e, i) => (
             <div
               key={i}
@@ -551,8 +551,8 @@ function PrintingMockup() {
                     st.done
                       ? 'bg-emerald-500 text-white'
                       : st.active
-                      ? 'bg-rose-500 text-white animate-pulse'
-                      : 'bg-white/10 text-slate-400'
+                        ? 'bg-rose-500 text-white animate-pulse'
+                        : 'bg-white/10 text-slate-400'
                   )}
                 >
                   {st.done ? '✓' : i + 1}
@@ -1178,7 +1178,7 @@ function AgistaHeroMockup() {
   const slide = heroSlides[activeSlide];
 
   return (
-    <div className="relative w-full max-w-[580px] mx-auto select-none py-4 sm:py-8">
+    <div className="relative w-full max-w-[580px] mx-auto select-none py-6 sm:py-10">
       {/* Background Soft Glow Aura */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-[340px] sm:w-[460px] h-[340px] sm:h-[460px] bg-gradient-to-tr from-[#091642]/10 via-[#f07000]/10 to-indigo-500/10 rounded-full blur-[80px]" />
@@ -1193,11 +1193,11 @@ function AgistaHeroMockup() {
           initial={{ opacity: 0.8, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className="relative z-20 w-[94%] sm:w-[90%] aspect-[16/10] rounded-3xl bg-white shadow-2xl shadow-[#091642]/15 border border-white/80 p-5 sm:p-7 overflow-hidden flex flex-col justify-between"
+          className="relative z-20 w-[94%] sm:w-[90%] aspect-[16/10] rounded-3xl bg-white shadow-[0_20px_50px_rgba(9,22,66,0.14)] border border-slate-200/90 p-5 sm:p-7 overflow-hidden flex flex-col justify-between"
         >
           {/* Header pill & specs */}
-          <div className="flex items-center justify-between">
-            <span className="text-xs sm:text-sm font-black tracking-wider text-[#091642] uppercase bg-[#091642]/5 border border-[#091642]/10 px-3.5 py-1.5 rounded-full flex items-center gap-2">
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-[#091642] uppercase bg-[#091642]/5 border border-[#091642]/15 px-3.5 py-1.5 rounded-full flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#f07000]" />
               {slide.tag}
             </span>
@@ -1207,7 +1207,7 @@ function AgistaHeroMockup() {
           </div>
 
           {/* Center 3D Showcase Image */}
-          <div className="relative flex-1 my-3 rounded-2xl overflow-hidden bg-slate-100 flex items-center justify-center group">
+          <div className="relative flex-1 my-3 rounded-2xl overflow-hidden bg-slate-100 flex items-center justify-center group border border-slate-200/70">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={slide.img}
@@ -1217,7 +1217,7 @@ function AgistaHeroMockup() {
                 (e.target as HTMLImageElement).src = '/uploads/hero.png';
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#091642]/70 via-[#091642]/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#091642]/75 via-[#091642]/25 to-transparent" />
             <div className="absolute bottom-4 left-5 right-5 flex items-center justify-between text-white">
               <div>
                 <p className="text-sm sm:text-base font-black leading-tight drop-shadow-md">
@@ -1240,33 +1240,33 @@ function AgistaHeroMockup() {
           </div>
         </motion.div>
 
-        {/* 2. Floating Perspective Visiting Card (Top Left) */}
+        {/* 2. Floating Perspective Visiting Card (Top Left Offset) */}
         <motion.div
-          animate={{ y: [0, -8, 0], rotate: [-7, -4, -7] }}
+          animate={{ y: [0, -6, 0] }}
           transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -top-4 sm:-top-6 -left-2 sm:-left-6 z-30 bg-[#091642] text-white rounded-2xl p-4 sm:p-5 shadow-2xl border border-white/20 w-48 sm:w-56"
+          className="absolute -top-5 sm:-top-7 -left-3 sm:-left-6 z-30 bg-[#091642]/95 backdrop-blur-md text-white rounded-2xl p-3.5 sm:p-4 shadow-[0_16px_36px_rgba(0,0,0,0.35)] border border-white/25 w-44 sm:w-52"
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-black uppercase text-[#f07000] tracking-wider">{slide.floatingTag}</span>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-black uppercase text-[#f07000] tracking-wider bg-white/10 px-2 py-0.5 rounded-full">{slide.floatingTag}</span>
             <span className="text-xs text-amber-300 font-bold">{slide.floatingRating}</span>
           </div>
-          <p className="text-sm sm:text-base font-black text-white leading-tight">{slide.floatingTitle}</p>
-          <p className="text-xs text-slate-300 mt-1 font-medium">{slide.floatingSub}</p>
+          <p className="text-xs sm:text-sm font-black text-white leading-tight">{slide.floatingTitle}</p>
+          <p className="text-[11px] text-slate-300 mt-0.5 font-medium">{slide.floatingSub}</p>
         </motion.div>
 
         {/* 3. Floating Quality Guarantee Badge (Bottom Right) */}
         <motion.div
-          animate={{ y: [0, 8, 0], rotate: [6, 3, 6] }}
+          animate={{ y: [0, 6, 0] }}
           transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -bottom-4 sm:-bottom-6 -right-2 sm:-right-4 z-30 bg-white rounded-2xl p-4 sm:p-5 shadow-2xl border border-slate-100 flex items-center gap-3.5"
+          className="absolute -bottom-4 sm:-bottom-6 -right-2 sm:-right-4 z-30 bg-white/95 backdrop-blur-md rounded-2xl p-3.5 sm:p-4 shadow-[0_14px_30px_rgba(9,22,66,0.12)] border border-slate-200/90 flex items-center gap-3"
         >
-          <div className="w-11 h-11 rounded-2xl bg-[#f07000] text-white flex items-center justify-center font-black text-base shadow-md">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f07000] to-[#d96500] text-white flex items-center justify-center font-black text-sm shadow-md flex-shrink-0">
             24H
           </div>
           <div>
-            <p className="text-xs font-black uppercase text-slate-400 tracking-wider">Express Press</p>
-            <p className="text-sm font-black text-[#091642]">Doorstep Pan-India</p>
-            <p className="text-xs text-emerald-600 font-bold">Free Over ₹999</p>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Express Press</p>
+            <p className="text-xs font-black text-[#091642]">Doorstep Pan-India</p>
+            <p className="text-[11px] text-emerald-600 font-bold">Free Over ₹999</p>
           </div>
         </motion.div>
       </div>
@@ -1292,15 +1292,44 @@ function AgistaHeroMockup() {
 
 // ─── Agista Category & Order Constants ─────────────────────────────────────
 const AGISTA_CIRCULAR_CATEGORIES = [
-  { name: 'Business Cards', href: '/products?category=Business%20Cards', img: '/uploads/products/1775241468772-180_NT_Spot_UV_1.jpg.webp', count: '12+ Styles' },
-  { name: 'T-shirt Print', href: '/products?category=Apparel%20%26%20Clothing', img: '/uploads/hero.png', count: '20+ Colors' },
-  { name: 'Cap & Hat', href: '/products?category=Apparel%20%26%20Clothing', img: '/uploads/hero.png', count: 'Embroidered' },
-  { name: 'Umbrella Print', href: '/products?category=Marketing', img: '/uploads/products/1788879169781-images.jpeg', count: 'Custom Print' },
-  { name: 'Calendar Print', href: '/products?category=Calendar', img: '/uploads/products/1791445283362-001.jpeg', count: 'Year 2026' },
-  { name: 'Tin box & Mugs', href: '/products?category=Gifts', img: '/uploads/products/1791445210091-Amazoprint_business_printing_02.jpg', count: '8+ Models' },
-  { name: 'Packaging Boxes', href: '/products?category=package', img: '/uploads/products/1775241758168-4_.jpg.webp', count: '15+ Sizes' },
+  { name: 'Visiting Cards', href: '/products?category=Business%20Cards', img: '/uploads/products/1775241468772-180_NT_Spot_UV_1.jpg.webp', count: '12+ Styles' },
+  { name: 'T-Shirts & Apparel', href: '/products?category=Apparel%20%26%20Clothing', img: '/uploads/hero.png', count: '20+ Colors' },
+  { name: 'Caps & Headwear', href: '/products?category=Apparel%20%26%20Clothing', img: '/uploads/hero.png', count: 'Embroidered' },
+  { name: 'Promo & Marketing', href: '/products?category=Marketing', img: '/uploads/products/1788879169781-images.jpeg', count: 'Custom Branding' },
+  { name: 'Desk Calendars', href: '/products?category=Calendar', img: '/uploads/products/1791445283362-001.jpeg', count: 'Year 2026' },
+  { name: 'Mugs & Drinkware', href: '/products?category=Gifts', img: '/uploads/products/1791445210091-Amazoprint_business_printing_02.jpg', count: '8+ Models' },
+  { name: 'Custom Packaging', href: '/products?category=package', img: '/uploads/products/1775241758168-4_.jpg.webp', count: '15+ Sizes' },
   { name: 'Flyers & Brochures', href: '/products?category=Marketing', img: '/uploads/sub-products/1775728837996-A4_130_1.jpg.webp', count: '6+ Finishes' },
 ];
+
+const getProductSpecTags = (p: any): string[] => {
+  const text = `${p?.category || ''} ${p?.productName || ''} ${p?.name || ''}`.toLowerCase();
+  if (text.includes('shirt') || text.includes('apparel') || text.includes('cloth') || text.includes('hoodie') || text.includes('cap') || text.includes('polo')) {
+    return ['100% Combed Cotton', 'Bio-Wash Soft', 'DTF Print HD'];
+  }
+  if (text.includes('mug') || text.includes('tumbler') || text.includes('drink') || text.includes('bottle') || text.includes('cup')) {
+    return ['HD Sublimation', 'Dishwasher Safe', 'Food-Grade Ceramic'];
+  }
+  if (text.includes('card') || text.includes('visiting')) {
+    return ['350 GSM Velvet', 'Spot UV / Gold Foil', 'Matte Finish'];
+  }
+  if (text.includes('box') || text.includes('package') || text.includes('packaging')) {
+    return ['Rigid Board', 'Custom Die-Cut', 'Eco-Friendly'];
+  }
+  if (text.includes('flyer') || text.includes('brochure') || text.includes('letterhead') || text.includes('pamphlet')) {
+    return ['170 GSM Art Gloss', 'True CMYK Press', 'Sharp Creasing'];
+  }
+  if (text.includes('poster') || text.includes('banner')) {
+    return ['2400 DPI Offset', 'UV-Resistant Ink', 'Heavyweight Art'];
+  }
+  if (text.includes('sticker') || text.includes('label')) {
+    return ['Waterproof Vinyl', 'Precision Die-Cut', 'Strong Adhesive'];
+  }
+  if (text.includes('calendar')) {
+    return ['Spiral Bound', '250 GSM Matte Art', 'Full Color CMYK'];
+  }
+  return ['350 GSM Premium', 'True CMYK Press', 'Express Dispatch'];
+};
 
 const POPULAR_FILTER_TABS = [
   'All Items',
@@ -1377,11 +1406,11 @@ export function HomeClient({
     : DEFAULT_ALL_CATEGORIES;
 
   const tabIconMap: Record<string, React.ReactNode> = {
-    studio:       <Monitor size={13} />,
+    studio: <Monitor size={13} />,
     verification: <CheckCheck size={13} />,
-    contests:     <Award size={13} />,
-    printing:     <Printer size={13} />,
-    templates:    <Layers size={13} />,
+    contests: <Award size={13} />,
+    printing: <Printer size={13} />,
+    templates: <Layers size={13} />,
   };
 
   return (
@@ -1445,17 +1474,17 @@ export function HomeClient({
                 <div className="flex flex-wrap items-center gap-4 pt-2">
                   <Link
                     href="/products"
-                    className="inline-flex items-center gap-3 bg-white text-[#091642] font-black text-sm px-6 py-3 rounded-full shadow-lg shadow-[#091642]/10 hover:shadow-xl transition-all hover:-translate-y-0.5 group border border-gray-200"
+                    className="inline-flex items-center gap-3.5 bg-[#091642] hover:bg-[#061033] text-white font-black text-sm pl-7 pr-2 py-2 rounded-full shadow-xl shadow-[#091642]/20 hover:shadow-2xl transition-all hover:-translate-y-0.5 group h-[52px]"
                   >
-                    <span>Explore Now!</span>
-                    <span className="w-8 h-8 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                      <ArrowRight size={14} />
+                    <span>Explore Products</span>
+                    <span className="w-9 h-9 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                      <ArrowRight size={15} />
                     </span>
                   </Link>
 
                   <Link
                     href="/templates"
-                    className="inline-flex items-center gap-2 border-2 border-[#091642] text-[#091642] hover:bg-[#091642] hover:text-white font-bold text-sm px-6 py-3 rounded-full transition-all"
+                    className="inline-flex items-center justify-center gap-2 border-2 border-[#091642]/20 hover:border-[#091642] text-[#091642] bg-white hover:bg-slate-50 font-bold text-sm px-7 h-[52px] rounded-full transition-all shadow-xs hover:-translate-y-0.5"
                   >
                     <span>Free Templates</span>
                     <ChevronRight size={15} />
@@ -1463,10 +1492,16 @@ export function HomeClient({
                 </div>
 
                 {/* Quick Trust Highlights */}
-                <div className="pt-2 flex items-center gap-6 text-xs text-gray-500 font-semibold">
-                  <span>⭐ 4.9/5 Rating (1,200+ Reviews)</span>
-                  <span>•</span>
-                  <span>🚀 Same-Day Dispatch</span>
+                <div className="pt-2 flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-500">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-amber-400 font-bold">★★★★★</span>
+                    <strong className="text-slate-800 font-bold">4.9/5</strong> (1,200+ Reviews)
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <span className="flex items-center gap-1.5 text-slate-700">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Same-Day Dispatch Available
+                  </span>
                 </div>
               </motion.div>
 
@@ -1513,16 +1548,16 @@ export function HomeClient({
                 >
                   <Link
                     href={cat.href}
-                    className="group flex flex-col items-center text-center space-y-3"
+                    className="group flex flex-col items-center text-center space-y-3 h-full"
                   >
                     {/* Circle Image Pod with Pedestal Ring & Ambient Shadow */}
-                    <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1.5 bg-gradient-to-b from-[#f8fafc] to-[#edf2f9] shadow-md group-hover:shadow-2xl group-hover:-translate-y-2 transition-all duration-300 ring-2 ring-slate-100 group-hover:ring-4 group-hover:ring-[#f07000]/40 overflow-hidden">
-                      <div className="w-full h-full rounded-full overflow-hidden bg-white p-2 flex items-center justify-center relative">
+                    <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1.5 bg-gradient-to-b from-[#f8fafc] to-[#edf2f9] shadow-[0_4px_16px_rgba(9,22,66,0.06)] group-hover:shadow-xl group-hover:-translate-y-1.5 transition-all duration-300 ring-2 ring-slate-200/90 group-hover:ring-4 group-hover:ring-[#f07000]/50 border border-slate-200/60 overflow-hidden flex-shrink-0">
+                      <div className="w-full h-full rounded-full overflow-hidden bg-white p-2.5 flex items-center justify-center relative border border-slate-100">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={cat.img}
                           alt={cat.name}
-                          className="w-full h-full object-contain group-hover:scale-115 transition-transform duration-500"
+                          className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = '/uploads/hero.png';
                           }}
@@ -1531,12 +1566,14 @@ export function HomeClient({
                     </div>
 
                     {/* Label & Count with Standard Readable Typography */}
-                    <div className="pt-1">
-                      <p className="text-sm sm:text-base font-black text-[#091642] group-hover:text-[#f07000] transition-colors leading-snug">
+                    <div className="pt-0.5 w-full flex flex-col items-center justify-between min-h-[56px]">
+                      <p className="text-xs sm:text-sm font-extrabold text-[#091642] group-hover:text-[#f07000] transition-colors leading-snug line-clamp-2 px-1">
                         {cat.name}
                       </p>
-                      <span className="text-xs text-slate-500 font-semibold block mt-1">
-                        {cat.count}
+                      <span className="text-[11px] text-slate-500 font-semibold mt-auto pt-1">
+                        <span className="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200/80 inline-block font-semibold shadow-2xs">
+                          {cat.count}
+                        </span>
                       </span>
                     </div>
                   </Link>
@@ -1559,11 +1596,11 @@ export function HomeClient({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5 }}
-                className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#005c53] via-[#042940] to-[#041f33] p-8 sm:p-10 text-white shadow-xl flex flex-col justify-between min-h-[280px] group border border-emerald-500/20"
+                className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#005c53] via-[#042940] to-[#041f33] p-8 sm:p-10 text-white shadow-xl flex flex-col justify-between min-h-[290px] group border border-emerald-400/30 ring-1 ring-white/10"
               >
                 <div className="relative z-10 max-w-sm space-y-3">
-                  <span className="text-xs font-black uppercase tracking-widest bg-white/20 text-emerald-200 px-3.5 py-1.5 rounded-full backdrop-blur-xs inline-block">
-                    Gift Solutions
+                  <span className="text-xs font-black uppercase tracking-widest bg-white/20 text-emerald-200 px-3.5 py-1 rounded-full backdrop-blur-xs inline-block">
+                    Corporate &amp; Luxury Gifts
                   </span>
                   <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight">
                     Elevate Your Brand Identity
@@ -1576,10 +1613,10 @@ export function HomeClient({
                 <div className="relative z-10 pt-6">
                   <Link
                     href="/products?category=Gifts"
-                    className="inline-flex items-center gap-3 bg-white text-[#005c53] font-black text-sm px-6 py-3 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all group/btn"
+                    className="inline-flex items-center gap-3 bg-white text-[#005c53] font-black text-sm pl-6 pr-2 py-2 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all group/btn h-[48px]"
                   >
-                    <span>Start Designing</span>
-                    <span className="w-7 h-7 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-sm">
+                    <span>Explore Gifts</span>
+                    <span className="w-8 h-8 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-sm group-hover/btn:scale-105 transition-transform">
                       <ArrowRight size={14} />
                     </span>
                   </Link>
@@ -1605,11 +1642,11 @@ export function HomeClient({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#091642] via-[#102468] to-[#1c357f] p-8 sm:p-10 text-white shadow-xl flex flex-col justify-between min-h-[280px] group border border-blue-500/20"
+                className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#091642] via-[#102468] to-[#1c357f] p-8 sm:p-10 text-white shadow-xl flex flex-col justify-between min-h-[290px] group border border-blue-400/30 ring-1 ring-white/10"
               >
                 <div className="relative z-10 max-w-sm space-y-3">
-                  <span className="text-xs font-black uppercase tracking-widest bg-white/20 text-cyan-200 px-3.5 py-1.5 rounded-full backdrop-blur-xs inline-block">
-                    Own Custom Merch
+                  <span className="text-xs font-black uppercase tracking-widest bg-white/20 text-cyan-200 px-3.5 py-1 rounded-full backdrop-blur-xs inline-block">
+                    Custom Apparel &amp; Merch
                   </span>
                   <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight">
                     Define Your Unique Style
@@ -1622,10 +1659,10 @@ export function HomeClient({
                 <div className="relative z-10 pt-6">
                   <Link
                     href="/products?category=Apparel%20%26%20Clothing"
-                    className="inline-flex items-center gap-3 bg-white text-[#091642] font-black text-sm px-6 py-3 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all group/btn"
+                    className="inline-flex items-center gap-3 bg-white text-[#091642] font-black text-sm pl-6 pr-2 py-2 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all group/btn h-[48px]"
                   >
-                    <span>Explore Now</span>
-                    <span className="w-7 h-7 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-sm">
+                    <span>Explore Apparel</span>
+                    <span className="w-8 h-8 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-sm group-hover/btn:scale-105 transition-transform">
                       <ArrowRight size={14} />
                     </span>
                   </Link>
@@ -1678,7 +1715,7 @@ export function HomeClient({
                         'px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer',
                         isActive
                           ? 'bg-[#091642] text-white font-black shadow-md shadow-[#091642]/20'
-                          : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-xs'
+                          : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200/80 shadow-xs'
                       )}
                     >
                       {tab}
@@ -1697,7 +1734,7 @@ export function HomeClient({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4 }}
-                className="relative rounded-[26px] overflow-hidden bg-gradient-to-br from-[#101935] via-[#091642] to-[#061033] p-7 text-white shadow-xl flex flex-col justify-end min-h-[420px] group border border-white/10"
+                className="relative rounded-[26px] overflow-hidden bg-gradient-to-br from-[#101935] via-[#091642] to-[#061033] p-7 text-white shadow-xl flex flex-col justify-end min-h-[420px] group border border-white/15 ring-1 ring-white/10"
               >
                 {/* Background Lifestyle Image */}
                 <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -1729,7 +1766,7 @@ export function HomeClient({
                       href="/products?category=Gifts"
                       className="inline-flex items-center gap-3 bg-white text-[#091642] font-black text-sm px-6 py-3 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all group/btn"
                     >
-                      <span>Search Now!</span>
+                      <span>Browse Drinkware</span>
                       <span className="w-7 h-7 rounded-full bg-[#f07000] text-white flex items-center justify-center shadow-sm">
                         <ArrowRight size={14} />
                       </span>
@@ -1743,11 +1780,7 @@ export function HomeClient({
                 const price = Number(prod.price || 0);
                 const img = resolveImagePath(prod.imageUrl || prod.parentProductImageUrl);
                 const discount = idx % 2 === 0 ? '-20%' : null;
-                const specTags = idx % 3 === 0 
-                  ? ['350 GSM Velvet', 'Spot UV'] 
-                  : idx % 3 === 1 
-                  ? ['HD Sublimation', 'Dishwasher Safe'] 
-                  : ['100% Bio-Wash', '220 GSM Cotton'];
+                const specTags = getProductSpecTags(prod);
 
                 return (
                   <motion.div
@@ -1761,10 +1794,10 @@ export function HomeClient({
                       href={prod.id ? `/design/${prod.productSlug}/start?subProductId=${prod.id}` : `/products`}
                       className="group block h-full"
                     >
-                      <div className="bg-white rounded-[26px] p-5 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_48px_rgba(9,22,66,0.12)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full relative overflow-hidden">
-                        
+                      <div className="bg-white rounded-[26px] p-5 border border-slate-200/90 hover:border-[#091642]/30 shadow-[0_4px_24px_rgba(9,22,66,0.04)] hover:shadow-[0_20px_48px_rgba(9,22,66,0.12)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full relative overflow-hidden">
+
                         {/* High-Fidelity Studio Pedestal Image */}
-                        <div className="relative aspect-square rounded-[20px] overflow-hidden bg-gradient-to-b from-[#f8fafc] via-[#f1f5f9] to-[#e8edf6] p-4 mb-4 flex items-center justify-center border border-slate-100/80">
+                        <div className="relative aspect-square rounded-[20px] overflow-hidden bg-gradient-to-b from-[#f8fafc] via-[#f1f5f9] to-[#e8edf6] p-4 mb-4 flex items-center justify-center border border-slate-200/70">
                           {img ? (
                             <Image
                               src={img}
@@ -1781,11 +1814,11 @@ export function HomeClient({
                           {/* Top Badges */}
                           <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
                             {discount && (
-                              <span className="bg-rose-500 text-white text-xs font-black uppercase px-2.5 py-1 rounded-full shadow-sm">
+                              <span className="bg-rose-500 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-xs border border-white/20">
                                 {discount}
                               </span>
                             )}
-                            <span className="bg-[#f07000] text-white text-xs font-black uppercase px-2.5 py-1 rounded-full shadow-sm">
+                            <span className="bg-[#f07000] text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-xs border border-white/20">
                               HOT
                             </span>
                           </div>
@@ -1793,13 +1826,13 @@ export function HomeClient({
                           {/* Hover Action Overlay Icons (Agista Style) */}
                           <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                             <span
-                              className="w-9 h-9 rounded-full bg-white text-slate-700 hover:text-[#f07000] shadow-md flex items-center justify-center transition-all hover:scale-110"
+                              className="w-9 h-9 rounded-full bg-white text-slate-700 hover:text-[#f07000] shadow-md border border-slate-200/60 flex items-center justify-center transition-all hover:scale-110"
                               title="Add to Wishlist"
                             >
                               <Heart size={16} />
                             </span>
                             <span
-                              className="w-9 h-9 rounded-full bg-white text-slate-700 hover:text-[#091642] shadow-md flex items-center justify-center transition-all hover:scale-110"
+                              className="w-9 h-9 rounded-full bg-white text-slate-700 hover:text-[#091642] shadow-md border border-slate-200/60 flex items-center justify-center transition-all hover:scale-110"
                               title="Quick View"
                             >
                               <Eye size={16} />
@@ -1808,26 +1841,28 @@ export function HomeClient({
                         </div>
 
                         {/* Product Info & Tangible Specs */}
-                        <div className="space-y-2 flex-1 text-left">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-black text-[#f07000] uppercase tracking-wider">
-                              {prod.productName || 'DRINKWARE PRINT'}
-                            </span>
-                            <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                              In Stock
-                            </span>
+                        <div className="space-y-2 flex-1 text-left flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[11px] font-black text-[#f07000] uppercase tracking-wider">
+                                {prod.category || prod.productName || 'PREMIUM PRINT'}
+                              </span>
+                              <span className="text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">
+                                In Stock
+                              </span>
+                            </div>
+
+                            <h4 className="text-sm sm:text-base font-extrabold text-[#091642] group-hover:text-[#f07000] transition-colors line-clamp-2 min-h-[44px] leading-snug">
+                              {prod.name}
+                            </h4>
                           </div>
 
-                          <h4 className="text-base sm:text-lg font-extrabold text-[#091642] group-hover:text-[#f07000] transition-colors line-clamp-1 leading-snug">
-                            {prod.name}
-                          </h4>
-
                           {/* Spec Pills (Rich tangible card details) */}
-                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5 min-h-[26px]">
                             {specTags.map((spec, sIdx) => (
                               <span
                                 key={sIdx}
-                                className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200/60"
+                                className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/70"
                               >
                                 {spec}
                               </span>
@@ -1836,29 +1871,29 @@ export function HomeClient({
 
                           {/* 5-Star Rating with Review Count */}
                           <div className="flex items-center gap-2 pt-1">
-                            <span className="text-amber-400 text-sm">★★★★★</span>
+                            <span className="text-amber-400 text-xs">★★★★★</span>
                             <span className="text-xs font-bold text-slate-700">4.9</span>
-                            <span className="text-xs text-slate-400 font-medium">(48+ reviews)</span>
+                            <span className="text-[11px] text-slate-400 font-medium">(48+ reviews)</span>
                           </div>
                         </div>
 
                         {/* Price & Action Button */}
-                        <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100">
+                        <div className="flex items-center justify-between pt-3.5 mt-3.5 border-t border-slate-100">
                           <div>
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-lg sm:text-xl font-black text-[#091642] group-hover:text-[#f07000] transition-colors">
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-base sm:text-lg font-black text-[#091642] group-hover:text-[#f07000] transition-colors">
                                 {price > 0 ? `₹${price.toFixed(2)}` : 'Get Quote'}
                               </span>
                               {discount && (
-                                <span className="text-xs text-slate-400 line-through font-semibold">
+                                <span className="text-[11px] text-slate-400 line-through font-semibold">
                                   ₹{(price * 1.25).toFixed(0)}
                                 </span>
                               )}
                             </div>
-                            <span className="text-[11px] text-slate-400 font-semibold block">Min qty: 50 pcs</span>
+                            <span className="text-[10px] text-slate-400 font-semibold block">Min qty: 50 pcs</span>
                           </div>
 
-                          <span className="inline-flex items-center gap-1.5 bg-[#f07000] hover:bg-[#d96500] text-white text-xs font-black px-4 py-2 rounded-full shadow-md shadow-[#f07000]/25 transition-all group-hover:scale-105">
+                          <span className="inline-flex items-center gap-1.5 bg-[#f07000] hover:bg-[#d96500] text-white text-xs font-black px-4 py-2 rounded-full shadow-md shadow-[#f07000]/25 transition-all group-hover:scale-105 active:scale-95">
                             <span>Order</span>
                             <ArrowRight size={13} />
                           </span>
@@ -2018,7 +2053,7 @@ export function HomeClient({
           <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-60" />
 
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-10 sm:space-y-12">
-            
+
             {/* Section Header */}
             <motion.div {...FU()} className="text-center max-w-3xl mx-auto space-y-4">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-bold tracking-wide backdrop-blur-md shadow-lg shadow-indigo-500/5">
@@ -2058,7 +2093,7 @@ export function HomeClient({
                         transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                       />
                     )}
-                    
+
                     <div className="flex items-center justify-between mb-3 relative z-10">
                       <div className={cn(
                         'w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-md',
@@ -2176,11 +2211,11 @@ export function HomeClient({
                   {/* Right Column: High-Fidelity Interactive Mockup */}
                   <div className="lg:col-span-6 flex justify-center lg:justify-end">
                     <div className="w-full max-w-[500px]">
-                      {activeTab === 'studio'       && <StudioMockup />}
+                      {activeTab === 'studio' && <StudioMockup />}
                       {activeTab === 'verification' && <VerificationMockup />}
-                      {activeTab === 'contests'     && <ContestsMockup />}
-                      {activeTab === 'printing'     && <PrintingMockup />}
-                      {activeTab === 'templates'    && <TemplatesMockup subProducts={subProducts} />}
+                      {activeTab === 'contests' && <ContestsMockup />}
+                      {activeTab === 'printing' && <PrintingMockup />}
+                      {activeTab === 'templates' && <TemplatesMockup subProducts={subProducts} />}
                     </div>
                   </div>
                 </div>
@@ -2205,19 +2240,19 @@ export function HomeClient({
                   ].map((node, i) => (
                     <div
                       key={node.step}
-                      className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-indigo-500/30 transition-colors flex flex-col justify-between space-y-2 relative"
+                      className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-indigo-400/50 hover:bg-white/[0.06] transition-all flex flex-col justify-between space-y-2 relative"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded">
+                        <span className="text-[11px] font-black font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
                           STEP {node.step}
                         </span>
                         {i < 4 && (
-                          <ChevronRight size={14} className="text-slate-600 hidden lg:block" />
+                          <ChevronRight size={14} className="text-slate-500 hidden lg:block" />
                         )}
                       </div>
                       <div>
                         <h5 className="text-xs font-bold text-white">{node.title}</h5>
-                        <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{node.desc}</p>
+                        <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">{node.desc}</p>
                       </div>
                     </div>
                   ))}
@@ -2232,7 +2267,7 @@ export function HomeClient({
             SECTION: LATEST PRODUCTS
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-16 bg-white">
-          <div className="w-full px-3 sm:px-4 lg:px-6">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
             <motion.div {...FU()} className="text-center mb-10 space-y-2">
               <span className="inline-flex items-center gap-1.5 bg-orange-50 text-[#f07000] border border-orange-200/80 text-xs font-black tracking-widest uppercase px-3.5 py-1.5 rounded-full shadow-xs">
                 <Flame size={13} className="text-[#f07000]" /> Featured Products
@@ -2256,9 +2291,9 @@ export function HomeClient({
                         href={sp.id ? `/design/${sp.productSlug}/start?subProductId=${sp.id}` : `/design/${sp.productSlug}/start`}
                         className="group block h-full"
                       >
-                        <div className="h-full rounded-[22px] overflow-hidden border border-slate-100 bg-white transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(9,22,66,0.12)] hover:-translate-y-1.5 flex flex-col justify-between">
+                        <div className="h-full rounded-[22px] overflow-hidden border border-slate-200/90 bg-white transition-all duration-300 shadow-[0_4px_20px_rgba(9,22,66,0.04)] hover:shadow-[0_20px_40px_rgba(9,22,66,0.12)] hover:border-[#f07000]/40 hover:-translate-y-1.5 flex flex-col justify-between">
                           {/* Image */}
-                          <div className="relative overflow-hidden aspect-square bg-gradient-to-b from-[#f8fafc] to-[#edf2f9] p-3 flex items-center justify-center">
+                          <div className="relative overflow-hidden aspect-square bg-gradient-to-b from-[#f8fafc] to-[#edf2f9] p-3 flex items-center justify-center border-b border-slate-100">
                             {imgUrl ? (
                               <Image
                                 src={imgUrl}
@@ -2273,7 +2308,7 @@ export function HomeClient({
                             )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
                             {i < 3 && (
-                              <span className="absolute top-2.5 left-2.5 text-xs font-black text-white bg-gradient-to-r from-orange-500 to-rose-500 px-2.5 py-1 rounded-full shadow-md">
+                              <span className="absolute top-2.5 left-2.5 text-[10px] font-black text-white bg-gradient-to-r from-orange-500 to-rose-500 px-2.5 py-0.5 rounded-full shadow-md border border-white/20">
                                 🔥 Hot
                               </span>
                             )}
@@ -2287,17 +2322,22 @@ export function HomeClient({
                           {/* Info */}
                           <div className="p-4 flex flex-col flex-1 justify-between space-y-3">
                             <div>
-                              <p className="text-xs font-extrabold text-[#f07000] uppercase tracking-wider">{sp.productName || 'PRINT ITEM'}</p>
-                              <h4 className="text-sm sm:text-base font-black text-[#091642] mt-1 line-clamp-2 group-hover:text-[#f07000] transition-colors leading-snug">{sp.name}</h4>
+                              <p className="text-[11px] font-extrabold text-[#f07000] uppercase tracking-wider">{sp.category || sp.productName || 'PREMIUM PRINT'}</p>
+                              <h4 className="text-sm sm:text-base font-extrabold text-[#091642] mt-1 line-clamp-2 min-h-[44px] group-hover:text-[#f07000] transition-colors leading-snug">{sp.name}</h4>
+                              <div className="flex items-center gap-1.5 pt-1">
+                                <span className="text-amber-400 text-xs">★★★★★</span>
+                                <span className="text-xs font-bold text-slate-700">4.9</span>
+                                <span className="text-[10px] text-slate-400 font-medium">(36+)</span>
+                              </div>
                             </div>
 
-                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                            <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
                               <div>
-                                <span className="text-[11px] text-slate-400 font-bold block leading-none mb-1">FROM</span>
+                                <span className="text-[10px] text-slate-400 font-bold block leading-none mb-1">FROM</span>
                                 <span className="text-base sm:text-lg font-black text-[#091642]">₹{price > 0 ? price.toFixed(0) : '—'}</span>
                               </div>
                               {price > 0 && (
-                                <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 shadow-xs px-2.5 py-1 rounded-full">
+                                <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/80 shadow-2xs px-2.5 py-0.5 rounded-full">
                                   30% OFF
                                 </span>
                               )}
@@ -2328,9 +2368,10 @@ export function HomeClient({
             <div className="mt-10 flex justify-center">
               <Link
                 href="/products"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-[#464674] to-[#5c5c96] hover:from-[#5c5c96] hover:to-[#464674] text-white font-bold text-sm px-8 py-3 rounded-full transition-all shadow-lg shadow-[#464674]/25 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 bg-[#091642] hover:bg-[#061033] text-white font-bold text-xs uppercase tracking-wider px-8 py-3.5 rounded-full transition-all shadow-lg shadow-[#091642]/20 hover:-translate-y-0.5"
               >
-                Browse All Products <ArrowRight size={15} />
+                <span>Browse All Products</span>
+                <ArrowRight size={15} />
               </Link>
             </div>
           </div>
@@ -2339,52 +2380,52 @@ export function HomeClient({
         {/* ═══════════════════════════════════════════════════════════
             SECTION: TRUST BADGES
         ═══════════════════════════════════════════════════════════ */}
-        <section className="py-12 bg-gradient-to-br from-[#1a1a4e]/5 via-white to-[#464674]/5 border-y border-[#464674]/10">
-          <div className="w-full px-3 sm:px-4 lg:px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <section className="py-14 bg-gradient-to-br from-[#091642]/[0.02] via-slate-50 to-white border-y border-slate-200/60">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {[
                 {
-                  icon: <Package size={26} className="text-[#464674]" />,
-                  bg: 'bg-[#464674]/10',
-                  border: 'border-l-[#464674]',
-                  title: 'Easy on',
-                  subtitle: 'Printing Product',
-                  desc: 'Create your Design and your Design file Upload',
+                  icon: <Package size={24} className="text-[#091642]" />,
+                  bg: 'bg-[#091642]/10',
+                  border: 'border-l-[#091642]',
+                  title: 'Easy Online Design',
+                  subtitle: 'Studio & File Upload',
+                  desc: 'Design with interactive canvas tools or upload print-ready vector files.',
                 },
                 {
-                  icon: <Printer size={26} className="text-emerald-600" />,
+                  icon: <Printer size={24} className="text-emerald-600" />,
                   bg: 'bg-emerald-50',
                   border: 'border-l-emerald-500',
-                  title: '99.99%',
-                  subtitle: 'Accuracy in Printing',
-                  desc: 'All printing orders only after its Administration are approved',
+                  title: '99.99% Accuracy',
+                  subtitle: 'Pre-Flight Verified',
+                  desc: 'Every layout is audited for CMYK gamut, raster DPI, and hairline bleed bounds.',
                 },
                 {
-                  icon: <Truck size={26} className="text-blue-600" />,
+                  icon: <Truck size={24} className="text-blue-600" />,
                   bg: 'bg-blue-50',
                   border: 'border-l-blue-500',
-                  title: '100%',
-                  subtitle: 'If each print order',
-                  desc: 'is shipped to the customer with its final destination',
+                  title: 'Pan-India Express',
+                  subtitle: 'Fast Doorstep Delivery',
+                  desc: 'Tracked dispatch across 28,000+ pincodes with guaranteed delivery timelines.',
                 },
                 {
-                  icon: <ShieldCheck size={26} className="text-orange-600" />,
+                  icon: <ShieldCheck size={24} className="text-[#f07000]" />,
                   bg: 'bg-orange-50',
-                  border: 'border-l-orange-500',
-                  title: 'Quality product',
-                  subtitle: 'Amazoprint offers only quality',
-                  desc: 'print at the right price',
+                  border: 'border-l-[#f07000]',
+                  title: 'Price Beat Promise',
+                  subtitle: 'Direct-to-Press Rates',
+                  desc: 'Premium commercial offset & digital press pricing with zero hidden fees.',
                 },
               ].map((item, i) => (
                 <motion.div key={i} {...FU(i * 0.08)}>
-                  <div className={cn('flex gap-4 p-5 rounded-2xl bg-white border border-gray-100 border-l-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 h-full', item.border)}>
-                    <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0', item.bg)}>
+                  <div className={cn('flex gap-4 p-5 rounded-2xl bg-white border border-slate-200/90 border-l-4 shadow-2xs hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 h-full items-start', item.border)}>
+                    <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs', item.bg)}>
                       {item.icon}
                     </div>
-                    <div>
-                      <p className="font-black text-gray-900 text-sm leading-tight">{item.title}</p>
-                      <p className="text-xs text-[#464674] font-bold mt-0.5">{item.subtitle}</p>
-                      <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">{item.desc}</p>
+                    <div className="space-y-1">
+                      <p className="font-extrabold text-[#091642] text-sm leading-tight">{item.title}</p>
+                      <p className="text-xs text-[#f07000] font-bold">{item.subtitle}</p>
+                      <p className="text-[11px] text-slate-500 leading-relaxed font-medium">{item.desc}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -2393,12 +2434,13 @@ export function HomeClient({
           </div>
         </section>
 
+
         {/* ═══════════════════════════════════════════════════════════
             SECTION: HOW IT WORKS
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-16 bg-gradient-to-br from-[#1a1a4e] via-[#464674] to-[#2f2f54] relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1.5px, transparent 0)', backgroundSize: '32px 32px' }} />
-          <div className="w-full px-3 sm:px-4 lg:px-6 relative z-10">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative z-10">
             <motion.div {...FU()} className="text-center mb-12">
               <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 text-white text-[11px] font-bold tracking-wide px-3 py-1.5 rounded-full mb-3 font-display">
                 <Zap size={12} className="text-yellow-300" /> Simple 4-Step Process
@@ -2419,7 +2461,7 @@ export function HomeClient({
                       <ArrowRight className="w-4 h-4 text-white/30" />
                     </div>
                   )}
-                  <div className="bg-white/10 border border-white/15 backdrop-blur-sm rounded-2xl p-6 flex flex-col items-center text-center gap-4 hover:bg-white/15 transition-colors">
+                  <div className="bg-white/[0.08] border border-white/20 backdrop-blur-sm rounded-2xl p-6 flex flex-col items-center text-center gap-4 hover:bg-white/[0.14] hover:border-white/35 transition-all shadow-lg shadow-black/20">
                     <div className="relative">
                       <div className={cn('w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-white shadow-xl', s.col)}>
                         {s.icon}
@@ -2442,8 +2484,8 @@ export function HomeClient({
         {/* ═══════════════════════════════════════════════════════════
             SECTION: DIRECT SELLING PRODUCTS
         ═══════════════════════════════════════════════════════════ */}
-        <section className="py-14 bg-white">
-          <div className="w-full px-3 sm:px-4 lg:px-6">
+        <section className="py-16 bg-white">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
             <motion.div {...FU()} className="text-center mb-10 space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-black uppercase tracking-wider shadow-xs">
                 <Zap size={14} className="text-indigo-600 animate-pulse" />
@@ -2467,9 +2509,9 @@ export function HomeClient({
                   return (
                     <motion.div key={sp.id || i} {...FU(i * 0.04)}>
                       <Link href={`/products`} className="group block h-full">
-                        <div className="h-full rounded-[22px] overflow-hidden border border-slate-100 bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+                        <div className="h-full rounded-[22px] overflow-hidden border border-slate-200/90 bg-white hover:border-[#091642]/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between shadow-[0_4px_20px_rgba(9,22,66,0.04)]">
                           <div>
-                            <div className="relative overflow-hidden aspect-square bg-gradient-to-b from-[#f8fafc] to-[#edf2f9] p-3 flex items-center justify-center">
+                            <div className="relative overflow-hidden aspect-square bg-gradient-to-b from-[#f8fafc] to-[#edf2f9] p-3 flex items-center justify-center border-b border-slate-100">
                               {imgUrl ? (
                                 <Image src={imgUrl} alt={sp.name || 'Product'} fill className="object-contain p-3 group-hover:scale-110 transition-transform duration-700" />
                               ) : (
@@ -2477,23 +2519,26 @@ export function HomeClient({
                                   <Package className="w-8 h-8 text-slate-400" />
                                 </div>
                               )}
-                              {sp.category && (
-                                <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-xs text-xs font-bold text-slate-700 uppercase tracking-wider shadow-xs border border-slate-100">
-                                  {sp.category}
-                                </span>
-                              )}
+                              <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-white/95 backdrop-blur-xs text-[10px] font-bold text-slate-700 uppercase tracking-wider shadow-xs border border-slate-200/80">
+                                {sp.category || 'READY-TO-SHIP'}
+                              </span>
                             </div>
                             <div className="p-4 pb-2">
-                              <p className="text-sm sm:text-base font-bold text-[#091642] line-clamp-1 group-hover:text-[#f07000] transition-colors">{sp.name || 'Product'}</p>
+                              <p className="text-sm sm:text-base font-extrabold text-[#091642] line-clamp-2 min-h-[44px] group-hover:text-[#f07000] transition-colors leading-snug">{sp.name || 'Product'}</p>
+                              <div className="flex items-center gap-1.5 pt-1">
+                                <span className="text-amber-400 text-xs">★★★★★</span>
+                                <span className="text-xs font-bold text-slate-700">4.9</span>
+                                <span className="text-[10px] text-slate-400 font-medium">(28+)</span>
+                              </div>
                             </div>
                           </div>
-                          <div className="p-4 pt-0 flex items-center justify-between border-t border-slate-100 mt-2">
+                          <div className="p-4 pt-3 flex items-center justify-between border-t border-slate-100 mt-2">
                             {price > 0 ? (
                               <p className="text-base sm:text-lg font-black text-[#091642]">₹{price.toFixed(0)}</p>
                             ) : (
                               <p className="text-sm font-bold text-slate-400">Get Quote</p>
                             )}
-                            <span className="text-xs font-bold text-[#f07000] flex items-center gap-1">
+                            <span className="inline-flex items-center gap-1.5 bg-[#f07000] hover:bg-[#d96500] text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow-md shadow-[#f07000]/25 transition-all group-hover:scale-105 active:scale-95">
                               <span>Order</span>
                               <ArrowRight size={13} />
                             </span>
@@ -2525,14 +2570,14 @@ export function HomeClient({
             SECTION: STATS BAND
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-14 bg-gradient-to-br from-[#1a1a4e]/5 via-[#f7f7fc] to-white border-y border-[#464674]/8">
-          <div className="w-full px-3 sm:px-4 lg:px-6">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-6 divide-y md:divide-y-0 md:divide-x divide-[#464674]/10">
+          <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-6 divide-y md:divide-y-0 md:divide-x divide-[#091642]/10">
               {[
                 { icon: <ShoppingCart size={22} className="text-[#464674]" />, bg: 'bg-[#464674]/10', val: '10,000+', lbl: 'Orders Completed' },
-                { icon: <Clock size={22} className="text-indigo-600" />,       bg: 'bg-indigo-50',    val: '2,000+',  lbl: 'Verified Printers' },
-                { icon: <Users size={22} className="text-violet-600" />,       bg: 'bg-violet-50',    val: '5,000+',  lbl: 'Creative Designers' },
-                { icon: <Globe size={22} className="text-emerald-600" />,      bg: 'bg-emerald-50',   val: '500+',    lbl: 'Cities Served' },
-                { icon: <Award size={22} className="text-yellow-600" />,       bg: 'bg-yellow-50',    val: '98%',     lbl: 'Satisfaction Rate' },
+                { icon: <Clock size={22} className="text-indigo-600" />, bg: 'bg-indigo-50', val: '2,000+', lbl: 'Verified Printers' },
+                { icon: <Users size={22} className="text-violet-600" />, bg: 'bg-violet-50', val: '5,000+', lbl: 'Creative Designers' },
+                { icon: <Globe size={22} className="text-emerald-600" />, bg: 'bg-emerald-50', val: '500+', lbl: 'Cities Served' },
+                { icon: <Award size={22} className="text-yellow-600" />, bg: 'bg-yellow-50', val: '98%', lbl: 'Satisfaction Rate' },
               ].map((s, i) => (
                 <motion.div key={i} {...FI(i * 0.08)} className="flex flex-col items-center text-center gap-2.5 px-4 py-4">
                   <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm', s.bg)}>{s.icon}</div>
@@ -2549,7 +2594,7 @@ export function HomeClient({
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-16 sm:py-20 bg-white">
           <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="bg-[#edf2fc] rounded-3xl p-8 sm:p-14 text-center">
+            <div className="bg-[#edf2fc] rounded-3xl p-8 sm:p-14 text-center border border-blue-100/80 shadow-xs">
               {/* Header */}
               <div className="space-y-3 mb-12">
                 <h2 className="text-3xl sm:text-4xl font-black text-[#091642] tracking-tight">
@@ -2568,7 +2613,7 @@ export function HomeClient({
                   {
                     name: 'Esther Howard',
                     headline: 'T-shirt printing made easy.',
-                    quote: 'Great quality products - Flags, programs for exceptional capacities, birthday, and occasion welcome are largely still mainstream on paper.',
+                    quote: 'Great quality apparel printing. The cotton feel is soft and breathable, and our company team logos came out incredibly sharp.',
                     role: 'Verified Buyer',
                   },
                   {
@@ -2586,25 +2631,27 @@ export function HomeClient({
                 ].map((item, idx) => (
                   <div
                     key={idx}
-                    className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between border border-slate-100"
+                    className="bg-white rounded-2xl p-6 sm:p-7 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between border border-slate-200/80 hover:border-slate-300 h-full"
                   >
-                    <div className="space-y-3">
+                    <div className="space-y-3 flex-1 flex flex-col justify-between">
                       <div>
-                        <h4 className="font-bold text-base text-[#091642]">{item.name}</h4>
-                        <div className="flex items-center text-amber-400 text-xs mt-1">
-                          {'★★★★★'}
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-extrabold text-base text-[#091642]">{item.name}</h4>
+                          <div className="flex items-center text-amber-400 text-xs">
+                            {'★★★★★'}
+                          </div>
                         </div>
+                        <h5 className="font-bold text-sm text-[#091642] pt-2">
+                          {item.headline}
+                        </h5>
                       </div>
-                      <h5 className="font-bold text-sm text-[#091642] pt-1">
-                        {item.headline}
-                      </h5>
-                      <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                      <p className="text-xs text-gray-500 leading-relaxed font-medium italic my-2 flex-1">
                         &quot;{item.quote}&quot;
                       </p>
                     </div>
-                    <div className="pt-4 mt-4 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
+                    <div className="pt-4 mt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
                       <span className="font-semibold">{item.role}</span>
-                      <span className="text-emerald-600 font-bold flex items-center gap-1">
+                      <span className="text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/80 shadow-2xs">
                         <CheckCircle2 size={12} /> Verified
                       </span>
                     </div>
@@ -2620,10 +2667,10 @@ export function HomeClient({
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-14 bg-white">
           <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="bg-[#091642] rounded-3xl p-8 sm:p-14 text-white shadow-2xl relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8">
+            <div className="bg-[#091642] rounded-3xl p-8 sm:p-14 text-white shadow-2xl relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8 border border-white/10">
               {/* Left Column: Heading & Testimonial Quote */}
               <div className="space-y-3 max-w-lg text-left">
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#f07000] bg-white/10 px-3 py-1 rounded-full">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#f07000] bg-white/10 px-3 py-1 rounded-full border border-white/10 shadow-2xs">
                   Keep Me Updated
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
@@ -2642,7 +2689,7 @@ export function HomeClient({
                     e.preventDefault();
                     alert('Thank you for subscribing to Amazoprint offers!');
                   }}
-                  className="flex items-center bg-white rounded-full pl-5 pr-1.5 py-1.5 shadow-lg"
+                  className="flex items-center bg-white rounded-full pl-5 pr-1.5 py-1.5 shadow-lg border border-transparent focus-within:border-[#f07000] focus-within:ring-2 focus-within:ring-[#f07000]/30 transition-all"
                 >
                   <input
                     type="email"
@@ -2652,7 +2699,7 @@ export function HomeClient({
                   />
                   <button
                     type="submit"
-                    className="w-10 h-10 rounded-full bg-[#f07000] hover:bg-[#d96500] text-white flex items-center justify-center flex-shrink-0 transition-transform active:scale-95 shadow-md shadow-[#f07000]/30"
+                    className="w-10 h-10 rounded-full bg-[#f07000] hover:bg-[#d96500] text-white flex items-center justify-center flex-shrink-0 transition-transform active:scale-95 shadow-md shadow-[#f07000]/30 cursor-pointer"
                     aria-label="Subscribe"
                   >
                     <ArrowRight size={16} />
@@ -2672,7 +2719,7 @@ export function HomeClient({
       <button
         type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="fixed bottom-6 right-6 z-40 w-11 h-11 rounded-full bg-[#f07000] hover:bg-[#d96500] text-white shadow-xl shadow-[#f07000]/40 flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
+        className="fixed bottom-6 right-6 z-40 w-11 h-11 rounded-full bg-[#f07000] hover:bg-[#d96500] text-white shadow-xl shadow-[#f07000]/40 flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer border border-white/25"
         aria-label="Back to top"
       >
         <ArrowUp size={18} />
