@@ -116,6 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 { href: "/admin/printers/shipments", label: "Shipping Reports", icon: <Truck size={14} />, color: "group-hover:text-cyan-600" },
                 { href: "/admin/printer-invoices", label: "Printer Invoices", icon: <Receipt size={14} />, color: "group-hover:text-violet-500" },
                 { href: "/admin/printers/subscriptions", label: "Printer Subscriptions", icon: <CircleDollarSign size={14} />, color: "group-hover:text-emerald-500" },
+                { href: "/admin/printer-price-lists", label: "Printer Price Lists", icon: <DollarSign size={14} />, color: "group-hover:text-emerald-600" },
                 { href: "/admin/printer-proposals", label: "Printer Suggestions", icon: <Sparkles size={14} />, color: "group-hover:text-indigo-500" },
             ]
         },

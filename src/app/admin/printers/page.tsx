@@ -557,36 +557,56 @@ function PrinterCard({
                             </div>
                         )}
 
-                        {/* Catalog uploads */}
+                        {/* Catalog & Price List Sheets */}
                         {printer.priceLists && printer.priceLists.length > 0 && (
                             <div>
-                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-3">
-                                    Price Catalogs ({printer.priceLists.length})
-                                </p>
+                                <div className="flex items-center justify-between mb-3">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500">
+                                        Price Catalogs &amp; Spec Sheets ({printer.priceLists.length})
+                                    </p>
+                                    <a
+                                        href="/admin/printer-price-lists"
+                                        className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                                    >
+                                        Review &amp; Approve All <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                </div>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
                                     {printer.priceLists.map((catalog) => (
                                         <div key={catalog.id}
                                             className="group/cat relative rounded-xl overflow-hidden border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2 flex flex-col gap-2 hover:shadow-md transition-shadow">
                                             <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-slate-50 dark:bg-zinc-800 flex items-center justify-center border border-slate-100 dark:border-zinc-800">
-                                                <img
-                                                    src={catalog.imageUrl}
-                                                    alt={catalog.catalogName || "Catalog Page"}
-                                                    className="max-h-full object-contain transition-transform duration-300 group-hover/cat:scale-105"
-                                                />
+                                                {catalog.imageUrl ? (
+                                                    <img
+                                                        src={catalog.imageUrl}
+                                                        alt={catalog.catalogName || catalog.productName || "Catalog Page"}
+                                                        className="max-h-full object-contain transition-transform duration-300 group-hover/cat:scale-105"
+                                                    />
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center text-indigo-500 gap-1 p-2 text-center">
+                                                        <FileText className="h-5 w-5" />
+                                                        <span className="text-[9px] font-bold uppercase text-slate-600 dark:text-slate-300">
+                                                            {catalog.categoryName}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 <a
-                                                    href={catalog.imageUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
+                                                    href={catalog.imageUrl || '/admin/printer-price-lists'}
+                                                    target={catalog.imageUrl ? "_blank" : undefined}
+                                                    rel={catalog.imageUrl ? "noopener noreferrer" : undefined}
                                                     className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/cat:opacity-100 transition-opacity flex items-center justify-center"
                                                 >
                                                     <span className="text-[9px] font-bold uppercase tracking-wider bg-slate-900/80 px-2 py-1 rounded-full text-white backdrop-blur-sm">
-                                                        View
+                                                        {catalog.imageUrl ? 'View' : 'Review'}
                                                     </span>
                                                 </a>
                                             </div>
                                             <div className="px-0.5 text-[9px]">
-                                                <span className="font-bold text-slate-700 dark:text-slate-200 truncate block" title={catalog.catalogName || "Catalog Upload"}>
-                                                    {catalog.catalogName || "Catalog"}
+                                                <span className="font-bold text-slate-700 dark:text-slate-200 truncate block" title={catalog.productName || catalog.catalogName || "Catalog Upload"}>
+                                                    {catalog.productName || catalog.catalogName || "Catalog"}
+                                                </span>
+                                                <span className="text-[9px] font-semibold capitalize text-indigo-600 block">
+                                                    {catalog.approvalStatus || 'pending'}
                                                 </span>
                                                 {catalog.createdAt && (
                                                     <span className="text-slate-400 block mt-0.5">

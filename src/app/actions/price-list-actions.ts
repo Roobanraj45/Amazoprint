@@ -146,6 +146,54 @@ export async function getPrinterPriceList() {
     });
 }
 
+export async function getAllPriceListsAdmin() {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    return await db.query.printPriceLists.findMany({
+        with: {
+            printer: {
+                columns: {
+                    fullName: true,
+                    companyName: true,
+                    email: true,
+                    phone: true,
+                    city: true,
+                },
+            },
+        },
+        orderBy: [desc(printPriceLists.createdAt)],
+    });
+}
+
+export async function updatePriceListApprovalAdmin(
+    id: string,
+    approvalStatus: 'approved' | 'rejected',
+    adminNotes?: string
+) {
+    const session = await getSession();
+    const adminRoles = ['admin', 'super_admin', 'company_admin'];
+    if (!session?.sub || !adminRoles.includes(session.role)) {
+        throw new Error('Unauthorized');
+    }
+
+    await db.update(printPriceLists)
+        .set({
+            approvalStatus,
+            ...(adminNotes !== undefined ? { adminNotes } : {}),
+            updatedAt: new Date(),
+        })
+        .where(eq(printPriceLists.id, id));
+
+    revalidatePath('/admin/printer-price-lists');
+    revalidatePath('/admin/printers');
+    revalidatePath('/printer/price-list');
+    return { success: true };
+}
+
 export async function deletePriceListItem(id: string) {
     const session = await getSession();
     if (!session?.sub || session.role !== 'printer') {
