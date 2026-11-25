@@ -277,13 +277,13 @@ export function MainMenuDrawer({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      {/* ── THREE-LINE BAR BUTTON (CLEAN & MODERN) ── */}
+      {/* ── ROUNDED MENU TRIGGER BUTTON ── */}
       <SheetTrigger asChild>
         <button
           type="button"
           aria-label="Toggle menu"
           className={cn(
-            'group relative inline-flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-200 select-none outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-95 cursor-pointer',
+            'group relative inline-flex items-center gap-2.5 px-4 py-2 rounded-full transition-all duration-200 select-none outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-95 cursor-pointer',
             theme === 'dark'
               ? 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
               : theme === 'light'
@@ -292,8 +292,7 @@ export function MainMenuDrawer({
             className
           )}
         >
-          {/* Three Clean Horizontal Bars (Menu 3 Lines) */}
-          <Menu className="w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-105" strokeWidth={2.4} />
+          <Menu className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-105" strokeWidth={2.4} />
 
           {showLabel && (
             <span className="text-xs font-bold tracking-tight">
@@ -303,139 +302,117 @@ export function MainMenuDrawer({
         </button>
       </SheetTrigger>
 
-      {/* ── CLEAN & BASIC SLIDE-OUT MENU DRAWER ── */}
+      {/* ── CURVED PREMIUM SLIDE-OUT MENU DRAWER ── */}
       <SheetContent
         side="left"
         className={cn(
-          'p-0 flex flex-col h-full',
-          'w-[90vw] sm:max-w-md',
-          'bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-xl'
+          'p-0 flex flex-col h-full overflow-hidden rounded-r-[2.25rem]',
+          'w-[92vw] sm:max-w-md',
+          'bg-gradient-to-b from-slate-50 via-white to-purple-50/40 dark:bg-slate-900 border-r border-purple-100/80 dark:border-slate-800 shadow-2xl'
         )}
       >
-        {/* Top Header */}
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
-          <Link
-            href="/"
-            onClick={() => setOpen(false)}
-            className="hover:opacity-90 transition-opacity"
-          >
-            <AmazoprintLogo variant="sidebar" />
-          </Link>
-
-          <SheetClose asChild>
-            <button
-              type="button"
-              className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
-              aria-label="Close Menu"
+        {/* Curved Dark Navy Header with Search Pill */}
+        <div className="relative bg-gradient-to-br from-[#061033] via-[#091642] to-[#1e1b4b] px-5 pt-5 pb-6 rounded-b-[2rem] shadow-lg flex-shrink-0 overflow-hidden">
+          <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-[#f07000]/20 blur-2xl pointer-events-none" />
+          <div className="relative z-10 flex items-center justify-between mb-4">
+            <Link
+              href="/"
+              onClick={() => setOpen(false)}
+              className="hover:opacity-90 transition-opacity"
             >
-              <X className="w-4 h-4" />
-            </button>
-          </SheetClose>
-        </div>
+              <AmazoprintLogo variant="sidebar" className="brightness-0 invert" />
+            </Link>
 
-        {/* Clean Search Input */}
-        <div className="px-5 pt-3 pb-2 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
-          <form onSubmit={handleSearchSubmit}>
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2 text-xs focus-within:ring-2 focus-within:ring-primary/30 transition-all">
+            <SheetClose asChild>
+              <button
+                type="button"
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-colors"
+                aria-label="Close Menu"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </SheetClose>
+          </div>
+
+          <form onSubmit={handleSearchSubmit} className="relative z-10">
+            <div className="flex items-center gap-2 bg-white rounded-full pl-4 pr-1.5 py-1.5 text-xs shadow-md focus-within:ring-2 focus-within:ring-[#f07000]/60 transition-all">
               <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products or services..."
-                className="w-full bg-transparent outline-none text-foreground placeholder:text-muted-foreground font-medium"
+                placeholder="Search products, prints & templates..."
+                className="w-full bg-transparent outline-none text-slate-900 placeholder:text-slate-400 font-medium"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="text-slate-400 hover:text-slate-600 p-1"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
+              <button
+                type="submit"
+                className="w-7 h-7 rounded-full bg-[#f07000] hover:bg-[#d96500] text-white flex items-center justify-center flex-shrink-0 transition-transform active:scale-95"
+                aria-label="Search"
+              >
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </form>
         </div>
 
         {/* Scrollable Menu Area */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 divide-y divide-slate-100 dark:divide-slate-800/80 space-y-4">
-          {/* SECTION 1: MAIN NAVIGATION LINKS */}
-          <div className="space-y-1">
-            <button
-              type="button"
-              onClick={() => handleNavClick('/')}
-              className={cn(
-                'w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors',
-                pathname === '/' ? 'bg-primary/10 text-primary' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              )}
-            >
-              <span className="flex items-center gap-2.5">
-                <Home className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                Home
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleNavClick('/products')}
-              className={cn(
-                'w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors',
-                pathname === '/products' ? 'bg-primary/10 text-primary' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              )}
-            >
-              <span className="flex items-center gap-2.5">
-                <Package className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                All Products
-              </span>
-              <span className="text-[10px] text-muted-foreground font-normal">Catalog</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleNavClick('/templates')}
-              className={cn(
-                'w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors',
-                pathname === '/templates' ? 'bg-primary/10 text-primary' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              )}
-            >
-              <span className="flex items-center gap-2.5">
-                <Sparkles className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                Design Templates
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleNavClick('/contests')}
-              className={cn(
-                'w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors',
-                pathname === '/contests' ? 'bg-primary/10 text-primary' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              )}
-            >
-              <span className="flex items-center gap-2.5">
-                <Trophy className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                Design Quests
-              </span>
-            </button>
+        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+          {/* SECTION 1: QUICK NAVIGATION PILLS (2x2 Grid) */}
+          <div className="grid grid-cols-2 gap-2.5">
+            {[
+              { label: 'Home', href: '/', icon: Home, accent: 'bg-blue-50 text-blue-600' },
+              { label: 'All Products', href: '/products', icon: Package, accent: 'bg-orange-50 text-[#f07000]' },
+              { label: 'Templates', href: '/templates', icon: Sparkles, accent: 'bg-purple-50 text-purple-600' },
+              { label: 'Design Quests', href: '/contests', icon: Trophy, accent: 'bg-amber-50 text-amber-600' },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <button
+                  key={item.href}
+                  type="button"
+                  onClick={() => handleNavClick(item.href)}
+                  className={cn(
+                    'flex items-center gap-2.5 p-2.5 rounded-2xl border text-left transition-all',
+                    isActive
+                      ? 'bg-[#091642] text-white border-[#091642] shadow-md shadow-[#091642]/15'
+                      : 'bg-white border-slate-200/80 text-slate-800 hover:border-purple-200 hover:shadow-sm'
+                  )}
+                >
+                  <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center shrink-0', isActive ? 'bg-white/15 text-white' : item.accent)}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-bold truncate">{item.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* SECTION 2: PRODUCTS & SUB-PRODUCTS ACCORDION */}
-          <div className="pt-3">
-            <div className="flex items-center justify-between px-2 pb-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Print Categories & Sub-Products
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                Print Categories
               </span>
               <Link
                 href="/products"
                 onClick={() => setOpen(false)}
-                className="text-[10px] font-semibold text-primary hover:underline"
+                className="text-[11px] font-bold text-[#f07000] hover:underline"
               >
-                View all
+                View all →
               </Link>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-2">
               {filteredProducts.map((product) => {
                 const Icon = product.icon || Package;
                 const isExpanded = expandedProductId === product.id;
@@ -444,32 +421,37 @@ export function MainMenuDrawer({
                 return (
                   <div
                     key={product.id || product.slug}
-                    className="rounded-xl border border-transparent overflow-hidden"
+                    className={cn(
+                      'rounded-3xl border transition-all overflow-hidden bg-white',
+                      isExpanded
+                        ? 'border-purple-200 shadow-md shadow-purple-900/5'
+                        : 'border-slate-200/70 hover:border-purple-200/80'
+                    )}
                   >
                     {/* Category Header Row */}
                     <button
                       type="button"
                       onClick={() => toggleProductAccordion(product.id)}
-                      className={cn(
-                        'w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors',
-                        isExpanded
-                          ? 'bg-slate-100 dark:bg-slate-800 text-primary'
-                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                      )}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-bold transition-colors text-slate-800"
                     >
                       <span className="flex items-center gap-2.5 truncate">
-                        <Icon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        <span className={cn(
+                          'w-8 h-8 rounded-2xl flex items-center justify-center shrink-0 transition-colors',
+                          isExpanded ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600'
+                        )}>
+                          <Icon className="w-4 h-4" />
+                        </span>
                         <span className="truncate">{product.name}</span>
                       </span>
 
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-[10px] text-muted-foreground font-normal">
-                          {subCount} options
+                        <span className="text-[10px] text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full font-semibold">
+                          {subCount}
                         </span>
                         <ChevronDown
                           className={cn(
-                            'w-3.5 h-3.5 text-slate-400 transition-transform duration-200',
-                            isExpanded && 'rotate-180 text-primary'
+                            'w-4 h-4 text-slate-400 transition-transform duration-200',
+                            isExpanded && 'rotate-180 text-purple-600'
                           )}
                         />
                       </div>
@@ -482,10 +464,10 @@ export function MainMenuDrawer({
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.16 }}
+                          transition={{ duration: 0.18 }}
                           className="overflow-hidden"
                         >
-                          <div className="pl-6 pr-2 py-1.5 space-y-1 bg-slate-50/60 dark:bg-slate-800/30 rounded-xl my-1 border border-slate-100 dark:border-slate-800">
+                          <div className="px-3 pb-3 pt-1 space-y-1.5">
                             {product.subProducts?.map((sub: any) => {
                               const targetUrl = product.slug
                                 ? `/products?category=${encodeURIComponent(product.name)}&q=${encodeURIComponent(sub.name)}`
@@ -496,21 +478,21 @@ export function MainMenuDrawer({
                                   key={sub.id}
                                   type="button"
                                   onClick={() => handleNavClick(targetUrl)}
-                                  className="w-full text-left py-1.5 px-2 rounded-lg text-xs hover:bg-white dark:hover:bg-slate-800 hover:text-primary transition-colors flex items-center justify-between group"
+                                  className="w-full text-left py-2 px-3 rounded-2xl text-xs bg-slate-50/80 hover:bg-purple-50 hover:text-purple-800 transition-colors flex items-center justify-between group"
                                 >
                                   <div className="min-w-0 pr-2">
-                                    <p className="font-medium text-slate-800 dark:text-slate-200 group-hover:text-primary transition-colors truncate">
+                                    <p className="font-semibold text-slate-800 group-hover:text-purple-800 transition-colors truncate">
                                       {sub.name}
                                     </p>
                                     {sub.spec && (
-                                      <p className="text-[10px] text-muted-foreground truncate">
+                                      <p className="text-[10px] text-slate-500 truncate">
                                         {sub.spec}
                                       </p>
                                     )}
                                   </div>
 
                                   {sub.price && (
-                                    <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 flex-shrink-0">
+                                    <span className="text-[11px] font-black text-[#f07000] bg-orange-50 px-2 py-0.5 rounded-full flex-shrink-0">
                                       {sub.price}
                                     </span>
                                   )}
@@ -521,9 +503,9 @@ export function MainMenuDrawer({
                             <Link
                               href={`/products?category=${encodeURIComponent(product.name)}`}
                               onClick={() => setOpen(false)}
-                              className="block py-1 px-2 text-[10px] font-bold text-primary hover:underline"
+                              className="inline-flex items-center gap-1 px-3 pt-1 text-[11px] font-bold text-purple-700 hover:underline"
                             >
-                              Browse all {product.name} →
+                              Browse all {product.name} <ArrowRight className="w-3 h-3" />
                             </Link>
                           </div>
                         </motion.div>
@@ -535,52 +517,56 @@ export function MainMenuDrawer({
             </div>
           </div>
 
-          {/* SECTION 3: PARTNER & CREATOR SERVICES */}
-          <div className="pt-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2 block pb-2">
-              Partners & Services
+          {/* SECTION 3: PARTNER & CREATOR PORTALS */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 px-1 block">
+              Partners &amp; Services
             </span>
 
-            <div className="space-y-1">
+            <div className="space-y-2">
               <button
                 type="button"
                 onClick={() => handleNavClick('/printer-registration')}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-white border border-slate-200/70 hover:border-purple-200 text-xs font-semibold text-slate-800 transition-all"
               >
                 <span className="flex items-center gap-2.5">
-                  <Printer className="w-4 h-4 text-slate-400" />
+                  <span className="w-8 h-8 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <Printer className="w-4 h-4" />
+                  </span>
                   Printers Portal
                 </span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                <ChevronRight className="w-4 h-4 text-slate-400" />
               </button>
 
               <button
                 type="button"
-                onClick={() => handleNavClick('/freelancer/verifications')}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                onClick={() => handleNavClick('/freelancer-registration')}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-white border border-slate-200/70 hover:border-purple-200 text-xs font-semibold text-slate-800 transition-all"
               >
                 <span className="flex items-center gap-2.5">
-                  <PenTool className="w-4 h-4 text-slate-400" />
-                  Designers & Freelancers
+                  <span className="w-8 h-8 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <PenTool className="w-4 h-4" />
+                  </span>
+                  Designers &amp; Freelancers
                 </span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                <ChevronRight className="w-4 h-4 text-slate-400" />
               </button>
             </div>
           </div>
 
           {/* SECTION 4: USER WORKSPACE / AUTH */}
-          <div className="pt-3">
+          <div>
             {loading ? (
               <div className="py-2 text-center text-xs text-muted-foreground">Loading...</div>
             ) : session ? (
-              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+              <div className="flex items-center justify-between p-3 rounded-3xl bg-white border border-purple-100 shadow-sm">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-600 to-indigo-700 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
                     {session.name ? session.name[0].toUpperCase() : 'U'}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate">{session.name || 'Account'}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{session.email}</p>
+                    <p className="text-xs font-bold text-slate-900 truncate">{session.name || 'Account'}</p>
+                    <p className="text-[10px] text-slate-500 truncate">{session.email}</p>
                   </div>
                 </div>
 
@@ -589,7 +575,7 @@ export function MainMenuDrawer({
                     size="sm"
                     variant="outline"
                     onClick={() => handleNavClick(getDashboardUrl(session.role))}
-                    className="h-7 px-2.5 text-xs font-semibold rounded-lg"
+                    className="h-8 px-3 text-xs font-bold rounded-full border-purple-200 text-purple-700 hover:bg-purple-50"
                   >
                     Workspace
                   </Button>
@@ -597,43 +583,45 @@ export function MainMenuDrawer({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleNavClick('/login')}
-                  className="flex-1 h-8 text-xs font-semibold rounded-xl"
+                  className="flex-1 h-10 text-xs font-bold rounded-full border-slate-200 bg-white hover:bg-slate-50"
                 >
-                  <LogIn className="w-3.5 h-3.5 mr-1" /> Log in
+                  <LogIn className="w-3.5 h-3.5 mr-1.5" /> Log in
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => handleNavClick('/register')}
-                  className="flex-1 h-8 text-xs font-semibold rounded-xl"
+                  className="flex-1 h-10 text-xs font-bold rounded-full bg-gradient-to-r from-[#f07000] to-orange-600 hover:from-[#d96500] hover:to-orange-700 text-white border-0 shadow-md shadow-orange-500/20"
                 >
-                  <UserPlus className="w-3.5 h-3.5 mr-1" /> Register
+                  <UserPlus className="w-3.5 h-3.5 mr-1.5" /> Register
                 </Button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Support & Helpline Footer */}
-        <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 text-xs text-muted-foreground flex items-center justify-between flex-shrink-0">
-          <a
-            href="tel:+916001234567"
-            className="flex items-center gap-1.5 hover:text-primary transition-colors text-[11px]"
-          >
-            <Phone className="w-3 h-3 text-primary" />
-            <span>+1600-123 456</span>
-          </a>
-          <a
-            href="mailto:support@amazoprint.in"
-            className="flex items-center gap-1.5 hover:text-primary transition-colors text-[11px]"
-          >
-            <Mail className="w-3 h-3 text-primary" />
-            <span>support@amazoprint.in</span>
-          </a>
+        {/* Support & Helpline Footer Pill */}
+        <div className="p-3 bg-white/80 backdrop-blur-sm border-t border-slate-100 flex-shrink-0">
+          <div className="rounded-full bg-[#091642] text-white px-4 py-2 text-[11px] flex items-center justify-between shadow-sm">
+            <a
+              href="tel:1800818808"
+              className="flex items-center gap-1.5 hover:text-amber-300 transition-colors font-semibold"
+            >
+              <Phone className="w-3.5 h-3.5 text-[#f07000]" />
+              <span>1800 818 808</span>
+            </a>
+            <a
+              href="mailto:support@amazoprint.in"
+              className="flex items-center gap-1.5 hover:text-amber-300 transition-colors font-semibold"
+            >
+              <Mail className="w-3.5 h-3.5 text-[#f07000]" />
+              <span>support@amazoprint.in</span>
+            </a>
+          </div>
         </div>
       </SheetContent>
     </Sheet>

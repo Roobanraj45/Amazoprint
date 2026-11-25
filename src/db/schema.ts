@@ -39,12 +39,22 @@ export const printerInvoiceStatusEnum = pgEnum('printer_invoice_status', ['pendi
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 150 }).notNull(),
+  username: varchar('username', { length: 50 }).unique(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   role: varchar('role', { length: 20, enum: ['user', 'freelancer'] }).notNull(),
   phone: varchar('phone', { length: 20 }),
+  phoneVerified: boolean('phone_verified').default(false).notNull(),
+  emailVerified: boolean('email_verified').default(false).notNull(),
+  emailVerificationToken: text('email_verification_token'),
+  emailVerificationExpires: timestamp('email_verification_expires'),
+  gstNumber: varchar('gst_number', { length: 15 }),
   profileImage: text('profile_image'),
   isActive: boolean('is_active').default(true),
+  approvalStatus: varchar('approval_status', { length: 20, enum: ['pending', 'approved', 'rejected'] }).default('approved').notNull(),
+  acceptTermsConditions: boolean('accept_terms_conditions').default(false).notNull(),
+  acceptPrivacyPolicy: boolean('accept_privacy_policy').default(false).notNull(),
+  acceptedPoliciesAt: timestamp('accepted_policies_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   
@@ -55,16 +65,39 @@ export const users = pgTable('users', {
   portfolioUrl: text('portfolio_url'),
   bio: text('bio'),
   availabilityStatus: varchar('availability_status', { length: 20, enum: ['available', 'busy', 'offline'] }),
+  accountType: varchar('account_type', { length: 30, enum: ['individual', 'agency'] }),
+  businessRegistrationStatus: varchar('business_registration_status', { length: 100 }),
+  sampleDesigns: text('sample_designs').array(),
 }, (table) => {
   return {
     emailIdx: index('idx_users_email').on(table.email),
+    usernameIdx: index('idx_users_username').on(table.username),
+    phoneIdx: index('idx_users_phone').on(table.phone),
     roleIdx: index('idx_users_role').on(table.role),
     activeIdx: index('idx_users_active').on(table.isActive),
+    approvalStatusIdx: index('idx_users_approval_status').on(table.approvalStatus),
     availabilityIdx: index('idx_users_availability').on(table.availabilityStatus),
     skillsIdx: index('idx_users_skills').on(table.skills),
     hourlyRateIdx: index('idx_users_hourly_rate').on(table.hourlyRate),
     createdAtIdx: index('idx_users_created_at').on(table.createdAt),
     roleActiveIdx: index('idx_users_role_active').on(table.role, table.isActive),
+  };
+});
+
+export const otpVerifications = pgTable('otp_verifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  target: varchar('target', { length: 255 }).notNull(),
+  channel: varchar('channel', { length: 20, enum: ['phone', 'email'] }).notNull(),
+  otpHash: text('otp_hash').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  attempts: integer('attempts').default(0).notNull(),
+  verified: boolean('verified').default(false).notNull(),
+  verifiedAt: timestamp('verified_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => {
+  return {
+    targetChannelIdx: index('idx_otp_target_channel').on(table.target, table.channel),
+    expiresAtIdx: index('idx_otp_expires_at').on(table.expiresAt),
   };
 });
 
@@ -100,10 +133,25 @@ export const printPressUsers = pgTable('print_press_users', {
   postalCode: varchar('postal_code', { length: 20 }),
   country: varchar('country', { length: 100 }).default('India'),
   gstNumber: varchar('gst_number', { length: 20 }),
+  gstVerified: boolean('gst_verified').default(false).notNull(),
+  sameAsBusinessAddress: boolean('same_as_business_address').default(true).notNull(),
+  pickupAddress: text('pickup_address'),
+  pickupCity: varchar('pickup_city', { length: 100 }),
+  pickupState: varchar('pickup_state', { length: 100 }),
+  pickupPostalCode: varchar('pickup_postal_code', { length: 20 }),
+  pickupContactPerson: varchar('pickup_contact_person', { length: 150 }),
+  pickupPhone: varchar('pickup_phone', { length: 20 }),
+  printingUnitAreaSqFt: integer('printing_unit_area_sq_ft'),
+  totalEmployees: integer('total_employees'),
+  availableMachinery: text('available_machinery').array(),
+  otherMachinery: text('other_machinery'),
+  dailyOrderCapacity: varchar('daily_order_capacity', { length: 100 }),
+  approxDailyProduction: varchar('approx_daily_production', { length: 100 }),
   workDescription: text('work_description'),
   shopImages: text('shop_images').array(),
   acceptPrivacyPolicy: boolean('accept_privacy_policy').default(false),
   acceptTermsConditions: boolean('accept_terms_conditions').default(false),
+  acceptedPoliciesAt: timestamp('accepted_policies_at'),
   status: printerStatusEnum('status').default('pending'),
   isActive: boolean('is_active').default(true),
   isApproved: boolean('is_approved').default(false),
@@ -1086,8 +1134,24 @@ export const newDesignOptions = pgTable('new_design_options', {
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description').notNull(),
   optionType: varchar('option_type', { length: 50 }).notNull(), // 'foil', 'texture', 'die_cut', 'lamination', 'other'
+  categoryName: varchar('category_name', { length: 150 }),
+  productName: varchar('product_name', { length: 255 }),
+  specColumns: jsonb('spec_columns').$type<Array<{ name: string; value: string }>>().default([]),
+  quantityTiers: jsonb('quantity_tiers').$type<
+    Array<{
+      quantity: number;
+      singleSidePrice: string;
+      doubleSidePrice: string;
+      workingDays: string;
+      hsnCode: string;
+      gstPercentage: string;
+    }>
+  >().default([]),
+  shippingType: varchar('shipping_type', { length: 20, enum: ['included', 'excluded'] }).default('excluded'),
+  packagingCost: numeric('packaging_cost', { precision: 10, scale: 2 }),
   estimatedCost: numeric('estimated_cost', { precision: 10, scale: 2 }),
   status: varchar('status', { length: 20, enum: ['pending', 'approved', 'rejected'] }).default('pending').notNull(),
+  adminNotes: text('admin_notes'),
   images: text('images').array().default([]),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

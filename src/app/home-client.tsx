@@ -75,6 +75,23 @@ const FI = (delay = 0) => ({
   transition: { duration: 0.5, delay },
 });
 
+function SectionWave({ fill = '#ffffff', flip = false }: { fill?: string; flip?: boolean }) {
+  return (
+    <div className={cn('w-full overflow-hidden leading-none pointer-events-none select-none', flip && 'rotate-180')}>
+      <svg
+        viewBox="0 0 1440 72"
+        preserveAspectRatio="none"
+        className="w-full h-10 sm:h-14 lg:h-16 block"
+      >
+        <path
+          d="M0,36 C240,72 480,72 720,42 C960,12 1200,12 1440,42 L1440,72 L0,72 Z"
+          fill={fill}
+        />
+      </svg>
+    </div>
+  );
+}
+
 // ─── Data ────────────────────────────────────────────────────────────────────
 const PROMO_ITEMS = [
   '🎉 Grand Opening Sale — Flat 30% OFF on all orders above ₹500',
@@ -1422,10 +1439,10 @@ export function HomeClient({
         {/* ═══════════════════════════════════════════════════════════
             1. HERO SECTION (Agista Lavender/Periwinkle Pattern)
         ═══════════════════════════════════════════════════════════ */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-[#eef3ff] via-[#f4f7ff] to-[#e6eeff] border-b border-blue-100/60 py-10 sm:py-16 lg:py-20">
+        <section className="relative overflow-hidden bg-gradient-to-br from-[#eef3ff] via-[#f4f7ff] to-[#e6eeff] pt-10 sm:pt-16 lg:pt-20 pb-16 sm:pb-24">
           {/* Subtle Ambient Decorative Circles */}
-          <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-[#091642]/5 rounded-full blur-[100px] pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-[450px] h-[450px] bg-[#f07000]/5 rounded-full blur-[90px] pointer-events-none" />
+          <div className="absolute -top-20 -right-20 w-[550px] h-[550px] bg-[#091642]/5 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-10 -left-20 w-[450px] h-[450px] bg-[#f07000]/10 rounded-full blur-[90px] pointer-events-none" />
 
           <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
@@ -1516,6 +1533,10 @@ export function HomeClient({
               </motion.div>
             </div>
           </div>
+
+          <div className="absolute bottom-0 left-0 right-0 z-10">
+            <SectionWave fill="#ffffff" />
+          </div>
         </section>
 
         {/* ═══════════════════════════════════════════════════════════
@@ -1596,7 +1617,7 @@ export function HomeClient({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5 }}
-                className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-[#005c53] via-[#042940] to-[#041f33] p-8 sm:p-10 text-white shadow-xl flex flex-col justify-between min-h-[290px] group border border-emerald-400/30 ring-1 ring-white/10"
+                className="relative rounded-[2.5rem] overflow-hidden bg-gradient-to-r from-[#005c53] via-[#042940] to-[#041f33] p-8 sm:p-10 text-white shadow-xl flex flex-col justify-between min-h-[290px] group border border-emerald-400/30 ring-1 ring-white/10"
               >
                 <div className="relative z-10 max-w-sm space-y-3">
                   <span className="text-xs font-black uppercase tracking-widest bg-white/20 text-emerald-200 px-3.5 py-1 rounded-full backdrop-blur-xs inline-block">
@@ -1734,7 +1755,7 @@ export function HomeClient({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4 }}
-                className="relative rounded-[26px] overflow-hidden bg-gradient-to-br from-[#101935] via-[#091642] to-[#061033] p-7 text-white shadow-xl flex flex-col justify-end min-h-[420px] group border border-white/15 ring-1 ring-white/10"
+                className="relative rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-[#101935] via-[#091642] to-[#061033] p-7 text-white shadow-xl flex flex-col justify-end min-h-[420px] group border border-white/15 ring-1 ring-white/10"
               >
                 {/* Background Lifestyle Image */}
                 <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -1794,10 +1815,10 @@ export function HomeClient({
                       href={prod.id ? `/design/${prod.productSlug}/start?subProductId=${prod.id}` : `/products`}
                       className="group block h-full"
                     >
-                      <div className="bg-white rounded-[26px] p-5 border border-slate-200/90 hover:border-[#091642]/30 shadow-[0_4px_24px_rgba(9,22,66,0.04)] hover:shadow-[0_20px_48px_rgba(9,22,66,0.12)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full relative overflow-hidden">
+                      <div className="bg-white rounded-[2rem] p-5 border border-slate-200/90 hover:border-[#091642]/30 shadow-[0_4px_24px_rgba(9,22,66,0.04)] hover:shadow-[0_20px_48px_rgba(9,22,66,0.12)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full relative overflow-hidden">
 
                         {/* High-Fidelity Studio Pedestal Image */}
-                        <div className="relative aspect-square rounded-[20px] overflow-hidden bg-gradient-to-b from-[#f8fafc] via-[#f1f5f9] to-[#e8edf6] p-4 mb-4 flex items-center justify-center border border-slate-200/70">
+                        <div className="relative aspect-square rounded-[1.5rem] overflow-hidden bg-gradient-to-b from-[#f8fafc] via-[#f1f5f9] to-[#e8edf6] p-4 mb-4 flex items-center justify-center border border-slate-200/70">
                           {img ? (
                             <Image
                               src={img}
@@ -1862,7 +1883,7 @@ export function HomeClient({
                             {specTags.map((spec, sIdx) => (
                               <span
                                 key={sIdx}
-                                className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/70"
+                                className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200/70"
                               >
                                 {spec}
                               </span>
@@ -2291,9 +2312,9 @@ export function HomeClient({
                         href={sp.id ? `/design/${sp.productSlug}/start?subProductId=${sp.id}` : `/design/${sp.productSlug}/start`}
                         className="group block h-full"
                       >
-                        <div className="h-full rounded-[22px] overflow-hidden border border-slate-200/90 bg-white transition-all duration-300 shadow-[0_4px_20px_rgba(9,22,66,0.04)] hover:shadow-[0_20px_40px_rgba(9,22,66,0.12)] hover:border-[#f07000]/40 hover:-translate-y-1.5 flex flex-col justify-between">
+                        <div className="h-full rounded-[2rem] overflow-hidden border border-slate-200/90 bg-white transition-all duration-300 shadow-[0_4px_20px_rgba(9,22,66,0.04)] hover:shadow-[0_20px_40px_rgba(9,22,66,0.12)] hover:border-[#f07000]/40 hover:-translate-y-1.5 flex flex-col justify-between">
                           {/* Image */}
-                          <div className="relative overflow-hidden aspect-square bg-gradient-to-b from-[#f8fafc] to-[#edf2f9] p-3 flex items-center justify-center border-b border-slate-100">
+                          <div className="relative overflow-hidden aspect-square bg-gradient-to-b from-[#f8fafc] to-[#edf2f9] p-4 m-2.5 rounded-[1.5rem] flex items-center justify-center border border-slate-100">
                             {imgUrl ? (
                               <Image
                                 src={imgUrl}
@@ -2380,7 +2401,7 @@ export function HomeClient({
         {/* ═══════════════════════════════════════════════════════════
             SECTION: TRUST BADGES
         ═══════════════════════════════════════════════════════════ */}
-        <section className="py-14 bg-gradient-to-br from-[#091642]/[0.02] via-slate-50 to-white border-y border-slate-200/60">
+        <section className="py-16 bg-gradient-to-br from-[#091642]/[0.02] via-slate-50/80 to-white">
           <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {[
@@ -2418,8 +2439,8 @@ export function HomeClient({
                 },
               ].map((item, i) => (
                 <motion.div key={i} {...FU(i * 0.08)}>
-                  <div className={cn('flex gap-4 p-5 rounded-2xl bg-white border border-slate-200/90 border-l-4 shadow-2xs hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 h-full items-start', item.border)}>
-                    <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs', item.bg)}>
+                  <div className="flex gap-4 p-6 rounded-[2rem] bg-white border border-slate-200/80 shadow-[0_6px_24px_rgba(9,22,66,0.04)] hover:shadow-[0_18px_40px_rgba(9,22,66,0.09)] hover:-translate-y-1 transition-all duration-300 h-full items-start">
+                    <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-2xs', item.bg)}>
                       {item.icon}
                     </div>
                     <div className="space-y-1">
@@ -2438,7 +2459,10 @@ export function HomeClient({
         {/* ═══════════════════════════════════════════════════════════
             SECTION: HOW IT WORKS
         ═══════════════════════════════════════════════════════════ */}
-        <section className="py-16 bg-gradient-to-br from-[#1a1a4e] via-[#464674] to-[#2f2f54] relative overflow-hidden">
+        <section className="pt-20 pb-24 bg-gradient-to-br from-[#1a1a4e] via-[#464674] to-[#2f2f54] relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 z-10">
+            <SectionWave fill="#ffffff" flip />
+          </div>
           <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle, #fff 1.5px, transparent 0)', backgroundSize: '32px 32px' }} />
           <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative z-10">
             <motion.div {...FU()} className="text-center mb-12">
@@ -2461,7 +2485,7 @@ export function HomeClient({
                       <ArrowRight className="w-4 h-4 text-white/30" />
                     </div>
                   )}
-                  <div className="bg-white/[0.08] border border-white/20 backdrop-blur-sm rounded-2xl p-6 flex flex-col items-center text-center gap-4 hover:bg-white/[0.14] hover:border-white/35 transition-all shadow-lg shadow-black/20">
+                  <div className="bg-white/[0.08] border border-white/20 backdrop-blur-sm rounded-[2rem] p-6 flex flex-col items-center text-center gap-4 hover:bg-white/[0.14] hover:border-white/35 transition-all shadow-lg shadow-black/20">
                     <div className="relative">
                       <div className={cn('w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-white shadow-xl', s.col)}>
                         {s.icon}
@@ -2478,6 +2502,10 @@ export function HomeClient({
                 </motion.div>
               ))}
             </div>
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0 z-10">
+            <SectionWave fill="#ffffff" />
           </div>
         </section>
 
@@ -2569,9 +2597,9 @@ export function HomeClient({
         {/* ═══════════════════════════════════════════════════════════
             SECTION: STATS BAND
         ═══════════════════════════════════════════════════════════ */}
-        <section className="py-14 bg-gradient-to-br from-[#1a1a4e]/5 via-[#f7f7fc] to-white border-y border-[#464674]/8">
+        <section className="py-16 bg-gradient-to-br from-[#1a1a4e]/5 via-[#f7f7fc] to-white">
           <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-6 divide-y md:divide-y-0 md:divide-x divide-[#091642]/10">
+            <div className="bg-white/90 rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-[#464674]/10 grid grid-cols-2 md:grid-cols-5 gap-6 divide-y md:divide-y-0 md:divide-x divide-[#091642]/10">
               {[
                 { icon: <ShoppingCart size={22} className="text-[#464674]" />, bg: 'bg-[#464674]/10', val: '10,000+', lbl: 'Orders Completed' },
                 { icon: <Clock size={22} className="text-indigo-600" />, bg: 'bg-indigo-50', val: '2,000+', lbl: 'Verified Printers' },
@@ -2594,7 +2622,7 @@ export function HomeClient({
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-16 sm:py-20 bg-white">
           <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="bg-[#edf2fc] rounded-3xl p-8 sm:p-14 text-center border border-blue-100/80 shadow-xs">
+            <div className="bg-[#edf2fc] rounded-[2.75rem] p-8 sm:p-14 text-center border border-blue-100/80 shadow-xs relative overflow-hidden">
               {/* Header */}
               <div className="space-y-3 mb-12">
                 <h2 className="text-3xl sm:text-4xl font-black text-[#091642] tracking-tight">
@@ -2631,7 +2659,7 @@ export function HomeClient({
                 ].map((item, idx) => (
                   <div
                     key={idx}
-                    className="bg-white rounded-2xl p-6 sm:p-7 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between border border-slate-200/80 hover:border-slate-300 h-full"
+                    className="bg-white rounded-[2rem] p-6 sm:p-7 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between border border-slate-200/80 hover:border-slate-300 h-full"
                   >
                     <div className="space-y-3 flex-1 flex flex-col justify-between">
                       <div>
@@ -2667,7 +2695,7 @@ export function HomeClient({
         ═══════════════════════════════════════════════════════════ */}
         <section className="py-14 bg-white">
           <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="bg-[#091642] rounded-3xl p-8 sm:p-14 text-white shadow-2xl relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8 border border-white/10">
+            <div className="bg-[#091642] rounded-[2.75rem] p-8 sm:p-14 text-white shadow-2xl relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8 border border-white/10">
               {/* Left Column: Heading & Testimonial Quote */}
               <div className="space-y-3 max-w-lg text-left">
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#f07000] bg-white/10 px-3 py-1 rounded-full border border-white/10 shadow-2xs">

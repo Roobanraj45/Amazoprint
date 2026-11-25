@@ -43,9 +43,9 @@ const FOOTER_COLUMNS = [
   {
     heading: 'Portals & Community',
     links: [
-      { label: 'Client Login',     href: '/login' },
+      { label: 'Client Login',     href: '/login?portal=client' },
       { label: 'AP Team Login',    href: '/admin-login' },
-      { label: 'Freelancer Login', href: '/freelancer' },
+      { label: 'Freelancer Login', href: '/login?portal=freelancer' },
       { label: 'Printers Login',   href: '/printer-login' },
     ],
   },
@@ -88,10 +88,23 @@ export function Footer() {
   };
 
   return (
-    <footer className="bg-[#061033] text-slate-300 border-t border-white/10">
+    <footer className="relative bg-[#061033] text-slate-300 overflow-hidden">
+      {/* Smooth Curved Top Wave */}
+      <div className="w-full overflow-hidden leading-none bg-white pointer-events-none select-none">
+        <svg viewBox="0 0 1440 72" preserveAspectRatio="none" className="w-full h-10 sm:h-14 lg:h-16 block">
+          <path
+            d="M0,36 C240,72 480,72 720,42 C960,12 1200,12 1440,42 L1440,72 L0,72 Z"
+            fill="#061033"
+          />
+        </svg>
+      </div>
+
+      {/* Subtle Curved Ambient Glows */}
+      <div className="absolute top-20 -right-24 w-80 h-80 rounded-full bg-purple-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 -left-24 w-80 h-80 rounded-full bg-[#f07000]/10 blur-3xl pointer-events-none" />
 
       {/* ── Main columns ─────────────────────────────────────────────────── */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pt-16 pb-12">
+      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pt-10 pb-12">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 lg:gap-8">
 
           {/* Brand Info (Spans 2 columns on desktop) */}
@@ -196,7 +209,7 @@ export function Footer() {
                 {PAYMENT_METHODS.map((method) => (
                   <span
                     key={method}
-                    className="text-[9px] font-black text-slate-200 bg-white/[0.08] border border-white/20 hover:border-white/40 hover:bg-white/[0.12] transition-colors px-2.5 py-1 rounded-md tracking-wider shadow-2xs"
+                    className="text-[9px] font-black text-slate-200 bg-white/[0.08] border border-white/20 hover:border-white/40 hover:bg-white/[0.14] transition-colors px-3 py-1 rounded-full tracking-wider shadow-2xs"
                   >
                     {method}
                   </span>
@@ -207,17 +220,14 @@ export function Footer() {
         </div>
       </div>
 
-      {/* ── Divider ─────────────────────────────────────────────────────── */}
-      <div className="border-t border-white/10" />
-
-      {/* ── Bottom bar ──────────────────────────────────────────────────── */}
-      <div className="w-full bg-[#040b24] py-6 pb-8 md:pb-6">
-        <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      {/* ── Bottom Rounded Capsule Bar ──────────────────────────────────── */}
+      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-8">
+        <div className="bg-[#040b24]/90 border border-white/10 rounded-[2rem] px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg">
           <p className="text-slate-400 text-xs font-semibold text-center md:text-left">
             © {new Date().getFullYear()} <strong className="text-white">Amazoprint Technologies</strong>. All Rights Reserved. Built for high performance printing.
           </p>
 
-          <div className="flex items-center gap-6 text-xs text-slate-400 font-medium">
+          <div className="flex items-center gap-5 text-xs text-slate-400 font-medium">
             <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="/refund" className="hover:text-white transition-colors">Refund Policy</Link>

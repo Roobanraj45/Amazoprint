@@ -754,16 +754,16 @@ export function StartDesignContent() {
   const currentDisplayImage = thumbnailImages[activeThumbnailIndex] || resolveImagePath(subProduct?.imageUrl || product.imageUrl);
 
   return (
-    <main className="flex-grow pt-32 sm:pt-36 md:pt-40 pb-24 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-indigo-500 selection:text-white">
-        <div className="container mx-auto px-4 sm:px-6 max-w-[1400px] space-y-16">
+    <main className="flex-grow pt-28 sm:pt-32 lg:pt-44 pb-24 bg-gradient-to-b from-purple-50/40 via-white to-slate-50/60 dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-indigo-500 selection:text-white">
+        <div className="container mx-auto px-4 sm:px-6 max-w-[1400px] space-y-10">
           
-          {/* Breadcrumb Navigation */}
-          <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-              <Link href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Home</Link>
+          {/* Breadcrumb Navigation Pill */}
+          <nav className="inline-flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-white/90 dark:bg-slate-900 border border-purple-100 dark:border-slate-800 px-4 py-2 rounded-full shadow-2xs">
+              <Link href="/" className="hover:text-purple-700 dark:hover:text-purple-400 transition-colors">Home</Link>
               <span>›</span>
-              <Link href="/products" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">All Products</Link>
+              <Link href="/products" className="hover:text-purple-700 dark:hover:text-purple-400 transition-colors">All Products</Link>
               <span>›</span>
-              <Link href={`/products#${product.slug}`} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{product.name}</Link>
+              <Link href={`/products#${product.slug}`} className="hover:text-purple-700 dark:hover:text-purple-400 transition-colors">{product.name}</Link>
               {subProduct && (
                   <>
                       <span>›</span>
@@ -772,13 +772,13 @@ export function StartDesignContent() {
               )}
           </nav>
 
-          {/* MAIN SPLIT SECTION: Left (Images & Design Options) | Right (Config & Price Box) */}
+          {/* MAIN SPLIT SECTION: Left (Sticky Preview & Design Options) | Right (Curved Configurator Card) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               
               {/* LEFT COLUMN: Media Viewer & Design It Your Way */}
-              <div className="lg:col-span-6 space-y-6">
-                  {/* Main Product Image Viewer with Flipkart-Style Loupe & Side Zoom Popup */}
-                  <div className="space-y-4">
+              <div className="lg:col-span-5 lg:sticky lg:top-28 space-y-6">
+                  {/* Main Product Image Viewer */}
+                  <div className="bg-white dark:bg-slate-900 rounded-[2.25rem] p-4 sm:p-5 border border-purple-100/80 dark:border-slate-800 shadow-lg shadow-purple-900/5 space-y-4">
                       <div className="aspect-[4/3] relative w-full">
                           {currentDisplayImage ? (
                               <ProductImageZoom
@@ -788,10 +788,10 @@ export function StartDesignContent() {
                                   priority
                                   objectFit="contain"
                                   imageClassName="p-8"
-                                  className="aspect-[4/3] border border-slate-200/80 dark:border-slate-800/80 shadow-md"
+                                  className="aspect-[4/3] rounded-3xl border border-slate-100 dark:border-slate-800/80 shadow-xs"
                               />
                           ) : (
-                              <div className="aspect-[4/3] relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-md flex items-center justify-center">
+                              <div className="aspect-[4/3] relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex items-center justify-center">
                                   <LayoutTemplate className="h-20 w-20 text-slate-300 dark:text-slate-700" />
                               </div>
                           )}
@@ -801,7 +801,7 @@ export function StartDesignContent() {
                       <div className="flex items-center justify-between gap-3">
                           <button 
                               onClick={() => setActiveThumbnailIndex(prev => prev > 0 ? prev - 1 : thumbnailImages.length - 1)}
-                              className="w-10 h-10 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition-all"
+                              className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-900 hover:bg-purple-50 dark:hover:bg-slate-800 shadow-sm transition-all"
                           >
                               <ChevronLeft className="w-5 h-5" />
                           </button>
@@ -967,7 +967,7 @@ export function StartDesignContent() {
               </div>
 
               {/* RIGHT COLUMN: Product Configuration & Price Box */}
-              <div className="lg:col-span-6 space-y-6">
+              <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 border border-purple-100/80 dark:border-slate-800 shadow-xl shadow-purple-900/5 space-y-6">
                   {/* Product Title & Reviews Header */}
                   <div className="space-y-3 pb-5 border-b border-slate-100 dark:border-slate-800">
                       <div className="space-y-1">
@@ -1011,10 +1011,10 @@ export function StartDesignContent() {
                                               type="button"
                                               onClick={() => handleSubProductChange(sp)}
                                               className={cn(
-                                                  "flex-shrink-0 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer",
+                                                  "flex-shrink-0 px-4 py-2 rounded-full border text-xs font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer",
                                                   isSelected
-                                                      ? "border-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-600/20 scale-[1.02]"
-                                                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                                                      ? "border-purple-600 bg-purple-50/80 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 ring-2 ring-purple-600/20 scale-[1.02]"
+                                                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-purple-300"
                                               )}
                                           >
                                               {isSelected && <Check className="w-3.5 h-3.5 stroke-[3] text-indigo-600 dark:text-indigo-400" />}
@@ -1393,17 +1393,17 @@ export function StartDesignContent() {
 
                       {/* 5. Custom Add-ons & Specialty Extras (Multi-Select) */}
                       {availableCustomAddons.length > 0 && (
-                          <div className="space-y-2.5">
+                          <div className="space-y-2.5 rounded-2xl bg-slate-50/60 dark:bg-slate-900/40 p-3.5 border border-slate-100 dark:border-slate-800/80">
                               <div className="flex items-center justify-between">
                                   <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
-                                      <span className="text-purple-600 dark:text-purple-400 font-bold">5.</span> Custom Add-ons & Specialty Extras
+                                      <span className="text-purple-600 dark:text-purple-400 font-bold">5.</span> Custom Add-ons &amp; Specialty Extras
                                   </Label>
-                                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
-                                      Multi-Select Enabled
+                                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800">
+                                      Multi-Select
                                   </span>
                               </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                   {availableCustomAddons.map(addon => {
                                       const isSelected = selectedCustomAddons.includes(addon.id);
                                       const customPrices = (subProduct as any).customAddonPrices || {};
@@ -1416,65 +1416,45 @@ export function StartDesignContent() {
                                               type="button"
                                               onClick={() => toggleCustomAddon(addon.id)}
                                               className={cn(
-                                                  "p-3 rounded-2xl border text-left transition-all relative flex items-start gap-3 shadow-xs group cursor-pointer",
+                                                  "px-3.5 py-2.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-2.5 group cursor-pointer",
                                                   isSelected 
-                                                      ? "border-purple-600 bg-purple-50/70 dark:bg-purple-950/40 ring-2 ring-purple-600/20 shadow-md scale-[1.01]" 
-                                                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                                                      ? "border-purple-600 bg-white dark:bg-purple-950/40 ring-2 ring-purple-600/20 shadow-sm" 
+                                                      : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-purple-300"
                                               )}
                                           >
-                                              {/* Checkbox indicator */}
-                                              <div className={cn(
-                                                  "w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
-                                                  isSelected 
-                                                      ? "bg-purple-600 border-purple-600 text-white shadow-xs" 
-                                                      : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-transparent group-hover:border-slate-400"
-                                              )}>
-                                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                              </div>
-
-                                              {/* Thumbnail Graphic if available */}
-                                              {addon.imageUrl ? (
-                                                  <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden relative shrink-0 border border-slate-200 dark:border-slate-800 p-1">
-                                                      <img 
-                                                          src={resolveImagePath(addon.imageUrl)} 
-                                                          alt={addon.name} 
-                                                          className="w-full h-full object-contain"
-                                                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                                      />
+                                              <div className="flex items-center gap-2.5 min-w-0">
+                                                  <div className={cn(
+                                                      "w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors",
+                                                      isSelected 
+                                                          ? "bg-purple-600 border-purple-600 text-white" 
+                                                          : "border-slate-300 dark:border-slate-700 bg-slate-50 text-transparent group-hover:border-slate-400"
+                                                  )}>
+                                                      <Check className="w-3 h-3 stroke-[3]" />
                                                   </div>
-                                              ) : (
-                                                  <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/50 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
-                                                      <Sparkles className="w-5 h-5" />
-                                                  </div>
-                                              )}
 
-                                              <div className="flex-1 min-w-0">
-                                                  <div className="flex items-center justify-between gap-1">
-                                                      <span className={cn(
-                                                          "text-xs font-bold truncate",
-                                                          isSelected ? "text-purple-900 dark:text-purple-200" : "text-slate-900 dark:text-white"
+                                                  <div className="min-w-0">
+                                                      <p className={cn(
+                                                          "text-xs font-bold leading-snug",
+                                                          isSelected ? "text-purple-950 dark:text-purple-200" : "text-slate-900 dark:text-white"
                                                       )}>
                                                           {addon.name}
-                                                      </span>
-                                                      <Badge variant="outline" className={cn(
-                                                          "text-[10px] font-black shrink-0 px-1.5 py-0.5 rounded-md",
-                                                          isSelected 
-                                                              ? "bg-purple-600 text-white border-purple-600" 
-                                                              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-                                                      )}>
-                                                          {price > 0 ? (isFixed ? `+₹${price}` : `+₹${price}/unit`) : 'Included'}
-                                                      </Badge>
+                                                      </p>
+                                                      {addon.description && (
+                                                          <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 leading-tight mt-0.5">
+                                                              {addon.description}
+                                                          </p>
+                                                      )}
                                                   </div>
-                                                  {addon.description ? (
-                                                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5 font-normal">
-                                                          {addon.description}
-                                                      </p>
-                                                  ) : (
-                                                      <p className="text-[10px] text-slate-400 italic mt-0.5">
-                                                          {isFixed ? 'Fixed order add-on' : 'Custom finishing per piece'}
-                                                      </p>
-                                                  )}
                                               </div>
+
+                                              <Badge variant="outline" className={cn(
+                                                  "text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full",
+                                                  isSelected 
+                                                      ? "bg-purple-600 text-white border-purple-600" 
+                                                      : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                                              )}>
+                                                  {price > 0 ? (isFixed ? `+₹${price}` : `+₹${price}/unit`) : 'Included'}
+                                              </Badge>
                                           </button>
                                       );
                                   })}
@@ -1488,7 +1468,7 @@ export function StartDesignContent() {
                           const currentSelected = selectedSectionAddons[sec.id] || [];
 
                           return (
-                              <div key={sec.id || secIdx} className="space-y-2.5">
+                              <div key={sec.id || secIdx} className="space-y-2.5 rounded-2xl bg-slate-50/60 dark:bg-slate-900/40 p-3.5 border border-slate-100 dark:border-slate-800/80">
                                   <div className="flex items-center justify-between">
                                       <Label className="text-xs font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 uppercase">
                                           <span className="text-violet-600 dark:text-violet-400 font-bold">{sec.title}</span>
@@ -1510,7 +1490,7 @@ export function StartDesignContent() {
                                       </div>
                                   </div>
 
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                                       {(sec.items || []).map((item: any) => {
                                           const isSelected = currentSelected.includes(item.id);
                                           const price = Number(item.price || 0);
@@ -1522,70 +1502,50 @@ export function StartDesignContent() {
                                                   type="button"
                                                   onClick={() => handleToggleSectionItem(sec, item)}
                                                   className={cn(
-                                                      "p-3 rounded-2xl border text-left transition-all relative flex items-start gap-3 shadow-xs group cursor-pointer",
+                                                      "px-3 py-2.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-2 group cursor-pointer",
                                                       isSelected 
-                                                          ? "border-violet-600 bg-violet-50/70 dark:bg-violet-950/40 ring-2 ring-violet-600/20 shadow-md scale-[1.01]" 
-                                                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                                                          ? "border-violet-600 bg-white dark:bg-violet-950/40 ring-2 ring-violet-600/20 shadow-sm" 
+                                                          : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-violet-300"
                                                   )}
                                               >
-                                                  {/* Radio or Checkbox indicator */}
-                                                  <div className={cn(
-                                                      "w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 transition-colors",
-                                                      isSingle ? "rounded-full border" : "rounded-lg border",
-                                                      isSelected 
-                                                          ? "bg-violet-600 border-violet-600 text-white shadow-xs" 
-                                                          : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-transparent group-hover:border-slate-400"
-                                                  )}>
-                                                      {isSingle ? (
-                                                          <div className={cn("w-2 h-2 rounded-full", isSelected ? "bg-white" : "bg-transparent")} />
-                                                      ) : (
-                                                          <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                                      )}
-                                                  </div>
-
-                                                  {/* Thumbnail Graphic if available */}
-                                                  {item.imageUrl ? (
-                                                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden relative shrink-0 border border-slate-200 dark:border-slate-800 p-1">
-                                                          <img 
-                                                              src={resolveImagePath(item.imageUrl)} 
-                                                              alt={item.name} 
-                                                              className="w-full h-full object-contain"
-                                                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                                          />
+                                                  <div className="flex items-center gap-2 min-w-0">
+                                                      <div className={cn(
+                                                          "w-4 h-4 flex items-center justify-center shrink-0 transition-colors",
+                                                          isSingle ? "rounded-full border" : "rounded-md border",
+                                                          isSelected 
+                                                              ? "bg-violet-600 border-violet-600 text-white" 
+                                                              : "border-slate-300 dark:border-slate-700 bg-slate-50 text-transparent group-hover:border-slate-400"
+                                                      )}>
+                                                          {isSingle ? (
+                                                              <div className={cn("w-1.5 h-1.5 rounded-full", isSelected ? "bg-white" : "bg-transparent")} />
+                                                          ) : (
+                                                              <Check className="w-3 h-3 stroke-[3]" />
+                                                          )}
                                                       </div>
-                                                  ) : (
-                                                      <div className="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/50 flex items-center justify-center text-violet-600 dark:text-violet-400 shrink-0">
-                                                          <Layers className="w-5 h-5" />
-                                                      </div>
-                                                  )}
 
-                                                  <div className="flex-1 min-w-0">
-                                                      <div className="flex items-center justify-between gap-1">
-                                                          <span className={cn(
-                                                              "text-xs font-bold truncate",
-                                                              isSelected ? "text-violet-900 dark:text-violet-200" : "text-slate-900 dark:text-white"
+                                                      <div className="min-w-0">
+                                                          <p className={cn(
+                                                              "text-xs font-bold leading-snug",
+                                                              isSelected ? "text-violet-950 dark:text-violet-200" : "text-slate-900 dark:text-white"
                                                           )}>
                                                               {item.name}
-                                                          </span>
-                                                          <Badge variant="outline" className={cn(
-                                                              "text-[10px] font-black shrink-0 px-1.5 py-0.5 rounded-md",
-                                                              isSelected 
-                                                                  ? "bg-violet-600 text-white border-violet-600" 
-                                                                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-                                                          )}>
-                                                              {price > 0 ? (isFixed ? `+₹${price}` : `+₹${price}/unit`) : 'Included'}
-                                                          </Badge>
+                                                          </p>
+                                                          {item.description && (
+                                                              <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 leading-tight mt-0.5">
+                                                                  {item.description}
+                                                              </p>
+                                                          )}
                                                       </div>
-                                                      {item.description ? (
-                                                          <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5 font-normal">
-                                                              {item.description}
-                                                          </p>
-                                                      ) : (
-                                                          <p className="text-[10px] text-slate-400 italic mt-0.5">
-                                                              {isFixed ? 'Fixed flat fee' : 'Per unit rate'}
-                                                          </p>
-                                                      )}
                                                   </div>
+
+                                                  <Badge variant="outline" className={cn(
+                                                      "text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full",
+                                                      isSelected 
+                                                          ? "bg-violet-600 text-white border-violet-600" 
+                                                          : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                                                  )}>
+                                                      {price > 0 ? (isFixed ? `+₹${price}` : `+₹${price}/unit`) : 'Included'}
+                                                  </Badge>
                                               </button>
                                           );
                                       })}
@@ -1613,7 +1573,7 @@ export function StartDesignContent() {
                                       type="button"
                                       onClick={() => setPages('1')}
                                       className={cn(
-                                          "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
+                                          "py-2.5 px-4 rounded-full border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
                                           pages === '1' ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
                                       )}
                                   >
@@ -1624,7 +1584,7 @@ export function StartDesignContent() {
                                       type="button"
                                       onClick={() => setPages('2')}
                                       className={cn(
-                                          "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
+                                          "py-2.5 px-4 rounded-full border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
                                           pages === '2' ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
                                       )}
                                   >
@@ -1636,7 +1596,7 @@ export function StartDesignContent() {
                                           type="button"
                                           onClick={() => setPages(String(subProduct.maxPages))}
                                           className={cn(
-                                              "py-2.5 px-3 rounded-2xl border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
+                                              "py-2.5 px-4 rounded-full border text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm",
                                               Number(pages) > 2 ? "border-slate-900 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow ring-2 ring-slate-900/10 dark:ring-white/10 scale-[1.02]" : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300"
                                           )}
                                       >
@@ -1830,7 +1790,7 @@ export function StartDesignContent() {
                   </div>
 
                   {/* Price Box Container */}
-                  <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-5">
+                  <div className="p-6 rounded-[2rem] bg-gradient-to-br from-purple-50/80 via-white to-indigo-50/70 dark:bg-slate-900 border border-purple-200/80 dark:border-slate-800/80 shadow-md space-y-5">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-5 border-b border-slate-200 dark:border-slate-800">
                           <div>
                               <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Estimated Price</p>

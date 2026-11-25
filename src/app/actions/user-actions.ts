@@ -44,6 +44,27 @@ export async function updateUserStatus(data: z.infer<typeof userStatusSchema>) {
     return { success: true };
 }
 
+const freelancerApprovalSchema = z.object({
+  userId: z.string().uuid(),
+  approvalStatus: z.enum(['pending', 'approved', 'rejected']),
+});
+
+export async function updateFreelancerApproval(data: z.infer<typeof freelancerApprovalSchema>) {
+    await verifyAdmin();
+    const validated = freelancerApprovalSchema.parse(data);
+
+    await db.update(users)
+        .set({
+            approvalStatus: validated.approvalStatus,
+            isActive: validated.approvalStatus === 'approved',
+            updatedAt: new Date(),
+        })
+        .where(eq(users.id, validated.userId));
+
+    revalidatePath('/admin/users');
+    return { success: true };
+}
+
 export async function getUserRole() {
   const session = await getAuthSession();
   return session?.role;
