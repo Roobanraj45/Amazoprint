@@ -10,7 +10,6 @@ const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1, 'Password is required'),
   keepLoggedIn: z.boolean().optional(),
-  portal: z.enum(['client', 'freelancer']).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -22,67 +21,53 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
-    const { email, password, keepLoggedIn, portal } = parsed.data;
-    const normalizedEmail = email.toLowerCase();
+    const { email, password, keepLoggedIn } = parsed.data;
 
+    let user: { id: string; role: string; name: string; passwordHash: string } | null = null;
+
+    // 1. Check primary users table (customers, freelancers)
     const dbUser = await db.query.users.findFirst({
-      where: eq(users.email, normalizedEmail),
+      where: eq(users.email, email.toLowerCase()),
     });
 
-    if (!dbUser) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    if (dbUser) {
+      user = { id: dbUser.id, role: dbUser.role, name: dbUser.name, passwordHash: dbUser.passwordHash };
+    } else {
+      // 2. Check admins table
+      const { admins } = await import('@/db/schema');
+      const dbAdmin = await db.query.admins.findFirst({
+        where: eq(admins.email, email.toLowerCase()),
+      });
+
+      if (dbAdmin) {
+        user = { id: dbAdmin.id, role: dbAdmin.role, name: dbAdmin.name, passwordHash: dbAdmin.passwordHash };
+      } else {
+        // 3. Check print press users
+        const { printPressUsers } = await import('@/db/schema');
+        const dbPrinter = await db.query.printPressUsers.findFirst({
+          where: eq(printPressUsers.email, email.toLowerCase()),
+        });
+
+        if (dbPrinter) {
+          user = { id: dbPrinter.id, role: 'printer', name: dbPrinter.fullName, passwordHash: dbPrinter.passwordHash };
+        }
+      }
     }
 
-    if (portal === 'client' && dbUser.role !== 'user') {
-      return NextResponse.json(
-        { error: 'This account is registered as a Freelancer. Please use Freelancer Login.' },
-        { status: 403 }
-      );
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    if (portal === 'freelancer' && dbUser.role !== 'freelancer') {
-      return NextResponse.json(
-        { error: 'This account is registered as a Client. Please use Client Login.' },
-        { status: 403 }
-      );
-    }
+    const passwordsMatch = await bcrypt.compare(password, user.passwordHash);
 
-    if (dbUser.isActive === false) {
-      return NextResponse.json(
-        { error: 'Your account has been deactivated. Please contact support.' },
-        { status: 403 }
-      );
-    }
-
-    if (!dbUser.emailVerified) {
-      return NextResponse.json(
-        { error: 'Please verify your email address before logging in.' },
-        { status: 403 }
-      );
-    }
-
-    if (dbUser.role === 'freelancer' && dbUser.approvalStatus === 'pending') {
-      return NextResponse.json(
-        { error: 'Your freelancer profile is pending admin verification.' },
-        { status: 403 }
-      );
-    }
-
-    if (dbUser.role === 'freelancer' && dbUser.approvalStatus === 'rejected') {
-      return NextResponse.json(
-        { error: 'Your freelancer application was not approved. Please contact support.' },
-        { status: 403 }
-      );
-    }
-
-    const passwordsMatch = await bcrypt.compare(password, dbUser.passwordHash);
     if (!passwordsMatch) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    await createSession(dbUser.id, dbUser.role, dbUser.name, !!keepLoggedIn);
+    await createSession(user.id, user.role, user.name, !!keepLoggedIn);
 
-    return NextResponse.json({ success: true, role: dbUser.role }, { status: 200 });
+    return NextResponse.json({ success: true, role: user.role }, { status: 200 });
+
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'An internal error occurred' }, { status: 500 });

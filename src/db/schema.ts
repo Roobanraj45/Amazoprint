@@ -1173,7 +1173,7 @@ export const printPriceLists = pgTable('print_price_lists', {
   id: uuid('id').defaultRandom().primaryKey(),
   printPressUserId: uuid('print_press_user_id').notNull().references(() => printPressUsers.id, { onDelete: 'cascade' }),
   catalogName: varchar('catalog_name', { length: 255 }),
-  imageUrl: text('image_url').notNull(),
+  imageUrl: text('image_url'),
   categoryName: varchar('category_name', { length: 255 }).notNull(),
   subCategory: varchar('sub_category', { length: 255 }),
   productName: varchar('product_name', { length: 255 }).notNull(),
@@ -1187,6 +1187,21 @@ export const printPriceLists = pgTable('print_price_lists', {
   qty500: numeric('qty_500', { precision: 12, scale: 2 }),
   qty1000: numeric('qty_1000', { precision: 12, scale: 2 }),
   qty5000: numeric('qty_5000', { precision: 12, scale: 2 }),
+  specColumns: jsonb('spec_columns').$type<Array<{ name: string; value: string }>>().default([]),
+  quantityTiers: jsonb('quantity_tiers').$type<
+    Array<{
+      quantity: number;
+      singleSidePrice: string;
+      doubleSidePrice: string;
+      workingDays: string;
+      hsnCode: string;
+      gstPercentage: string;
+    }>
+  >().default([]),
+  shippingType: varchar('shipping_type', { length: 20, enum: ['included', 'excluded'] }).default('excluded'),
+  packagingCost: numeric('packaging_cost', { precision: 10, scale: 2 }),
+  approvalStatus: varchar('approval_status', { length: 20, enum: ['pending', 'approved', 'rejected'] }).default('pending').notNull(),
+  adminNotes: text('admin_notes'),
   currency: varchar('currency', { length: 10 }).default('INR'),
   isGlossy: boolean('is_glossy').default(false),
   isMatt: boolean('is_matt').default(false),

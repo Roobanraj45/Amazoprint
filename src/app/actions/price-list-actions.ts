@@ -7,10 +7,24 @@ import { eq, desc, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 
+const specColumnSchema = z.object({
+    name: z.string().trim().min(1),
+    value: z.string().trim().default(''),
+});
+
+const quantityTierSchema = z.object({
+    quantity: z.coerce.number().int().positive(),
+    singleSidePrice: z.string().trim().default(''),
+    doubleSidePrice: z.string().trim().default(''),
+    workingDays: z.string().trim().default(''),
+    hsnCode: z.string().trim().default(''),
+    gstPercentage: z.string().trim().default(''),
+});
+
 const priceListItemSchema = z.object({
     id: z.string().uuid().optional(),
     catalogName: z.string().max(255).nullable().optional(),
-    imageUrl: z.string().min(1, 'Catalog image is required'),
+    imageUrl: z.string().optional().default(''),
     categoryName: z.string().min(1, 'Category name is required').max(255),
     subCategory: z.string().max(255).nullable().optional(),
     productName: z.string().min(1, 'Product name is required').max(255),
@@ -33,6 +47,13 @@ const priceListItemSchema = z.object({
         z.number().min(0).nullable().optional()
     ),
     qty5000: z.preprocess(
+        (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+        z.number().min(0).nullable().optional()
+    ),
+    specColumns: z.array(specColumnSchema).optional(),
+    quantityTiers: z.array(quantityTierSchema).optional(),
+    shippingType: z.enum(['included', 'excluded']).default('excluded').optional(),
+    packagingCost: z.preprocess(
         (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
         z.number().min(0).nullable().optional()
     ),
@@ -73,6 +94,11 @@ export async function savePriceListItem(data: z.infer<typeof priceListItemSchema
         qty500: validated.qty500 ? String(validated.qty500) : null,
         qty1000: validated.qty1000 ? String(validated.qty1000) : null,
         qty5000: validated.qty5000 ? String(validated.qty5000) : null,
+        specColumns: validated.specColumns || [],
+        quantityTiers: validated.quantityTiers || [],
+        shippingType: validated.shippingType || 'excluded',
+        packagingCost: validated.packagingCost !== undefined && validated.packagingCost !== null ? String(validated.packagingCost) : null,
+        approvalStatus: 'pending' as const,
         currency: validated.currency,
         isGlossy: validated.isGlossy,
         isMatt: validated.isMatt,

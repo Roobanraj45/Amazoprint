@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { savePriceListItem, deletePriceListItem } from "@/app/actions/price-list-actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -289,14 +290,19 @@ export function PriceListClient({ initialPriceList }: PriceListClientProps) {
                         </p>
                     </div>
 
-                    <div>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <Button asChild className="rounded-xl h-11 bg-[#f07000] hover:bg-[#d96500] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-orange-500/20 gap-2 px-5">
+                            <Link href="/printer/price-list/new">
+                                <Plus size={16} /> Add Product Spec Sheet
+                            </Link>
+                        </Button>
                         <Dialog open={isDialogOpen} onOpenChange={(open) => {
                             if (!open) resetForm();
                             setIsDialogOpen(open);
                         }}>
                             <DialogTrigger asChild>
-                                <Button className="rounded-xl h-11 bg-primary hover:bg-primary/95 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-primary/20 gap-2 px-5">
-                                    <Plus size={16} /> Add Price Item
+                                <Button variant="outline" className="rounded-xl h-11 bg-white/10 hover:bg-white/20 text-white border-white/20 font-bold text-xs uppercase tracking-wider gap-2 px-5">
+                                    <ImageIcon size={16} /> Upload Catalog Image
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[500px] overflow-y-auto bg-slate-900 text-white border-slate-800 rounded-3xl p-6 no-scrollbar">
